@@ -77,8 +77,6 @@ experimental = false
 minimum-version = "0.5.0"
 # Handle macOS universal wheels
 wheel.expand-macos-universal-tags = true
-# Use multiple cores for building
-build.jobs = "auto"
 # Make sure sdist contains all necessary files
 sdist.exclude = ["build", "dist", "_skbuild", "**/__pycache__", "**/*.pyc", ".git"]
 

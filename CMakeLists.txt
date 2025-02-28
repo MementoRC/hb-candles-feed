@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.21.0)
 project(candles_feed LANGUAGES C CXX)
 
+# Add the current directory to the module path so FindCython.cmake can be found
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+
 # Find required packages
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(Cython REQUIRED)
@@ -17,29 +20,15 @@ else()
     add_compile_options(-Wall -O3 -fPIC)
 endif()
 
-# Function to compile Python modules with Cython decorators
+# Simplified approach - just use the cython_builder script instead of trying to 
+# check each file individually with cython.inline
 function(register_cython_modules package_dir)
-    file(GLOB_RECURSE PY_FILES "${package_dir}/*.py")
-    
-    # Process each Python file for Cython compilation
-    foreach(PY_FILE ${PY_FILES})
-        # Extract relative path from package directory
-        file(RELATIVE_PATH REL_PY_FILE ${package_dir} ${PY_FILE})
-        
-        # Construct the module name from the Python file path
-        string(REPLACE "/" "." MODULE_PATH ${REL_PY_FILE})
-        string(REPLACE ".py" "" MODULE_NAME ${MODULE_PATH})
-        
-        # Run Cython to check if file has decorators that need compilation
-        add_custom_target(cythonize_check_${MODULE_NAME} ALL
-            COMMAND ${Python_EXECUTABLE} -m cython.inline "import sys; from Cython.Build.Dependencies import cythonize_one; sys.exit(0 if cythonize_one('${PY_FILE}', True) else 1)"
-            BYPRODUCTS "${PY_FILE}.c"
-            DEPENDS ${PY_FILE}
-            COMMENT "Checking if ${PY_FILE} needs Cython compilation"
-            # Only attempt to compile if Cython finds decorators
-            ERROR_QUIET
-        )
-    endforeach()
+    # Create a custom target that will process the entire package
+    add_custom_target(build_cython_package ALL
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cython_builder.py ${package_dir}
+        COMMENT "Building Cython modules with decorators in ${package_dir}"
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cython_builder.py
+    )
 endfunction()
 
 # Register Python modules for Cython compilation
@@ -54,9 +43,5 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/candles_feed
         PATTERN "__pycache__" EXCLUDE
 )
 
-# Create a custom target that builds any Cython-decorated files
-add_custom_target(build_cython_modules ALL
-    COMMAND ${Python_EXECUTABLE} -m cython_builder ${CMAKE_CURRENT_SOURCE_DIR}/candles_feed
-    COMMENT "Building Cython modules with decorators"
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cython_builder.py
-)
+# We've already set up the Cython build in the register_cython_modules function,
+# so we don't need this duplicate target.
