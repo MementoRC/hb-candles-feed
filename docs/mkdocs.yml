@@ -1,0 +1,64 @@
+site_name: Candles Feed Documentation
+site_description: 'Documentation for the Candles Feed framework'
+site_author: 'Hummingbot Team'
+
+repo_name: 'hummingbot/hummingbot'
+repo_url: 'https://github.com/hummingbot/hummingbot'
+
+theme:
+  name: 'material'
+  palette:
+    primary: 'blue'
+    accent: 'blue'
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.smartsymbols
+  - pymdownx.tasklist
+  - pymdownx.emoji
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting_started/installation.md
+    - Quick Start: getting_started/quick_start.md
+  - Adapters:
+    - Overview: adapters/overview.md
+    - Implementation: adapters/implementation.md
+    - REST API: adapters/rest_api.md
+    - WebSocket: adapters/websocket.md
+    - Testing: adapters/testing.md
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          selection:
+            docstring_style: google
+          rendering:
+            show_source: true
+  - git-revision-date-localized

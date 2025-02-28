@@ -1,0 +1,14 @@
+include LICENSE
+include README.md
+include CMakeLists.txt
+include pyproject.toml
+include setup.py
+include cython_builder.py
+include pytest.ini
+include requirements.txt
+recursive-include docs *
+recursive-include candles_feed *.py *.pyx *.pxd *.h *.c *.cpp
+recursive-exclude tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.so
