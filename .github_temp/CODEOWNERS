@@ -1,7 +1,0 @@
-# These owners will be the default owners for everything in the repo
-* @hummingbot/core-dev
-
-# Ownership of specific directories or files
-/candles_feed/adapters/ @hummingbot/exchange-connectors
-/candles_feed/core/ @hummingbot/core-dev
-/.github/ @hummingbot/devops
