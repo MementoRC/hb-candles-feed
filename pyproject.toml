@@ -83,6 +83,13 @@ sdist.exclude = ["build", "dist", "_skbuild", "**/__pycache__", "**/*.pyc", ".gi
 [tool.ruff]
 target-version = "py38"
 line-length = 100
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "F",   # pyflakes
@@ -98,18 +105,14 @@ select = [
 ignore = [
     "E203",  # whitespace before ':'
     "E501",  # line too long - handled by formatter
+    "F401",  # unused imports - we'll address these gradually
 ]
 unfixable = ["F401"]  # unused imports - let the developer decide
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "auto"
-
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["candles_feed"]
 
-[tool.ruff.flake8-quotes]
+[tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
 
 [tool.mypy]

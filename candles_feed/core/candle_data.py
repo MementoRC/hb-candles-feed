@@ -10,10 +10,10 @@ from typing import ClassVar, List, Union
 @dataclass
 class CandleData:
     """Standardized candle data representation.
-    
+
     This class provides a structured and type-safe representation of candle data
     with automatic timestamp normalization.
-    
+
     Attributes:
         timestamp: The candle timestamp in seconds
         open: Opening price
@@ -27,7 +27,7 @@ class CandleData:
         taker_buy_quote_volume: Quote asset volume from taker buys (optional)
     """
     timestamp_raw: InitVar[Union[int, float, str, datetime]]
-    
+
     timestamp: int = field(init=False)
     open: float
     high: float
@@ -38,7 +38,7 @@ class CandleData:
     n_trades: int = 0
     taker_buy_base_volume: float = 0.0
     taker_buy_quote_volume: float = 0.0
-    
+
     _timestamp_keys: ClassVar[tuple[str, ...]] = ('timestamp', 'time', 't')
     _price_keys: ClassVar[dict[str, tuple[str, ...]]] = {
         'open': ('open', 'o'),
@@ -47,25 +47,25 @@ class CandleData:
         'close': ('close', 'c'),
         'volume': ('volume', 'v'),
     }
-    
+
     def __post_init__(self, timestamp_raw: Union[int, float, str, datetime]) -> None:
         """Convert timestamp to integer seconds after initialization.
-        
+
         Args:
             timestamp_raw: Raw timestamp input in various formats
         """
         self.timestamp = self._normalize_timestamp(timestamp_raw)
-    
+
     @staticmethod
     def _normalize_timestamp(ts: Union[int, float, str, datetime]) -> int:
         """Convert various timestamp formats to integer seconds.
-        
+
         Args:
             ts: Timestamp in various formats
-            
+
         Returns:
             Timestamp as integer seconds
-            
+
         Raises:
             ValueError: If timestamp cannot be converted
         """
@@ -100,24 +100,24 @@ class CandleData:
             return CandleData.to_utc_seconds(ts)
         else:
             raise ValueError(f"Unsupported timestamp type: {type(ts)}")
-    
+
     @staticmethod
     def to_utc_seconds(dt: datetime) -> int:
         """Convert datetime to UTC timestamp in seconds.
-        
+
         Args:
             dt: Datetime to convert
-            
+
         Returns:
             UTC timestamp in seconds
         """
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return int(dt.astimezone(timezone.utc).timestamp())
-    
+
     def to_array(self) -> List[float]:
         """Convert to array format for backward compatibility.
-        
+
         Returns:
             List of candle values
         """
@@ -133,14 +133,14 @@ class CandleData:
             self.taker_buy_base_volume,
             self.taker_buy_quote_volume
         ]
-    
+
     @classmethod
     def from_array(cls, data: List[float]) -> 'CandleData':
         """Create from array format for backward compatibility.
-        
+
         Args:
             data: Array of candle values
-            
+
         Returns:
             CandleData instance
         """
@@ -156,17 +156,17 @@ class CandleData:
             taker_buy_base_volume=data[8],
             taker_buy_quote_volume=data[9]
         )
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> 'CandleData':
         """Create CandleData from a dictionary.
-        
+
         Args:
             data: Dictionary containing candle data
-            
+
         Returns:
             CandleData instance
-            
+
         Raises:
             ValueError: If required fields are missing or invalid
         """

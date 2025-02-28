@@ -52,15 +52,15 @@ def mock_websocket_assistant():
     ws.connect = AsyncMock()
     ws.disconnect = AsyncMock()
     ws.send = AsyncMock()
-    
+
     # Setup async iterator for iter_messages
     async def mock_iter_messages():
         # This empty generator allows tests to override it as needed
         if False:
             yield
-            
+
     ws.iter_messages = mock_iter_messages
-    
+
     return ws
 
 
@@ -72,7 +72,7 @@ def mock_network_client(mock_throttler, mock_websocket_assistant):
     client.get_rest_data = AsyncMock()
     client.establish_ws_connection = AsyncMock(return_value=mock_websocket_assistant)
     client.send_ws_message = AsyncMock()
-    
+
     return client
 
 
@@ -80,12 +80,12 @@ def mock_network_client(mock_throttler, mock_websocket_assistant):
 def mock_adapter():
     """Create a mock adapter for testing."""
     adapter = MagicMock(spec=CandleDataAdapter)
-    
+
     # Setup basic methods
     adapter.get_trading_pair_format.return_value = "BTCUSDT"
     adapter.get_rest_url.return_value = "https://api.example.com/candles"
     adapter.get_ws_url.return_value = "wss://ws.example.com"
-    
+
     # Setup intervals
     adapter.get_supported_intervals.return_value = {
         "1s": 1,
@@ -97,21 +97,21 @@ def mock_adapter():
         "1d": 86400
     }
     adapter.get_ws_supported_intervals.return_value = ["1m", "5m", "15m", "1h"]
-    
+
     # Setup request params
     adapter.get_rest_params.return_value = {
         "symbol": "BTCUSDT",
         "interval": "1m",
         "limit": 1000
     }
-    
+
     # Setup subscription payload
     adapter.get_ws_subscription_payload.return_value = {
         "method": "SUBSCRIBE",
         "params": ["btcusdt@kline_1m"],
         "id": 1
     }
-    
+
     return adapter
 
 
@@ -136,7 +136,7 @@ def sample_candle_data():
 def sample_candles() -> List[CandleData]:
     """Create a list of sample candles for testing."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-    
+
     return [
         CandleData(
             timestamp_raw=base_time,
@@ -177,7 +177,7 @@ def sample_candles() -> List[CandleData]:
 def candlestick_response_binance():
     """Create a sample Binance REST API response."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Binance uses milliseconds
-    
+
     return [
         [
             base_time,
@@ -214,7 +214,7 @@ def candlestick_response_binance():
 def websocket_message_binance():
     """Create a sample Binance WebSocket message."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Binance uses milliseconds
-    
+
     return {
         "e": "kline",
         "E": base_time + 100,
@@ -245,7 +245,7 @@ def websocket_message_binance():
 def candlestick_response_bybit():
     """Create a sample Bybit REST API response."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Bybit uses milliseconds
-    
+
     return {
         "retCode": 0,
         "retMsg": "OK",
@@ -279,7 +279,7 @@ def candlestick_response_bybit():
 def websocket_message_bybit():
     """Create a sample Bybit WebSocket message."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Bybit uses milliseconds
-    
+
     return {
         "topic": "kline.1m.BTCUSDT",
         "data": [
@@ -306,7 +306,7 @@ def websocket_message_bybit():
 def candlestick_response_coinbase():
     """Create a sample Coinbase REST API response."""
     base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
-    
+
     return {
         "candles": [
             {
@@ -333,7 +333,7 @@ def candlestick_response_coinbase():
 def websocket_message_coinbase():
     """Create a sample Coinbase WebSocket message."""
     base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
-    
+
     return {
         "channel": "candles",
         "client_id": "test-client",
@@ -361,7 +361,7 @@ def websocket_message_coinbase():
 def candlestick_response_kraken():
     """Create a sample Kraken REST API response."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-    
+
     return {
         "error": [],
         "result": {
@@ -394,7 +394,7 @@ def candlestick_response_kraken():
 def websocket_message_kraken():
     """Create a sample Kraken WebSocket message."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-    
+
     return {
         "channelID": 42,
         "channelName": "ohlc-1",
@@ -406,7 +406,7 @@ def websocket_message_kraken():
                 "50500.0",
                 "51000.0",
                 "49000.0",
-                "50500.0", 
+                "50500.0",
                 "100.0",
                 base_time + 60,
                 "5000000.0"
@@ -419,7 +419,7 @@ def websocket_message_kraken():
 def candlestick_response_kucoin():
     """Create a sample KuCoin REST API response."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-    
+
     return {
         "code": "200000",
         "data": {
@@ -452,7 +452,7 @@ def candlestick_response_kucoin():
 def websocket_message_kucoin():
     """Create a sample KuCoin WebSocket message."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-    
+
     return {
         "type": "message",
         "topic": "/market/candles:BTC-USDT_1min",
@@ -477,7 +477,7 @@ def websocket_message_kucoin():
 def candlestick_response_okx():
     """Create a sample OKX REST API response."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # OKX uses milliseconds
-    
+
     return {
         "code": "0",
         "msg": "",
@@ -508,7 +508,7 @@ def candlestick_response_okx():
 def websocket_message_okx():
     """Create a sample OKX WebSocket message."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # OKX uses milliseconds
-    
+
     return {
         "arg": {
             "channel": "candle1m",

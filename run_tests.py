@@ -36,17 +36,17 @@ def parse_args():
 def run_tests(args):
     """Run tests based on arguments."""
     cmd = ["pytest", "-v"]
-    
+
     # Add coverage if requested
     if args.cov:
         cmd.extend(["--cov=candles_feed", "--cov-report=term"])
         if args.html:
             cmd.append("--cov-report=html")
-    
+
     # Add HTML report if requested
     if args.html and not args.cov:
         cmd.append("--html=report.html")
-    
+
     # Determine which tests to run
     if args.all:
         # Run all tests
@@ -62,7 +62,7 @@ def run_tests(args):
     else:
         # Default: run unit tests
         cmd.append("tests/unit/")
-    
+
     # Run the tests
     process = subprocess.run(cmd)
     return process.returncode

@@ -11,7 +11,7 @@ from candles_feed.core.candle_data import CandleData
 
 class TestCandleData:
     """Test suite for the CandleData class."""
-    
+
     def test_initialization_with_integer_timestamp(self):
         """Test initialization with timestamp as integer."""
         timestamp = 1622505600
@@ -23,7 +23,7 @@ class TestCandleData:
             close=50500.0,
             volume=100.0
         )
-        
+
         assert candle.timestamp == timestamp
         assert candle.open == 50000.0
         assert candle.high == 51000.0
@@ -35,7 +35,7 @@ class TestCandleData:
         assert candle.n_trades == 0
         assert candle.taker_buy_base_volume == 0.0
         assert candle.taker_buy_quote_volume == 0.0
-    
+
     def test_initialization_with_all_fields(self):
         """Test initialization with all fields specified."""
         timestamp = 1622505600
@@ -51,7 +51,7 @@ class TestCandleData:
             taker_buy_base_volume=60.0,
             taker_buy_quote_volume=3000000.0
         )
-        
+
         assert candle.timestamp == timestamp
         assert candle.open == 50000.0
         assert candle.high == 51000.0
@@ -62,7 +62,7 @@ class TestCandleData:
         assert candle.n_trades == 1000
         assert candle.taker_buy_base_volume == 60.0
         assert candle.taker_buy_quote_volume == 3000000.0
-    
+
     @pytest.mark.parametrize(
         "timestamp_raw,expected_seconds",
         [
@@ -81,7 +81,7 @@ class TestCandleData:
             open=100.0, high=101.0, low=99.0, close=100.5, volume=1000.0
         )
         assert candle.timestamp == expected_seconds
-    
+
     def test_normalize_timestamp_invalid_format(self):
         """Test timestamp normalization with invalid format."""
         with pytest.raises(ValueError):
@@ -89,11 +89,11 @@ class TestCandleData:
                 timestamp_raw="not-a-timestamp",
                 open=100.0, high=101.0, low=99.0, close=100.5, volume=1000.0
             )
-    
+
     def test_to_array(self, sample_candle_data):
         """Test conversion to array format."""
         array = sample_candle_data.to_array()
-        
+
         assert len(array) == 10
         assert array[0] == float(sample_candle_data.timestamp)
         assert array[1] == sample_candle_data.open
@@ -105,7 +105,7 @@ class TestCandleData:
         assert array[7] == sample_candle_data.n_trades
         assert array[8] == sample_candle_data.taker_buy_base_volume
         assert array[9] == sample_candle_data.taker_buy_quote_volume
-    
+
     def test_from_array(self):
         """Test creation from array format."""
         array = [
@@ -120,9 +120,9 @@ class TestCandleData:
             60.0,
             3000000.0
         ]
-        
+
         candle = CandleData.from_array(array)
-        
+
         assert candle.timestamp == 1622505600
         assert candle.open == 50000.0
         assert candle.high == 51000.0
@@ -133,7 +133,7 @@ class TestCandleData:
         assert candle.n_trades == 1000
         assert candle.taker_buy_base_volume == 60.0
         assert candle.taker_buy_quote_volume == 3000000.0
-    
+
     def test_from_dict(self):
         """Test creation from dictionary."""
         data = {
@@ -148,9 +148,9 @@ class TestCandleData:
             "taker_buy_base_volume": 60.0,
             "taker_buy_quote_volume": 3000000.0
         }
-        
+
         candle = CandleData.from_dict(data)
-        
+
         assert candle.timestamp == 1622505600
         assert candle.open == 50000.0
         assert candle.high == 51000.0
@@ -161,7 +161,7 @@ class TestCandleData:
         assert candle.n_trades == 1000
         assert candle.taker_buy_base_volume == 60.0
         assert candle.taker_buy_quote_volume == 3000000.0
-    
+
     def test_from_dict_with_alternative_keys(self):
         """Test creation from dictionary with alternative keys."""
         data = {
@@ -172,16 +172,16 @@ class TestCandleData:
             "c": 50500.0,
             "v": 100.0
         }
-        
+
         candle = CandleData.from_dict(data)
-        
+
         assert candle.timestamp == 1622505600
         assert candle.open == 50000.0
         assert candle.high == 51000.0
         assert candle.low == 49000.0
         assert candle.close == 50500.0
         assert candle.volume == 100.0
-    
+
     def test_from_dict_missing_required_field(self):
         """Test creation from dictionary with missing required field."""
         # Missing timestamp
@@ -192,12 +192,12 @@ class TestCandleData:
             "close": 50500.0,
             "volume": 100.0
         }
-        
+
         with pytest.raises(ValueError) as excinfo:
             CandleData.from_dict(data)
-        
+
         assert "No timestamp found" in str(excinfo.value)
-        
+
         # Missing price field
         data = {
             "timestamp": 1622505600,
@@ -206,8 +206,8 @@ class TestCandleData:
             "close": 50500.0,
             "volume": 100.0
         }
-        
+
         with pytest.raises(ValueError) as excinfo:
             CandleData.from_dict(data)
-        
+
         assert "No open value found" in str(excinfo.value)
