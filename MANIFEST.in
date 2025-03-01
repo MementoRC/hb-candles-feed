@@ -1,14 +1,31 @@
+# Include essential files
 include LICENSE
 include README.md
-include CMakeLists.txt
 include pyproject.toml
 include setup.py
-include cython_builder.py
-include pytest.ini
-include requirements.txt
-recursive-include docs *
-recursive-include candles_feed *.py *.pyx *.pxd *.h *.c *.cpp
-recursive-exclude tests *
+include CMakeLists.txt
+recursive-include cmake *
+recursive-include setup-tools *
+
+# Include package code
+recursive-include candles_feed *.py
+recursive-include candles_feed *.pyx
+recursive-include candles_feed *.pxd
+
+# Include docs
+recursive-include docs *.md
+recursive-include docs *.yml
+recursive-include docs *.py
+
+# Exclude build artifacts and cache
 recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
+recursive-exclude * *.py[cod]
 recursive-exclude * *.so
+recursive-exclude * *.dylib
+recursive-exclude * *.c
+recursive-exclude * *.cpp
+recursive-exclude * .DS_Store
+recursive-exclude .git *
+recursive-exclude dist *
+recursive-exclude build *
+recursive-exclude _skbuild *

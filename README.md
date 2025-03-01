@@ -1,38 +1,29 @@
-# Candles Feed
+# A Hummingbot candles-feed sub-package
 
-[![Candles Feed CI](https://github.com/MementoRC/hb-candles-feed/actions/workflows/ci.yml/badge.svg)](https://github.com/MementoRC/hb-candles-feed/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/MementoRC/hb-candles-feed/branch/main/graph/badge.svg)](https://codecov.io/gh/MementoRC/hb-candles-feed)
+[![Template Package CI](https://github.com/hummingbot/hb-candles-feed/actions/workflows/ci.yml/badge.svg)](https://github.com/hummingbot/hb-candles-feed/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/hummingbot/hb-candles-feed)](https://codecov.io/gh/hummingbot/hb-candles-feed)
 [![PyPI version](https://badge.fury.io/py/hummingbot-candles-feed.svg)](https://badge.fury.io/py/hummingbot-candles-feed)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-A modular, plugin-based framework for fetching and managing candle data from cryptocurrency exchanges.
+A candles-feed package for Hummingbot that can later be moved to independent repositories.
 
 ## Overview
 
-The Candles Feed package provides a standardized interface for retrieving candlestick (OHLCV) data from various cryptocurrency exchanges. It supports:
+This package provides a functionality for developing Hummingbot sub-packages with:
 
-- Real-time streaming of candle data via WebSockets
-- Historical data retrieval via REST APIs
-- A pluggable adapter system for easy integration with different exchanges
-- Standardized data representation across exchanges
+- Modern Python packaging using scikit-build-core
+- Cython integration for performance-critical code
+- Complete CI/CD setup with GitHub Actions
+- Comprehensive test suite structure
+- Documentation templates and examples
 
 ## Features
 
-- **Modular Design**: Easily extend to support new exchanges
-- **Multiple Transport Methods**: WebSocket for real-time data, REST for historical data
-- **Built-in Throttling**: Respect exchange API rate limits
-- **Efficient Data Processing**: Process and deduplicate candle data
-- **Standardized Data Format**: Consistent candle representation across exchanges
-- **Easy Integration**: Simple API for integration with trading strategies
-
-## Supported Exchanges
-
-- Binance Spot
-- Bybit Spot
-- Coinbase Advanced Trade
-- Kraken Spot
-- KuCoin Spot
-- OKX Spot
+- **Modular Architecture**: Clean separation of components with a registry pattern
+- **Performance Optimization**: Decorator-based Cython compilation
+- **Standalone Capability**: Works both within Hummingbot and as an independent package
+- **Migration-Ready**: All configuration is designed for easy extraction to a separate repository
+- **Developer Tools**: Development environment setup, test runners, and more
 
 ## Installation
 
@@ -40,18 +31,18 @@ The Candles Feed package provides a standardized interface for retrieving candle
 
 ```bash
 # Clone the repository
-git clone https://github.com/MementoRC/hb-candles-feed.git
+git clone https://github.com/hummingbot/hb-candles-feed.git
 
-# Navigate to the candles-feed directory
-cd hb-candles-feed
+# Navigate to the package directory
+cd candles-feed
 
-# Option 1: Install directly
+# Option 1: Install directly (requires Python 3.8+)
 pip install .
 
 # Option 2: Install with development dependencies
 pip install -e ".[dev]"
 
-# Option 3: Use the development setup script (recommended)
+# Option 3: Use conda setup (recommended)
 ./setup-dev-env.sh
 ```
 
@@ -63,7 +54,7 @@ For manual compilation:
 
 ```bash
 # Force recompilation of Cython modules
-python cython_builder.py candles_feed
+python cmake/cython_builder.py candles_feed
 ```
 
 ### As a dependency in your project
@@ -72,53 +63,76 @@ python cython_builder.py candles_feed
 pip install hummingbot-candles-feed
 ```
 
-## Quick Start
+## Usage
 
 ```python
 import asyncio
-from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed import get_available_components
+from candles_feed.core.registry import registry
 
 async def main():
-    # Create a CandlesFeed instance
-    feed = CandlesFeed(
-        exchange="binance_spot",
-        trading_pair="BTC-USDT",
-        interval="1m",
-        max_records=100
-    )
+    # List available components
+    components = get_available_components()
+    print(f"Available components: {components}")
     
-    # Start the feed (uses WebSocket if available)
-    await feed.start()
-    
-    # Wait for some data to arrive
-    await asyncio.sleep(5)
-    
-    # Get the candles
-    candles = feed.get_candles()
-    for candle in candles:
-        print(f"{candle.timestamp}: O={candle.open}, H={candle.high}, L={candle.low}, C={candle.close}, V={candle.volume}")
-    
-    # Stop the feed
-    await feed.stop()
+    # Create a component
+    if "example_component" in components:
+        component = registry.create_component(
+            "example_component",
+            "my_instance",
+            {"setting": "value"}
+        )
+        
+        # Initialize and start the component
+        await component.initialize()
+        await component.start()
+        
+        # Use the component
+        # ...
+        
+        # Stop when done
+        await component.stop()
 
 # Run the example
 asyncio.run(main())
 ```
 
-## Running the Tests
+## Project Structure
 
-The package includes comprehensive unit, integration, and end-to-end tests using pytest.
-
-### Setup
-
-```bash
-# Install dev dependencies
-pip install -e ".[dev]"
+```
+candles-feed/
+├── CMakeLists.txt         # CMake configuration for Cython
+├── MANIFEST.in            # Package file inclusions
+├── README.md              # Package documentation
+├── pyproject.toml         # Modern package configuration
+├── run_tests.py           # Test runner script
+├── setup-dev-env.sh       # Symlink to setup-tools/setup-dev-env.sh
+├── setup.py               # Minimal setuptools wrapper
+├── cmake/                 # CMake related files
+│   ├── FindCython.cmake   # CMake helper for finding Cython
+│   └── cython_builder.py  # Custom Cython compiler
+├── setup-tools/           # Environment setup tools
+│   ├── candles-feed-env.yml   # Conda environment specification
+│   └── setup-dev-env.sh   # Development environment setup
+├── candles_feed/      # Package code
+│   └── __init__.py        # Package initialization
+└── tests/                 # Test suite
+    ├── README.md          # Test documentation
+    ├── conftest.py        # Test fixtures and configuration
+    ├── unit/              # Unit tests
+    ├── integration/       # Integration tests
+    └── e2e/               # End-to-end tests
 ```
 
-### Running Tests
+## Running the Tests
 
 ```bash
+# Option 1: Install dev dependencies using pip
+pip install -e ".[dev]"
+
+# Option 2: Use conda setup (recommended)
+./setup-dev-env.sh
+
 # Run all tests
 python -m pytest
 
@@ -129,28 +143,22 @@ python -m pytest tests/e2e/
 
 # Run with coverage
 python -m pytest --cov=candles_feed
+
+# Using the test runner script
+./run_tests.py --all     # Run all tests
+./run_tests.py --unit    # Run only unit tests
+./run_tests.py --cov     # Run with coverage
 ```
 
-We also provide a test runner script with additional options:
+## Customizing the Package
 
-```bash
-# Run all tests
-./run_tests.py --all
+To customize this package:
 
-# Run unit tests with coverage
-./run_tests.py --unit --cov
-
-# Run tests for a specific adapter
-./run_tests.py --adapter=binance_spot
-```
-
-## Documentation
-
-For more detailed documentation, see the [docs directory](./docs/).
-
-## Contributing
-
-Contributions are welcome! Please see the [contributing guide](./docs/contribution/) for more information.
+1. Replace `candles_feed` with your package name throughout the codebase
+2. Update metadata in `pyproject.toml`
+3. Implement your components by extending `BaseComponent`
+4. Register your components with the registry
+5. Add tests for your components
 
 ## License
 

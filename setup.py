@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+"""
+Minimal setup.py for backwards compatibility with setuptools.
+The actual build configuration is in pyproject.toml.
+"""
 
 from setuptools import setup
-
-# This minimal setup.py is here for backward compatibility
-# All actual configuration is in pyproject.toml
 
 if __name__ == "__main__":
     setup()
