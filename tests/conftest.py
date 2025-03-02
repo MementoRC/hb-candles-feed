@@ -17,6 +17,12 @@ from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.network_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.protocols import CandleDataAdapter, WSAssistant
 
+# Import MockExchangeServer components for testing - actual imports will be configured later
+# Temporarily commenting out imports until testing_resources is properly set up
+# from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
+# from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
+# from candles_feed.testing_resources.mocks.core.factory import create_mock_server
+
 
 # Configure logging for tests
 @pytest.fixture(scope="session", autouse=True)
@@ -34,6 +40,9 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
+
+# Mock candle fixtures temporarily removed until testing_resources is properly set up
 
 
 @pytest.fixture
