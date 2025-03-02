@@ -52,6 +52,10 @@ if command -v conda &> /dev/null; then
     elif conda env list | grep -q "^hb-candles-feed "; then
         echo "Using existing hb-candles-feed environment"
         activate_conda_env "hb-candles-feed"
+        
+        # Update the environment with the latest dependencies
+        echo "Updating environment with latest dependencies..."
+        conda env update -f "$ENV_FILE" --prune
     else
         echo "Creating new hb-candles-feed environment from environment file"
         conda env create -f "$ENV_FILE"
@@ -62,7 +66,7 @@ if command -v conda &> /dev/null; then
     PACKAGE_NAME=$(basename "$PACKAGE_ROOT" | tr '-' '_')
     PACKAGE_DIR="$PACKAGE_ROOT/$PACKAGE_NAME"
     
-    # Check if the package has an adequate structure for installation
+    # Check if the package has an adequate structure
     STRUCTURE_READY=false
     if [ -d "$PACKAGE_DIR" ] && [ -f "$PACKAGE_DIR/__init__.py" ]; then
         # Check if it has actual content (more than just a basic init file)
@@ -71,52 +75,49 @@ if command -v conda &> /dev/null; then
         fi
     fi
     
-    if $STRUCTURE_READY; then
-        # Install package in development mode
-        echo "Package structure detected. Installing in development mode..."
-        cd "$PACKAGE_ROOT"
-        pip install -e .
-        echo "Development environment is ready! Activated conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"
+    # Display message about Hatch
+    echo ""
+    echo "==================================================================="
+    echo "Development environment is ready with Hatch integration."
+    echo "You can run the following commands from the package root:"
+    echo ""
+    echo "  hatch run test            # Run all tests"
+    echo "  hatch run test-unit       # Run unit tests"
+    echo "  hatch run test-perpetual  # Run OKX perpetual adapter tests"
+    echo "  hatch run format          # Format code with ruff"
+    echo "  hatch run lint            # Lint code with ruff"
+    echo "  hatch run check           # Run all checks and tests"
+    echo ""
+    echo "For more commands, see the 'scripts' section in pyproject.toml"
+    echo "==================================================================="
+    echo ""
+   
+    # Only install the package if explicitly requested
+    if [ "$1" == "--install" ]; then
+        if $STRUCTURE_READY; then
+            # Install package in development mode if requested
+            echo "Package structure detected. Installing in development mode..."
+            cd "$PACKAGE_ROOT"
+            pip install -e .
+            
+            # Verify installation
+            echo ""
+            echo "Verifying installation..."
+            python -c "import $PACKAGE_NAME; print(f'$PACKAGE_NAME package found')"
+            echo "Success!"
+        else
+            echo "Package structure not complete. Skipping installation."
+        fi
     else
-        echo ""
-        echo "======================================================================================="
-        echo "NOTICE: Package structure at '$PACKAGE_DIR' is not complete yet."
-        echo ""
-        echo "This is normal for a newly created package scaffold. The development environment"
-        echo "will be set up with all dependencies, but the package itself won't be installed."
-        echo ""
-        echo "Next steps:"
-        echo "1. Create or complete the package structure in: $PACKAGE_DIR"
-        echo "   Make sure to create at least: $PACKAGE_DIR/__init__.py"
-        echo ""
-        echo "2. Add your implementation files"
-        echo ""
-        echo "3. Run this script again to install the package in development mode"
-        echo "======================================================================================="
-        echo ""
-        
-        # Install development dependencies directly
-        cd "$PACKAGE_ROOT"
-        
-        # Install common dev dependencies directly
-        echo "Installing development dependencies..."
-        pip install pytest pytest-asyncio pytest-cov pytest-mock pytest-timeout ruff mypy build
-        
-        echo "Development environment is ready! Activated conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"
+        echo "Package not installed. Using Hatch for development."
+        echo "If you need to install the package, run: $0 --install"
     fi
+    
+    # Show active environment
+    echo ""
+    echo "Active conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"
 else
     echo "Error: Conda is required for development."
     echo "Please install conda from https://docs.conda.io/en/latest/miniconda.html"
     exit 1
-fi
-
-# Run a simple verification only if package is installed
-if $STRUCTURE_READY; then
-    echo ""
-    echo "Verifying installation..."
-    python -c "import $PACKAGE_NAME; print(f'$PACKAGE_NAME package found')"
-    echo "Success!"
-else
-    echo ""
-    echo "Run this script again after creating the package structure to install and verify the package."
 fi
