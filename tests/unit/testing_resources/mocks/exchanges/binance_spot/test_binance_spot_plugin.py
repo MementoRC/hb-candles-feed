@@ -5,6 +5,7 @@ Unit tests for the Binance Spot plugin in testing_resources.
 import unittest
 from unittest.mock import MagicMock, patch
 import time
+import pytest
 
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
@@ -206,6 +207,7 @@ class TestBinanceSpotPlugin(unittest.TestCase):
         self.assertEqual(result['end_time'], '1613680800000')
         self.assertEqual(result['limit'], '500')
     
+    @pytest.mark.asyncio
     @patch('time.time')
     async def test_handle_exchange_info(self, mock_time):
         """Test handling exchange info request."""

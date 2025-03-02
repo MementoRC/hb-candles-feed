@@ -144,6 +144,9 @@ class CandlesFeed:
             await self._ws_strategy.stop()
         elif self._rest_strategy:
             await self._rest_strategy.stop()
+            
+        # Clean up network client resources
+        await self._network_client.close()
 
         self._active = False
 

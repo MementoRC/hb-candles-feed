@@ -32,6 +32,25 @@ class NetworkClient:
         """Ensure aiohttp session exists."""
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
+            
+    async def close(self):
+        """Close the client session.
+        
+        Should be called when the network client is no longer needed
+        to properly clean up resources.
+        """
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
+            
+    async def __aenter__(self):
+        """Async context manager enter method."""
+        await self._ensure_session()
+        return self
+        
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit method."""
+        await self.close()
 
     async def get_rest_data(self,
                          url: str,

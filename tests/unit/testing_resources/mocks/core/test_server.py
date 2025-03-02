@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import MagicMock, patch, AsyncMock
 import asyncio
 import time
+import pytest
 
 from aiohttp import web
 

@@ -17,11 +17,10 @@ from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.network_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.protocols import CandleDataAdapter, WSAssistant
 
-# Import MockExchangeServer components for testing - actual imports will be configured later
-# Temporarily commenting out imports until testing_resources is properly set up
-# from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
-# from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
-# from candles_feed.testing_resources.mocks.core.factory import create_mock_server
+# Import MockExchangeServer components for testing
+from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
+from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
+from candles_feed.testing_resources.mocks.core.factory import create_mock_server
 
 
 # Configure logging for tests
@@ -33,16 +32,161 @@ def configure_logging():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
+# Remove the custom event_loop fixture to avoid the deprecation warning
+# pytest-asyncio now provides this functionality natively
+
+
+# Mock exchange server fixtures
+@pytest.fixture
+def mock_candle():
+    """Create a mock candle for testing."""
+    return MockCandleData(
+        timestamp=int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()),
+        open=50000.0, 
+        high=51000.0,
+        low=49000.0,
+        close=50500.0,
+        volume=100.0,
+        quote_asset_volume=5000000.0,
+        n_trades=1000,
+        taker_buy_base_volume=60.0,
+        taker_buy_quote_volume=3000000.0
+    )
+
 
 @pytest.fixture
-def event_loop():
-    """Create an instance of the default event loop for each test."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+def mock_candles():
+    """Create a list of mock candles for testing."""
+    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    
+    return [
+        MockCandleData(
+            timestamp=base_time + (i * 60),  # 1-minute intervals
+            open=50000.0 + (i * 100),
+            high=51000.0 + (i * 100),
+            low=49000.0 + (i * 100),
+            close=50500.0 + (i * 100),
+            volume=100.0 + (i * 10),
+            quote_asset_volume=5000000.0 + (i * 500000),
+            n_trades=1000 + (i * 100),
+            taker_buy_base_volume=60.0 + (i * 5),
+            taker_buy_quote_volume=3000000.0 + (i * 300000)
+        )
+        for i in range(5)
+    ]
 
 
-# Mock candle fixtures temporarily removed until testing_resources is properly set up
+@pytest.fixture
+async def binance_mock_server(unused_tcp_port):
+    """Create and start a Binance mock server for testing."""
+    from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
+    from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+    
+    port = unused_tcp_port
+    
+    # Create plugin directly
+    plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
+    
+    # Create server
+    server = MockExchangeServer(plugin, '127.0.0.1', port)
+    
+    # Add trading pairs
+    server.add_trading_pair("BTCUSDT", "1m", 50000.0)
+    server.add_trading_pair("ETHUSDT", "1m", 3000.0)
+    server.add_trading_pair("SOLUSDT", "1m", 100.0)
+    
+    # Start the server
+    url = await server.start()
+    
+    # Store the URL for other fixtures to access
+    server.url = url
+    
+    yield server
+    
+    # Clean up
+    await server.stop()
+
+
+@pytest.fixture
+async def bybit_mock_server(unused_tcp_port):
+    """Create and start a Bybit mock server for testing."""
+    from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
+    
+    # We're using the Binance plugin for now since we don't have an explicit Bybit plugin yet
+    from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+    
+    port = unused_tcp_port
+    
+    # Create plugin directly
+    plugin = BinanceSpotPlugin(ExchangeType.BYBIT_SPOT)
+    
+    # Create server
+    server = MockExchangeServer(plugin, '127.0.0.1', port)
+    
+    # Add trading pairs
+    server.add_trading_pair("BTCUSDT", "1m", 50000.0)
+    server.add_trading_pair("ETHUSDT", "1m", 3000.0)
+    
+    # Start the server
+    url = await server.start()
+    
+    # Store the URL for other fixtures to access
+    server.url = url
+    
+    yield server
+    
+    # Clean up
+    await server.stop()
+
+
+@pytest.fixture
+async def coinbase_mock_server(unused_tcp_port):
+    """Create and start a Coinbase Advanced Trade mock server for testing."""
+    from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
+    
+    # We're using the Binance plugin for now since we don't have an explicit Coinbase plugin yet
+    from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+    
+    port = unused_tcp_port
+    
+    # Create plugin directly
+    plugin = BinanceSpotPlugin(ExchangeType.COINBASE_ADVANCED_TRADE)
+    
+    # Create server
+    server = MockExchangeServer(plugin, '127.0.0.1', port)
+    
+    # Add trading pairs
+    server.add_trading_pair("BTCUSDT", "1m", 50000.0)
+    server.add_trading_pair("ETHUSDT", "1m", 3000.0)
+    
+    # Start the server
+    url = await server.start()
+    
+    # Store the URL for other fixtures to access
+    server.url = url
+    
+    yield server
+    
+    # Clean up
+    await server.stop()
+
+
+@pytest.fixture
+def mock_server_url(binance_mock_server):
+    """Return the URL for the Binance mock server."""
+    return binance_mock_server.url
+
+
+@pytest.fixture
+def mock_server_url_bybit(bybit_mock_server):
+    """Return the URL for the Bybit mock server."""
+    return bybit_mock_server.url
+
+
+@pytest.fixture
+def mock_server_url_coinbase(coinbase_mock_server):
+    """Return the URL for the Coinbase mock server."""
+    return coinbase_mock_server.url
 
 
 @pytest.fixture

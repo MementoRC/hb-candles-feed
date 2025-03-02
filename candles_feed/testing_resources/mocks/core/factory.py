@@ -42,8 +42,35 @@ def get_plugin(exchange_type: ExchangeType):
     Returns:
         The plugin instance, or None if not found
     """
-    # This is a simplified version for testing
-    return _PLUGIN_REGISTRY.get(exchange_type)
+    # Check if we already have a plugin registered
+    if exchange_type in _PLUGIN_REGISTRY:
+        return _PLUGIN_REGISTRY[exchange_type]
+    
+    # Try to import the plugin module
+    try:
+        # Convert exchange_type to a module path
+        # e.g., binance_spot -> candles_feed.testing_resources.mocks.exchanges.binance_spot
+        module_path = f"candles_feed.testing_resources.mocks.exchanges.{exchange_type.value}"
+        module = importlib.import_module(module_path)
+        
+        # Get class name from exchange type
+        # e.g., binance_spot -> BinanceSpotPlugin
+        parts = exchange_type.value.split('_')
+        class_name = ''.join(part.capitalize() for part in parts) + 'Plugin'
+        
+        # Get the plugin class
+        plugin_class = getattr(module, class_name)
+        
+        # Create instance
+        plugin = plugin_class(exchange_type)
+        
+        # Register
+        _PLUGIN_REGISTRY[exchange_type] = plugin
+        
+        return plugin
+    except (ImportError, AttributeError) as e:
+        logger.error(f"Failed to import plugin for {exchange_type.value}: {e}")
+        return None
 
 
 def create_mock_server(
@@ -66,32 +93,19 @@ def create_mock_server(
         A configured MockExchangeServer instance, or None if the plugin
         for the specified exchange type cannot be found
     """
-    # This is a simplified version for testing
-    # In the real implementation, this would create a server instance
+    # Import here to avoid circular imports
+    from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
     
     logger.info(f"Creating mock server for {exchange_type.value} at {host}:{port}")
     
-    # Return a mock server object with some basic properties
-    class MockServer:
-        def __init__(self, exchange_type, host, port):
-            self.exchange_type = exchange_type
-            self.host = host
-            self.port = port
-            self.trading_pairs = {}
-        
-        def add_trading_pair(self, symbol, interval, price):
-            key = f"{symbol}_{interval}"
-            self.trading_pairs[key] = price
-            logger.info(f"Added trading pair {symbol} with interval {interval} at price {price}")
-        
-        async def start(self):
-            logger.info(f"Started mock server for {self.exchange_type.value}")
-            return f"http://{self.host}:{self.port}"
-        
-        async def stop(self):
-            logger.info(f"Stopped mock server for {self.exchange_type.value}")
+    # Get the plugin for this exchange type
+    plugin = get_plugin(exchange_type)
+    if plugin is None:
+        logger.error(f"No plugin found for exchange type {exchange_type.value}")
+        return None
     
-    server = MockServer(exchange_type, host, port)
+    # Create the server instance
+    server = MockExchangeServer(plugin, host, port)
     
     # Add trading pairs
     if trading_pairs:

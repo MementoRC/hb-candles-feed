@@ -241,6 +241,9 @@ class RESTPollingStrategy:
         if self._polling_task:
             self._polling_task.cancel()
             self._polling_task = None
+            
+        # Make sure we clean up any remaining network resources
+        # The parent CandlesFeed class will close the network client
 
     async def poll_once(self,
                        start_time: Optional[int] = None,
@@ -315,8 +318,13 @@ class RESTPollingStrategy:
                 if self._candles:
                     # Get data since the last candle, excluding the last one
                     # which might be incomplete
-                    last_complete_ts = max(c.timestamp for c in self._candles[:-1]) \
-                                      if len(self._candles) > 1 else None
+                    if len(self._candles) > 1:
+                        # If we have more than one candle, we can safely slice
+                        candles_without_last = list(self._candles)[:-1]
+                        last_complete_ts = max(c.timestamp for c in candles_without_last)
+                    else:
+                        # If we have only one candle, use its timestamp as starting point
+                        last_complete_ts = self._candles[0].timestamp
 
                     # Fetch new or updated candles
                     candles = await self.poll_once(start_time=last_complete_ts)
