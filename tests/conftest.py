@@ -2,14 +2,19 @@
 Global test fixtures and configuration for the Candles Feed framework tests.
 """
 
-import asyncio
 import logging
+import os
+import sys
 from collections import deque
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
+# Add the project root to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
@@ -20,7 +25,6 @@ from candles_feed.core.protocols import CandleDataAdapter, WSAssistant
 # Import MockExchangeServer components for testing
 from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
-from candles_feed.testing_resources.mocks.core.factory import create_mock_server
 
 
 # Configure logging for tests
@@ -286,7 +290,7 @@ def sample_candle_data():
 
 
 @pytest.fixture
-def sample_candles() -> List[CandleData]:
+def sample_candles() -> list[CandleData]:
     """Create a list of sample candles for testing."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
 
@@ -658,6 +662,35 @@ def candlestick_response_okx():
 
 
 @pytest.fixture
+def candlestick_response_gate_io():
+    """Create a sample Gate.io REST API response."""
+    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+
+    return [
+        [
+            str(base_time),        # timestamp
+            "50000.0",             # open
+            "50500.0",             # close
+            "49000.0",             # low
+            "51000.0",             # high
+            "100.0",               # volume
+            "5000000.0",           # quote currency volume
+            "BTC_USDT"             # currency pair
+        ],
+        [
+            str(base_time + 60),   # timestamp
+            "50500.0",             # open
+            "51500.0",             # close
+            "50000.0",             # low
+            "52000.0",             # high
+            "150.0",               # volume
+            "7500000.0",           # quote currency volume
+            "BTC_USDT"             # currency pair
+        ]
+    ]
+
+
+@pytest.fixture
 def websocket_message_okx():
     """Create a sample OKX WebSocket message."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # OKX uses milliseconds
@@ -678,6 +711,134 @@ def websocket_message_okx():
                 "5000000.0"
             ]
         ]
+    }
+
+
+@pytest.fixture
+def websocket_message_gate_io():
+    """Create a sample Gate.io WebSocket message."""
+    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+
+    return {
+        "method": "update",
+        "channel": "spot.candlesticks",
+        "params": [
+            {
+                "currency_pair": "BTC_USDT",
+                "interval": "1m",
+                "status": "open"
+            },
+            [
+                str(base_time),        # timestamp
+                "50000.0",             # open
+                "50500.0",             # close
+                "49000.0",             # low
+                "51000.0",             # high
+                "100.0",               # volume
+                "5000000.0",           # quote currency volume
+                "BTC_USDT"             # currency pair
+            ]
+        ]
+    }
+
+
+@pytest.fixture
+def candlestick_response_hyperliquid():
+    """Create a sample HyperLiquid REST API response."""
+    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+
+    return [
+        [
+            base_time,
+            "50000.0",
+            "51000.0",
+            "49000.0",
+            "50500.0",
+            "100.0",
+            "5000000.0"
+        ],
+        [
+            base_time + 60,
+            "50500.0",
+            "52000.0",
+            "50000.0",
+            "51500.0",
+            "150.0",
+            "7500000.0"
+        ]
+    ]
+
+
+@pytest.fixture
+def websocket_message_hyperliquid():
+    """Create a sample HyperLiquid WebSocket message."""
+    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+
+    return {
+        "channel": "candles",
+        "data": [
+            base_time,
+            "50000.0",
+            "51000.0",
+            "49000.0",
+            "50500.0",
+            "100.0",
+            "5000000.0"
+        ]
+    }
+
+
+@pytest.fixture
+def candlestick_response_mexc():
+    """Create a sample MEXC REST API response."""
+    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+
+    return [
+        [
+            base_time,
+            "50000.0",
+            "51000.0",
+            "49000.0", 
+            "50500.0",
+            "100.0",
+            base_time + 59999,
+            "5000000.0",
+            1000,
+            "60.0",
+            "3000000.0"
+        ],
+        [
+            base_time + 60000,
+            "50500.0",
+            "52000.0",
+            "50000.0",
+            "51500.0",
+            "150.0",
+            base_time + 119999,
+            "7500000.0",
+            1500,
+            "90.0",
+            "4500000.0"
+        ]
+    ]
+
+
+@pytest.fixture
+def websocket_message_mexc():
+    """Create a sample MEXC WebSocket message."""
+    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+
+    return {
+        "d": {
+            "t": base_time,
+            "o": "50000.0",
+            "h": "51000.0",
+            "l": "49000.0",
+            "c": "50500.0",
+            "v": "100.0",
+            "qv": "5000000.0",
+            "n": 1000
+        }
     }
 
 

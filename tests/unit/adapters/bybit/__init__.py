@@ -1,0 +1,3 @@
+"""
+Bybit base adapter tests.
+"""

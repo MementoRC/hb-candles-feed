@@ -1,0 +1,3 @@
+"""
+HyperLiquid spot adapter tests.
+"""

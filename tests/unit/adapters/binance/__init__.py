@@ -1,0 +1,3 @@
+"""
+Binance base adapter tests.
+"""

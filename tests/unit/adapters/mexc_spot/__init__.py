@@ -1,0 +1,3 @@
+"""
+MEXC spot adapter tests.
+"""

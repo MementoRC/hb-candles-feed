@@ -1,0 +1,3 @@
+"""
+Binance perpetual adapter tests.
+"""

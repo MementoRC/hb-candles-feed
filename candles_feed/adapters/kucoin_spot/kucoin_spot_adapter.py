@@ -2,36 +2,21 @@
 KuCoin spot exchange adapter for the Candle Feed framework.
 """
 
-import time
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.kucoin_spot.constants import (
-    CANDLES_ENDPOINT,
-    INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
-    WS_INTERVALS,
-    WSS_URL,
+from candles_feed.adapters.kucoin.constants import (
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
 )
+from candles_feed.adapters.kucoin.kucoin_base_adapter import KuCoinBaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
 @ExchangeRegistry.register("kucoin_spot")
-class KuCoinSpotAdapter(BaseAdapter):
+class KuCoinSpotAdapter(KuCoinBaseAdapter):
     """KuCoin spot exchange adapter."""
-
-    def get_trading_pair_format(self, trading_pair: str) -> str:
-        """Convert standard trading pair format to exchange format.
-
-        Args:
-            trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
-
-        Returns:
-            Trading pair in KuCoin format (e.g., "BTC-USDT" - same format)
-        """
-        return trading_pair
 
     def get_rest_url(self) -> str:
         """Get REST API URL for candles.
@@ -39,7 +24,7 @@ class KuCoinSpotAdapter(BaseAdapter):
         Returns:
             REST API URL
         """
-        return f"{REST_URL}{CANDLES_ENDPOINT}"
+        return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
@@ -47,14 +32,14 @@ class KuCoinSpotAdapter(BaseAdapter):
         Returns:
             WebSocket URL
         """
-        return WSS_URL
+        return SPOT_WSS_URL
 
     def get_rest_params(self,
                       trading_pair: str,
                       interval: str,
                       start_time: Optional[int] = None,
                       end_time: Optional[int] = None,
-                      limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+                      limit: Optional[int] = None) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -138,26 +123,6 @@ class KuCoinSpotAdapter(BaseAdapter):
                 ))
         return candles
 
-    def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
-        """Get WebSocket subscription payload.
-
-        Args:
-            trading_pair: Trading pair
-            interval: Candle interval
-
-        Returns:
-            WebSocket subscription payload
-        """
-        # KuCoin requires obtaining a token first, and has a specific topic format
-        # Here's the subscription format once the token is obtained
-        return {
-            "id": int(time.time() * 1000),
-            "type": "subscribe",
-            "topic": f"/market/candles:{trading_pair}_{interval}",
-            "privateChannel": False,
-            "response": True
-        }
-
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
         """Parse WebSocket message into CandleData objects.
 
@@ -223,19 +188,3 @@ class KuCoinSpotAdapter(BaseAdapter):
                 )]
 
         return None
-
-    def get_supported_intervals(self) -> Dict[str, int]:
-        """Get supported intervals and their durations in seconds.
-
-        Returns:
-            Dictionary mapping interval strings to their duration in seconds
-        """
-        return INTERVALS
-
-    def get_ws_supported_intervals(self) -> List[str]:
-        """Get intervals supported by WebSocket API.
-
-        Returns:
-            List of interval strings supported by WebSocket API
-        """
-        return WS_INTERVALS

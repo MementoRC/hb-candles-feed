@@ -1,18 +1,18 @@
 """
-Binance spot exchange adapter for the Candle Feed framework.
+Hyperliquid spot exchange adapter for the Candle Feed framework.
 """
 
-from candles_feed.adapters.binance.binance_base_adapter import BinanceBaseAdapter
-from candles_feed.adapters.binance.constants import (
+from candles_feed.adapters.hyperliquid.constants import (
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
+from candles_feed.adapters.hyperliquid.hyperliquid_base_adapter import HyperliquidBaseAdapter
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
-@ExchangeRegistry.register("binance_spot")
-class BinanceSpotAdapter(BinanceBaseAdapter):
-    """Binance spot exchange adapter."""
+@ExchangeRegistry.register("hyperliquid_spot")
+class HyperliquidSpotAdapter(HyperliquidBaseAdapter):
+    """Hyperliquid spot exchange adapter."""
 
     def get_rest_url(self) -> str:
         """Get REST API URL for candles.
