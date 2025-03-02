@@ -141,7 +141,7 @@ class BybitSpotAdapter(BaseAdapter):
             ]
         }
 
-    def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -172,6 +172,9 @@ class BybitSpotAdapter(BaseAdapter):
         #   "type": "snapshot"
         # }
 
+        if data is None:
+            return None
+            
         if "topic" in data and data["topic"].startswith("kline.") and "data" in data:
             candles = []
             for item in data["data"]:

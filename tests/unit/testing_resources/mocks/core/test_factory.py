@@ -113,9 +113,9 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(server.exchange_type, ExchangeType.BINANCE_SPOT)
         
         # Check that the trading pair is in the server's trading_pairs dictionary
-        # The implementation seems to use 'BTCUSDT_1m' as the key
-        self.assertIn('BTCUSDT_1m', server.trading_pairs)
-        self.assertEqual(server.trading_pairs['BTCUSDT_1m'], 50000.0)
+        # The implementation uses the trading pair itself as the key (without interval)
+        self.assertIn('BTCUSDT', server.trading_pairs)
+        self.assertEqual(server.trading_pairs['BTCUSDT'], 50000.0)
     
     def test_create_mock_server_no_plugin(self):
         """Test handling when no plugin is found."""
@@ -138,13 +138,13 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(server.port, 8080)
         
         # Check that default trading pairs were added
-        # The implementation uses '{symbol}_{interval}' as the key
-        self.assertIn('BTCUSDT_1m', server.trading_pairs)
-        self.assertEqual(server.trading_pairs['BTCUSDT_1m'], 50000.0)
-        self.assertIn('ETHUSDT_1m', server.trading_pairs)
-        self.assertEqual(server.trading_pairs['ETHUSDT_1m'], 3000.0)
-        self.assertIn('SOLUSDT_1m', server.trading_pairs)
-        self.assertEqual(server.trading_pairs['SOLUSDT_1m'], 100.0)
+        # The implementation uses the symbol as the key
+        self.assertIn('BTCUSDT', server.trading_pairs)
+        self.assertEqual(server.trading_pairs['BTCUSDT'], 50000.0)
+        self.assertIn('ETHUSDT', server.trading_pairs)
+        self.assertEqual(server.trading_pairs['ETHUSDT'], 3000.0)
+        self.assertIn('SOLUSDT', server.trading_pairs)
+        self.assertEqual(server.trading_pairs['SOLUSDT'], 100.0)
 
 
 if __name__ == '__main__':
