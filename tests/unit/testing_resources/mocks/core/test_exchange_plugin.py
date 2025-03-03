@@ -8,9 +8,9 @@ from typing import Dict, List, Tuple, Any
 
 from aiohttp import web
 
+from candles_feed import CandleData
 from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
 
 
 class TestExchangePlugin(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestExchangePlugin(unittest.TestCase):
                 '/ws': 'handle_websocket'
             }
         
-        def format_rest_candles(self, candles: List[MockCandleData], 
+        def format_rest_candles(self, candles: List[CandleData], 
                              trading_pair: str, interval: str) -> Any:
             return [
                 {
@@ -46,7 +46,7 @@ class TestExchangePlugin(unittest.TestCase):
                 for c in candles
             ]
         
-        def format_ws_candle_message(self, candle: MockCandleData, 
+        def format_ws_candle_message(self, candle: CandleData, 
                                   trading_pair: str, interval: str, 
                                   is_final: bool = False) -> Any:
             return {
@@ -127,8 +127,8 @@ class TestExchangePlugin(unittest.TestCase):
     def test_format_rest_candles(self):
         """Test formatting REST candles response."""
         candles = [
-            MockCandleData(
-                timestamp=1613677200,
+            CandleData(
+                timestamp_raw=1613677200,
                 open=50000.0,
                 high=50500.0,
                 low=49500.0,
@@ -154,8 +154,8 @@ class TestExchangePlugin(unittest.TestCase):
     
     def test_format_ws_candle_message(self):
         """Test formatting WebSocket candle message."""
-        candle = MockCandleData(
-            timestamp=1613677200,
+        candle = CandleData(
+            timestamp_raw=1613677200,
             open=50000.0,
             high=50500.0,
             low=49500.0,

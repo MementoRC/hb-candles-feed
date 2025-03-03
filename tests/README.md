@@ -28,16 +28,29 @@ Tests for each exchange adapter are in their respective directories:
 Integration tests verify that components work correctly together.
 
 - `test_candles_feed_integration.py`: Tests the interaction between `CandlesFeed` and various adapters
+- `test_mock_server.py`: Tests for the mock server used in end-to-end tests
 
 ### End-to-End Tests (`e2e/`)
 End-to-end tests verify the system as a whole.
 
 - `test_candles_feed_e2e.py`: Tests the entire system using a mock exchange server
+- `improved_e2e_test.py`: Enhanced end-to-end tests with better error handling and network simulation
 
-### Mocks (`mocks/`)
-Contains mock implementations for testing.
+### Enhanced Testing Resources
 
-- `mock_exchange_server.py`: A mock exchange server for testing
+The package now includes an improved mock server architecture in `candles_feed/testing_resources/mocks/`:
+
+- **Core Components**:
+  - `exchange_plugin.py`: Base class for exchange-specific plugins
+  - `exchange_type.py`: Enumeration of supported exchange types
+  - `server.py`: Enhanced mock server implementation
+  - `candle_data.py`: Mock candle data implementation
+
+- **Exchange Plugins**:
+  - `exchanges/binance_spot/plugin.py`: Binance Spot plugin implementation
+  - (additional plugins for other exchanges can be added here)
+
+These resources provide more realistic testing with features like network simulation, rate limiting, and exchange-specific behavior.
 
 ## Running the Tests
 
@@ -45,15 +58,16 @@ To run the tests, use pytest:
 
 ```bash
 # Run all tests
-pytest
+pytest -xvs
 
 # Run specific test category
-pytest tests/unit/
-pytest tests/integration/
-pytest tests/e2e/
+pytest -xvs tests/unit/
+pytest -xvs tests/integration/
+pytest -xvs tests/e2e/
+pytest -xvs tests/test_end_to_end.py
 
 # Run specific test file
-pytest tests/unit/core/test_candle_data.py
+pytest -xvs tests/unit/core/test_candle_data.py
 
 # Run with coverage
 pytest --cov=candles_feed
@@ -70,7 +84,9 @@ When adding new adapters or features, please follow the existing test patterns:
 1. Create unit tests for each new component
 2. Add integration tests for interactions with other components
 3. Update end-to-end tests if needed
-4. Update fixtures in `conftest.py` if needed
+4. Consider creating a plugin for the enhanced mock server 
+5. Update fixtures in `conftest.py` if needed
+6. Add error handling tests using network simulation
 
 ## Testing Strategies
 
@@ -80,3 +96,16 @@ The testing suite uses several strategies:
 - **Parametrized Tests**: Tests that run with multiple inputs
 - **Async Testing**: Using pytest-asyncio for testing async code
 - **Mock Server**: Using a custom mock server for end-to-end testing
+- **Network Simulation**: Testing with simulated network conditions (latency, errors, packet loss)
+- **Plugin Architecture**: Using plugins to customize mock server behavior for different exchanges
+
+## Recent Improvements
+
+We've made several enhancements to the testing infrastructure:
+
+1. **Better URL Patching**: More consistent handling of REST and WebSocket URL patching
+2. **Error Handling Tests**: Tests for handling network errors and invalid inputs
+3. **Resource Cleanup**: Improved cleanup of resources in tests
+4. **Enhanced Mock Server**: Plugin-based architecture for more realistic exchange simulation
+
+For more details on these improvements, see `testing_improvements.md`.

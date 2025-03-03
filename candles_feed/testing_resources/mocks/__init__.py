@@ -7,5 +7,6 @@ to real exchanges.
 """
 
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
 from candles_feed.testing_resources.mocks.core.factory import create_mock_server
+from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
+from candles_feed.core.candle_data import CandleData

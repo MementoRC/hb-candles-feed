@@ -10,10 +10,10 @@ import pytest
 
 from aiohttp import web
 
+from candles_feed import CandleData
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
 from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
 
 
 class TestMockExchangeServer(unittest.TestCase):
@@ -158,8 +158,8 @@ class TestMockExchangeServer(unittest.TestCase):
         first_candle = candles[0]
         last_candle = candles[-1]
         
-        self.assertIsInstance(first_candle, MockCandleData)
-        self.assertIsInstance(last_candle, MockCandleData)
+        self.assertIsInstance(first_candle, CandleData)
+        self.assertIsInstance(last_candle, CandleData)
         
         # Last candle's timestamp should match the last_candle_time
         self.assertEqual(

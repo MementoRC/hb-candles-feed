@@ -2,20 +2,22 @@
 Core mock exchange server implementation.
 """
 
+
 import asyncio
+import contextlib
 import json
 import logging
 import random
 import time
-from collections import defaultdict, deque
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from collections import deque
+from typing import Optional
 
 import aiohttp
 from aiohttp import web
 
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
+from candles_feed.core.candle_data import CandleData
+from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
 from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 
 
 class MockExchangeServer:
@@ -45,15 +47,15 @@ class MockExchangeServer:
         self.logger = logging.getLogger(__name__)
         
         # Server state
-        self.candles: Dict[str, Dict[str, List[MockCandleData]]] = {}  # trading_pair -> interval -> candles
-        self.last_candle_time: Dict[str, Dict[str, int]] = {}          # trading_pair -> interval -> timestamp
+        self.candles: dict[str, dict[str, list[CandleData]]] = {}  # trading_pair -> interval -> candles
+        self.last_candle_time: dict[str, dict[str, int]] = {}          # trading_pair -> interval -> timestamp
         
         # WebSocket connections
-        self.ws_connections: Set[web.WebSocketResponse] = set()
-        self.subscriptions: Dict[str, Set[web.WebSocketResponse]] = {}  # subscription_key -> connected websockets
+        self.ws_connections: set[web.WebSocketResponse] = set()
+        self.subscriptions: dict[str, set[web.WebSocketResponse]] = {}  # subscription_key -> connected websockets
         
         # Trading pairs and their initial prices
-        self.trading_pairs: Dict[str, float] = {}
+        self.trading_pairs: dict[str, float] = {}
         
         # Network simulation
         self.latency_ms = 0  # Artificial latency
@@ -61,11 +63,11 @@ class MockExchangeServer:
         self.error_rate = 0.0  # Error response rate 0.0-1.0
         
         # Rate limiting
-        self.rate_limits: Dict[str, Dict[str, int]] = {
+        self.rate_limits: dict[str, dict[str, int]] = {
             "rest": {"limit": 1200, "period_ms": 60000},  # 1200 requests per minute
             "ws": {"limit": 5, "burst": 10}  # 5 messages per second with 10 burst
         }
-        self.request_counts: Dict[str, Dict[str, deque]] = {
+        self.request_counts: dict[str, dict[str, deque]] = {
             "rest": {}, "ws": {}  # ip -> timestamps
         }
         
@@ -156,7 +158,7 @@ class MockExchangeServer:
                 trend_price = initial_price * price_factor
                 
                 # Create candle
-                candle = MockCandleData.create_random(
+                candle = CandleDataFactory.create_random(
                     timestamp=timestamp,
                     previous_candle=prev_candle,
                     base_price=trend_price,
@@ -232,24 +234,22 @@ class MockExchangeServer:
         # Cancel all background tasks
         for task in self._tasks:
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
         self._tasks = []
-        
+
         # Close all WebSocket connections
         for ws in self.ws_connections:
             await ws.close()
         self.ws_connections.clear()
         self.subscriptions.clear()
-        
+
         # Stop the server
         if self.site:
             await self.site.stop()
         if self.runner:
             await self.runner.cleanup()
-        
+
         self.logger.info(f"Mock {self.exchange_type.value} server stopped")
     
     async def _generate_candles(self):
@@ -270,7 +270,7 @@ class MockExchangeServer:
                                 last_candle = self.candles[trading_pair][interval][-1]
                                 
                                 # Generate a new candle based on the last one
-                                new_candle = MockCandleData.create_random(
+                                new_candle = CandleDataFactory.create_random(
                                     timestamp=last_time + interval_seconds,
                                     previous_candle=last_candle,
                                     volatility=0.005  # 0.5% volatility
@@ -359,8 +359,8 @@ class MockExchangeServer:
             # Allow burst, but then enforce rate limit
             if len(self.request_counts[api_type][ip]) >= burst:
                 # Once burst exceeded, enforce normal rate
-                second_count = sum(1 for ts in self.request_counts[api_type][ip] 
-                                  if now - ts <= 1000)
+                second_count = sum(bool(now - ts <= 1000)
+                               for ts in self.request_counts[api_type][ip])
                 if second_count >= limit:
                     return False
         
@@ -396,7 +396,7 @@ class MockExchangeServer:
             elif error_code == 503:
                 raise web.HTTPServiceUnavailable(reason="Service unavailable")
     
-    async def _broadcast_candle_update(self, trading_pair: str, interval: str, candle: MockCandleData, is_final: bool = True):
+    async def _broadcast_candle_update(self, trading_pair: str, interval: str, candle: CandleData, is_final: bool = True):
         """
         Broadcast a candle update to WebSocket subscribers.
         

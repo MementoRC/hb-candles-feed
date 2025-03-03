@@ -5,7 +5,7 @@ Pytest fixtures for testing the mock exchange server components.
 import asyncio
 import pytest
 
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
+from candles_feed import CandleData
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.factory import create_mock_server
 
@@ -13,7 +13,7 @@ from candles_feed.testing_resources.mocks.core.factory import create_mock_server
 @pytest.fixture
 def sample_candle():
     """Create a sample candle data object for testing."""
-    return MockCandleData(
+    return CandleData(
         timestamp=1613677200,  # 2021-02-19 00:00:00 UTC
         open=50000.0,
         high=50500.0,
@@ -35,7 +35,7 @@ def sample_candles():
     
     for i in range(5):
         candles.append(
-            MockCandleData(
+            CandleData(
                 timestamp=base_timestamp + (i * 60),  # 1-minute intervals
                 open=50000.0 + (i * 100),
                 high=50500.0 + (i * 100),

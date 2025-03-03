@@ -1,107 +1,84 @@
-# Mock Exchange Testing Framework
+# Exchange Simulation Testing Framework
 
-This framework provides a modular and extensible way to simulate cryptocurrency exchange APIs for testing the candles feed package. It allows you to mock both REST and WebSocket endpoints with realistic data and behavior, making it ideal for integration and end-to-end testing without connecting to real exchanges.
+This framework provides a sophisticated exchange simulation system for testing cryptocurrency trading applications, specifically designed for the candles feed package. It enables high-fidelity simulation of exchange APIs, including REST endpoints and WebSocket connections, with realistic data generation and error simulation capabilities.
 
 ## Key Features
 
-- **Modular Design**: Core server functionality with exchange-specific plugins
-- **Realistic Data**: Generates realistic candle data with price trends and volatility
-- **Complete API Simulation**: Supports both REST and WebSocket endpoints
-- **Network Simulation**: Can simulate latency, packet loss, and error responses
-- **Rate Limiting**: Configurable rate limits for REST and WebSocket APIs
-- **Multiple Exchanges**: Supports multiple exchange types through plugins
+- **Full Exchange Simulation**: Complete REST and WebSocket API simulation
+- **Realistic Market Data**: Generates candle data with configurable price dynamics
+- **Network Condition Simulation**: Simulate latency, packet loss, and errors
+- **Rate Limiting**: Configurable rate limits matching real exchanges
+- **Extensible Plugin System**: Add support for any exchange with plugins
+- **Testing Utilities**: Ready for integration, unit, and E2E tests
 
 ## Architecture
 
 The framework consists of:
 
-1. **Core Components**:
-   - `MockExchangeServer`: The main server that handles requests
-   - `MockCandleData`: Data model for candle information
-   - `ExchangePlugin`: Abstract base class for exchange-specific plugins
-   - `ExchangeType`: Enum of supported exchanges
+1. **Core Server**:
+   - `MockExchangeServer`: HTTP/WS server with complete exchange behavior
+   - `ExchangePlugin`: Plugin system for exchange-specific behavior
+   - `CandleDataFactory`: Realistic market data generation
 
 2. **Exchange Plugins**:
-   - Implement the `ExchangePlugin` interface for each exchange
-   - Handle exchange-specific request/response formats
-   - Define routes and handlers for the exchange's API
+   - Exchange-specific request/response formats
+   - REST and WebSocket endpoint implementations
+   - Data conversion utilities
 
-3. **Factory**:
-   - `create_mock_server`: Factory function to create and configure a server
+3. **Testing Utilities**:
+   - Test fixtures for pytest
+   - Helper functions for test setup/teardown
+   - Factory functions for common test scenarios
 
-## Usage
-
-### Basic Usage
+## Usage in Integration Tests
 
 ```python
-import asyncio
-from candles_feed.testing_resources.mocks import ExchangeType, create_mock_server
+import pytest
+from candles_feed.core.candles_feed import CandlesFeed
 
-async def main():
-    # Create a mock Binance Spot server
-    server = create_mock_server(
-        exchange_type=ExchangeType.BINANCE_SPOT,
-        host='127.0.0.1',
-        port=8080
-    )
-    
-    # Start the server
-    url = await server.start()
-    print(f"Server started at {url}")
-    
-    # Wait for some time (or until interrupted)
-    try:
-        await asyncio.sleep(60)  # Run for 60 seconds
-    finally:
-        # Stop the server
-        await server.stop()
-        print("Server stopped")
+class TestCandlesFeedIntegration:
+    @pytest.fixture
+    async def mock_server(self):
+        """Create a standalone mock server for testing."""
+        # Create mock server here
+        # ...
 
-asyncio.run(main())
+    @pytest.mark.asyncio
+    async def test_rest_strategy_integration(self, mock_server):
+        """Test CandlesFeed with REST polling strategy."""
+        mock_server_url = mock_server.url
+        
+        # Create feed for testing
+        feed = CandlesFeed(
+            exchange="binance_spot",
+            trading_pair="BTC-USDT",
+            interval="1m",
+            max_records=100
+        )
+        
+        # Override adapter REST URL
+        feed._adapter.get_rest_url = lambda: f"{mock_server_url}/api/v3/klines"
+        
+        try:
+            # Start the feed with REST polling strategy
+            await feed.start(strategy="polling")
+            
+            # Verify candles were retrieved
+            candles = feed.get_candles()
+            assert len(candles) > 0
+        
+        finally:
+            # Stop the feed
+            await feed.stop()
 ```
 
-### Advanced Configuration
+## Adding a New Exchange
+
+To add support for a new exchange, create a plugin that implements the exchange's API:
 
 ```python
-# Create a server with specific trading pairs
-server = create_mock_server(
-    exchange_type=ExchangeType.BINANCE_SPOT,
-    trading_pairs=[
-        ("BTCUSDT", "1m", 50000.0),  # Symbol, interval, initial price
-        ("ETHUSDT", "5m", 3000.0),
-        ("SOLUSDT", "15m", 100.0)
-    ]
-)
-
-# Configure network conditions
-server.set_network_conditions(
-    latency_ms=50,           # 50ms latency
-    packet_loss_rate=0.01,   # 1% packet loss
-    error_rate=0.005         # 0.5% error rate
-)
-
-# Configure rate limits
-server.set_rate_limits(
-    rest_limit=1200,         # 1200 REST requests per minute
-    rest_period_ms=60000,    # 1 minute period
-    ws_limit=10,             # 10 WebSocket messages per second
-    ws_burst=50              # 50 message burst allowed
-)
-```
-
-## Creating a New Exchange Plugin
-
-To add support for a new exchange:
-
-1. Create a new module in `exchanges/` (e.g., `exchanges/new_exchange/`)
-2. Create a plugin class that inherits from `ExchangePlugin`
-3. Implement all required methods to handle the exchange's API format
-
-Example:
-
-```python
-from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
+from candles_feed.testing_resources.exchange_simulation.core.exchange_plugin import ExchangePlugin
+from candles_feed.testing_resources.exchange_simulation.core.exchange_type import ExchangeType
 
 class NewExchangePlugin(ExchangePlugin):
     def __init__(self, exchange_type: ExchangeType):
@@ -114,111 +91,70 @@ class NewExchangePlugin(ExchangePlugin):
             # ... other routes
         }
     
-    @property
-    def ws_routes(self):
-        return {
-            '/ws': 'handle_websocket'
-        }
-    
-    # Implement all other required methods
+    # Implement required methods
     # ...
 ```
 
-## Testing with the Framework
+## Advanced Configuration
 
-### Unit Tests
-
-```python
-import asyncio
-import unittest
-from candles_feed.testing_resources.mocks import ExchangeType, create_mock_server
-
-class TestCandlesFeed(unittest.TestCase):
-    async def asyncSetUp(self):
-        # Create and start a mock server for testing
-        self.server = create_mock_server(ExchangeType.BINANCE_SPOT)
-        self.server_url = await self.server.start()
-        
-        # Initialize your candles feed with the mock server URL
-        self.candles_feed = YourCandlesFeed(base_url=self.server_url)
-        await self.candles_feed.start()
-    
-    async def asyncTearDown(self):
-        # Clean up
-        await self.candles_feed.stop()
-        await self.server.stop()
-    
-    async def test_get_candles(self):
-        # Test getting candles from the mock server
-        candles = await self.candles_feed.get_candles("BTCUSDT", "1m")
-        self.assertIsNotNone(candles)
-        self.assertGreater(len(candles), 0)
-    
-    # Helper to run async tests
-    def test_get_candles_sync(self):
-        asyncio.run(self.test_get_candles())
-```
-
-### Integration Tests
+The framework provides advanced configuration options for different testing scenarios:
 
 ```python
-from candles_feed.adapters.binance_spot import BinanceSpotAdapter
-from candles_feed.testing_resources.mocks import ExchangeType, create_mock_server
+# Configure network conditions for error testing
+server.set_network_conditions(
+    latency_ms=50,          # 50ms latency
+    packet_loss_rate=0.2,   # 20% packet loss
+    error_rate=0.1          # 10% error responses
+)
 
-async def test_integration():
-    # Start mock server
-    server = create_mock_server(ExchangeType.BINANCE_SPOT)
-    url = await server.start()
-    
-    try:
-        # Create adapter with mock server URL
-        adapter = BinanceSpotAdapter(
-            trading_pair="BTCUSDT",
-            interval="1m",
-            base_url=url,  # Use mock server URL instead of real Binance
-            ws_url=f"ws://{server.host}:{server.port}/ws"
-        )
-        
-        # Test adapter functionality with mock server
-        await adapter.start()
-        candles = await adapter.fetch_candles()
-        print(f"Fetched {len(candles)} candles")
-        
-        # Wait for real-time updates
-        await asyncio.sleep(10)
-        
-        # Check that we're receiving updates
-        candles_after = await adapter.fetch_candles()
-        print(f"Now have {len(candles_after)} candles")
-        
-        await adapter.stop()
-    finally:
-        await server.stop()
+# Set different rate limits
+server.set_rate_limits(
+    rest_limit=120,         # 120 requests per minute
+    rest_period_ms=60000,   # 1 minute period
+    ws_limit=5,             # 5 messages per second
+    ws_burst=10             # 10 messages burst
+)
 ```
 
-## Supported Exchanges
+## Testing Error Handling
 
-Currently, the following exchanges are supported:
+The framework excels at testing error handling and recovery:
+
+```python
+# Test error handling
+async def test_error_handling(mock_server):
+    # Set error conditions
+    mock_server.set_network_conditions(
+        latency_ms=100,
+        packet_loss_rate=0.2,
+        error_rate=0.2
+    )
+    
+    # Create feed and test with error conditions
+    # ...
+    
+    # Reset conditions for recovery testing
+    mock_server.set_network_conditions(
+        latency_ms=0,
+        packet_loss_rate=0.0,
+        error_rate=0.0
+    )
+    
+    # Verify recovery
+    # ...
+```
+
+## Currently Supported Exchanges
 
 - Binance Spot
+- More exchanges coming soon
 
-More exchange plugins will be added in the future.
+## For External Projects
 
-## Customization
+This framework is designed to be used by external projects that need to test their integration with cryptocurrency exchanges. You can:
 
-You can customize various aspects of the mock server:
-
-- **Candle Generation**: Modify volatility, trading patterns
-- **Data Storage**: Add persistence for candle data
-- **Error Scenarios**: Simulate specific error conditions
-- **WebSocket Behavior**: Control connection drops, reconnects
-
-## Contributing
-
-To contribute a new exchange plugin:
-
-1. Create a new directory under `exchanges/` for your exchange
-2. Implement the `ExchangePlugin` interface in a new class
-3. Register your plugin in the plugin registry
-4. Add tests to verify your implementation
-5. Update documentation with the new supported exchange
+1. Import the simulation framework in your test code
+2. Create mock servers for supported exchanges
+3. Point your code to the mock server instead of real exchanges
+4. Test all scenarios including error handling
+5. Extend with plugins for exchanges not yet supported

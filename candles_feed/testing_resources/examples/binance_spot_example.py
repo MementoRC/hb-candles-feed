@@ -6,14 +6,16 @@ import asyncio
 import logging
 import json
 
-from candles_feed.testing_resources.mocks import ExchangeType, create_mock_server, MockCandleData
+from candles_feed.testing_resources.mocks import ExchangeType, create_mock_server
+from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
+from candles_feed.core.candle_data import CandleData
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def print_candle(candle: MockCandleData):
+def print_candle(candle: CandleData):
     """Print candle information in a readable format."""
     print(f"Candle at {candle.timestamp} ({candle.timestamp_ms} ms):")
     print(f"  OHLC: {candle.open:.2f}, {candle.high:.2f}, {candle.low:.2f}, {candle.close:.2f}")
@@ -60,10 +62,10 @@ async def main():
         
         if prev_candle is None:
             # First candle
-            candle = MockCandleData.create_random(candle_timestamp, base_price=50000.0)
+            candle = CandleDataFactory.create_random(candle_timestamp, base_price=50000.0)
         else:
             # Subsequent candles based on previous
-            candle = MockCandleData.create_random(candle_timestamp, previous_candle=prev_candle)
+            candle = CandleDataFactory.create_random(candle_timestamp, previous_candle=prev_candle)
         
         candles.append(candle)
         prev_candle = candle

@@ -1,23 +1,13 @@
 [build-system]
 requires = [
+    "hatchling>=1.18.0",
     "scikit-build-core>=0.5.0",
     "Cython>=3",
     "setuptools>=42.0.0",
     "wheel>=0.37.0",
-    "cmake>=3.21.0"
+    "cmake>=3.21.0",
 ]
-build-backend = "scikit_build_core.build"
-
-# Included from MANIFEST.in
-[tool.setuptools]
-package-dir = {"" = "."}
-packages = ["candles_feed"]
-
-[tool.setuptools.package-data]
-"*" = ["*.py", "*.pyx", "*.pxd", "*.h", "*.c", "*.cpp"]
-
-[tool.setuptools.exclude-package-data]
-"*" = ["__pycache__", "*.py[co]", "*.so"]
+build-backend = "hatchling.build"
 
 [project]
 name = "hb-candles-feed"
@@ -38,7 +28,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    # Common dependencies
     "pandas>=1.0.0",
     "numpy>=1.20.0",
     "aiohttp>=3.8.0",
@@ -50,6 +39,7 @@ Homepage = "https://github.com/hummingbot/hummingbot"
 Documentation = "https://github.com/hummingbot/hummingbot/tree/master/sub-packages/candles-feed/docs"
 Repository = "https://github.com/hummingbot/hummingbot/tree/master/sub-packages/candles-feed"
 
+# Optional dependencies
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
@@ -59,7 +49,6 @@ dev = [
     "pytest-timeout>=2.1.0",
     "ruff>=0.1.5",
     "mypy>=1.5.1",
-    "conda-build>=1.0.3",
     "cython-lint>=0.15.0",
 ]
 doc = [
@@ -71,23 +60,70 @@ hummingbot = [
     # Hummingbot-specific dependencies would go here
 ]
 
+# Hatch configuration for conda environments
+[tool.hatch.env]
+requires = ["hatch-conda>=0.5.2"]
+type = "conda"
+
+# Default environment
+[tool.hatch.envs.default]
+conda-channels = ["conda-forge", "defaults"]
+features = ["dev"]
+
+# Scripts for the default environment
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-unit = "pytest tests/unit"
+test-integration = "pytest tests/integration"
+lint = "ruff check candles_feed tests"
+format = "ruff format candles_feed tests"
+typecheck = "mypy candles_feed"
+lint-cython = "cython-lint candles_feed"
+check = ["format", "lint", "typecheck", "test"]
+
+# Documentation environment
+[tool.hatch.envs.docs]
+conda-channels = ["conda-forge", "defaults"]
+features = ["doc"]
+
+# Documentation scripts
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build"
+serve = "mkdocs serve"
+
+# CMake Integration with Hatch
+[tool.hatch.build.targets.wheel]
+packages = ["candles_feed"]
+build-hook = "hatch_build_hook_scikit_build_core.build_hook"
+
+# scikit-build-core configuration
 [tool.scikit-build]
-# Enable wheel creation
 wheel.packages = ["candles_feed"]
-# Set source directory - only needed if CMakeLists.txt is not in the root
 cmake.source-dir = "."
-# Enable verbose CMake output for debugging
 cmake.verbose = false
-# Enable experimental features like parallel building
 experimental = false
-# Minimum version
 minimum-version = "0.5.0"
-# Handle macOS universal wheels
 wheel.expand-macos-universal-tags = true
-# Removed build.parallel setting as it's not recognized by the current version
-# Make sure sdist contains all necessary files
 sdist.exclude = ["build", "dist", "_skbuild", "**/__pycache__", "**/*.pyc", ".git"]
 
+# Pytest configuration
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+python_files = "test_*.py"
+python_functions = "test_*"
+markers = [
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "e2e: marks tests as end-to-end tests",
+    "asyncio: marks tests as asyncio tests",
+]
+log_cli = true
+log_cli_level = "INFO"
+
+# Code formatting
 [tool.ruff]
 target-version = "py38"
 line-length = 100
@@ -122,18 +158,3 @@ known-first-party = ["candles_feed"]
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_functions = "test_*"
-markers = [
-    "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
-    "e2e: marks tests as end-to-end tests",
-    "asyncio: marks tests as asyncio tests",
-]
-log_cli = true
-log_cli_level = "INFO"
