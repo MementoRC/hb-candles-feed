@@ -120,26 +120,73 @@ hatch run test-perpetual
 
 You can use PyCharm to develop and test the package without using `pip install -e`. This approach allows for a cleaner development environment and better compatibility with Hatch.
 
+#### Method 1: Using the Bootstrap Runner (Recommended)
+
+This is the most reliable method for running tests from within PyCharm:
+
+1. Create a new Run/Debug Configuration in PyCharm:
+   - Go to Run → Edit Configurations
+   - Click the + to add a new Python configuration
+   - Set Script path to: `pycharm_config.py`
+   - Set Parameters to: `tests/unit/your_test_file.py` (or other test path)
+   - Set Working directory to: `/home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed`
+   - Click Apply and OK
+
+2. Run this configuration to execute your test with the proper path setup.
+
+#### Method 2: Using Debug Scripts
+
+These diagnostic scripts help troubleshoot import issues:
+
 1. **Run the diagnostic tool**:
    ```bash
    cd setup-tools
-   python test_path_setup.py
+   python debug_pycharm.py
    ```
-   Follow the instructions provided by the script to configure PyCharm.
+   This will show detailed information about Python path and import issues.
 
-2. **Configure PyCharm**:
+2. **Use specialized test runners**:
+   - `setup-tools/run_pytest.py` - Runs pytest directly with correct paths
+   - `setup-tools/bootstrap_test.py` - Advanced test runner with module finder
+
+3. **Configure PyCharm basics**:
    - Mark the `candles-feed` directory as "Sources Root"
    - Add the project directory to the Python interpreter paths
    - Configure run configurations with the correct working directory
 
-3. **Use the PyCharm helper scripts**:
-   - Create a run configuration for `setup-tools/run_tests_pycharm.py`
-   - Test individual adapters with `setup-tools/run_adapter_tests.py`
+#### Method 3: External Hatch Tool Integration
 
-4. **Set up External Tools for Hatch**:
-   - Go to Settings > Tools > External Tools
-   - Create tools for common Hatch commands (test, format, lint)
-   - Set the working directory to the project root
+Set up External Tools for easy Hatch access:
+
+1. Go to Settings > Tools > External Tools
+2. Create a new tool:
+   - Name: Hatch Run Tests
+   - Program: hatch
+   - Arguments: run test
+   - Working directory: $ProjectFileDir$
+3. Add similar tools for other commands (format, lint, etc.)
+
+#### Running Tests in PyCharm
+
+We've provided several scripts to handle different testing scenarios:
+
+1. **`run_unit_tests.py`**: Runs only unit tests, skipping integration and e2e tests that require external services
+   ```bash
+   # From PyCharm, create a configuration that runs:
+   python setup-tools/run_unit_tests.py
+   ```
+
+2. **`run_pytest.py`**: Runs pytest with arguments, good for targeted test runs
+   ```bash
+   # From PyCharm, create a configuration that runs:
+   python setup-tools/run_pytest.py tests/unit/core
+   ```
+
+3. **`direct_run.py`**: Uses Hatch directly, bypassing Python's import system
+   ```bash
+   # From PyCharm, create a configuration that runs:
+   python setup-tools/direct_run.py
+   ```
 
 #### How the Scripts Bypass Installation
 
@@ -150,11 +197,6 @@ These helper scripts use a simple but effective technique to make the package im
 3. This ensures Python looks in the correct directory first
 4. No modification to sys.path or sys.modules is needed in your main environment
 
-This subprocess-based approach is the most reliable way to handle Python imports without installing packages. It works by:
-
-1. Creating a new Python process with the correct environment
-2. Letting Python's normal import system find the local package first
-3. Avoiding any conflicts with existing sys.path entries
-4. Working consistently across different Python environments and IDEs
+This subprocess-based approach is the most reliable way to handle Python imports without installing packages, especially with complex Python packages.
 
 These configurations enable a smooth development workflow in PyCharm while leveraging Hatch for dependency management and task automation.
