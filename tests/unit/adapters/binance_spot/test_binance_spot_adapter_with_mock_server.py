@@ -3,10 +3,11 @@ Unit tests for the BinanceSpotAdapter class using the mock exchange server.
 """
 
 import asyncio
-import pytest
-import aiohttp
 import json
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+import aiohttp
+import pytest
 
 from candles_feed.adapters.binance_spot.binance_spot_adapter import BinanceSpotAdapter
 from candles_feed.core.candle_data import CandleData
@@ -69,8 +70,7 @@ class TestBinanceSpotAdapterWithMockServer:
         self.adapter.get_ws_url = lambda: ws_url
 
         # Create WebSocket connection
-        async with aiohttp.ClientSession() as session:
-            async with session.ws_connect(ws_url) as ws:
+        async with aiohttp.ClientSession() as session, session.ws_connect(ws_url) as ws:
                 # Create subscription payload
                 payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
 

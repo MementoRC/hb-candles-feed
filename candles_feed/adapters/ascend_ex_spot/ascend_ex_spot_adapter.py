@@ -4,7 +4,6 @@ AscendEx spot exchange adapter for the Candle Feed framework.
 
 from typing import Dict, List, Optional
 
-from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.ascend_ex_spot.constants import (
     CANDLES_ENDPOINT,
     INTERVAL_TO_ASCENDEX_FORMAT,
@@ -15,6 +14,7 @@ from candles_feed.adapters.ascend_ex_spot.constants import (
     WS_INTERVALS,
     WSS_URL,
 )
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 

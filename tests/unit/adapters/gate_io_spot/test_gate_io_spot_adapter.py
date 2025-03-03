@@ -6,15 +6,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from candles_feed.adapters.gate_io_spot.gate_io_spot_adapter import GateIoSpotAdapter
 from candles_feed.adapters.gate_io_spot.constants import (
+    CANDLES_ENDPOINT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     REST_URL,
-    CANDLES_ENDPOINT,
     WS_INTERVALS,
     WSS_URL,
 )
+from candles_feed.adapters.gate_io_spot.gate_io_spot_adapter import GateIoSpotAdapter
 from candles_feed.core.candle_data import CandleData
 
 

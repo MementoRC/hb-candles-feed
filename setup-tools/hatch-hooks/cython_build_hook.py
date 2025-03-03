@@ -22,7 +22,7 @@ def find_cython_modules(directory):
             continue
 
         try:
-            with open(py_file, "r", encoding="utf-8") as f:
+            with open(py_file, encoding="utf-8") as f:
                 content = f.read()
                 if "@cython" in content:
                     cython_modules.append(str(py_file))
@@ -43,8 +43,8 @@ def compile_cython_modules(modules, build_dir):
     # Make sure Cython is installed
     try:
         import Cython
-        from Cython.Build import cythonize
         import numpy as np
+        from Cython.Build import cythonize
     except ImportError:
         print("Cython or NumPy not found, skipping Cython compilation")
         return
@@ -57,7 +57,7 @@ def compile_cython_modules(modules, build_dir):
             pyx_file = module_path.with_suffix(".pyx")
 
             # Copy content from .py to .pyx
-            with open(module_path, "r", encoding="utf-8") as src:
+            with open(module_path, encoding="utf-8") as src:
                 content = src.read()
 
             with open(pyx_file, "w", encoding="utf-8") as dst:

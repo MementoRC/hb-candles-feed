@@ -11,11 +11,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-# Add the project root to the Python path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.network_client import NetworkClient

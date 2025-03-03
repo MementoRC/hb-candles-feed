@@ -13,10 +13,10 @@ import aiohttp
 import pytest
 
 from candles_feed.core.candle_data import CandleData
+from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
 from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
-from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -97,8 +97,7 @@ class TestMockServer:
         ws_url = f"ws://{server_host}:{server_port}/ws"
 
         # Just test that we can connect to the WebSocket endpoint
-        async with aiohttp.ClientSession() as session:
-            async with session.ws_connect(ws_url) as ws:
+        async with aiohttp.ClientSession() as session, session.ws_connect(ws_url) as ws:
                 # Create subscription message (Binance format)
                 subscription = {"method": "SUBSCRIBE", "params": ["btcusdt@kline_1m"], "id": 1}
 
@@ -140,7 +139,7 @@ class TestMockServer:
 
             # Test each trading pair
             async with aiohttp.ClientSession() as session:
-                for pair, interval, expected_price in trading_pairs:
+                for pair, interval, _ in trading_pairs:
                     params = {"symbol": pair, "interval": interval, "limit": 1}
 
                     async with session.get(f"{url}/api/v3/klines", params=params) as response:
@@ -231,8 +230,7 @@ class TestMockServer:
         )
 
         # Verify normal operation is restored
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{mock_server_url}/api/v3/klines", params=params) as response:
+        async with aiohttp.ClientSession() as session, session.get(f"{mock_server_url}/api/v3/klines", params=params) as response:
                 assert response.status == 200
                 data = await response.json()
                 assert len(data) > 0

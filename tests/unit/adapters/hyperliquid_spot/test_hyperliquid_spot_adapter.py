@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from candles_feed.adapters.hyperliquid_spot.constants import (
-    INTERVALS,
     INTERVAL_TO_HYPERLIQUID_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     REST_URL,
     WS_INTERVALS,

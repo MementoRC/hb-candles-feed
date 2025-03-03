@@ -9,11 +9,10 @@ import importlib
 import logging
 from typing import Dict, List, Optional, Tuple
 
+from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
-from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
 from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
-
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +193,7 @@ class MockedCandlesFeedServer:
             module = importlib.import_module(module_name)
 
             # Save original URLs
-            for url_type, attr_name in attrs.items():
+            for _, attr_name in attrs.items():
                 if hasattr(module, attr_name):
                     self.original_urls[attr_name] = getattr(module, attr_name)
 

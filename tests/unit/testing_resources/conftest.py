@@ -3,6 +3,7 @@ Pytest fixtures for testing the mock exchange server components.
 """
 
 import asyncio
+
 import pytest
 
 from candles_feed import CandleData
@@ -33,22 +34,21 @@ def sample_candles():
     candles = []
     base_timestamp = 1613677200  # 2021-02-19 00:00:00 UTC
 
-    for i in range(5):
-        candles.append(
-            CandleData(
-                timestamp_raw=base_timestamp + (i * 60),  # 1-minute intervals
-                open=50000.0 + (i * 100),
-                high=50500.0 + (i * 100),
-                low=49500.0 + (i * 100),
-                close=50200.0 + (i * 100),
-                volume=10.0 + i,
-                quote_asset_volume=(10.0 + i) * (50200.0 + (i * 100)),
-                n_trades=100 + (i * 10),
-                taker_buy_base_volume=5.0 + (i * 0.5),
-                taker_buy_quote_volume=(5.0 + (i * 0.5)) * (50200.0 + (i * 100)),
-            )
+    candles.extend(
+        CandleData(
+            timestamp_raw=base_timestamp + (i * 60),  # 1-minute intervals
+            open=50000.0 + (i * 100),
+            high=50500.0 + (i * 100),
+            low=49500.0 + (i * 100),
+            close=50200.0 + (i * 100),
+            volume=10.0 + i,
+            quote_asset_volume=(10.0 + i) * (50200.0 + (i * 100)),
+            n_trades=100 + (i * 10),
+            taker_buy_base_volume=5.0 + (i * 0.5),
+            taker_buy_quote_volume=(5.0 + (i * 0.5)) * (50200.0 + (i * 100)),
         )
-
+        for i in range(5)
+    )
     return candles
 
 
@@ -67,7 +67,7 @@ async def binance_mock_server():
     server.add_trading_pair("ETHUSDT", "1m", 3000.0)
 
     # Start the server
-    url = await server.start()
+    await server.start()
 
     yield server
 

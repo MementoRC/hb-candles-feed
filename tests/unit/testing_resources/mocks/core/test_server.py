@@ -2,17 +2,17 @@
 Unit tests for the MockExchangeServer class in testing_resources.
 """
 
-import unittest
-from unittest.mock import MagicMock, patch, AsyncMock
 import asyncio
 import time
-import pytest
+import unittest
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from aiohttp import web
 
 from candles_feed import CandleData
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
+from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
 
 

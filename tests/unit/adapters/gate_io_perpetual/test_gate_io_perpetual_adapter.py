@@ -4,16 +4,16 @@ Unit tests for the GateIoPerpetualAdapter class.
 
 import pytest
 
-from candles_feed.adapters.gate_io_perpetual.gate_io_perpetual_adapter import GateIoPerpetualAdapter
 from candles_feed.adapters.gate_io.constants import (
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    PERP_REST_URL,
     PERP_CANDLES_ENDPOINT,
-    WS_INTERVALS,
-    PERP_WSS_URL,
     PERP_CHANNEL_NAME,
+    PERP_REST_URL,
+    PERP_WSS_URL,
+    WS_INTERVALS,
 )
+from candles_feed.adapters.gate_io_perpetual.gate_io_perpetual_adapter import GateIoPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
 
 

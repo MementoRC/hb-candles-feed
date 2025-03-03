@@ -3,8 +3,8 @@ Unit tests for the ExchangePlugin abstract base class in testing_resources.
 """
 
 import unittest
+from typing import Any, Dict, List, Tuple
 from unittest.mock import MagicMock
-from typing import Dict, List, Tuple, Any
 
 from aiohttp import web
 

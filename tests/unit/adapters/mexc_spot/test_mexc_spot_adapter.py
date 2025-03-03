@@ -7,11 +7,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from candles_feed.adapters.mexc_spot.constants import (
-    INTERVALS,
+    CANDLES_ENDPOINT,
     INTERVAL_TO_MEXC_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     REST_URL,
-    CANDLES_ENDPOINT,
     WS_INTERVALS,
     WSS_URL,
 )

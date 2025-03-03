@@ -7,8 +7,8 @@ and ensure that the correct dependencies are available.
 
 import importlib
 import sys
-import pandas as pd
 
+import pandas as pd
 import pytest  # noqa: F401
 
 
@@ -52,8 +52,9 @@ class TestCompatibility:
         # We need to manually register adapters for testing
         # This is necessary because in a test environment, the automatic registration
         # might not work as expected
+        from unittest.mock import MagicMock, patch
+
         from candles_feed.core.exchange_registry import ExchangeRegistry
-        from unittest.mock import patch, MagicMock
 
         # Create mock adapter classes
         mock_adapters = {
@@ -84,7 +85,7 @@ class TestCompatibility:
             assert exchange in registered_exchanges
 
         # Clean up the registry for other tests
-        for name in mock_adapters.keys():
+        for name in mock_adapters:
             if name in ExchangeRegistry._registry:
                 del ExchangeRegistry._registry[name]
 
@@ -94,9 +95,10 @@ class TestCompatibility:
         This test verifies that the new CandlesFeed class has the same basic interface
         as the original CandlesBase class.
         """
-        from candles_feed.core.candles_feed import CandlesFeed
-        from unittest.mock import MagicMock, patch, AsyncMock
         import asyncio
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from candles_feed.core.candles_feed import CandlesFeed
 
         # Create a mock adapter
         mock_adapter = MagicMock()

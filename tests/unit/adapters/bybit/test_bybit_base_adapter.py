@@ -2,15 +2,15 @@
 Unit tests for the BybitBaseAdapter class.
 """
 
-from unittest.mock import MagicMock
 from typing import Optional
+from unittest.mock import MagicMock
 
 import pytest
 
 from candles_feed.adapters.bybit.bybit_base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
-    INTERVALS,
     INTERVAL_TO_BYBIT_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )

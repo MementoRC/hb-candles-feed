@@ -5,8 +5,8 @@ This module imports constants from the base MEXC module.
 """
 
 from candles_feed.adapters.mexc.constants import (
-    INTERVALS,
     INTERVAL_TO_MEXC_CONTRACT_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     PERP_CANDLES_ENDPOINT,
     PERP_KLINE_TOPIC,

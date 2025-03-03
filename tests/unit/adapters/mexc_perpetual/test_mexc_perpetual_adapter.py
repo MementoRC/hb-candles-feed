@@ -5,8 +5,8 @@ Unit tests for the MEXCPerpetualAdapter class.
 import pytest
 
 from candles_feed.adapters.mexc.constants import (
-    INTERVALS,
     INTERVAL_TO_MEXC_CONTRACT_FORMAT,
+    INTERVALS,
     WS_INTERVALS,
 )
 from candles_feed.adapters.mexc_perpetual.constants import (

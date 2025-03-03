@@ -11,8 +11,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 from unittest.mock import patch
 
-import pytest
 import aiohttp
+import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed

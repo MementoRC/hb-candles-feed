@@ -3,12 +3,12 @@ Example of using the mock Binance Spot exchange server.
 """
 
 import asyncio
-import logging
 import json
+import logging
 
-from candles_feed.testing_resources.mocks import ExchangeType, create_mock_server
-from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
 from candles_feed.core.candle_data import CandleData
+from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
+from candles_feed.testing_resources.mocks import ExchangeType, create_mock_server
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

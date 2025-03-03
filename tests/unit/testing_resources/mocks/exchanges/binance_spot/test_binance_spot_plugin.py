@@ -2,9 +2,10 @@
 Unit tests for the Binance Spot plugin in testing_resources.
 """
 
+import time
 import unittest
 from unittest.mock import MagicMock, patch
-import time
+
 import pytest
 
 from candles_feed.core.candle_data import CandleData

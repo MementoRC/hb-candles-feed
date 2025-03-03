@@ -4,8 +4,9 @@ Unit tests for the CandlesFeed class using the mock exchange server.
 
 import asyncio
 from datetime import datetime, timezone
-import pytest
+
 import aiohttp
+import pytest
 
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
@@ -92,7 +93,6 @@ class TestCandlesFeedWithMockServer:
         )
 
         # Disable the auto-polling which is causing the error
-        original_polling = feed._rest_strategy._poll_for_updates
         feed._rest_strategy._poll_for_updates = lambda: None  # No-op function
 
         # Start feed manually (without auto-polling)
@@ -103,8 +103,8 @@ class TestCandlesFeedWithMockServer:
         await feed.fetch_candles()
 
         # Verify feed is active
-        assert feed._active is True
-        assert feed._using_ws is False
+        assert feed._active
+        assert not feed._using_ws
 
         # Get candles
         candles = feed.get_candles()
@@ -116,7 +116,7 @@ class TestCandlesFeedWithMockServer:
         await feed.stop()
 
         # Verify feed is not active
-        assert feed._active is False
+        assert not feed._active
 
     @pytest.mark.asyncio
     async def test_start_with_websocket_using_mock_server(

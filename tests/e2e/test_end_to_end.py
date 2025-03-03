@@ -14,8 +14,8 @@ import pytest
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocked_candle_feed_server import MockedCandlesFeedServer
+from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

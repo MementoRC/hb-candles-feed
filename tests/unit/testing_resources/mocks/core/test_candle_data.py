@@ -2,12 +2,12 @@
 Unit tests for the CandleData class in testing_resources.
 """
 
-import unittest
 import time
+import unittest
 from dataclasses import asdict
 
-from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
 from candles_feed.core.candle_data import CandleData
+from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
 
 
 class TestCandleData(unittest.TestCase):

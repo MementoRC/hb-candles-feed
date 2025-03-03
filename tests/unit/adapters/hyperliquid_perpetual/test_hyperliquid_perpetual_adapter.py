@@ -5,8 +5,8 @@ Unit tests for the HyperliquidPerpetualAdapter class.
 import pytest
 
 from candles_feed.adapters.hyperliquid.constants import (
-    INTERVALS,
     INTERVAL_TO_HYPERLIQUID_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     PERP_REST_URL,
     PERP_WSS_URL,

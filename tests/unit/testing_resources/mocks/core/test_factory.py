@@ -3,14 +3,14 @@ Unit tests for the server factory in testing_resources.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 from candles_feed.testing_resources.mocks.core.factory import (
-    register_plugin,
-    get_plugin,
-    create_mock_server,
     _PLUGIN_REGISTRY,
+    create_mock_server,
+    get_plugin,
+    register_plugin,
 )
 
 
