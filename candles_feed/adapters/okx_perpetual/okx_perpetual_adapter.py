@@ -50,7 +50,7 @@ class OKXPerpetualAdapter(OKXBaseAdapter):
         """
         return WSS_URL
 
-    def parse_rest_response(self, data: dict) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -73,10 +73,13 @@ class OKXPerpetualAdapter(OKXBaseAdapter):
         #   ...
         # ]
 
-        candles = []
-
+        candles: list[CandleData] = []
+        
+        if data is None:
+            return candles
+            
         # Check for fixture format from the test
-        if "code" in data and data.get("code") == "0" and "data" in data:
+        if isinstance(data, dict) and "code" in data and data.get("code") == "0" and "data" in data:
             # This is likely the test fixture format
             for row in data.get("data", []):
                 candles.append(
@@ -90,7 +93,7 @@ class OKXPerpetualAdapter(OKXBaseAdapter):
                         quote_asset_volume=float(row[6]) if len(row) > 6 and row[6] != "0" else 0.0,
                     )
                 )
-        else:
+        elif isinstance(data, dict) and "data" in data:
             # Standard OKX format
             for row in data.get("data", []):
                 candles.append(

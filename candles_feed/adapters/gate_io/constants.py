@@ -24,7 +24,7 @@ PERP_WSS_URL = WSS_BASE_URL
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
 # Intervals mapping: interval name -> seconds
-INTERVALS: Dict[str, int] = {
+INTERVALS: dict[str, int] = {
     "10s": 10,
     "1m": 60,
     "5m": 300,

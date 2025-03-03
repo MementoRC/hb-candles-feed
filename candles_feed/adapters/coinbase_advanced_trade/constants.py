@@ -17,7 +17,7 @@ PRODUCTS_ENDPOINT = "/api/v3/brokerage/products"
 MAX_CANDLES_SIZE = 300
 
 # Intervals mapping: interval name -> seconds
-INTERVALS: Dict[str, int] = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "6h": 21600, "1d": 86400}
+INTERVALS: dict[str, int] = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "6h": 21600, "1d": 86400}
 
 # Websocket supported intervals - Coinbase only supports certain intervals via WebSocket
 WS_INTERVALS = ["1m", "5m", "15m", "1h"]

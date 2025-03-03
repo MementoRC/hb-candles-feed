@@ -52,9 +52,9 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -78,7 +78,7 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -102,18 +102,21 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
         #   ]
         # }
 
-        candles = []
-        for candle in data.get("candles", []):
-            candles.append(
-                CandleData(
-                    timestamp_raw=candle.get("start", 0),
-                    open=float(candle.get("open", 0)),
-                    high=float(candle.get("high", 0)),
-                    low=float(candle.get("low", 0)),
-                    close=float(candle.get("close", 0)),
-                    volume=float(candle.get("volume", 0)),
-                )
+        candles: list[CandleData] = []
+
+        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+
+        candles.extend(
+            CandleData(
+                timestamp_raw=candle.get("start", 0),
+                open=float(candle.get("open", 0)),
+                high=float(candle.get("high", 0)),
+                low=float(candle.get("low", 0)),
+                close=float(candle.get("close", 0)),
+                volume=float(candle.get("volume", 0)),
             )
+            for candle in data.get("candles", [])
+        )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -133,7 +136,7 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
             "granularity": INTERVALS[interval],
         }
 
-    def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -187,7 +190,7 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
 
         return candles if candles else None
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -195,7 +198,7 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
         """
         return INTERVALS
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:

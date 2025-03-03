@@ -19,14 +19,14 @@ class NetworkClient:
     handling both REST and WebSocket connections.
     """
 
-    def __init__(self, logger: Optional[Logger] = None):
+    def __init__(self, logger: Logger | None = None):
         """Initialize the NetworkClient.
 
         Args:
             logger: Logger instance
         """
-        self.logger = logger or logging.getLogger(__name__)
-        self._session = None
+        self.logger: Logger = logger or logging.getLogger(__name__)
+        self._session: aiohttp.ClientSession | None = None
 
     async def _ensure_session(self):
         """Ensure aiohttp session exists."""
@@ -55,9 +55,9 @@ class NetworkClient:
     async def get_rest_data(
         self,
         url: str,
-        params: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
         method: str = "GET",
     ) -> Any:
         """Get data from REST API.
@@ -76,6 +76,8 @@ class NetworkClient:
             Exception: If the request fails
         """
         await self._ensure_session()
+        assert self._session is not None
+
         self.logger.debug(f"Making REST request to {url} with params {params}")
 
         # Clean params, removing None values to avoid serialization issues
@@ -111,6 +113,8 @@ class NetworkClient:
             Exception: If the connection fails
         """
         await self._ensure_session()
+        assert self._session is not None
+
         self.logger.debug(f"Establishing WebSocket connection to {url}")
 
         try:
@@ -120,7 +124,7 @@ class NetworkClient:
             self.logger.error(f"WebSocket connection failed: {e}")
             raise
 
-    async def send_ws_message(self, ws_assistant: WSAssistant, payload: Dict[str, Any]) -> None:
+    async def send_ws_message(self, ws_assistant: WSAssistant, payload: dict[str, Any]) -> None:
         """Send a message over WebSocket.
 
         Args:
@@ -140,7 +144,7 @@ class NetworkClient:
 class SimpleWSAssistant(WSAssistant):
     """Simple implementation of WSAssistant using aiohttp."""
 
-    def __init__(self, ws_connection: aiohttp.ClientWebSocketResponse, logger: Logger = None):
+    def __init__(self, ws_connection: aiohttp.ClientWebSocketResponse, logger: Logger | None = None):
         """Initialize the SimpleWSAssistant.
 
         Args:
@@ -159,7 +163,7 @@ class SimpleWSAssistant(WSAssistant):
         if not self._ws.closed:
             await self._ws.close()
 
-    async def send(self, payload: Dict[str, Any]) -> None:
+    async def send(self, payload: dict[str, Any]) -> None:
         """Send a message over WebSocket.
 
         Args:

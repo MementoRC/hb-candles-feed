@@ -5,7 +5,7 @@ Common constants for Binance adapters.
 from typing import Dict
 
 # Intervals mapping: interval name -> seconds
-INTERVALS: Dict[str, int] = {
+INTERVALS: dict[str, int] = {
     "1s": 1,
     "1m": 60,
     "3m": 180,

@@ -54,7 +54,7 @@ class BybitBaseAdapter(BaseAdapter):
         """
         pass
 
-    def get_category_param(self) -> Optional[str]:
+    def get_category_param(self) -> str | None:
         """Get the category parameter for the market type.
 
         Returns:
@@ -66,9 +66,9 @@ class BybitBaseAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -102,7 +102,7 @@ class BybitBaseAdapter(BaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: Optional[dict]) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -133,19 +133,22 @@ class BybitBaseAdapter(BaseAdapter):
         if data is None:
             return []
 
-        candles = []
-        for row in data.get("result", {}).get("list", []):
-            candles.append(
-                CandleData(
-                    timestamp_raw=int(row[0]) / 1000,  # Convert milliseconds to seconds
-                    open=float(row[1]),
-                    high=float(row[2]),
-                    low=float(row[3]),
-                    close=float(row[4]),
-                    volume=float(row[5]),
-                    quote_asset_volume=float(row[6]),
-                )
+        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+
+        candles: list[CandleData] = []
+        candles.extend(
+            CandleData(
+                timestamp_raw=int(row[0])
+                / 1000,  # Convert milliseconds to seconds
+                open=float(row[1]),
+                high=float(row[2]),
+                low=float(row[3]),
+                close=float(row[4]),
+                volume=float(row[5]),
+                quote_asset_volume=float(row[6]),
             )
+            for row in data.get("result", {}).get("list", [])
+        )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -166,7 +169,7 @@ class BybitBaseAdapter(BaseAdapter):
             ],
         }
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -218,7 +221,7 @@ class BybitBaseAdapter(BaseAdapter):
 
         return None
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -226,7 +229,7 @@ class BybitBaseAdapter(BaseAdapter):
         """
         return INTERVALS
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:

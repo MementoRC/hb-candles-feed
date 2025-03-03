@@ -16,7 +16,7 @@ SERVER_TIME_ENDPOINT = "/v5/market/time"
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
 # Intervals mapping: interval name -> seconds and Bybit format
-INTERVALS: Dict[str, int] = {
+INTERVALS: dict[str, int] = {
     "1m": 60,
     "3m": 180,
     "5m": 300,

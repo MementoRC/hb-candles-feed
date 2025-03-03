@@ -4,7 +4,8 @@ Data processing utilities for the Candle Feed framework.
 
 import logging
 from collections import deque
-from typing import Deque, List, Optional, Sequence
+from typing import Deque, List, Optional
+from collections.abc import Sequence
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import Logger
@@ -17,7 +18,7 @@ class DataProcessor:
     ensuring that the data is consistent and reliable.
     """
 
-    def __init__(self, logger: Optional[Logger] = None):
+    def __init__(self, logger: Logger | None = None):
         """Initialize the DataProcessor.
 
         Args:
@@ -27,7 +28,7 @@ class DataProcessor:
 
     def sanitize_candles(
         self, candles: Sequence[CandleData], interval_in_seconds: int
-    ) -> List[CandleData]:
+    ) -> list[CandleData]:
         """Find and return the longest valid sequence of candles.
 
         This is important to handle exchange inconsistencies where:
@@ -46,14 +47,14 @@ class DataProcessor:
             return []
 
         # Sort candles by timestamp
-        sorted_candles = sorted(candles, key=lambda x: x.timestamp)
+        sorted_candles: list[CandleData] = sorted(candles, key=lambda x: x.timestamp)
 
         if len(sorted_candles) == 1:
             return [sorted_candles[0]]
 
         # Find longest continuous sequence with correct interval
-        best_sequence = []
-        current_sequence = []
+        best_sequence: list[int] = []
+        current_sequence: list[int] = []
 
         for i in range(len(sorted_candles) - 1):
             if not current_sequence:
@@ -98,11 +99,11 @@ class DataProcessor:
 
         sorted_candles = sorted(candles, key=lambda x: x.timestamp)
 
-        for i in range(len(sorted_candles) - 1):
-            if sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp != interval_in_seconds:
-                return False
-
-        return True
+        return all(
+            sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp
+            == interval_in_seconds
+            for i in range(len(sorted_candles) - 1)
+        )
 
     def process_candle(self, candle: CandleData, candles_store: Deque[CandleData]) -> None:
         """Process a single candle and add it to the store.

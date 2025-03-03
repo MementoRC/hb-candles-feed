@@ -40,10 +40,10 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> dict:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         Args:
@@ -57,7 +57,7 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
             Dictionary of parameters for REST API request
         """
         # KuCoin Futures uses different API parameters
-        params = {
+        params: dict[str, str | int] = {
             "symbol": trading_pair,
             "granularity": INTERVAL_TO_KUCOIN_PERP_FORMAT.get(interval, interval),
         }
@@ -70,7 +70,7 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -96,8 +96,12 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
         #   ]
         # }
 
-        candles = []
-        if "data" in data and isinstance(data["data"], list):
+        candles: list[CandleData] = []
+        
+        if data is None:
+            return candles
+            
+        if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
             for row in data["data"]:
                 if len(row) >= 7:  # Ensure we have enough data
                     candles.append(
@@ -136,7 +140,7 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
             "response": True,
         }
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:

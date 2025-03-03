@@ -54,9 +54,9 @@ class AscendExSpotAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -81,7 +81,7 @@ class AscendExSpotAdapter(BaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -91,6 +91,8 @@ class AscendExSpotAdapter(BaseAdapter):
             List of CandleData objects
         """
         candles = []
+        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+
         for candle in data.get("data", []):
             timestamp = candle["data"]["ts"] / 1000  # Convert milliseconds to seconds
             candles.append(
@@ -125,7 +127,7 @@ class AscendExSpotAdapter(BaseAdapter):
             "ch": f"bar:{INTERVAL_TO_ASCENDEX_FORMAT.get(interval, interval)}:{self.get_trading_pair_format(trading_pair)}",
         }
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -162,7 +164,7 @@ class AscendExSpotAdapter(BaseAdapter):
 
         return None
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -170,7 +172,7 @@ class AscendExSpotAdapter(BaseAdapter):
         """
         return INTERVALS
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:

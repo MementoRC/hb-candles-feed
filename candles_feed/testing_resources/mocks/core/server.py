@@ -9,7 +9,6 @@ import logging
 import random
 import time
 from collections import deque
-from typing import Optional
 
 import aiohttp
 from aiohttp import web
@@ -17,6 +16,7 @@ from aiohttp import web
 from candles_feed.core.candle_data import CandleData
 from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
 from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
+from candles_feed.testing_resources.mocks import ExchangeType
 
 
 class MockExchangeServer:
@@ -36,28 +36,22 @@ class MockExchangeServer:
             host: Host to bind the server to
             port: Port to bind the server to
         """
-        self.plugin = plugin
-        self.exchange_type = plugin.exchange_type
-        self.host = host
-        self.port = port
-        self.app = web.Application()
+        self.plugin: ExchangePlugin = plugin
+        self.exchange_type: ExchangeType = plugin.exchange_type
+        self.host: str = host
+        self.port: int = port
+        self.app: web.Application = web.Application()
         self.runner = None
         self.site = None
-        self.logger = logging.getLogger(__name__)
+        self.logger: logging.Logger = logging.getLogger(__name__)
 
         # Server state
-        self.candles: dict[
-            str, dict[str, list[CandleData]]
-        ] = {}  # trading_pair -> interval -> candles
-        self.last_candle_time: dict[
-            str, dict[str, int]
-        ] = {}  # trading_pair -> interval -> timestamp
+        self.candles: dict[str, dict[str, list[CandleData]]] = {}  # trading_pair -> interval -> candles
+        self.last_candle_time: dict[str, dict[str, int]] = {}  # trading_pair -> interval -> timestamp
 
         # WebSocket connections
         self.ws_connections: set[web.WebSocketResponse] = set()
-        self.subscriptions: dict[
-            str, set[web.WebSocketResponse]
-        ] = {}  # subscription_key -> connected websockets
+        self.subscriptions: dict[str, set[web.WebSocketResponse]] = {}  # subscription_key -> connected websockets
 
         # Trading pairs and their initial prices
         self.trading_pairs: dict[str, float] = {}
@@ -78,7 +72,7 @@ class MockExchangeServer:
         }
 
         # Background tasks
-        self._tasks = []
+        self._tasks: list[asyncio.Task] = []
 
         # Setup routes
         self._setup_routes()
@@ -181,9 +175,9 @@ class MockExchangeServer:
 
     def set_network_conditions(
         self,
-        latency_ms: Optional[int] = None,
-        packet_loss_rate: Optional[float] = None,
-        error_rate: Optional[float] = None,
+        latency_ms: int | None = None,
+        packet_loss_rate: float | None = None,
+        error_rate: float | None = None,
     ):
         """
         Set network condition parameters for simulation.
@@ -204,10 +198,10 @@ class MockExchangeServer:
 
     def set_rate_limits(
         self,
-        rest_limit: Optional[int] = None,
-        rest_period_ms: Optional[int] = None,
-        ws_limit: Optional[int] = None,
-        ws_burst: Optional[int] = None,
+        rest_limit: int | None = None,
+        rest_period_ms: int | None = None,
+        ws_limit: int | None = None,
+        ws_burst: int | None = None,
     ):
         """
         Set rate limiting parameters.

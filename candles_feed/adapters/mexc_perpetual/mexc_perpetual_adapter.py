@@ -59,10 +59,10 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> dict:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         Args:
@@ -76,7 +76,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
             Dictionary of parameters for REST API request
         """
         # MEXC Contract API uses different parameter names
-        params = {
+        params: dict[str, str | int] = {
             "symbol": self.get_trading_pair_format(trading_pair),
             "interval": self.get_interval_format(interval),
         }
@@ -91,7 +91,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: Optional[dict]) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -126,7 +126,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         #   ]
         # }
 
-        candles = []
+        candles: list[CandleData] = []
         for obj in data["data"]:
             candles.append(
                 CandleData(
@@ -144,7 +144,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
             )
         return candles
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:

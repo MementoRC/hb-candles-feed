@@ -1,5 +1,4 @@
-"""
-Test Exchange Server for end-to-end testing of the Candles Feed.
+"""Test Exchange Server for end-to-end testing of the Candles Feed.
 
 This module provides a wrapper around the MockExchangeServer that adds URL patching
 capabilities, making it easy to use in end-to-end tests.
@@ -7,7 +6,6 @@ capabilities, making it easy to use in end-to-end tests.
 
 import importlib
 import logging
-from typing import Dict, List, Optional, Tuple
 
 from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
@@ -18,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class MockedCandlesFeedServer:
-    """Wrapper for the MockExchangeServer with URL patching capabilities for end-to-end testing."""
+    """Wrapper for the MockExchangeServer with URL patching capabilities for end-to-end
+    testing."""
 
     def __init__(self, exchange_type: ExchangeType, host: str = "127.0.0.1", port: int = 8789):
         """Initialize the test exchange server.
@@ -31,9 +30,8 @@ class MockedCandlesFeedServer:
         self.exchange_type = exchange_type
         self.host = host
         self.port = port
-        self.server: Optional[MockExchangeServer] = None
-        self.url: Optional[str] = None
-        self.original_urls: Dict[str, str] = {}
+        self.url: str | None = None
+        self.original_urls: dict[str, str] = {}
 
         # Select the appropriate plugin based on exchange type
         self.plugin = self._create_plugin(exchange_type)
@@ -43,20 +41,18 @@ class MockedCandlesFeedServer:
 
     def _create_plugin(self, exchange_type: ExchangeType) -> ExchangePlugin:
         """Create the appropriate plugin for the exchange type."""
-        if exchange_type == ExchangeType.BINANCE_SPOT:
-            return BinanceSpotPlugin(exchange_type)
-        elif exchange_type == ExchangeType.BINANCE_PERPETUAL:
-            # Currently using BinanceSpotPlugin for BINANCE_PERPETUAL as well
-            return BinanceSpotPlugin(exchange_type)
-        else:
+        if exchange_type not in [
+            ExchangeType.BINANCE_SPOT,
+            ExchangeType.BINANCE_PERPETUAL,
+        ]:
             # For now, fall back to BinanceSpotPlugin for other exchange types
             # In a complete implementation, we would have specific plugins for each
             logger.warning(
                 f"No dedicated plugin for {exchange_type.value}, using BinanceSpotPlugin"
             )
-            return BinanceSpotPlugin(exchange_type)
+        return BinanceSpotPlugin(exchange_type)
 
-    async def start(self, trading_pairs: List[Tuple[str, str, float]] = None) -> str:
+    async def start(self, trading_pairs: list[tuple[str, str, float]] | None = None) -> str | None:
         """Start the test exchange server.
 
         Args:
@@ -78,6 +74,9 @@ class MockedCandlesFeedServer:
             self.server.add_trading_pair(trading_pair, interval, price)
 
         # Start the server
+        if not self.server:
+            raise ValueError("Server not initialized")
+
         self.url = await self.server.start()
 
         # Patch URLs in the adapter module
@@ -108,8 +107,9 @@ class MockedCandlesFeedServer:
         # Restore original URLs
         self._restore_adapter_urls()
 
-    def _get_adapter_constants_module(self) -> Tuple[str, Dict[str, str]]:
-        """Get the adapter constants module name and URL attributes based on exchange type."""
+    def _get_adapter_constants_module(self) -> tuple[str, dict[str, str]]:
+        """Get the adapter constants module name and URL attributes based on exchange
+        type."""
         exchange_name = self.exchange_type.value
 
         # Map exchange types to their module paths and URL attributes
@@ -199,7 +199,9 @@ class MockedCandlesFeedServer:
 
             # Patch REST URL
             rest_attr = attrs.get("rest")
-            if hasattr(module, rest_attr):
+            if rest_attr and hasattr(module, rest_attr):
+                assert self.url is not None, "Server URL not set"
+
                 base_url = self.url.rstrip("/")
                 # For Binance, we need to append the API path
                 if self.exchange_type in [
@@ -214,7 +216,7 @@ class MockedCandlesFeedServer:
 
             # Patch WebSocket URL
             ws_attr = attrs.get("ws")
-            if hasattr(module, ws_attr):
+            if ws_attr and hasattr(module, ws_attr):
                 ws_url = f"ws://{self.host}:{self.port}/ws"
                 setattr(module, ws_attr, ws_url)
                 logger.info(f"Patched {module_name}.{ws_attr} to {ws_url}")

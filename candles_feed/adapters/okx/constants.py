@@ -25,7 +25,7 @@ STATUS_ENDPOINT = "/api/v5/system/status"
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 300
 
 # Intervals mapping: interval name -> seconds and OKX format
-INTERVALS: Dict[str, int] = {
+INTERVALS: dict[str, int] = {
     "1m": 60,
     "3m": 180,
     "5m": 300,

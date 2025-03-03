@@ -59,10 +59,10 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> dict:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         Args:
@@ -75,7 +75,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         Returns:
             Dictionary of parameters for REST API request
         """
-        params = {"symbol": self.get_trading_pair_format(trading_pair), "interval": interval}
+        params: dict[str, str | int] = {"symbol": self.get_trading_pair_format(trading_pair), "interval": interval}
 
         if limit:
             params["limit"] = limit
@@ -87,7 +87,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: Optional[list]) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -116,28 +116,31 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         #   ]
         # ]
 
-        candles = []
-        for row in data:
-            if len(row) < 11:  # Make sure we have enough data
-                continue
+        candles: list[CandleData] = []
+        
+        # Check if data is a list (standard format)
+        if isinstance(data, list):
+            for row in data:
+                if len(row) < 11:  # Make sure we have enough data
+                    continue
 
-            candles.append(
-                CandleData(
-                    timestamp_raw=row[0] / 1000,  # Convert from milliseconds
-                    open=float(row[1]),
-                    high=float(row[2]),
-                    low=float(row[3]),
-                    close=float(row[4]),
-                    volume=float(row[5]),
-                    quote_asset_volume=float(row[7]),
-                    n_trades=int(row[8]),
-                    taker_buy_base_volume=float(row[9]),
-                    taker_buy_quote_volume=float(row[10]),
+                candles.append(
+                    CandleData(
+                        timestamp_raw=row[0] / 1000,  # Convert from milliseconds
+                        open=float(row[1]),
+                        high=float(row[2]),
+                        low=float(row[3]),
+                        close=float(row[4]),
+                        volume=float(row[5]),
+                        quote_asset_volume=float(row[7]),
+                        n_trades=int(row[8]),
+                        taker_buy_base_volume=float(row[9]),
+                        taker_buy_quote_volume=float(row[10]),
+                    )
                 )
-            )
         return candles
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:

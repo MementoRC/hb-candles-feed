@@ -18,9 +18,9 @@ class ExchangeRegistry:
     """Registry for exchange adapters with auto-discovery."""
 
     # Use both _adapters (new API) and _registry (old API) for compatibility
-    _adapters: Dict[str, Type[CandleDataAdapter]] = {}
-    _registry: Dict[str, Type[CandleDataAdapter]] = {}
-    _logger: Optional[Logger] = None
+    _adapters: dict[str, type[CandleDataAdapter]] = {}
+    _registry: dict[str, type[CandleDataAdapter]] = {}
+    _logger: Logger | None = None
 
     @classmethod
     def logger(cls) -> Logger:
@@ -44,7 +44,7 @@ class ExchangeRegistry:
             Decorator function
         """
 
-        def decorator(adapter_class: Type[CandleDataAdapter]):
+        def decorator(adapter_class: type[CandleDataAdapter]):
             cls.logger().info(f"Registering adapter: {name}")
             # Register in both collections for compatibility
             cls._adapters[name] = adapter_class
@@ -54,7 +54,7 @@ class ExchangeRegistry:
         return decorator
 
     @classmethod
-    def get_adapter_class(cls, name: str) -> Type[CandleDataAdapter]:
+    def get_adapter_class(cls, name: str) -> type[CandleDataAdapter]:
         """Get adapter class by name.
 
         Args:
@@ -105,7 +105,7 @@ class ExchangeRegistry:
         return adapter_class(*args, **kwargs)
 
     @classmethod
-    def get_registered_exchanges(cls) -> List[str]:
+    def get_registered_exchanges(cls) -> list[str]:
         """Get list of registered exchange names.
 
         Returns:
@@ -114,7 +114,7 @@ class ExchangeRegistry:
         return list(cls._registry.keys())
 
     @classmethod
-    def discover_adapters(cls, package_path: Optional[str] = None) -> None:
+    def discover_adapters(cls, package_path: str | None = None) -> None:
         """Discover and register adapters in the given package.
 
         Args:
@@ -144,7 +144,7 @@ class ExchangeRegistry:
                     cls.logger().error(f"Error importing {name}: {e}")
 
     @classmethod
-    def list_available_adapters(cls) -> List[str]:
+    def list_available_adapters(cls) -> list[str]:
         """List all registered adapter names.
 
         Returns:
@@ -153,7 +153,7 @@ class ExchangeRegistry:
         return list(cls._adapters.keys())
 
     @classmethod
-    def list_available_markets(cls) -> Dict[str, List[str]]:
+    def list_available_markets(cls) -> dict[str, list[str]]:
         """List all available markets by adapter.
 
         Returns:

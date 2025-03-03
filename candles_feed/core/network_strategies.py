@@ -28,7 +28,7 @@ class WebSocketStrategy:
         interval: str,
         data_processor: DataProcessor,
         candles_store: Deque[CandleData],
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
     ):
         """Initialize the WebSocketStrategy.
 
@@ -48,8 +48,8 @@ class WebSocketStrategy:
         self.data_processor = data_processor
         self._candles = candles_store
         self.logger = logger or logging.getLogger(__name__)
-        self._ws_assistant: Optional[WSAssistant] = None
-        self._listen_task: Optional[asyncio.Task] = None
+        self._ws_assistant: WSAssistant | None = None
+        self._listen_task: asyncio.Task | None = None
         self._running = False
         self._ready_event = asyncio.Event()
 
@@ -73,10 +73,10 @@ class WebSocketStrategy:
 
     async def poll_once(
         self,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> List[CandleData]:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> list[CandleData]:
         """
         Fetch candles for a specific time range (one-time poll).
 
@@ -175,7 +175,7 @@ class WebSocketStrategy:
         except Exception as e:
             self.logger.error(f"Error initializing candles: {e}")
 
-    def _update_candles(self, new_candles: List[CandleData]) -> None:
+    def _update_candles(self, new_candles: list[CandleData]) -> None:
         """Update the candles store with new data.
 
         Args:
@@ -200,7 +200,7 @@ class RESTPollingStrategy:
         interval: str,
         data_processor: DataProcessor,
         candles_store: Deque[CandleData],
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
     ):
         """Initialize the RESTPollingStrategy.
 
@@ -220,7 +220,7 @@ class RESTPollingStrategy:
         self.data_processor = data_processor
         self._candles = candles_store
         self.logger = logger or logging.getLogger(__name__)
-        self._polling_task: Optional[asyncio.Task] = None
+        self._polling_task: asyncio.Task | None = None
         self._polling_interval = adapter.get_supported_intervals()[interval]
         self._running = False
         self._ready_event = asyncio.Event()
@@ -243,10 +243,10 @@ class RESTPollingStrategy:
 
     async def poll_once(
         self,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> List[CandleData]:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> list[CandleData]:
         """Fetch candles for a specific time range (one-time poll).
 
         Args:
@@ -337,7 +337,7 @@ class RESTPollingStrategy:
                 self.logger.exception(f"Error in polling loop: {e}")
                 await asyncio.sleep(1.0)
 
-    def _update_candles(self, new_candles: List[CandleData]) -> None:
+    def _update_candles(self, new_candles: list[CandleData]) -> None:
         """Update the candles store with new data.
 
         Args:
@@ -361,7 +361,7 @@ class NetworkStrategyFactory:
         network_client: NetworkClient,
         data_processor: DataProcessor,
         candles_store: Deque[CandleData],
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
     ) -> NetworkStrategy:
         """Create appropriate strategy based on adapter capabilities.
 

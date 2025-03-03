@@ -22,7 +22,7 @@ def round_timestamp_to_interval(timestamp: int, interval_seconds: int) -> int:
 
 def calculate_start_end_times(
     end_time: int, interval_seconds: int, num_candles: int
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Calculate start and end times for fetching candles.
 
     Args:

@@ -52,10 +52,10 @@ class BaseAdapter(ABC):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> dict:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         Args:
@@ -71,7 +71,7 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def parse_rest_response(self, data: dict) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -96,7 +96,7 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -108,7 +108,7 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -117,7 +117,7 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:

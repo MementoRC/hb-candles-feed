@@ -38,10 +38,10 @@ class KuCoinSpotAdapter(KuCoinBaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> dict:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         Args:
@@ -55,7 +55,7 @@ class KuCoinSpotAdapter(KuCoinBaseAdapter):
             Dictionary of parameters for REST API request
         """
         # KuCoin uses startAt and endAt parameters with unix timestamps
-        params = {"symbol": trading_pair, "type": interval}
+        params: dict[str, str | int] = {"symbol": trading_pair, "type": interval}
 
         if start_time:
             params["startAt"] = start_time
@@ -68,7 +68,7 @@ class KuCoinSpotAdapter(KuCoinBaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -91,9 +91,13 @@ class KuCoinSpotAdapter(KuCoinBaseAdapter):
         #   ...
         # ]
 
-        candles = []
+        candles: list[CandleData] = []
+        
+        if data is None:
+            return candles
+            
         # Check if data is a dict with a 'candles' key (test fixture format)
-        if "data" in data and isinstance(data["data"], dict) and "candles" in data["data"]:
+        if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict) and "candles" in data["data"]:
             candle_data = data["data"]["candles"]
 
             # Test fixture format in conftest.py has different order:
@@ -112,7 +116,7 @@ class KuCoinSpotAdapter(KuCoinBaseAdapter):
                         else 0.0,  # Transaction amount
                     )
                 )
-        else:
+        elif isinstance(data, dict) and "data" in data:
             # Real API format: standard order
             for row in data.get("data", []):
                 candles.append(
@@ -130,7 +134,7 @@ class KuCoinSpotAdapter(KuCoinBaseAdapter):
                 )
         return candles
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:

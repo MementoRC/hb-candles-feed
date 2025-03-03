@@ -31,7 +31,7 @@ class BinanceSpotPlugin(ExchangePlugin):
         super().__init__(exchange_type)
 
     @property
-    def rest_routes(self) -> Dict[str, Tuple[str, str]]:
+    def rest_routes(self) -> dict[str, tuple[str, str]]:
         """
         Get the REST API routes for Binance Spot.
 
@@ -46,7 +46,7 @@ class BinanceSpotPlugin(ExchangePlugin):
         }
 
     @property
-    def ws_routes(self) -> Dict[str, str]:
+    def ws_routes(self) -> dict[str, str]:
         """
         Get the WebSocket routes for Binance Spot.
 
@@ -56,8 +56,8 @@ class BinanceSpotPlugin(ExchangePlugin):
         return {"/ws": "handle_websocket"}
 
     def format_rest_candles(
-        self, candles: List[CandleData], trading_pair: str, interval: str
-    ) -> List[List]:
+        self, candles: list[CandleData], trading_pair: str, interval: str
+    ) -> list[list]:
         """
         Format candle data as a Binance REST API response.
 
@@ -89,7 +89,7 @@ class BinanceSpotPlugin(ExchangePlugin):
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
-    ) -> Dict:
+    ) -> dict:
         """
         Format candle data as a Binance WebSocket message.
 
@@ -128,7 +128,7 @@ class BinanceSpotPlugin(ExchangePlugin):
             },
         }
 
-    def parse_ws_subscription(self, message: Dict) -> List[Tuple[str, str]]:
+    def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
         """
         Parse a Binance WebSocket subscription message.
 
@@ -157,8 +157,8 @@ class BinanceSpotPlugin(ExchangePlugin):
         return subscriptions
 
     def create_ws_subscription_success(
-        self, message: Dict, subscriptions: List[Tuple[str, str]]
-    ) -> Dict:
+        self, message: dict, subscriptions: list[tuple[str, str]]
+    ) -> dict:
         """
         Create a Binance WebSocket subscription success response.
 
@@ -184,7 +184,7 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         return f"{trading_pair.lower()}@kline_{interval}"
 
-    def parse_rest_candles_params(self, request: web.Request) -> Dict[str, Any]:
+    def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
         """
         Parse REST API parameters for Binance candle requests.
 

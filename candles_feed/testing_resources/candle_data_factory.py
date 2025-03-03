@@ -17,7 +17,7 @@ class CandleDataFactory:
     @staticmethod
     def create_random(
         timestamp: int,
-        previous_candle: Optional[CandleData] = None,
+        previous_candle: CandleData | None = None,
         base_price: float = 50000.0,
         volatility: float = 0.01,
     ) -> CandleData:
@@ -80,7 +80,7 @@ class CandleDataFactory:
         start_price: float = 50000.0,
         trend: float = 0.001,
         volatility: float = 0.005,
-    ) -> List[CandleData]:
+    ) -> list[CandleData]:
         """
         Create a series of candles with an underlying trend.
 
@@ -95,7 +95,7 @@ class CandleDataFactory:
         Returns:
             List of CandleData instances with a trending price pattern
         """
-        candles = []
+        candles: list[CandleData] = []
         current_price = start_price
 
         for i in range(count):
@@ -122,8 +122,8 @@ class CandleDataFactory:
 
     @staticmethod
     def create_price_event(
-        candles: List[CandleData], event_index: int, event_magnitude: float = 0.05
-    ) -> List[CandleData]:
+        candles: list[CandleData], event_index: int, event_magnitude: float = 0.05
+    ) -> list[CandleData]:
         """
         Create a significant price event (spike or drop) at a specific index.
 
@@ -191,7 +191,7 @@ class CandleDataFactory:
     @staticmethod
     def create_market_simulation(
         start_timestamp: int, count: int, interval_seconds: int, initial_price: float = 50000.0
-    ) -> List[CandleData]:
+    ) -> list[CandleData]:
         """
         Create a realistic market simulation with trends and volatility events.
 

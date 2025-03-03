@@ -27,7 +27,7 @@ class CandleData:
         taker_buy_quote_volume: Quote asset volume from taker buys (optional)
     """
 
-    timestamp_raw: InitVar[Union[int, float, str, datetime]]
+    timestamp_raw: InitVar[int | float | str | datetime]
 
     timestamp: int = field(init=False)
     open: float
@@ -54,7 +54,7 @@ class CandleData:
         "volume": ("volume", "v"),
     }
 
-    def __post_init__(self, timestamp_raw: Union[int, float, str, datetime]) -> None:
+    def __post_init__(self, timestamp_raw: int | float | str | datetime) -> None:
         """Convert timestamp to integer seconds after initialization.
 
         Args:
@@ -63,7 +63,7 @@ class CandleData:
         self.timestamp = self._normalize_timestamp(timestamp_raw)
 
     @staticmethod
-    def _normalize_timestamp(ts: Union[int, float, str, datetime]) -> int:
+    def _normalize_timestamp(ts: int | float | str | datetime) -> int:
         """Convert various timestamp formats to integer seconds.
 
         Args:
@@ -78,18 +78,12 @@ class CandleData:
         if isinstance(ts, int):
             # Handle milliseconds/microseconds timestamps
             if ts > 10000000000:  # Likely milliseconds or microseconds
-                if ts > 10000000000000:  # Microseconds
-                    return ts // 1000000
-                else:  # Milliseconds
-                    return ts // 1000
+                return ts // 1000000 if ts > 10000000000000 else ts // 1000
             return ts
         elif isinstance(ts, float):
             # Handle floating point timestamps (potentially with fractional seconds)
             if ts > 10000000000:  # Likely milliseconds or microseconds
-                if ts > 10000000000000:  # Microseconds
-                    return int(ts) // 1000000
-                else:  # Milliseconds
-                    return int(ts) // 1000
+                return int(ts) // 1000000 if ts > 10000000000000 else int(ts) // 1000
             return int(ts)
         elif isinstance(ts, str):
             try:
@@ -121,7 +115,7 @@ class CandleData:
             dt = dt.replace(tzinfo=timezone.utc)
         return int(dt.astimezone(timezone.utc).timestamp())
 
-    def to_array(self) -> List[float]:
+    def to_array(self) -> list[float]:
         """Convert to array format for backward compatibility.
 
         Returns:
@@ -141,7 +135,7 @@ class CandleData:
         ]
 
     @classmethod
-    def from_array(cls, data: List[float]) -> "CandleData":
+    def from_array(cls, data: list[float]) -> "CandleData":
         """Create from array format for backward compatibility.
 
         Args:
@@ -181,19 +175,23 @@ class CandleData:
             raise ValueError(f"No timestamp found in keys: {cls._timestamp_keys}")
 
         # Find price values
-        values = {}
+        values: dict[str, float | int] = {}
         for f, keys in cls._price_keys.items():
             value = next((float(data[key]) for key in keys if key in data), None)
             if value is None:
                 raise ValueError(f"No {f} value found in keys: {keys}")
             values[f] = value
 
-        # Optional fields
-        optional = {
-            "quote_asset_volume": float(data.get("quote_asset_volume", 0)),
-            "n_trades": int(data.get("n_trades", 0)),
-            "taker_buy_base_volume": float(data.get("taker_buy_base_volume", 0)),
-            "taker_buy_quote_volume": float(data.get("taker_buy_quote_volume", 0)),
-        }
-
-        return cls(timestamp_raw=timestamp_raw, **values, **optional)
+        # Return with explicit parameters instead of unpacking dictionaries
+        return cls(
+            timestamp_raw=timestamp_raw,
+            open=values["open"],
+            high=values["high"],
+            low=values["low"],
+            close=values["close"],
+            volume=values["volume"],
+            quote_asset_volume=float(data.get("quote_asset_volume", 0)),
+            n_trades=int(data.get("n_trades", 0)),
+            taker_buy_base_volume=float(data.get("taker_buy_base_volume", 0)),
+            taker_buy_quote_volume=float(data.get("taker_buy_quote_volume", 0))
+        )

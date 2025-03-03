@@ -5,7 +5,8 @@ This module defines the core interface contracts for the framework
 using Python's typing.Protocol system.
 """
 
-from typing import Any, AsyncGenerator, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from collections.abc import AsyncGenerator
 
 from candles_feed.core.candle_data import CandleData
 
@@ -48,9 +49,9 @@ class CandleDataAdapter(Protocol):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -66,7 +67,7 @@ class CandleDataAdapter(Protocol):
         """
         ...
 
-    def parse_rest_response(self, data: Any) -> List[CandleData]:
+    def parse_rest_response(self, data: Any) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -89,7 +90,7 @@ class CandleDataAdapter(Protocol):
         """
         ...
 
-    def parse_ws_message(self, data: Any) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: Any) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -100,7 +101,7 @@ class CandleDataAdapter(Protocol):
         """
         ...
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -108,7 +109,7 @@ class CandleDataAdapter(Protocol):
         """
         ...
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:
@@ -152,10 +153,10 @@ class NetworkStrategy(Protocol):
 
     async def poll_once(
         self,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
-    ) -> List[CandleData]:
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = None,
+    ) -> list[CandleData]:
         """Fetch candles for a specific time range.
 
         Args:

@@ -30,7 +30,7 @@ SUB_ENDPOINT_NAME = "sub"
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
 # Intervals mapping: interval name -> seconds
-INTERVALS: Dict[str, int] = {
+INTERVALS: dict[str, int] = {
     "1m": 60,
     "5m": 300,
     "15m": 900,

@@ -26,7 +26,7 @@ TOKEN_ENDPOINT = "/api/v1/bullet-public"
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1500
 
 # Intervals mapping: interval name -> seconds
-INTERVALS: Dict[str, int] = {
+INTERVALS: dict[str, int] = {
     "1m": 60,
     "3m": 180,
     "5m": 300,

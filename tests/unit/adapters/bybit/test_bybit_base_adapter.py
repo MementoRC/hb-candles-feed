@@ -23,7 +23,7 @@ class ConcreteBybitAdapter(BybitBaseAdapter):
     def get_ws_url(self) -> str:
         return "wss://test.bybit.com/ws"
 
-    def get_category_param(self) -> Optional[str]:
+    def get_category_param(self) -> str | None:
         return "test"
 
 

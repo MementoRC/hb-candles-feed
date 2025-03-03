@@ -68,9 +68,9 @@ class KrakenSpotAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -95,7 +95,7 @@ class KrakenSpotAdapter(BaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -127,6 +127,8 @@ class KrakenSpotAdapter(BaseAdapter):
 
         candles = []
         # Extract the actual data, which is under the pair name
+        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+
         for key, pair_data in data.get("result", {}).items():
             if isinstance(pair_data, list) and key != "last":
                 for row in pair_data:
@@ -185,7 +187,7 @@ class KrakenSpotAdapter(BaseAdapter):
             },
         }
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -269,7 +271,7 @@ class KrakenSpotAdapter(BaseAdapter):
 
         return None
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -277,7 +279,7 @@ class KrakenSpotAdapter(BaseAdapter):
         """
         return INTERVALS
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:

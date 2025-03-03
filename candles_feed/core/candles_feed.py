@@ -36,7 +36,7 @@ class CandlesFeed:
         trading_pair: str,
         interval: str = "1m",
         max_records: int = 150,
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
     ):
         """Initialize the candles feed.
 
@@ -123,12 +123,18 @@ class CandlesFeed:
             if not self._ws_strategy:
                 self._ws_strategy = self._create_ws_strategy()
 
+            if not self._ws_strategy:
+                raise ValueError("WebSocket strategy not supported by this adapter")
+
             await self._ws_strategy.start()
             self._using_ws = True
         else:
             # Only create a new strategy if one doesn't exist already (for testing)
             if not self._rest_strategy:
                 self._rest_strategy = self._create_rest_strategy()
+
+            if not self._rest_strategy:
+                raise ValueError("WebSocket strategy not supported by this adapter")
 
             await self._rest_strategy.start()
             self._using_ws = False
@@ -177,8 +183,8 @@ class CandlesFeed:
         )
 
     async def fetch_candles(
-        self, start_time: Optional[int] = None, end_time: Optional[int] = None
-    ) -> List[CandleData]:
+        self, start_time: int | None = None, end_time: int | None = None
+    ) -> list[CandleData]:
         """Fetch historical candles.
 
         Args:
@@ -193,6 +199,9 @@ class CandlesFeed:
         # Create REST strategy if it doesn't exist
         if not self._rest_strategy:
             self._rest_strategy = self._create_rest_strategy()
+
+        if not self._rest_strategy:
+            raise ValueError("REST polling strategy not supported by this adapter")
 
         # Fetch candles
         candles = await self._rest_strategy.poll_once(start_time, end_time)
@@ -211,7 +220,7 @@ class CandlesFeed:
 
         return candles
 
-    def get_candles(self) -> List[CandleData]:
+    def get_candles(self) -> list[CandleData]:
         """Get raw candle data.
 
         Returns:
@@ -237,7 +246,7 @@ class CandlesFeed:
         return len(self._candles) >= self.max_records * 0.9  # At least 90% filled
 
     @property
-    def last_timestamp(self) -> Optional[int]:
+    def last_timestamp(self) -> int | None:
         """Get the timestamp of the most recent candle.
 
         Returns:
@@ -246,7 +255,7 @@ class CandlesFeed:
         return self._candles[-1].timestamp if self._candles else None
 
     @property
-    def first_timestamp(self) -> Optional[int]:
+    def first_timestamp(self) -> int | None:
         """Get the timestamp of the oldest candle.
 
         Returns:

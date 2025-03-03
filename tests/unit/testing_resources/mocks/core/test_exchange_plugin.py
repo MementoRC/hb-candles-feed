@@ -20,15 +20,15 @@ class TestExchangePlugin(unittest.TestCase):
         """A concrete implementation of ExchangePlugin for testing."""
 
         @property
-        def rest_routes(self) -> Dict[str, Tuple[str, str]]:
+        def rest_routes(self) -> dict[str, tuple[str, str]]:
             return {"/api/test": ("GET", "handle_test"), "/api/candles": ("GET", "handle_klines")}
 
         @property
-        def ws_routes(self) -> Dict[str, str]:
+        def ws_routes(self) -> dict[str, str]:
             return {"/ws": "handle_websocket"}
 
         def format_rest_candles(
-            self, candles: List[CandleData], trading_pair: str, interval: str
+            self, candles: list[CandleData], trading_pair: str, interval: str
         ) -> Any:
             return [
                 {
@@ -60,7 +60,7 @@ class TestExchangePlugin(unittest.TestCase):
                 },
             }
 
-        def parse_ws_subscription(self, message: Dict) -> List[Tuple[str, str]]:
+        def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
             if message.get("type") == "subscribe":
                 channel = message.get("channel")
                 if channel == "candles":
@@ -70,8 +70,8 @@ class TestExchangePlugin(unittest.TestCase):
             return []
 
         def create_ws_subscription_success(
-            self, message: Dict, subscriptions: List[Tuple[str, str]]
-        ) -> Dict:
+            self, message: dict, subscriptions: list[tuple[str, str]]
+        ) -> dict:
             return {
                 "type": "subscribed",
                 "channel": message.get("channel"),
@@ -83,7 +83,7 @@ class TestExchangePlugin(unittest.TestCase):
         def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
             return f"{trading_pair}_{interval}"
 
-        def parse_rest_candles_params(self, request: web.Request) -> Dict[str, Any]:
+        def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
             params = request.query
             return {
                 "symbol": params.get("symbol"),

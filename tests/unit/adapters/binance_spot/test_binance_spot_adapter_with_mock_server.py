@@ -45,7 +45,7 @@ class TestBinanceSpotAdapterWithMockServer:
                 data = await response.json()
 
                 # Verify we have candles
-                assert isinstance(data, List)
+                assert isinstance(data, list)
                 assert len(data) > 0
 
                 # Parse the response

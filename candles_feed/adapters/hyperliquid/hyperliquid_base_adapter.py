@@ -61,9 +61,9 @@ class HyperliquidBaseAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -94,7 +94,7 @@ class HyperliquidBaseAdapter(BaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: Optional[list]) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -106,27 +106,22 @@ class HyperliquidBaseAdapter(BaseAdapter):
         if data is None or not isinstance(data, list):
             return []
 
-        candles = []
-        for candle in data:
-            if len(candle) < 7:  # Ensure we have enough data
-                continue
-
-            # Expected format: [timestamp, open, high, low, close, volume, turnover]
-            candles.append(
-                CandleData(
-                    timestamp_raw=candle[0],
-                    open=float(candle[1]),
-                    high=float(candle[2]),
-                    low=float(candle[3]),
-                    close=float(candle[4]),
-                    volume=float(candle[5]),
-                    quote_asset_volume=float(candle[6]),
-                    n_trades=0,  # Not provided by HyperLiquid
-                    taker_buy_base_volume=0.0,  # Not provided
-                    taker_buy_quote_volume=0.0,  # Not provided
-                )
+        return [
+            CandleData(
+                timestamp_raw=candle[0],
+                open=float(candle[1]),
+                high=float(candle[2]),
+                low=float(candle[3]),
+                close=float(candle[4]),
+                volume=float(candle[5]),
+                quote_asset_volume=float(candle[6]),
+                n_trades=0,  # Not provided by HyperLiquid
+                taker_buy_base_volume=0.0,  # Not provided
+                taker_buy_quote_volume=0.0,  # Not provided
             )
-        return candles
+            for candle in data
+            if len(candle) >= 7
+        ]
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
@@ -147,7 +142,7 @@ class HyperliquidBaseAdapter(BaseAdapter):
             "interval": INTERVAL_TO_HYPERLIQUID_FORMAT.get(interval, interval),
         }
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -181,7 +176,7 @@ class HyperliquidBaseAdapter(BaseAdapter):
 
         return None
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -189,7 +184,7 @@ class HyperliquidBaseAdapter(BaseAdapter):
         """
         return INTERVALS
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:

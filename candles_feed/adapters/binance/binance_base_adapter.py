@@ -39,9 +39,9 @@ class BinanceBaseAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -68,7 +68,7 @@ class BinanceBaseAdapter(BaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: Optional[list]) -> List[CandleData]:
+    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         Args:
@@ -132,7 +132,7 @@ class BinanceBaseAdapter(BaseAdapter):
             "id": 1,
         }
 
-    def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         Args:
@@ -187,7 +187,7 @@ class BinanceBaseAdapter(BaseAdapter):
             ]
         return None
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
         Returns:
@@ -195,7 +195,7 @@ class BinanceBaseAdapter(BaseAdapter):
         """
         return INTERVALS
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         Returns:
