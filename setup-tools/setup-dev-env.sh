@@ -15,19 +15,17 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 # Determine if we're in the setup-tools directory or the project root
 if [[ "$(basename "$SCRIPT_DIR")" == "setup-tools" ]]; then
     PACKAGE_ROOT="$(dirname "$SCRIPT_DIR")"
-    ENV_FILE="$SCRIPT_DIR/candles-feed-env.yml"
 else
     # We're in the project root via symlink
     PACKAGE_ROOT="$SCRIPT_DIR"
-    ENV_FILE="$PACKAGE_ROOT/setup-tools/candles-feed-env.yml"
 fi
 
 echo "Package root detected as: $PACKAGE_ROOT"
-echo "Using environment file: $ENV_FILE"
+echo "Using pyproject.toml for environment configuration"
 
-# Verify environment file exists
-if [[ ! -f "$ENV_FILE" ]]; then
-    echo "Error: Environment file not found at $ENV_FILE"
+# Verify pyproject.toml exists
+if [[ ! -f "$PACKAGE_ROOT/pyproject.toml" ]]; then
+    echo "Error: pyproject.toml not found at $PACKAGE_ROOT/pyproject.toml"
     exit 1
 fi
 
@@ -39,30 +37,101 @@ activate_conda_env() {
 
 # Check if conda is available
 if command -v conda &> /dev/null; then
-    echo "Setting up development environment with conda..."
+    echo "Setting up development environment with Hatch..."
     
-    # Check if hummingbot environment exists
-    if conda env list | grep -q "^hummingbot "; then
-        echo "Found existing hummingbot environment. Adding required packages..."
-        activate_conda_env "hummingbot"
+    # Make sure conda is available first
+    echo "Ensuring conda is available..."
+    
+    # No need to activate base - we'll directly create our environment with hatch
+    
+    # Change to the package root directory to ensure hatch finds pyproject.toml
+    cd "$PACKAGE_ROOT"
+    
+    echo "Setting up environment from pyproject.toml..."
+    
+    # Extract the project name from pyproject.toml to use as conda env name
+    PROJECT_NAME=$(grep -m 1 "name" $PACKAGE_ROOT/pyproject.toml | sed 's/.*"\(.*\)".*/\1/' | sed 's/hb-//')
+    CONDA_ENV="hb-$PROJECT_NAME"
+    
+    echo "Project name: $PROJECT_NAME"
+    echo "Conda environment name: $CONDA_ENV"
+    
+    # Check if conda environment already exists
+    if conda env list | grep -q "^$CONDA_ENV "; then
+        echo "Using existing conda environment: $CONDA_ENV"
+        activate_conda_env "$CONDA_ENV"
         
-        # Install required packages from our environment file
-        conda env update -f "$ENV_FILE" --prune
-    # Check if hb-candles-feed environment exists
-    elif conda env list | grep -q "^hb-candles-feed "; then
-        echo "Using existing hb-candles-feed environment"
-        activate_conda_env "hb-candles-feed"
+        # Update environment if needed
+        echo "Updating environment dependencies..."
+        # Manually install dependencies by using conda and pip
+        echo "Installing dependencies from pyproject.toml..."
+        
+        # Core dependencies (use conda)
+        # Extract dependencies from pyproject.toml
+        DEPENDENCIES=$(grep -A 20 "\[tool.hatch.envs.default.dependencies\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
+        
+        # Install them into the conda environment
+        if [ ! -z "$DEPENDENCIES" ]; then
+            echo "Installing conda dependencies..."
+            # Install each dependency (ignore errors, as some might need pip)
+            for dep in $DEPENDENCIES; do
+                conda install -n "$CONDA_ENV" -c conda-forge $dep -y || true
+            done
+        fi
+        
+        # Install pip dependencies using --no-deps
+        PIP_DEPS=$(grep -A 10 "\[tool.hatch.envs.default.pip-no-deps\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
+        
+        if [ ! -z "$PIP_DEPS" ]; then
+            echo "Installing pip dependencies with --no-deps..."
+            for dep in $PIP_DEPS; do
+                echo "Installing $dep"
+                pip install --no-deps $dep || true
+            done
+        fi
     else
-        echo "Creating new hb-candles-feed environment from environment file"
-        conda env create -f "$ENV_FILE"
-        activate_conda_env "hb-candles-feed"
+        # Create a new conda environment directly
+        echo "Creating new conda environment: $CONDA_ENV"
+        
+        # First create a minimal conda environment
+        conda create -n "$CONDA_ENV" python=3.10 hatch -y
+        
+        # Activate it
+        activate_conda_env "$CONDA_ENV"
+        
+        # Manually install dependencies by using conda and pip (same as the update case)
+        echo "Installing dependencies from pyproject.toml..."
+        
+        # Core dependencies (use conda)
+        # Extract dependencies from pyproject.toml
+        DEPENDENCIES=$(grep -A 20 "\[tool.hatch.envs.default.dependencies\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
+        
+        # Install them into the conda environment
+        if [ ! -z "$DEPENDENCIES" ]; then
+            echo "Installing conda dependencies..."
+            # Install each dependency (ignore errors, as some might need pip)
+            for dep in $DEPENDENCIES; do
+                conda install -n "$CONDA_ENV" -c conda-forge $dep -y || true
+            done
+        fi
+        
+        # Install pip dependencies using --no-deps
+        PIP_DEPS=$(grep -A 10 "\[tool.hatch.envs.default.pip-no-deps\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
+        
+        if [ ! -z "$PIP_DEPS" ]; then
+            echo "Installing pip dependencies with --no-deps..."
+            for dep in $PIP_DEPS; do
+                echo "Installing $dep"
+                pip install --no-deps $dep || true
+            done
+        fi
     fi
     
     # Get package name from directory name
     PACKAGE_NAME=$(basename "$PACKAGE_ROOT" | tr '-' '_')
     PACKAGE_DIR="$PACKAGE_ROOT/$PACKAGE_NAME"
     
-    # Check if the package has an adequate structure for installation
+    # Check if the package has an adequate structure
     STRUCTURE_READY=false
     if [ -d "$PACKAGE_DIR" ] && [ -f "$PACKAGE_DIR/__init__.py" ]; then
         # Check if it has actual content (more than just a basic init file)
@@ -71,52 +140,49 @@ if command -v conda &> /dev/null; then
         fi
     fi
     
-    if $STRUCTURE_READY; then
-        # Install package in development mode
-        echo "Package structure detected. Installing in development mode..."
-        cd "$PACKAGE_ROOT"
-        pip install -e .
-        echo "Development environment is ready! Activated conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"
+    # Display message about Hatch
+    echo ""
+    echo "==================================================================="
+    echo "Development environment is ready with Hatch integration."
+    echo "You can run the following commands from the package root:"
+    echo ""
+    echo "  hatch run test            # Run all tests"
+    echo "  hatch run test-unit       # Run unit tests"
+    echo "  hatch run test-integration # Run integration tests"
+    echo "  hatch run format          # Format code with ruff"
+    echo "  hatch run lint            # Lint code with ruff"
+    echo "  hatch run check           # Run all checks and tests"
+    echo ""
+    echo "For more commands, see the 'scripts' section in pyproject.toml"
+    echo "==================================================================="
+    echo ""
+   
+    # Only install the package if explicitly requested
+    if [ "$1" == "--install" ]; then
+        if $STRUCTURE_READY; then
+            # Install package in development mode if requested
+            echo "Package structure detected. Installing in development mode..."
+            cd "$PACKAGE_ROOT"
+            pip install -e .
+            
+            # Verify installation
+            echo ""
+            echo "Verifying installation..."
+            python -c "import $PACKAGE_NAME; print(f'$PACKAGE_NAME package found')"
+            echo "Success!"
+        else
+            echo "Package structure not complete. Skipping installation."
+        fi
     else
-        echo ""
-        echo "======================================================================================="
-        echo "NOTICE: Package structure at '$PACKAGE_DIR' is not complete yet."
-        echo ""
-        echo "This is normal for a newly created package scaffold. The development environment"
-        echo "will be set up with all dependencies, but the package itself won't be installed."
-        echo ""
-        echo "Next steps:"
-        echo "1. Create or complete the package structure in: $PACKAGE_DIR"
-        echo "   Make sure to create at least: $PACKAGE_DIR/__init__.py"
-        echo ""
-        echo "2. Add your implementation files"
-        echo ""
-        echo "3. Run this script again to install the package in development mode"
-        echo "======================================================================================="
-        echo ""
-        
-        # Install development dependencies directly
-        cd "$PACKAGE_ROOT"
-        
-        # Install common dev dependencies directly
-        echo "Installing development dependencies..."
-        pip install pytest pytest-asyncio pytest-cov pytest-mock pytest-timeout ruff mypy build
-        
-        echo "Development environment is ready! Activated conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"
+        echo "Package not installed. Using Hatch for development."
+        echo "If you need to install the package, run: $0 --install"
     fi
+    
+    # Show active environment
+    echo ""
+    echo "Active conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"
 else
     echo "Error: Conda is required for development."
     echo "Please install conda from https://docs.conda.io/en/latest/miniconda.html"
     exit 1
-fi
-
-# Run a simple verification only if package is installed
-if $STRUCTURE_READY; then
-    echo ""
-    echo "Verifying installation..."
-    python -c "import $PACKAGE_NAME; print(f'$PACKAGE_NAME package found')"
-    echo "Success!"
-else
-    echo ""
-    echo "Run this script again after creating the package structure to install and verify the package."
 fi
