@@ -29,7 +29,7 @@ INTERVALS: Dict[str, int] = {
     "4h": 14400,
     "12h": 43200,
     "1d": 86400,
-    "1w": 604800
+    "1w": 604800,
 }
 
 # HyperLiquid interval formats mapping
@@ -42,7 +42,7 @@ INTERVAL_TO_HYPERLIQUID_FORMAT = {
     "4h": "240",
     "12h": "720",
     "1d": "D",
-    "1w": "W"
+    "1w": "W",
 }
 
 # Websocket supported intervals

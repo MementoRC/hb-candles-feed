@@ -26,6 +26,7 @@ class CandleData:
         taker_buy_base_volume: Base asset volume from taker buys (optional)
         taker_buy_quote_volume: Quote asset volume from taker buys (optional)
     """
+
     timestamp_raw: InitVar[Union[int, float, str, datetime]]
 
     timestamp: int = field(init=False)
@@ -38,19 +39,19 @@ class CandleData:
     n_trades: int = 0
     taker_buy_base_volume: float = 0.0
     taker_buy_quote_volume: float = 0.0
-    
+
     @property
     def timestamp_ms(self) -> int:
         """Convert timestamp to milliseconds."""
         return self.timestamp * 1000
 
-    _timestamp_keys: ClassVar[tuple[str, ...]] = ('timestamp', 'time', 't')
+    _timestamp_keys: ClassVar[tuple[str, ...]] = ("timestamp", "time", "t")
     _price_keys: ClassVar[dict[str, tuple[str, ...]]] = {
-        'open': ('open', 'o'),
-        'high': ('high', 'h'),
-        'low': ('low', 'l'),
-        'close': ('close', 'c'),
-        'volume': ('volume', 'v'),
+        "open": ("open", "o"),
+        "high": ("high", "h"),
+        "low": ("low", "l"),
+        "close": ("close", "c"),
+        "volume": ("volume", "v"),
     }
 
     def __post_init__(self, timestamp_raw: Union[int, float, str, datetime]) -> None:
@@ -97,7 +98,7 @@ class CandleData:
             except ValueError:
                 try:
                     # Try parsing as ISO format
-                    dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
                     return CandleData.to_utc_seconds(dt)
                 except ValueError as e:
                     raise ValueError(f"Could not parse timestamp string: {ts}") from e
@@ -136,11 +137,11 @@ class CandleData:
             self.quote_asset_volume,
             self.n_trades,
             self.taker_buy_base_volume,
-            self.taker_buy_quote_volume
+            self.taker_buy_quote_volume,
         ]
 
     @classmethod
-    def from_array(cls, data: List[float]) -> 'CandleData':
+    def from_array(cls, data: List[float]) -> "CandleData":
         """Create from array format for backward compatibility.
 
         Args:
@@ -159,11 +160,11 @@ class CandleData:
             quote_asset_volume=data[6],
             n_trades=int(data[7]),
             taker_buy_base_volume=data[8],
-            taker_buy_quote_volume=data[9]
+            taker_buy_quote_volume=data[9],
         )
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'CandleData':
+    def from_dict(cls, data: dict) -> "CandleData":
         """Create CandleData from a dictionary.
 
         Args:
@@ -175,9 +176,7 @@ class CandleData:
         Raises:
             ValueError: If required fields are missing or invalid
         """
-        timestamp_raw = next(
-            (data[key] for key in cls._timestamp_keys if key in data), None
-        )
+        timestamp_raw = next((data[key] for key in cls._timestamp_keys if key in data), None)
         if timestamp_raw is None:
             raise ValueError(f"No timestamp found in keys: {cls._timestamp_keys}")
 
@@ -191,14 +190,10 @@ class CandleData:
 
         # Optional fields
         optional = {
-            'quote_asset_volume': float(data.get('quote_asset_volume', 0)),
-            'n_trades': int(data.get('n_trades', 0)),
-            'taker_buy_base_volume': float(data.get('taker_buy_base_volume', 0)),
-            'taker_buy_quote_volume': float(data.get('taker_buy_quote_volume', 0))
+            "quote_asset_volume": float(data.get("quote_asset_volume", 0)),
+            "n_trades": int(data.get("n_trades", 0)),
+            "taker_buy_base_volume": float(data.get("taker_buy_base_volume", 0)),
+            "taker_buy_quote_volume": float(data.get("taker_buy_quote_volume", 0)),
         }
 
-        return cls(
-            timestamp_raw=timestamp_raw,
-            **values,
-            **optional
-        )
+        return cls(timestamp_raw=timestamp_raw, **values, **optional)

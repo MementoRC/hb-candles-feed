@@ -21,7 +21,7 @@ class TestCandleData:
             high=51000.0,
             low=49000.0,
             close=50500.0,
-            volume=100.0
+            volume=100.0,
         )
 
         assert candle.timestamp == timestamp
@@ -49,7 +49,7 @@ class TestCandleData:
             quote_asset_volume=5000000.0,
             n_trades=1000,
             taker_buy_base_volume=60.0,
-            taker_buy_quote_volume=3000000.0
+            taker_buy_quote_volume=3000000.0,
         )
 
         assert candle.timestamp == timestamp
@@ -66,19 +66,23 @@ class TestCandleData:
     @pytest.mark.parametrize(
         "timestamp_raw,expected_seconds",
         [
-            (1622505600, 1622505600),           # Already in seconds
-            (1622505600000, 1622505600),        # Milliseconds
-            (1622505600000000, 1622505600),     # Microseconds
-            ("1622505600", 1622505600),         # String integer
-            ("2021-06-01T00:00:00Z", 1622505600), # ISO string
-            (datetime(2021, 6, 1, tzinfo=timezone.utc), 1622505600)  # Datetime
-        ]
+            (1622505600, 1622505600),  # Already in seconds
+            (1622505600000, 1622505600),  # Milliseconds
+            (1622505600000000, 1622505600),  # Microseconds
+            ("1622505600", 1622505600),  # String integer
+            ("2021-06-01T00:00:00Z", 1622505600),  # ISO string
+            (datetime(2021, 6, 1, tzinfo=timezone.utc), 1622505600),  # Datetime
+        ],
     )
     def test_normalize_timestamp(self, timestamp_raw, expected_seconds):
         """Test timestamp normalization with various input formats."""
         candle = CandleData(
             timestamp_raw=timestamp_raw,
-            open=100.0, high=101.0, low=99.0, close=100.5, volume=1000.0
+            open=100.0,
+            high=101.0,
+            low=99.0,
+            close=100.5,
+            volume=1000.0,
         )
         assert candle.timestamp == expected_seconds
 
@@ -87,7 +91,11 @@ class TestCandleData:
         with pytest.raises(ValueError):
             CandleData(
                 timestamp_raw="not-a-timestamp",
-                open=100.0, high=101.0, low=99.0, close=100.5, volume=1000.0
+                open=100.0,
+                high=101.0,
+                low=99.0,
+                close=100.5,
+                volume=1000.0,
             )
 
     def test_to_array(self, sample_candle_data):
@@ -118,7 +126,7 @@ class TestCandleData:
             5000000.0,
             1000.0,
             60.0,
-            3000000.0
+            3000000.0,
         ]
 
         candle = CandleData.from_array(array)
@@ -146,7 +154,7 @@ class TestCandleData:
             "quote_asset_volume": 5000000.0,
             "n_trades": 1000,
             "taker_buy_base_volume": 60.0,
-            "taker_buy_quote_volume": 3000000.0
+            "taker_buy_quote_volume": 3000000.0,
         }
 
         candle = CandleData.from_dict(data)
@@ -164,14 +172,7 @@ class TestCandleData:
 
     def test_from_dict_with_alternative_keys(self):
         """Test creation from dictionary with alternative keys."""
-        data = {
-            "t": 1622505600,
-            "o": 50000.0,
-            "h": 51000.0,
-            "l": 49000.0,
-            "c": 50500.0,
-            "v": 100.0
-        }
+        data = {"t": 1622505600, "o": 50000.0, "h": 51000.0, "l": 49000.0, "c": 50500.0, "v": 100.0}
 
         candle = CandleData.from_dict(data)
 
@@ -185,13 +186,7 @@ class TestCandleData:
     def test_from_dict_missing_required_field(self):
         """Test creation from dictionary with missing required field."""
         # Missing timestamp
-        data = {
-            "open": 50000.0,
-            "high": 51000.0,
-            "low": 49000.0,
-            "close": 50500.0,
-            "volume": 100.0
-        }
+        data = {"open": 50000.0, "high": 51000.0, "low": 49000.0, "close": 50500.0, "volume": 100.0}
 
         with pytest.raises(ValueError) as excinfo:
             CandleData.from_dict(data)
@@ -204,7 +199,7 @@ class TestCandleData:
             "high": 51000.0,
             "low": 49000.0,
             "close": 50500.0,
-            "volume": 100.0
+            "volume": 100.0,
         }
 
         with pytest.raises(ValueError) as excinfo:

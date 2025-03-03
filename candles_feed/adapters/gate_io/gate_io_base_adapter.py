@@ -53,22 +53,24 @@ class GateIoBaseAdapter(BaseAdapter):
             WebSocket URL
         """
         pass
-        
+
     @abstractmethod
     def get_channel_name(self) -> str:
         """Get WebSocket channel name.
-        
+
         Returns:
             Channel name string
         """
         pass
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -84,14 +86,14 @@ class GateIoBaseAdapter(BaseAdapter):
         params = {
             "currency_pair": self.get_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_GATE_IO_FORMAT.get(interval, interval),
-            "limit": limit
+            "limit": limit,
         }
-        
+
         if start_time:
             params["from"] = start_time
         if end_time:
             params["to"] = end_time
-            
+
         return params
 
     def parse_rest_response(self, data: Optional[list]) -> List[CandleData]:
@@ -117,24 +119,26 @@ class GateIoBaseAdapter(BaseAdapter):
         #   ],
         #   ...
         # ]
-        
+
         if data is None:
             return []
-            
+
         candles = []
         for row in data:
-            candles.append(CandleData(
-                timestamp_raw=float(row[0]),
-                open=float(row[1]),
-                high=float(row[4]),  # Gate.io has high at index 4
-                low=float(row[3]),   # Gate.io has low at index 3
-                close=float(row[2]),
-                volume=float(row[5]),
-                quote_asset_volume=float(row[6]),
-                n_trades=0,  # No trade count data available
-                taker_buy_base_volume=0.0,  # No taker data available
-                taker_buy_quote_volume=0.0  # No taker data available
-            ))
+            candles.append(
+                CandleData(
+                    timestamp_raw=float(row[0]),
+                    open=float(row[1]),
+                    high=float(row[4]),  # Gate.io has high at index 4
+                    low=float(row[3]),  # Gate.io has low at index 3
+                    close=float(row[2]),
+                    volume=float(row[5]),
+                    quote_asset_volume=float(row[6]),
+                    n_trades=0,  # No trade count data available
+                    taker_buy_base_volume=0.0,  # No taker data available
+                    taker_buy_quote_volume=0.0,  # No taker data available
+                )
+            )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -154,10 +158,10 @@ class GateIoBaseAdapter(BaseAdapter):
                 f"{self.get_channel_name()}",
                 {
                     "currency_pair": self.get_trading_pair_format(trading_pair),
-                    "interval": INTERVAL_TO_GATE_IO_FORMAT.get(interval, interval)
-                }
+                    "interval": INTERVAL_TO_GATE_IO_FORMAT.get(interval, interval),
+                },
             ],
-            "id": 12345
+            "id": 12345,
         }
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -172,15 +176,19 @@ class GateIoBaseAdapter(BaseAdapter):
         # Handle None input
         if data is None:
             return None
-            
+
         # Check if this is a candle message
-        if isinstance(data, dict) and data.get("method") == "update" and data.get("channel") == self.get_channel_name():
+        if (
+            isinstance(data, dict)
+            and data.get("method") == "update"
+            and data.get("channel") == self.get_channel_name()
+        ):
             params = data.get("params", [])
             if not params or len(params) < 2:
                 return None
-                
+
             candle_data = params[1]
-            
+
             # Gate.io WS candle format (similar to REST format):
             # [
             #   "1626770400",  // timestamp
@@ -192,20 +200,22 @@ class GateIoBaseAdapter(BaseAdapter):
             #   "74626209.16", // quote currency volume
             #   "BTC_USDT"     // currency pair
             # ]
-            
-            return [CandleData(
-                timestamp_raw=float(candle_data[0]),
-                open=float(candle_data[1]),
-                high=float(candle_data[4]),  # Gate.io has high at index 4
-                low=float(candle_data[3]),   # Gate.io has low at index 3
-                close=float(candle_data[2]),
-                volume=float(candle_data[5]),
-                quote_asset_volume=float(candle_data[6]),
-                n_trades=0,  # No trade count data available
-                taker_buy_base_volume=0.0,  # No taker data available
-                taker_buy_quote_volume=0.0  # No taker data available
-            )]
-            
+
+            return [
+                CandleData(
+                    timestamp_raw=float(candle_data[0]),
+                    open=float(candle_data[1]),
+                    high=float(candle_data[4]),  # Gate.io has high at index 4
+                    low=float(candle_data[3]),  # Gate.io has low at index 3
+                    close=float(candle_data[2]),
+                    volume=float(candle_data[5]),
+                    quote_asset_volume=float(candle_data[6]),
+                    n_trades=0,  # No trade count data available
+                    taker_buy_base_volume=0.0,  # No taker data available
+                    taker_buy_quote_volume=0.0,  # No taker data available
+                )
+            ]
+
         return None
 
     def get_supported_intervals(self) -> Dict[str, int]:

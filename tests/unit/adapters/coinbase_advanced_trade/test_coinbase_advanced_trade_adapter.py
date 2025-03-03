@@ -53,13 +53,10 @@ class TestCoinbaseAdvancedTradeAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
-            self.interval,
-            start_time=start_time,
-            end_time=end_time
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time
         )
 
         assert params["granularity"] == INTERVALS[self.interval]

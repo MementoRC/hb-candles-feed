@@ -20,14 +20,16 @@ from candles_feed.core.protocols import CandleDataAdapter, Logger, NetworkStrate
 class WebSocketStrategy:
     """Implementation for websocket-based candle retrieval."""
 
-    def __init__(self,
-                 network_client: NetworkClient,
-                 adapter: CandleDataAdapter,
-                 trading_pair: str,
-                 interval: str,
-                 data_processor: DataProcessor,
-                 candles_store: Deque[CandleData],
-                 logger: Optional[Logger] = None):
+    def __init__(
+        self,
+        network_client: NetworkClient,
+        adapter: CandleDataAdapter,
+        trading_pair: str,
+        interval: str,
+        data_processor: DataProcessor,
+        candles_store: Deque[CandleData],
+        logger: Optional[Logger] = None,
+    ):
         """Initialize the WebSocketStrategy.
 
         Args:
@@ -69,10 +71,12 @@ class WebSocketStrategy:
             await self._ws_assistant.disconnect()
             self._ws_assistant = None
 
-    async def poll_once(self,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = None) -> List[CandleData]:
+    async def poll_once(
+        self,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> List[CandleData]:
         """
         Fetch candles for a specific time range (one-time poll).
 
@@ -93,22 +97,16 @@ class WebSocketStrategy:
             interval=self.interval,
             start_time=start_time,
             end_time=end_time,
-            limit=limit
+            limit=limit,
         )
 
         try:
-            response = await self.network_client.get_rest_data(
-                url=url,
-                params=params
-            )
+            response = await self.network_client.get_rest_data(url=url, params=params)
 
             candles = self.adapter.parse_rest_response(response)
             interval_seconds = self.adapter.get_supported_intervals()[self.interval]
 
-            processed_candles = self.data_processor.sanitize_candles(
-                candles,
-                interval_seconds
-            )
+            processed_candles = self.data_processor.sanitize_candles(candles, interval_seconds)
 
             return processed_candles
 
@@ -130,10 +128,7 @@ class WebSocketStrategy:
                 self._ws_assistant = await self.network_client.establish_ws_connection(ws_url)
 
                 # Subscribe to candle updates
-                payload = self.adapter.get_ws_subscription_payload(
-                    self.trading_pair,
-                    self.interval
-                )
+                payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
                 await self.network_client.send_ws_message(self._ws_assistant, payload)
 
                 # Process incoming messages
@@ -145,8 +140,7 @@ class WebSocketStrategy:
                     if candles:
                         interval_seconds = self.adapter.get_supported_intervals()[self.interval]
                         validated_candles = self.data_processor.sanitize_candles(
-                            candles,
-                            interval_seconds
+                            candles, interval_seconds
                         )
                         self._update_candles(validated_candles)
 
@@ -198,14 +192,16 @@ class WebSocketStrategy:
 class RESTPollingStrategy:
     """Implementation for REST-based polling candle retrieval."""
 
-    def __init__(self,
-                 network_client: NetworkClient,
-                 adapter: CandleDataAdapter,
-                 trading_pair: str,
-                 interval: str,
-                 data_processor: DataProcessor,
-                 candles_store: Deque[CandleData],
-                 logger: Optional[Logger] = None):
+    def __init__(
+        self,
+        network_client: NetworkClient,
+        adapter: CandleDataAdapter,
+        trading_pair: str,
+        interval: str,
+        data_processor: DataProcessor,
+        candles_store: Deque[CandleData],
+        logger: Optional[Logger] = None,
+    ):
         """Initialize the RESTPollingStrategy.
 
         Args:
@@ -241,14 +237,16 @@ class RESTPollingStrategy:
         if self._polling_task:
             self._polling_task.cancel()
             self._polling_task = None
-            
+
         # Make sure we clean up any remaining network resources
         # The parent CandlesFeed class will close the network client
 
-    async def poll_once(self,
-                       start_time: Optional[int] = None,
-                       end_time: Optional[int] = None,
-                       limit: Optional[int] = None) -> List[CandleData]:
+    async def poll_once(
+        self,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> List[CandleData]:
         """Fetch candles for a specific time range (one-time poll).
 
         Args:
@@ -281,15 +279,12 @@ class RESTPollingStrategy:
                 interval=self.interval,
                 start_time=start_time,
                 end_time=end_time,
-                limit=limit
+                limit=limit,
             )
 
             # Execute request
             url = self.adapter.get_rest_url()
-            response = await self.network_client.get_rest_data(
-                url=url,
-                params=params
-            )
+            response = await self.network_client.get_rest_data(url=url, params=params)
 
             # Parse and process response
             candles = self.adapter.parse_rest_response(response)
@@ -331,7 +326,9 @@ class RESTPollingStrategy:
                     self._update_candles(candles)
 
                 # Sleep until next interval
-                sleep_time = max(self._polling_interval / 2, 1)  # At least 1s, but prefer half interval
+                sleep_time = max(
+                    self._polling_interval / 2, 1
+                )  # At least 1s, but prefer half interval
                 await asyncio.sleep(sleep_time)
 
             except asyncio.CancelledError:
@@ -364,7 +361,7 @@ class NetworkStrategyFactory:
         network_client: NetworkClient,
         data_processor: DataProcessor,
         candles_store: Deque[CandleData],
-        logger: Optional[Logger] = None
+        logger: Optional[Logger] = None,
     ) -> NetworkStrategy:
         """Create appropriate strategy based on adapter capabilities.
 
@@ -390,7 +387,7 @@ class NetworkStrategyFactory:
                 interval=interval,
                 data_processor=data_processor,
                 candles_store=candles_store,
-                logger=logger
+                logger=logger,
             )
         else:
             return RESTPollingStrategy(
@@ -400,5 +397,5 @@ class NetworkStrategyFactory:
                 interval=interval,
                 data_processor=data_processor,
                 candles_store=candles_store,
-                logger=logger
+                logger=logger,
             )

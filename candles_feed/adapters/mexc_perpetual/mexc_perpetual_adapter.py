@@ -35,32 +35,34 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
             WebSocket URL
         """
         return PERP_WSS_URL
-        
+
     def get_kline_topic(self) -> str:
         """Get WebSocket kline topic prefix.
-        
+
         Returns:
             Kline topic prefix string
         """
         return PERP_KLINE_TOPIC
-    
+
     def get_interval_format(self, interval: str) -> str:
         """Get exchange-specific interval format.
-        
+
         Args:
             interval: Standard interval format
-            
+
         Returns:
             Exchange-specific interval format
         """
         return INTERVAL_TO_MEXC_CONTRACT_FORMAT.get(interval, interval)
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = None) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -76,17 +78,17 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         # MEXC Contract API uses different parameter names
         params = {
             "symbol": self.get_trading_pair_format(trading_pair),
-            "interval": self.get_interval_format(interval)
+            "interval": self.get_interval_format(interval),
         }
-        
+
         if limit:
             params["size"] = limit
-        
+
         if start_time:
             params["start"] = start_time  # Already in seconds for contract API
         if end_time:
-            params["end"] = end_time      # Already in seconds for contract API
-            
+            params["end"] = end_time  # Already in seconds for contract API
+
         return params
 
     def parse_rest_response(self, data: Optional[dict]) -> List[CandleData]:
@@ -98,9 +100,14 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         Returns:
             List of CandleData objects
         """
-        if data is None or not isinstance(data, dict) or "data" not in data or not isinstance(data["data"], list):
+        if (
+            data is None
+            or not isinstance(data, dict)
+            or "data" not in data
+            or not isinstance(data["data"], list)
+        ):
             return []
-            
+
         # MEXC Contract REST API format:
         # {
         #   "success": true,
@@ -118,21 +125,23 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         #     ...
         #   ]
         # }
-            
+
         candles = []
         for obj in data["data"]:
-            candles.append(CandleData(
-                timestamp_raw=obj["time"],  # Already in seconds
-                open=float(obj["open"]),
-                high=float(obj["high"]),
-                low=float(obj["low"]),
-                close=float(obj["close"]),
-                volume=float(obj["vol"]),
-                quote_asset_volume=float(obj["amount"]),
-                n_trades=0,  # Not provided by MEXC Contract API
-                taker_buy_base_volume=0.0,  # Not provided
-                taker_buy_quote_volume=0.0   # Not provided
-            ))
+            candles.append(
+                CandleData(
+                    timestamp_raw=obj["time"],  # Already in seconds
+                    open=float(obj["open"]),
+                    high=float(obj["high"]),
+                    low=float(obj["low"]),
+                    close=float(obj["close"]),
+                    volume=float(obj["vol"]),
+                    quote_asset_volume=float(obj["amount"]),
+                    n_trades=0,  # Not provided by MEXC Contract API
+                    taker_buy_base_volume=0.0,  # Not provided
+                    taker_buy_quote_volume=0.0,  # Not provided
+                )
+            )
         return candles
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -146,7 +155,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         if data is None:
             return None
-            
+
         # Contract WebSocket format is different from spot
         # {
         #   "channel": "push.kline",
@@ -164,24 +173,26 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         #   },
         #   "symbol": "BTC_USDT"
         # }
-            
+
         if "channel" in data and "data" in data and data.get("channel") == "push.kline":
             candle = data["data"]
-            
+
             try:
-                return [CandleData(
-                    timestamp_raw=candle.get("t", 0),  # Already in seconds
-                    open=float(candle.get("o", 0.0)),
-                    high=float(candle.get("h", 0.0)),
-                    low=float(candle.get("l", 0.0)),
-                    close=float(candle.get("c", 0.0)),
-                    volume=float(candle.get("v", 0.0)),
-                    quote_asset_volume=float(candle.get("a", 0.0)),
-                    n_trades=0,  # Not available in contract websocket
-                    taker_buy_base_volume=0.0,  # Not available
-                    taker_buy_quote_volume=0.0   # Not available
-                )]
+                return [
+                    CandleData(
+                        timestamp_raw=candle.get("t", 0),  # Already in seconds
+                        open=float(candle.get("o", 0.0)),
+                        high=float(candle.get("h", 0.0)),
+                        low=float(candle.get("l", 0.0)),
+                        close=float(candle.get("c", 0.0)),
+                        volume=float(candle.get("v", 0.0)),
+                        quote_asset_volume=float(candle.get("a", 0.0)),
+                        n_trades=0,  # Not available in contract websocket
+                        taker_buy_base_volume=0.0,  # Not available
+                        taker_buy_quote_volume=0.0,  # Not available
+                    )
+                ]
             except (ValueError, TypeError):
                 pass
-                
+
         return None

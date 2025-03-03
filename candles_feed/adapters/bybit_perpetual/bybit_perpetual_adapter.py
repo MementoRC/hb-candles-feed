@@ -18,10 +18,10 @@ class BybitPerpetualAdapter(BybitBaseAdapter):
             WebSocket URL
         """
         return PERP_WSS_URL
-        
+
     def get_category_param(self) -> str:
         """Get the category parameter for the market type.
-        
+
         Returns:
             Category parameter string
         """

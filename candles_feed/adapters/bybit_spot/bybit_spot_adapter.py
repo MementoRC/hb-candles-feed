@@ -18,10 +18,10 @@ class BybitSpotAdapter(BybitBaseAdapter):
             WebSocket URL
         """
         return SPOT_WSS_URL
-        
+
     def get_category_param(self) -> str:
         """Get the category parameter for the market type.
-        
+
         Returns:
             Category parameter string
         """

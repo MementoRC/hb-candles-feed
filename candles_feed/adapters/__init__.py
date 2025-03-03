@@ -27,10 +27,14 @@ from candles_feed.adapters.mexc_spot.mexc_spot_adapter import MEXCSpotAdapter
 from candles_feed.adapters.okx_spot.okx_spot_adapter import OKXSpotAdapter
 
 # Perpetual adapters
-from candles_feed.adapters.binance_perpetual.binance_perpetual_adapter import BinancePerpetualAdapter
+from candles_feed.adapters.binance_perpetual.binance_perpetual_adapter import (
+    BinancePerpetualAdapter,
+)
 from candles_feed.adapters.bybit_perpetual.bybit_perpetual_adapter import BybitPerpetualAdapter
 from candles_feed.adapters.gate_io_perpetual.gate_io_perpetual_adapter import GateIoPerpetualAdapter
-from candles_feed.adapters.hyperliquid_perpetual.hyperliquid_perpetual_adapter import HyperliquidPerpetualAdapter
+from candles_feed.adapters.hyperliquid_perpetual.hyperliquid_perpetual_adapter import (
+    HyperliquidPerpetualAdapter,
+)
 from candles_feed.adapters.kucoin_perpetual.kucoin_perpetual_adapter import KuCoinPerpetualAdapter
 from candles_feed.adapters.mexc_perpetual.mexc_perpetual_adapter import MEXCPerpetualAdapter
 from candles_feed.adapters.okx_perpetual.okx_perpetual_adapter import OKXPerpetualAdapter
@@ -45,7 +49,6 @@ __all__ = [
     "KuCoinBaseAdapter",
     "MEXCBaseAdapter",
     "OKXBaseAdapter",
-    
     # Spot adapters
     "AscendExSpotAdapter",
     "BinanceSpotAdapter",
@@ -57,7 +60,6 @@ __all__ = [
     "KuCoinSpotAdapter",
     "MEXCSpotAdapter",
     "OKXSpotAdapter",
-    
     # Perpetual adapters
     "BinancePerpetualAdapter",
     "BybitPerpetualAdapter",
@@ -65,5 +67,5 @@ __all__ = [
     "HyperliquidPerpetualAdapter",
     "KuCoinPerpetualAdapter",
     "MEXCPerpetualAdapter",
-    "OKXPerpetualAdapter"
+    "OKXPerpetualAdapter",
 ]

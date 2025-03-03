@@ -44,10 +44,14 @@ class CandleDataAdapter(Protocol):
         """
         ...
 
-    def get_rest_params(self, trading_pair: str, interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = None) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -146,10 +150,12 @@ class WSAssistant(Protocol):
 class NetworkStrategy(Protocol):
     """Protocol for network connection strategies."""
 
-    async def poll_once(self,
-                     start_time: Optional[int] = None,
-                     end_time: Optional[int] = None,
-                     limit: Optional[int] = None) -> List[CandleData]:
+    async def poll_once(
+        self,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> List[CandleData]:
         """Fetch candles for a specific time range.
 
         Args:

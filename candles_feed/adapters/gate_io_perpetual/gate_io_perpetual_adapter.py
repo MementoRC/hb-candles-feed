@@ -30,10 +30,10 @@ class GateIoPerpetualAdapter(GateIoBaseAdapter):
             WebSocket URL
         """
         return PERP_WSS_URL
-        
+
     def get_channel_name(self) -> str:
         """Get WebSocket channel name.
-        
+
         Returns:
             Channel name string
         """

@@ -54,12 +54,14 @@ class OKXBaseAdapter(BaseAdapter):
         """
         pass
 
-    def get_rest_params(self,
-                     trading_pair: str,
-                     interval: str,
-                     start_time: Optional[int] = None,
-                     end_time: Optional[int] = None,
-                     limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -76,7 +78,7 @@ class OKXBaseAdapter(BaseAdapter):
         params = {
             "instId": trading_pair.replace("-", "/"),
             "bar": INTERVAL_TO_OKX_FORMAT.get(interval, interval),
-            "limit": limit
+            "limit": limit,
         }
 
         if start_time:
@@ -115,9 +117,9 @@ class OKXBaseAdapter(BaseAdapter):
             "args": [
                 {
                     "channel": "candle" + INTERVAL_TO_OKX_FORMAT.get(interval, interval),
-                    "instId": trading_pair.replace("-", "/")
+                    "instId": trading_pair.replace("-", "/"),
                 }
-            ]
+            ],
         }
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -151,19 +153,21 @@ class OKXBaseAdapter(BaseAdapter):
         # Data will be None when the websocket is disconnected
         if data is None:
             return None
-            
+
         if "data" in data and isinstance(data["data"], list):
             candles = []
             for row in data["data"]:
-                candles.append(CandleData(
-                    timestamp_raw=int(row[0]) / 1000,  # Convert milliseconds to seconds
-                    open=float(row[1]),
-                    high=float(row[2]),
-                    low=float(row[3]),
-                    close=float(row[4]),
-                    volume=float(row[5]),
-                    quote_asset_volume=float(row[6]) if row[6] != "0" else 0.0
-                ))
+                candles.append(
+                    CandleData(
+                        timestamp_raw=int(row[0]) / 1000,  # Convert milliseconds to seconds
+                        open=float(row[1]),
+                        high=float(row[2]),
+                        low=float(row[3]),
+                        close=float(row[4]),
+                        volume=float(row[5]),
+                        quote_asset_volume=float(row[6]) if row[6] != "0" else 0.0,
+                    )
+                )
             return candles
 
         return None

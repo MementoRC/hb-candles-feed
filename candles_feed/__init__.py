@@ -33,6 +33,7 @@ try:
     ExchangeRegistry.discover_adapters()
 except Exception as e:
     import logging
+
     logging.getLogger(__name__).warning(f"Error discovering exchange adapters: {e}")
 
 __all__ = [
@@ -45,15 +46,13 @@ __all__ = [
     "WebSocketStrategy",
     "RESTPollingStrategy",
     "NetworkStrategyFactory",
-
     # Base classes
     "BaseAdapter",
-
     # Exchange adapters
     "BinanceSpotAdapter",
     "BybitSpotAdapter",
     "CoinbaseAdvancedTradeAdapter",
     "KrakenSpotAdapter",
     "KuCoinSpotAdapter",
-    "OKXSpotAdapter"
+    "OKXSpotAdapter",
 ]

@@ -48,12 +48,14 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = None) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:

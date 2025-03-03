@@ -33,7 +33,7 @@ class TestOKXPerpetualAdapter:
         # Test adding SWAP suffix to regular pairs
         assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT-SWAP"
         assert self.adapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC-SWAP"
-        
+
         # Test pairs that already have the SWAP suffix
         assert self.adapter.get_trading_pair_format("BTC-USDT-SWAP") == "BTC-USDT-SWAP"
         assert self.adapter.get_trading_pair_format("ETH-BTC-SWAP") == "ETH-BTC-SWAP"
@@ -49,8 +49,7 @@ class TestOKXPerpetualAdapter:
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
         params = self.adapter.get_rest_params(
-            self.adapter.get_trading_pair_format(self.trading_pair),
-            self.interval
+            self.adapter.get_trading_pair_format(self.trading_pair), self.interval
         )
 
         # For perpetual markets, we need the SWAP suffix and replace hyphen with slash
@@ -63,7 +62,7 @@ class TestOKXPerpetualAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 200
 
         params = self.adapter.get_rest_params(
@@ -71,7 +70,7 @@ class TestOKXPerpetualAdapter:
             self.interval,
             start_time=start_time,
             end_time=end_time,
-            limit=limit
+            limit=limit,
         )
 
         assert params["instId"] == "BTC-USDT-SWAP".replace("-", "/")
@@ -108,8 +107,7 @@ class TestOKXPerpetualAdapter:
     def test_get_ws_subscription_payload(self):
         """Test WebSocket subscription payload generation."""
         payload = self.adapter.get_ws_subscription_payload(
-            self.adapter.get_trading_pair_format(self.trading_pair),
-            self.interval
+            self.adapter.get_trading_pair_format(self.trading_pair), self.interval
         )
 
         assert payload["op"] == "subscribe"
@@ -122,7 +120,7 @@ class TestOKXPerpetualAdapter:
         """Test parsing valid WebSocket message."""
         # Modify the websocket message to use the perpetual trading pair format
         websocket_message_okx["arg"]["instId"] = "BTC-USDT-SWAP"
-        
+
         candles = self.adapter.parse_ws_message(websocket_message_okx)
 
         # Verify message parsing
@@ -153,7 +151,7 @@ class TestOKXPerpetualAdapter:
         ws_message = {
             "arg": {
                 "channel": f"candle{INTERVAL_TO_OKX_FORMAT[self.interval]}",
-                "instId": "BTC-USDT-SWAP"
+                "instId": "BTC-USDT-SWAP",
             }
         }
         candles = self.adapter.parse_ws_message(ws_message)

@@ -19,7 +19,10 @@ def round_timestamp_to_interval(timestamp: int, interval_seconds: int) -> int:
     """
     return timestamp - (timestamp % interval_seconds)
 
-def calculate_start_end_times(end_time: int, interval_seconds: int, num_candles: int) -> Tuple[int, int]:
+
+def calculate_start_end_times(
+    end_time: int, interval_seconds: int, num_candles: int
+) -> Tuple[int, int]:
     """Calculate start and end times for fetching candles.
 
     Args:
@@ -38,6 +41,7 @@ def calculate_start_end_times(end_time: int, interval_seconds: int, num_candles:
 
     return start_time, rounded_end
 
+
 def current_timestamp_ms() -> int:
     """Get current timestamp in milliseconds.
 
@@ -46,6 +50,7 @@ def current_timestamp_ms() -> int:
     """
     return int(time.time() * 1000)
 
+
 def current_timestamp_s() -> int:
     """Get current timestamp in seconds.
 
@@ -53,6 +58,7 @@ def current_timestamp_s() -> int:
         Current timestamp in seconds
     """
     return int(time.time())
+
 
 def timestamp_to_datetime(timestamp: int) -> datetime:
     """Convert timestamp to datetime.
@@ -64,6 +70,7 @@ def timestamp_to_datetime(timestamp: int) -> datetime:
         Datetime object
     """
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+
 
 def datetime_to_timestamp(dt: datetime) -> int:
     """Convert datetime to timestamp.

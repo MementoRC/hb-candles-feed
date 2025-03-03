@@ -21,7 +21,7 @@ INTERVALS: Dict[str, int] = {
     "1d": 86400,
     "3d": 259200,
     "1w": 604800,
-    "1M": 2592000
+    "1M": 2592000,
 }
 
 # Websocket supported intervals
@@ -38,6 +38,6 @@ SPOT_WSS_URL = "wss://stream.binance.com:9443/ws"
 
 # API URLs - Perpetual
 PERP_REST_BASE_URL = "https://fapi.binance.com"
-PERP_CANDLES_ENDPOINT = "/fapi/v1/klines" 
+PERP_CANDLES_ENDPOINT = "/fapi/v1/klines"
 PERP_REST_URL = f"{PERP_REST_BASE_URL}{PERP_CANDLES_ENDPOINT}"
 PERP_WSS_URL = "wss://fstream.binance.com/ws"

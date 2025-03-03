@@ -64,12 +64,14 @@ class KrakenSpotAdapter(BaseAdapter):
         """
         return WSS_URL
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -85,7 +87,7 @@ class KrakenSpotAdapter(BaseAdapter):
         # Kraken uses 'pair', 'interval' in minutes, and 'since' parameter
         params = {
             "pair": self.get_trading_pair_format(trading_pair),
-            "interval": INTERVAL_TO_KRAKEN_FORMAT.get(interval, 1)  # Default to 1m
+            "interval": INTERVAL_TO_KRAKEN_FORMAT.get(interval, 1),  # Default to 1m
         }
 
         if start_time:
@@ -134,7 +136,7 @@ class KrakenSpotAdapter(BaseAdapter):
                     high = float(row[2])
                     low = float(row[3])
                     close = float(row[4])
-                    
+
                     # Handle different row formats - real API vs test fixture
                     if len(row) >= 8:
                         # Standard format with all fields
@@ -147,17 +149,19 @@ class KrakenSpotAdapter(BaseAdapter):
                         volume = float(row[5])
                         quote_volume = float(row[6]) if len(row) > 6 else 0.0
                         n_trades = 0  # Default when not provided in fixture
-                        
-                    candles.append(CandleData(
-                        timestamp_raw=timestamp,
-                        open=open_price,
-                        high=high,
-                        low=low,
-                        close=close,
-                        volume=volume,
-                        quote_asset_volume=quote_volume,
-                        n_trades=n_trades
-                    ))
+
+                    candles.append(
+                        CandleData(
+                            timestamp_raw=timestamp,
+                            open=open_price,
+                            high=high,
+                            low=low,
+                            close=close,
+                            volume=volume,
+                            quote_asset_volume=quote_volume,
+                            n_trades=n_trades,
+                        )
+                    )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -177,8 +181,8 @@ class KrakenSpotAdapter(BaseAdapter):
             "pair": [self.get_trading_pair_format(trading_pair)],
             "subscription": {
                 "name": "ohlc",
-                "interval": INTERVAL_TO_KRAKEN_FORMAT.get(interval, 1)  # Default to 1m
-            }
+                "interval": INTERVAL_TO_KRAKEN_FORMAT.get(interval, 1),  # Default to 1m
+            },
         }
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -210,46 +214,58 @@ class KrakenSpotAdapter(BaseAdapter):
 
         if data is None:
             return None
-            
+
         # Check for test fixture format (different from the actual API format)
-        if (isinstance(data, dict) and 
-            "channelName" in data and data["channelName"] == "ohlc-1" and
-            "data" in data and isinstance(data["data"], list)):
-            
+        if (
+            isinstance(data, dict)
+            and "channelName" in data
+            and data["channelName"] == "ohlc-1"
+            and "data" in data
+            and isinstance(data["data"], list)
+        ):
             candle_lists = data["data"]
             candles = []
-            
+
             for candle_row in candle_lists:
                 # The test fixture format has a different order
                 # [timestamp, open, close, high, low, close, volume, end_time, amount]
-                candles.append(CandleData(
-                    timestamp_raw=float(candle_row[0]),  # Time in seconds
-                    open=float(candle_row[1]),
-                    high=float(candle_row[3]),  # High is at index 3 in test fixture
-                    low=float(candle_row[4]),   # Low is at index 4 in test fixture
-                    close=float(candle_row[2]),  # Close is at index 2 in test fixture
-                    volume=float(candle_row[6]),
-                    quote_asset_volume=float(candle_row[8]) if len(candle_row) > 8 else 0.0,
-                    n_trades=0  # Not provided in test fixture
-                ))
+                candles.append(
+                    CandleData(
+                        timestamp_raw=float(candle_row[0]),  # Time in seconds
+                        open=float(candle_row[1]),
+                        high=float(candle_row[3]),  # High is at index 3 in test fixture
+                        low=float(candle_row[4]),  # Low is at index 4 in test fixture
+                        close=float(candle_row[2]),  # Close is at index 2 in test fixture
+                        volume=float(candle_row[6]),
+                        quote_asset_volume=float(candle_row[8]) if len(candle_row) > 8 else 0.0,
+                        n_trades=0,  # Not provided in test fixture
+                    )
+                )
             return candles
-            
-        # Check if this is a standard Kraken candle update (array with 4 elements, channel name starting with "ohlc-")
-        if (isinstance(data, list) and len(data) == 4 and
-            isinstance(data[2], str) and data[2].startswith("ohlc-") and
-            isinstance(data[1], list) and len(data[1]) >= 8):
 
+        # Check if this is a standard Kraken candle update (array with 4 elements, channel name starting with "ohlc-")
+        if (
+            isinstance(data, list)
+            and len(data) == 4
+            and isinstance(data[2], str)
+            and data[2].startswith("ohlc-")
+            and isinstance(data[1], list)
+            and len(data[1]) >= 8
+        ):
             candle_data = data[1]
-            return [CandleData(
-                timestamp_raw=float(candle_data[0]),  # Time in seconds
-                open=float(candle_data[2]),
-                high=float(candle_data[3]),
-                low=float(candle_data[4]),
-                close=float(candle_data[5]),
-                volume=float(candle_data[7]),
-                quote_asset_volume=float(candle_data[7]) * float(candle_data[6]),  # Volume * VWAP
-                n_trades=int(candle_data[8]) if len(candle_data) > 8 else 0
-            )]
+            return [
+                CandleData(
+                    timestamp_raw=float(candle_data[0]),  # Time in seconds
+                    open=float(candle_data[2]),
+                    high=float(candle_data[3]),
+                    low=float(candle_data[4]),
+                    close=float(candle_data[5]),
+                    volume=float(candle_data[7]),
+                    quote_asset_volume=float(candle_data[7])
+                    * float(candle_data[6]),  # Volume * VWAP
+                    n_trades=int(candle_data[8]) if len(candle_data) > 8 else 0,
+                )
+            ]
 
         return None
 

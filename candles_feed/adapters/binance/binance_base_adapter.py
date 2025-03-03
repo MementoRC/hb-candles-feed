@@ -35,12 +35,14 @@ class BinanceBaseAdapter(BaseAdapter):
         """
         return trading_pair.replace("-", "")
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -56,13 +58,13 @@ class BinanceBaseAdapter(BaseAdapter):
         params = {
             "symbol": self.get_trading_pair_format(trading_pair),
             "interval": interval,
-            "limit": limit
+            "limit": limit,
         }
 
         if start_time:
             params["startTime"] = start_time * 1000  # Convert to milliseconds
         if end_time:
-            params["endTime"] = end_time * 1000      # Convert to milliseconds
+            params["endTime"] = end_time * 1000  # Convert to milliseconds
 
         return params
 
@@ -95,21 +97,23 @@ class BinanceBaseAdapter(BaseAdapter):
 
         if data is None:
             return []
-            
+
         candles = []
         for row in data:
-            candles.append(CandleData(
-                timestamp_raw=row[0] / 1000,  # Convert from milliseconds
-                open=float(row[1]),
-                high=float(row[2]),
-                low=float(row[3]),
-                close=float(row[4]),
-                volume=float(row[5]),
-                quote_asset_volume=float(row[7]),
-                n_trades=int(row[8]),
-                taker_buy_base_volume=float(row[9]),
-                taker_buy_quote_volume=float(row[10])
-            ))
+            candles.append(
+                CandleData(
+                    timestamp_raw=row[0] / 1000,  # Convert from milliseconds
+                    open=float(row[1]),
+                    high=float(row[2]),
+                    low=float(row[3]),
+                    close=float(row[4]),
+                    volume=float(row[5]),
+                    quote_asset_volume=float(row[7]),
+                    n_trades=int(row[8]),
+                    taker_buy_base_volume=float(row[9]),
+                    taker_buy_quote_volume=float(row[10]),
+                )
+            )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -125,7 +129,7 @@ class BinanceBaseAdapter(BaseAdapter):
         return {
             "method": "SUBSCRIBE",
             "params": [f"{self.get_trading_pair_format(trading_pair).lower()}@kline_{interval}"],
-            "id": 1
+            "id": 1,
         }
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -165,20 +169,22 @@ class BinanceBaseAdapter(BaseAdapter):
 
         if data is None:
             return None
-            
+
         if data.get("e") == "kline":
-            return [CandleData(
-                timestamp_raw=data["k"]["t"] / 1000,  # Convert from milliseconds
-                open=float(data["k"]["o"]),
-                high=float(data["k"]["h"]),
-                low=float(data["k"]["l"]),
-                close=float(data["k"]["c"]),
-                volume=float(data["k"]["v"]),
-                quote_asset_volume=float(data["k"]["q"]),
-                n_trades=int(data["k"]["n"]),
-                taker_buy_base_volume=float(data["k"]["V"]),
-                taker_buy_quote_volume=float(data["k"]["Q"])
-            )]
+            return [
+                CandleData(
+                    timestamp_raw=data["k"]["t"] / 1000,  # Convert from milliseconds
+                    open=float(data["k"]["o"]),
+                    high=float(data["k"]["h"]),
+                    low=float(data["k"]["l"]),
+                    close=float(data["k"]["c"]),
+                    volume=float(data["k"]["v"]),
+                    quote_asset_volume=float(data["k"]["q"]),
+                    n_trades=int(data["k"]["n"]),
+                    taker_buy_base_volume=float(data["k"]["V"]),
+                    taker_buy_quote_volume=float(data["k"]["Q"]),
+                )
+            ]
         return None
 
     def get_supported_intervals(self) -> Dict[str, int]:

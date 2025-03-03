@@ -53,14 +53,16 @@ class KuCoinBaseAdapter(BaseAdapter):
             WebSocket URL
         """
         pass
-    
+
     @abstractmethod
-    def get_rest_params(self,
-                     trading_pair: str,
-                     interval: str,
-                     start_time: Optional[int] = None,
-                     end_time: Optional[int] = None,
-                     limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -74,7 +76,7 @@ class KuCoinBaseAdapter(BaseAdapter):
             Dictionary of parameters for REST API request
         """
         pass
-        
+
     @abstractmethod
     def parse_rest_response(self, data: dict) -> List[CandleData]:
         """Parse REST API response into CandleData objects.
@@ -104,7 +106,7 @@ class KuCoinBaseAdapter(BaseAdapter):
             "type": "subscribe",
             "topic": f"/market/candles:{trading_pair}_{interval}",
             "privateChannel": False,
-            "response": True
+            "response": True,
         }
 
     @abstractmethod

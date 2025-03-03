@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 # Add the project root to the Python path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
@@ -31,9 +31,9 @@ from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 def configure_logging():
     """Configure logging for tests."""
     logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
+
 
 # Remove the custom event_loop fixture to avoid the deprecation warning
 # pytest-asyncio now provides this functionality natively
@@ -45,7 +45,7 @@ def mock_candle():
     """Create a mock candle for testing."""
     return CandleData(
         timestamp=int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()),
-        open=50000.0, 
+        open=50000.0,
         high=51000.0,
         low=49000.0,
         close=50500.0,
@@ -53,7 +53,7 @@ def mock_candle():
         quote_asset_volume=5000000.0,
         n_trades=1000,
         taker_buy_base_volume=60.0,
-        taker_buy_quote_volume=3000000.0
+        taker_buy_quote_volume=3000000.0,
     )
 
 
@@ -61,7 +61,7 @@ def mock_candle():
 def mock_candles():
     """Create a list of mock candles for testing."""
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-    
+
     return [
         CandleData(
             timestamp=base_time + (i * 60),  # 1-minute intervals
@@ -73,7 +73,7 @@ def mock_candles():
             quote_asset_volume=5000000.0 + (i * 500000),
             n_trades=1000 + (i * 100),
             taker_buy_base_volume=60.0 + (i * 5),
-            taker_buy_quote_volume=3000000.0 + (i * 300000)
+            taker_buy_quote_volume=3000000.0 + (i * 300000),
         )
         for i in range(5)
     ]
@@ -84,28 +84,28 @@ async def binance_mock_server(unused_tcp_port):
     """Create and start a Binance mock server for testing."""
     from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
     from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
-    
+
     port = unused_tcp_port
-    
+
     # Create plugin directly
     plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
-    
+
     # Create server
-    server = MockExchangeServer(plugin, '127.0.0.1', port)
-    
+    server = MockExchangeServer(plugin, "127.0.0.1", port)
+
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
     server.add_trading_pair("ETHUSDT", "1m", 3000.0)
     server.add_trading_pair("SOLUSDT", "1m", 100.0)
-    
+
     # Start the server
     url = await server.start()
-    
+
     # Store the URL for other fixtures to access
     server.url = url
-    
+
     yield server
-    
+
     # Clean up
     await server.stop()
 
@@ -114,30 +114,30 @@ async def binance_mock_server(unused_tcp_port):
 async def bybit_mock_server(unused_tcp_port):
     """Create and start a Bybit mock server for testing."""
     from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
-    
+
     # We're using the Binance plugin for now since we don't have an explicit Bybit plugin yet
     from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
-    
+
     port = unused_tcp_port
-    
+
     # Create plugin directly
     plugin = BinanceSpotPlugin(ExchangeType.BYBIT_SPOT)
-    
+
     # Create server
-    server = MockExchangeServer(plugin, '127.0.0.1', port)
-    
+    server = MockExchangeServer(plugin, "127.0.0.1", port)
+
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
     server.add_trading_pair("ETHUSDT", "1m", 3000.0)
-    
+
     # Start the server
     url = await server.start()
-    
+
     # Store the URL for other fixtures to access
     server.url = url
-    
+
     yield server
-    
+
     # Clean up
     await server.stop()
 
@@ -146,30 +146,30 @@ async def bybit_mock_server(unused_tcp_port):
 async def coinbase_mock_server(unused_tcp_port):
     """Create and start a Coinbase Advanced Trade mock server for testing."""
     from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
-    
+
     # We're using the Binance plugin for now since we don't have an explicit Coinbase plugin yet
     from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
-    
+
     port = unused_tcp_port
-    
+
     # Create plugin directly
     plugin = BinanceSpotPlugin(ExchangeType.COINBASE_ADVANCED_TRADE)
-    
+
     # Create server
-    server = MockExchangeServer(plugin, '127.0.0.1', port)
-    
+    server = MockExchangeServer(plugin, "127.0.0.1", port)
+
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
     server.add_trading_pair("ETHUSDT", "1m", 3000.0)
-    
+
     # Start the server
     url = await server.start()
-    
+
     # Store the URL for other fixtures to access
     server.url = url
-    
+
     yield server
-    
+
     # Clean up
     await server.stop()
 
@@ -250,22 +250,18 @@ def mock_adapter():
         "15m": 900,
         "1h": 3600,
         "4h": 14400,
-        "1d": 86400
+        "1d": 86400,
     }
     adapter.get_ws_supported_intervals.return_value = ["1m", "5m", "15m", "1h"]
 
     # Setup request params
-    adapter.get_rest_params.return_value = {
-        "symbol": "BTCUSDT",
-        "interval": "1m",
-        "limit": 1000
-    }
+    adapter.get_rest_params.return_value = {"symbol": "BTCUSDT", "interval": "1m", "limit": 1000}
 
     # Setup subscription payload
     adapter.get_ws_subscription_payload.return_value = {
         "method": "SUBSCRIBE",
         "params": ["btcusdt@kline_1m"],
-        "id": 1
+        "id": 1,
     }
 
     return adapter
@@ -284,7 +280,7 @@ def sample_candle_data():
         quote_asset_volume=5000000.0,
         n_trades=1000,
         taker_buy_base_volume=60.0,
-        taker_buy_quote_volume=3000000.0
+        taker_buy_quote_volume=3000000.0,
     )
 
 
@@ -300,7 +296,7 @@ def sample_candles() -> list[CandleData]:
             high=51000.0,
             low=49000.0,
             close=50500.0,
-            volume=100.0
+            volume=100.0,
         ),
         CandleData(
             timestamp_raw=base_time + 60,
@@ -308,7 +304,7 @@ def sample_candles() -> list[CandleData]:
             high=52000.0,
             low=50000.0,
             close=51500.0,
-            volume=150.0
+            volume=150.0,
         ),
         CandleData(
             timestamp_raw=base_time + 120,
@@ -316,7 +312,7 @@ def sample_candles() -> list[CandleData]:
             high=52500.0,
             low=51000.0,
             close=52000.0,
-            volume=200.0
+            volume=200.0,
         ),
         CandleData(
             timestamp_raw=base_time + 180,
@@ -324,15 +320,17 @@ def sample_candles() -> list[CandleData]:
             high=53000.0,
             low=51500.0,
             close=52500.0,
-            volume=250.0
-        )
+            volume=250.0,
+        ),
     ]
 
 
 @pytest.fixture
 def candlestick_response_binance():
     """Create a sample Binance REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Binance uses milliseconds
+    base_time = (
+        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    )  # Binance uses milliseconds
 
     return [
         [
@@ -347,7 +345,7 @@ def candlestick_response_binance():
             1000,
             "60.0",
             "3000000.0",
-            "0"
+            "0",
         ],
         [
             base_time + 60000,
@@ -361,15 +359,17 @@ def candlestick_response_binance():
             1500,
             "90.0",
             "4500000.0",
-            "0"
-        ]
+            "0",
+        ],
     ]
 
 
 @pytest.fixture
 def websocket_message_binance():
     """Create a sample Binance WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Binance uses milliseconds
+    base_time = (
+        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    )  # Binance uses milliseconds
 
     return {
         "e": "kline",
@@ -392,30 +392,24 @@ def websocket_message_binance():
             "q": "5000000.0",
             "V": "60.0",
             "Q": "3000000.0",
-            "B": "0"
-        }
+            "B": "0",
+        },
     }
 
 
 @pytest.fixture
 def candlestick_response_bybit():
     """Create a sample Bybit REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Bybit uses milliseconds
+    base_time = (
+        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    )  # Bybit uses milliseconds
 
     return {
         "retCode": 0,
         "retMsg": "OK",
         "result": {
             "list": [
-                [
-                    str(base_time),
-                    "50000.0",
-                    "51000.0",
-                    "49000.0",
-                    "50500.0",
-                    "100.0",
-                    "5000000.0"
-                ],
+                [str(base_time), "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
                 [
                     str(base_time + 60000),
                     "50500.0",
@@ -423,18 +417,20 @@ def candlestick_response_bybit():
                     "50000.0",
                     "51500.0",
                     "150.0",
-                    "7500000.0"
-                ]
+                    "7500000.0",
+                ],
             ],
-            "category": "spot"
-        }
+            "category": "spot",
+        },
     }
 
 
 @pytest.fixture
 def websocket_message_bybit():
     """Create a sample Bybit WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # Bybit uses milliseconds
+    base_time = (
+        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    )  # Bybit uses milliseconds
 
     return {
         "topic": "kline.1m.BTCUSDT",
@@ -450,11 +446,11 @@ def websocket_message_bybit():
                 "volume": "100.0",
                 "turnover": "5000000.0",
                 "confirm": False,
-                "timestamp": base_time + 30000
+                "timestamp": base_time + 30000,
             }
         ],
         "ts": base_time + 30000,
-        "type": "snapshot"
+        "type": "snapshot",
     }
 
 
@@ -471,7 +467,7 @@ def candlestick_response_coinbase():
                 "high": "51000.0",
                 "open": "50000.0",
                 "close": "50500.0",
-                "volume": "100.0"
+                "volume": "100.0",
             },
             {
                 "start": (datetime(2023, 1, 1, 0, 1, tzinfo=timezone.utc)).isoformat(),
@@ -479,8 +475,8 @@ def candlestick_response_coinbase():
                 "high": "52000.0",
                 "open": "50500.0",
                 "close": "51500.0",
-                "volume": "150.0"
-            }
+                "volume": "150.0",
+            },
         ]
     }
 
@@ -505,11 +501,11 @@ def websocket_message_coinbase():
                         "high": "51000.0",
                         "open": "50000.0",
                         "close": "50500.0",
-                        "volume": "100.0"
+                        "volume": "100.0",
                     }
-                ]
+                ],
             }
-        ]
+        ],
     }
 
 
@@ -522,27 +518,11 @@ def candlestick_response_kraken():
         "error": [],
         "result": {
             "XXBTZUSD": [
-                [
-                    base_time,
-                    "50000.0",
-                    "51000.0",
-                    "49000.0",
-                    "50500.0",
-                    "100.0",
-                    "5000000.0"
-                ],
-                [
-                    base_time + 60,
-                    "50500.0",
-                    "52000.0",
-                    "50000.0",
-                    "51500.0",
-                    "150.0",
-                    "7500000.0"
-                ]
+                [base_time, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
+                [base_time + 60, "50500.0", "52000.0", "50000.0", "51500.0", "150.0", "7500000.0"],
             ],
-            "last": base_time + 120
-        }
+            "last": base_time + 120,
+        },
     }
 
 
@@ -565,9 +545,9 @@ def websocket_message_kraken():
                 "50500.0",
                 "100.0",
                 base_time + 60,
-                "5000000.0"
+                "5000000.0",
             ]
-        ]
+        ],
     }
 
 
@@ -580,15 +560,7 @@ def candlestick_response_kucoin():
         "code": "200000",
         "data": {
             "candles": [
-                [
-                    str(base_time),
-                    "50000.0",
-                    "50500.0",
-                    "51000.0",
-                    "49000.0",
-                    "100.0",
-                    "5000000.0"
-                ],
+                [str(base_time), "50000.0", "50500.0", "51000.0", "49000.0", "100.0", "5000000.0"],
                 [
                     str(base_time + 60),
                     "50500.0",
@@ -596,11 +568,11 @@ def candlestick_response_kucoin():
                     "52000.0",
                     "50000.0",
                     "150.0",
-                    "7500000.0"
-                ]
+                    "7500000.0",
+                ],
             ],
-            "type": "1min"
-        }
+            "type": "1min",
+        },
     }
 
 
@@ -622,31 +594,25 @@ def websocket_message_kucoin():
                 "51000.0",
                 "49000.0",
                 "100.0",
-                "5000000.0"
+                "5000000.0",
             ],
-            "time": base_time * 1000
-        }
+            "time": base_time * 1000,
+        },
     }
 
 
 @pytest.fixture
 def candlestick_response_okx():
     """Create a sample OKX REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # OKX uses milliseconds
+    base_time = (
+        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    )  # OKX uses milliseconds
 
     return {
         "code": "0",
         "msg": "",
         "data": [
-            [
-                str(base_time),
-                "50000.0",
-                "50500.0",
-                "51000.0",
-                "49000.0",
-                "100.0",
-                "5000000.0"
-            ],
+            [str(base_time), "50000.0", "50500.0", "51000.0", "49000.0", "100.0", "5000000.0"],
             [
                 str(base_time + 60000),
                 "50500.0",
@@ -654,9 +620,9 @@ def candlestick_response_okx():
                 "52000.0",
                 "50000.0",
                 "150.0",
-                "7500000.0"
-            ]
-        ]
+                "7500000.0",
+            ],
+        ],
     }
 
 
@@ -667,49 +633,40 @@ def candlestick_response_gate_io():
 
     return [
         [
-            str(base_time),        # timestamp
-            "50000.0",             # open
-            "50500.0",             # close
-            "49000.0",             # low
-            "51000.0",             # high
-            "100.0",               # volume
-            "5000000.0",           # quote currency volume
-            "BTC_USDT"             # currency pair
+            str(base_time),  # timestamp
+            "50000.0",  # open
+            "50500.0",  # close
+            "49000.0",  # low
+            "51000.0",  # high
+            "100.0",  # volume
+            "5000000.0",  # quote currency volume
+            "BTC_USDT",  # currency pair
         ],
         [
-            str(base_time + 60),   # timestamp
-            "50500.0",             # open
-            "51500.0",             # close
-            "50000.0",             # low
-            "52000.0",             # high
-            "150.0",               # volume
-            "7500000.0",           # quote currency volume
-            "BTC_USDT"             # currency pair
-        ]
+            str(base_time + 60),  # timestamp
+            "50500.0",  # open
+            "51500.0",  # close
+            "50000.0",  # low
+            "52000.0",  # high
+            "150.0",  # volume
+            "7500000.0",  # quote currency volume
+            "BTC_USDT",  # currency pair
+        ],
     ]
 
 
 @pytest.fixture
 def websocket_message_okx():
     """Create a sample OKX WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  # OKX uses milliseconds
+    base_time = (
+        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    )  # OKX uses milliseconds
 
     return {
-        "arg": {
-            "channel": "candle1m",
-            "instId": "BTC-USDT"
-        },
+        "arg": {"channel": "candle1m", "instId": "BTC-USDT"},
         "data": [
-            [
-                str(base_time),
-                "50000.0",
-                "51000.0",
-                "49000.0",
-                "50500.0",
-                "100.0",
-                "5000000.0"
-            ]
-        ]
+            [str(base_time), "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]
+        ],
     }
 
 
@@ -722,22 +679,18 @@ def websocket_message_gate_io():
         "method": "update",
         "channel": "spot.candlesticks",
         "params": [
-            {
-                "currency_pair": "BTC_USDT",
-                "interval": "1m",
-                "status": "open"
-            },
+            {"currency_pair": "BTC_USDT", "interval": "1m", "status": "open"},
             [
-                str(base_time),        # timestamp
-                "50000.0",             # open
-                "50500.0",             # close
-                "49000.0",             # low
-                "51000.0",             # high
-                "100.0",               # volume
-                "5000000.0",           # quote currency volume
-                "BTC_USDT"             # currency pair
-            ]
-        ]
+                str(base_time),  # timestamp
+                "50000.0",  # open
+                "50500.0",  # close
+                "49000.0",  # low
+                "51000.0",  # high
+                "100.0",  # volume
+                "5000000.0",  # quote currency volume
+                "BTC_USDT",  # currency pair
+            ],
+        ],
     }
 
 
@@ -747,24 +700,8 @@ def candlestick_response_hyperliquid():
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
 
     return [
-        [
-            base_time,
-            "50000.0",
-            "51000.0",
-            "49000.0",
-            "50500.0",
-            "100.0",
-            "5000000.0"
-        ],
-        [
-            base_time + 60,
-            "50500.0",
-            "52000.0",
-            "50000.0",
-            "51500.0",
-            "150.0",
-            "7500000.0"
-        ]
+        [base_time, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
+        [base_time + 60, "50500.0", "52000.0", "50000.0", "51500.0", "150.0", "7500000.0"],
     ]
 
 
@@ -775,15 +712,7 @@ def websocket_message_hyperliquid():
 
     return {
         "channel": "candles",
-        "data": [
-            base_time,
-            "50000.0",
-            "51000.0",
-            "49000.0",
-            "50500.0",
-            "100.0",
-            "5000000.0"
-        ]
+        "data": [base_time, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
     }
 
 
@@ -797,14 +726,14 @@ def candlestick_response_mexc():
             base_time,
             "50000.0",
             "51000.0",
-            "49000.0", 
+            "49000.0",
             "50500.0",
             "100.0",
             base_time + 59999,
             "5000000.0",
             1000,
             "60.0",
-            "3000000.0"
+            "3000000.0",
         ],
         [
             base_time + 60000,
@@ -817,8 +746,8 @@ def candlestick_response_mexc():
             "7500000.0",
             1500,
             "90.0",
-            "4500000.0"
-        ]
+            "4500000.0",
+        ],
     ]
 
 
@@ -836,7 +765,7 @@ def websocket_message_mexc():
             "c": "50500.0",
             "v": "100.0",
             "qv": "5000000.0",
-            "n": 1000
+            "n": 1000,
         }
     }
 
@@ -862,7 +791,7 @@ def websocket_strategy(mock_network_client, mock_adapter, data_processor, candle
         trading_pair="BTC-USDT",
         interval="1m",
         data_processor=data_processor,
-        candles_store=candles_deque
+        candles_store=candles_deque,
     )
 
 
@@ -875,5 +804,5 @@ def rest_polling_strategy(mock_network_client, mock_adapter, data_processor, can
         trading_pair="BTC-USDT",
         interval="1m",
         data_processor=data_processor,
-        candles_store=candles_deque
+        candles_store=candles_deque,
     )

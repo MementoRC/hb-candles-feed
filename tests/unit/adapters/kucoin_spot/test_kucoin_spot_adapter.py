@@ -54,15 +54,11 @@ class TestKuCoinSpotAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
-            self.interval,
-            start_time=start_time,
-            end_time=end_time,
-            limit=limit
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
         )
 
         assert params["symbol"] == self.trading_pair
@@ -96,7 +92,7 @@ class TestKuCoinSpotAdapter:
         assert candles[1].volume == 150.0
         assert candles[1].quote_asset_volume == 7500000.0
 
-    @patch('time.time')
+    @patch("time.time")
     def test_get_ws_subscription_payload(self, mock_time):
         """Test WebSocket subscription payload generation."""
         mock_time.return_value = 1672531200.0
@@ -140,7 +136,7 @@ class TestKuCoinSpotAdapter:
         ws_message = {
             "type": "message",
             "topic": f"/market/candles:{self.trading_pair}_{self.interval}",
-            "data": {"symbol": self.trading_pair}
+            "data": {"symbol": self.trading_pair},
         }
         candles = self.adapter.parse_ws_message(ws_message)
         assert candles is None

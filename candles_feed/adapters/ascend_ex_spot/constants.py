@@ -31,7 +31,7 @@ INTERVALS: Dict[str, int] = {
     "12h": 43200,
     "1d": 86400,
     "1w": 604800,
-    "1M": 2592000
+    "1M": 2592000,
 }
 
 # AscendEx interval formats
@@ -47,7 +47,7 @@ INTERVAL_TO_ASCENDEX_FORMAT = {
     "12h": "720",
     "1d": "1d",
     "1w": "1w",
-    "1M": "1m"
+    "1M": "1m",
 }
 
 # Websocket supported intervals

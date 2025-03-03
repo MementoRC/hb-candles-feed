@@ -38,7 +38,7 @@ INTERVALS: Dict[str, int] = {
     "12h": 43200,
     "1d": 86400,
     "1w": 604800,
-    "1M": 2592000
+    "1M": 2592000,
 }
 
 # OKX interval formats
@@ -55,7 +55,7 @@ INTERVAL_TO_OKX_FORMAT = {
     "12h": "12H",
     "1d": "1D",
     "1w": "1W",
-    "1M": "1M"
+    "1M": "1M",
 }
 
 # Websocket supported intervals

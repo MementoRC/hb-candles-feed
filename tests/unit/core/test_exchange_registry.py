@@ -29,7 +29,9 @@ class TestExchangeRegistry:
             def get_ws_url(self):
                 return "wss://test.com/ws"
 
-            def get_rest_params(self, trading_pair, interval, start_time=None, end_time=None, limit=None):
+            def get_rest_params(
+                self, trading_pair, interval, start_time=None, end_time=None, limit=None
+            ):
                 return {"symbol": trading_pair, "interval": interval}
 
             def parse_rest_response(self, data):
@@ -68,10 +70,7 @@ class TestExchangeRegistry:
         mock_adapter_2 = MagicMock()
 
         # Register the adapters
-        ExchangeRegistry._registry = {
-            "exchange1": mock_adapter_1,
-            "exchange2": mock_adapter_2
-        }
+        ExchangeRegistry._registry = {"exchange1": mock_adapter_1, "exchange2": mock_adapter_2}
 
         # Get the list of exchanges
         exchanges = ExchangeRegistry.get_registered_exchanges()
@@ -101,7 +100,9 @@ class TestExchangeRegistry:
             def get_ws_url(self):
                 return "wss://test.com/ws"
 
-            def get_rest_params(self, trading_pair, interval, start_time=None, end_time=None, limit=None):
+            def get_rest_params(
+                self, trading_pair, interval, start_time=None, end_time=None, limit=None
+            ):
                 return {"symbol": trading_pair, "interval": interval}
 
             def parse_rest_response(self, data):

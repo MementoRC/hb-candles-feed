@@ -8,13 +8,14 @@ from enum import Enum
 class ExchangeType(Enum):
     """
     Supported exchange types for mocking.
-    
+
     This enum defines all the exchange types that can be simulated by the mock server.
     Each value corresponds to a specific exchange that has a corresponding adapter
     implementation in the candles feed package.
     """
+
     BINANCE_SPOT = "binance_spot"
-    BINANCE_PERPETUAL = "binance_perpetual" 
+    BINANCE_PERPETUAL = "binance_perpetual"
     BYBIT_SPOT = "bybit_spot"
     BYBIT_PERPETUAL = "bybit_perpetual"
     COINBASE_ADVANCED_TRADE = "coinbase_advanced_trade"

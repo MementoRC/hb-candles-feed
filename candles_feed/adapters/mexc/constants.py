@@ -4,7 +4,7 @@ Common constants for MEXC adapters.
 
 from typing import Dict
 
-# API URLs - Common 
+# API URLs - Common
 REST_BASE_URL = "https://api.mexc.com"
 WSS_BASE_URL = "wss://wbs.mexc.com/ws"
 
@@ -38,7 +38,7 @@ INTERVALS: Dict[str, int] = {
     "1h": 3600,
     "4h": 14400,
     "1d": 86400,
-    "1M": 2592000
+    "1M": 2592000,
 }
 
 # MEXC interval formats mapping
@@ -50,7 +50,7 @@ INTERVAL_TO_MEXC_FORMAT = {
     "1h": "Min60",
     "4h": "Hour4",
     "1d": "Day1",
-    "1M": "Month1"
+    "1M": "Month1",
 }
 
 # MEXC contract interval formats mapping
@@ -64,7 +64,7 @@ INTERVAL_TO_MEXC_CONTRACT_FORMAT = {
     "8h": "Hour8",
     "1d": "Day1",
     "1w": "Week1",
-    "1M": "Month1"
+    "1M": "Month1",
 }
 
 # Websocket supported intervals

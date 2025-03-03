@@ -36,12 +36,14 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
         """
         return PERP_WSS_URL
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = None) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -57,7 +59,7 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
         # KuCoin Futures uses different API parameters
         params = {
             "symbol": trading_pair,
-            "granularity": INTERVAL_TO_KUCOIN_PERP_FORMAT.get(interval, interval)
+            "granularity": INTERVAL_TO_KUCOIN_PERP_FORMAT.get(interval, interval),
         }
 
         if start_time:
@@ -98,18 +100,20 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
         if "data" in data and isinstance(data["data"], list):
             for row in data["data"]:
                 if len(row) >= 7:  # Ensure we have enough data
-                    candles.append(CandleData(
-                        timestamp_raw=row[0],  # Already in seconds
-                        open=float(row[1]),
-                        high=float(row[3]),  # Different order in perpetual
-                        low=float(row[4]),
-                        close=float(row[2]),  # Different order in perpetual
-                        volume=float(row[5]),
-                        quote_asset_volume=float(row[6]),  # turnover
-                        n_trades=0,  # Not provided by KuCoin Futures
-                        taker_buy_base_volume=0.0,  # Not provided
-                        taker_buy_quote_volume=0.0   # Not provided
-                    ))
+                    candles.append(
+                        CandleData(
+                            timestamp_raw=row[0],  # Already in seconds
+                            open=float(row[1]),
+                            high=float(row[3]),  # Different order in perpetual
+                            low=float(row[4]),
+                            close=float(row[2]),  # Different order in perpetual
+                            volume=float(row[5]),
+                            quote_asset_volume=float(row[6]),  # turnover
+                            n_trades=0,  # Not provided by KuCoin Futures
+                            taker_buy_base_volume=0.0,  # Not provided
+                            taker_buy_quote_volume=0.0,  # Not provided
+                        )
+                    )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -129,7 +133,7 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
             "type": "subscribe",
             "topic": f"/contractMarket/candle:{trading_pair}_{perp_interval}",
             "privateChannel": False,
-            "response": True
+            "response": True,
         }
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -164,27 +168,30 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
         # Handle None input
         if data is None:
             return None
-            
-        if (data.get("type") == "message" and
-            "data" in data and
-            "candles" in data["data"] and
-            "/contractMarket/candle:" in data.get("topic", "")):
 
+        if (
+            data.get("type") == "message"
+            and "data" in data
+            and "candles" in data["data"]
+            and "/contractMarket/candle:" in data.get("topic", "")
+        ):
             candle_data = data["data"]["candles"]
-            
+
             # Ensure we have enough data
             if len(candle_data) >= 7:
-                return [CandleData(
-                    timestamp_raw=int(candle_data[0]),  # Already in seconds
-                    open=float(candle_data[1]),
-                    high=float(candle_data[3]),  # Different order in perpetual
-                    low=float(candle_data[4]),
-                    close=float(candle_data[2]),  # Different order in perpetual
-                    volume=float(candle_data[5]),
-                    quote_asset_volume=float(candle_data[6]),  # turnover
-                    n_trades=0,  # Not provided by KuCoin Futures
-                    taker_buy_base_volume=0.0,  # Not provided
-                    taker_buy_quote_volume=0.0   # Not provided
-                )]
+                return [
+                    CandleData(
+                        timestamp_raw=int(candle_data[0]),  # Already in seconds
+                        open=float(candle_data[1]),
+                        high=float(candle_data[3]),  # Different order in perpetual
+                        low=float(candle_data[4]),
+                        close=float(candle_data[2]),  # Different order in perpetual
+                        volume=float(candle_data[5]),
+                        quote_asset_volume=float(candle_data[6]),  # turnover
+                        n_trades=0,  # Not provided by KuCoin Futures
+                        taker_buy_base_volume=0.0,  # Not provided
+                        taker_buy_quote_volume=0.0,  # Not provided
+                    )
+                ]
 
         return None

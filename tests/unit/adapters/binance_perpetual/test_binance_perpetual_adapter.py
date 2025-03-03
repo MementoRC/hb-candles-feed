@@ -8,7 +8,9 @@ from candles_feed.adapters.binance.constants import (
     PERP_REST_URL,
     PERP_WSS_URL,
 )
-from candles_feed.adapters.binance_perpetual.binance_perpetual_adapter import BinancePerpetualAdapter
+from candles_feed.adapters.binance_perpetual.binance_perpetual_adapter import (
+    BinancePerpetualAdapter,
+)
 
 
 class TestBinancePerpetualAdapter:

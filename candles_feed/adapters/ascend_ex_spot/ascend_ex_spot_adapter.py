@@ -50,12 +50,14 @@ class AscendExSpotAdapter(BaseAdapter):
         """
         return WSS_URL
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -73,10 +75,10 @@ class AscendExSpotAdapter(BaseAdapter):
             "interval": INTERVAL_TO_ASCENDEX_FORMAT.get(interval, interval),
             "n": limit,
         }
-        
+
         if end_time:
             params["to"] = end_time * 1000  # Convert to milliseconds
-            
+
         return params
 
     def parse_rest_response(self, data: dict) -> List[CandleData]:
@@ -91,18 +93,20 @@ class AscendExSpotAdapter(BaseAdapter):
         candles = []
         for candle in data.get("data", []):
             timestamp = candle["data"]["ts"] / 1000  # Convert milliseconds to seconds
-            candles.append(CandleData(
-                timestamp_raw=timestamp,
-                open=float(candle["data"]["o"]),
-                high=float(candle["data"]["h"]),
-                low=float(candle["data"]["l"]),
-                close=float(candle["data"]["c"]),
-                volume=0.0,  # No volume data available
-                quote_asset_volume=float(candle["data"]["v"]),
-                n_trades=0,  # No trade count data available
-                taker_buy_base_volume=0.0,  # No taker data available
-                taker_buy_quote_volume=0.0  # No taker data available
-            ))
+            candles.append(
+                CandleData(
+                    timestamp_raw=timestamp,
+                    open=float(candle["data"]["o"]),
+                    high=float(candle["data"]["h"]),
+                    low=float(candle["data"]["l"]),
+                    close=float(candle["data"]["c"]),
+                    volume=0.0,  # No volume data available
+                    quote_asset_volume=float(candle["data"]["v"]),
+                    n_trades=0,  # No trade count data available
+                    taker_buy_base_volume=0.0,  # No taker data available
+                    taker_buy_quote_volume=0.0,  # No taker data available
+                )
+            )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -118,7 +122,7 @@ class AscendExSpotAdapter(BaseAdapter):
         # AscendEx WebSocket subscription format
         return {
             "op": SUB_ENDPOINT_NAME,
-            "ch": f"bar:{INTERVAL_TO_ASCENDEX_FORMAT.get(interval, interval)}:{self.get_trading_pair_format(trading_pair)}"
+            "ch": f"bar:{INTERVAL_TO_ASCENDEX_FORMAT.get(interval, interval)}:{self.get_trading_pair_format(trading_pair)}",
         }
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -133,27 +137,29 @@ class AscendExSpotAdapter(BaseAdapter):
         # Handle None input
         if data is None:
             return None
-            
+
         # Handle ping message - should be handled by the WebSocketStrategy class
         if data.get("m") == "ping":
             return None
-            
+
         # Check if this is a candle message
         if data.get("m") == "bar" and "data" in data:
             timestamp = data["data"]["ts"] / 1000  # Convert milliseconds to seconds
-            return [CandleData(
-                timestamp_raw=timestamp,
-                open=float(data["data"]["o"]),
-                high=float(data["data"]["h"]),
-                low=float(data["data"]["l"]),
-                close=float(data["data"]["c"]),
-                volume=0.0,  # No volume data available
-                quote_asset_volume=float(data["data"]["v"]),
-                n_trades=0,  # No trade count data available
-                taker_buy_base_volume=0.0,  # No taker data available
-                taker_buy_quote_volume=0.0  # No taker data available
-            )]
-            
+            return [
+                CandleData(
+                    timestamp_raw=timestamp,
+                    open=float(data["data"]["o"]),
+                    high=float(data["data"]["h"]),
+                    low=float(data["data"]["l"]),
+                    close=float(data["data"]["c"]),
+                    volume=0.0,  # No volume data available
+                    quote_asset_volume=float(data["data"]["v"]),
+                    n_trades=0,  # No trade count data available
+                    taker_buy_base_volume=0.0,  # No taker data available
+                    taker_buy_quote_volume=0.0,  # No taker data available
+                )
+            ]
+
         return None
 
     def get_supported_intervals(self) -> Dict[str, int]:

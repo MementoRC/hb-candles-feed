@@ -48,12 +48,14 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
         """
         return WSS_URL
 
-    def get_rest_params(self,
-                       trading_pair: str,
-                       interval: str,
-                       start_time: Optional[int] = None,
-                       end_time: Optional[int] = None,
-                       limit: Optional[int] = None) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -67,9 +69,7 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
             Dictionary of parameters for REST API request
         """
         # Coinbase has different parameter names
-        params = {
-            "granularity": INTERVALS[interval]
-        }
+        params = {"granularity": INTERVALS[interval]}
 
         if start_time is not None:
             params["start"] = start_time
@@ -104,14 +104,16 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
 
         candles = []
         for candle in data.get("candles", []):
-            candles.append(CandleData(
-                timestamp_raw=candle.get("start", 0),
-                open=float(candle.get("open", 0)),
-                high=float(candle.get("high", 0)),
-                low=float(candle.get("low", 0)),
-                close=float(candle.get("close", 0)),
-                volume=float(candle.get("volume", 0))
-            ))
+            candles.append(
+                CandleData(
+                    timestamp_raw=candle.get("start", 0),
+                    open=float(candle.get("open", 0)),
+                    high=float(candle.get("high", 0)),
+                    low=float(candle.get("low", 0)),
+                    close=float(candle.get("close", 0)),
+                    volume=float(candle.get("volume", 0)),
+                )
+            )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -128,7 +130,7 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
             "type": "subscribe",
             "product_ids": [trading_pair],
             "channel": "candles",
-            "granularity": INTERVALS[interval]
+            "granularity": INTERVALS[interval],
         }
 
     def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
@@ -172,14 +174,16 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter):
                 continue
 
             for candle in event.get("candles", []):
-                candles.append(CandleData(
-                    timestamp_raw=candle.get("start", 0),
-                    open=float(candle.get("open", 0)),
-                    high=float(candle.get("high", 0)),
-                    low=float(candle.get("low", 0)),
-                    close=float(candle.get("close", 0)),
-                    volume=float(candle.get("volume", 0))
-                ))
+                candles.append(
+                    CandleData(
+                        timestamp_raw=candle.get("start", 0),
+                        open=float(candle.get("open", 0)),
+                        high=float(candle.get("high", 0)),
+                        low=float(candle.get("low", 0)),
+                        close=float(candle.get("close", 0)),
+                        volume=float(candle.get("volume", 0)),
+                    )
+                )
 
         return candles if candles else None
 

@@ -35,32 +35,34 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
             WebSocket URL
         """
         return WSS_URL
-        
+
     def get_kline_topic(self) -> str:
         """Get WebSocket kline topic prefix.
-        
+
         Returns:
             Kline topic prefix string
         """
         return KLINE_TOPIC
-    
+
     def get_interval_format(self, interval: str) -> str:
         """Get exchange-specific interval format.
-        
+
         Args:
             interval: Standard interval format
-            
+
         Returns:
             Exchange-specific interval format
         """
         return INTERVAL_TO_MEXC_FORMAT.get(interval, interval)
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = None) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -73,19 +75,16 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         Returns:
             Dictionary of parameters for REST API request
         """
-        params = {
-            "symbol": self.get_trading_pair_format(trading_pair),
-            "interval": interval
-        }
-        
+        params = {"symbol": self.get_trading_pair_format(trading_pair), "interval": interval}
+
         if limit:
             params["limit"] = limit
-        
+
         if start_time:
             params["startTime"] = start_time * 1000  # Convert to milliseconds
         if end_time:
-            params["endTime"] = end_time * 1000      # Convert to milliseconds
-            
+            params["endTime"] = end_time * 1000  # Convert to milliseconds
+
         return params
 
     def parse_rest_response(self, data: Optional[list]) -> List[CandleData]:
@@ -99,7 +98,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         """
         if data is None:
             return []
-            
+
         # MEXC REST API format is similar to Binance
         # [
         #   [
@@ -116,24 +115,26 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         #     "28.46694368",      // Taker buy quote asset volume
         #   ]
         # ]
-            
+
         candles = []
         for row in data:
             if len(row) < 11:  # Make sure we have enough data
                 continue
-                
-            candles.append(CandleData(
-                timestamp_raw=row[0] / 1000,  # Convert from milliseconds
-                open=float(row[1]),
-                high=float(row[2]),
-                low=float(row[3]),
-                close=float(row[4]),
-                volume=float(row[5]),
-                quote_asset_volume=float(row[7]),
-                n_trades=int(row[8]),
-                taker_buy_base_volume=float(row[9]),
-                taker_buy_quote_volume=float(row[10])
-            ))
+
+            candles.append(
+                CandleData(
+                    timestamp_raw=row[0] / 1000,  # Convert from milliseconds
+                    open=float(row[1]),
+                    high=float(row[2]),
+                    low=float(row[3]),
+                    close=float(row[4]),
+                    volume=float(row[5]),
+                    quote_asset_volume=float(row[7]),
+                    n_trades=int(row[8]),
+                    taker_buy_base_volume=float(row[9]),
+                    taker_buy_quote_volume=float(row[10]),
+                )
+            )
         return candles
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -147,26 +148,28 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         """
         if data is None:
             return None
-            
+
         # Check if we have a candle update
         if "d" in data and "c" in data.get("d", {}):
             candle = data["d"]
-            
+
             try:
                 timestamp = int(candle.get("t", 0)) / 1000  # Convert from milliseconds
-                return [CandleData(
-                    timestamp_raw=timestamp,
-                    open=float(candle.get("o", 0.0)),
-                    high=float(candle.get("h", 0.0)),
-                    low=float(candle.get("l", 0.0)),
-                    close=float(candle.get("c", 0.0)),
-                    volume=float(candle.get("v", 0.0)),
-                    quote_asset_volume=float(candle.get("qv", 0.0)),
-                    n_trades=int(candle.get("n", 0)),
-                    taker_buy_base_volume=0.0,  # Not available in websocket
-                    taker_buy_quote_volume=0.0   # Not available in websocket
-                )]
+                return [
+                    CandleData(
+                        timestamp_raw=timestamp,
+                        open=float(candle.get("o", 0.0)),
+                        high=float(candle.get("h", 0.0)),
+                        low=float(candle.get("l", 0.0)),
+                        close=float(candle.get("c", 0.0)),
+                        volume=float(candle.get("v", 0.0)),
+                        quote_asset_volume=float(candle.get("qv", 0.0)),
+                        n_trades=int(candle.get("n", 0)),
+                        taker_buy_base_volume=0.0,  # Not available in websocket
+                        taker_buy_quote_volume=0.0,  # Not available in websocket
+                    )
+                ]
             except (ValueError, TypeError):
                 pass
-                
+
         return None

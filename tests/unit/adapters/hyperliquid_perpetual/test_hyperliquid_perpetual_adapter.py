@@ -12,7 +12,9 @@ from candles_feed.adapters.hyperliquid.constants import (
     PERP_WSS_URL,
     WS_INTERVALS,
 )
-from candles_feed.adapters.hyperliquid_perpetual.hyperliquid_perpetual_adapter import HyperliquidPerpetualAdapter
+from candles_feed.adapters.hyperliquid_perpetual.hyperliquid_perpetual_adapter import (
+    HyperliquidPerpetualAdapter,
+)
 from candles_feed.core.candle_data import CandleData
 
 
@@ -47,7 +49,9 @@ class TestHyperliquidPerpetualAdapter:
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
-        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(self.interval, self.interval)
+        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+            self.interval, self.interval
+        )
         assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
         assert "startTime" not in params
         assert "endTime" not in params
@@ -55,20 +59,18 @@ class TestHyperliquidPerpetualAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 200
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
-            self.interval,
-            start_time=start_time,
-            end_time=end_time,
-            limit=limit
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
         )
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
-        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(self.interval, self.interval)
+        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+            self.interval, self.interval
+        )
         assert params["limit"] == limit
         assert params["startTime"] == start_time
         assert params["endTime"] == end_time
@@ -110,7 +112,9 @@ class TestHyperliquidPerpetualAdapter:
         assert payload["method"] == "subscribe"
         assert payload["channel"] == "candles"
         assert payload["coin"] == "BTC"
-        assert payload["interval"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(self.interval, self.interval)
+        assert payload["interval"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+            self.interval, self.interval
+        )
 
     def test_parse_ws_message_valid(self, websocket_message_hyperliquid):
         """Test parsing valid WebSocket message."""

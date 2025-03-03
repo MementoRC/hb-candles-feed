@@ -25,9 +25,9 @@ class DataProcessor:
         """
         self.logger = logger or logging.getLogger(__name__)
 
-    def sanitize_candles(self,
-                       candles: Sequence[CandleData],
-                       interval_in_seconds: int) -> List[CandleData]:
+    def sanitize_candles(
+        self, candles: Sequence[CandleData], interval_in_seconds: int
+    ) -> List[CandleData]:
         """Find and return the longest valid sequence of candles.
 
         This is important to handle exchange inconsistencies where:
@@ -60,8 +60,8 @@ class DataProcessor:
                 current_sequence = [i]
 
             # Check if the next candle is at the expected interval
-            if sorted_candles[i+1].timestamp - sorted_candles[i].timestamp == interval_in_seconds:
-                current_sequence.append(i+1)
+            if sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp == interval_in_seconds:
+                current_sequence.append(i + 1)
             else:
                 # Sequence broken, check if it's the longest so far
                 if len(current_sequence) > len(best_sequence):
@@ -81,9 +81,9 @@ class DataProcessor:
         self.logger.debug(f"Found sequence of {len(result)} valid candles out of {len(candles)}")
         return result
 
-    def validate_candle_intervals(self,
-                               candles: Sequence[CandleData],
-                               interval_in_seconds: int) -> bool:
+    def validate_candle_intervals(
+        self, candles: Sequence[CandleData], interval_in_seconds: int
+    ) -> bool:
         """Validate that all candles have the correct interval.
 
         Args:
@@ -99,7 +99,7 @@ class DataProcessor:
         sorted_candles = sorted(candles, key=lambda x: x.timestamp)
 
         for i in range(len(sorted_candles) - 1):
-            if sorted_candles[i+1].timestamp - sorted_candles[i].timestamp != interval_in_seconds:
+            if sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp != interval_in_seconds:
                 return False
 
         return True
@@ -112,8 +112,9 @@ class DataProcessor:
             candles_store: Store to add the candle to
         """
         # Check if we already have this timestamp
-        existing_indices = [i for i, c in enumerate(candles_store)
-                           if c.timestamp == candle.timestamp]
+        existing_indices = [
+            i for i, c in enumerate(candles_store) if c.timestamp == candle.timestamp
+        ]
 
         if existing_indices:
             # Update existing candle
@@ -129,8 +130,8 @@ class DataProcessor:
                 # Insert in the middle (rare case)
                 temp_list = list(candles_store)
                 for i in range(len(temp_list) - 1):
-                    if temp_list[i].timestamp < candle.timestamp < temp_list[i+1].timestamp:
-                        temp_list.insert(i+1, candle)
+                    if temp_list[i].timestamp < candle.timestamp < temp_list[i + 1].timestamp:
+                        temp_list.insert(i + 1, candle)
                         break
 
                 # Clear and refill the deque

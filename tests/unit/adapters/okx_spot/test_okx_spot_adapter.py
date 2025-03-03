@@ -55,15 +55,11 @@ class TestOKXSpotAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 200
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
-            self.interval,
-            start_time=start_time,
-            end_time=end_time,
-            limit=limit
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
         )
 
         assert params["instId"] == "BTC/USDT"
@@ -138,7 +134,7 @@ class TestOKXSpotAdapter:
         ws_message = {
             "arg": {
                 "channel": f"candle{INTERVAL_TO_OKX_FORMAT[self.interval]}",
-                "instId": "BTC/USDT"
+                "instId": "BTC/USDT",
             }
         }
         candles = self.adapter.parse_ws_message(ws_message)

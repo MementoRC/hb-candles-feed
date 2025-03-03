@@ -34,7 +34,7 @@ INTERVALS: Dict[str, int] = {
     "4h": 14400,
     "8h": 28800,
     "1d": 86400,
-    "7d": 604800
+    "7d": 604800,
 }
 
 # Gate.io interval formats mapping
@@ -48,7 +48,7 @@ INTERVAL_TO_GATE_IO_FORMAT = {
     "4h": "4h",
     "8h": "8h",
     "1d": "1d",
-    "7d": "7d"
+    "7d": "7d",
 }
 
 # Websocket supported intervals

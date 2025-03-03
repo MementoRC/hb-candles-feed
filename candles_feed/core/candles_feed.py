@@ -30,12 +30,14 @@ class CandlesFeed:
     to fetch and process candle data from exchanges.
     """
 
-    def __init__(self,
-                 exchange: str,
-                 trading_pair: str,
-                 interval: str = "1m",
-                 max_records: int = 150,
-                 logger: Optional[Logger] = None):
+    def __init__(
+        self,
+        exchange: str,
+        trading_pair: str,
+        interval: str = "1m",
+        max_records: int = 150,
+        logger: Optional[Logger] = None,
+    ):
         """Initialize the candles feed.
 
         Args:
@@ -77,7 +79,7 @@ class CandlesFeed:
             trading_pair=self.trading_pair,
             interval=self.interval,
             data_processor=self._data_processor,
-            candles_store=self._candles
+            candles_store=self._candles,
         )
 
     def _create_rest_strategy(self):
@@ -91,7 +93,7 @@ class CandlesFeed:
             trading_pair=self.trading_pair,
             interval=self.interval,
             data_processor=self._data_processor,
-            candles_store=self._candles
+            candles_store=self._candles,
         )
 
     async def start(self, strategy: str = "auto") -> None:
@@ -144,7 +146,7 @@ class CandlesFeed:
             await self._ws_strategy.stop()
         elif self._rest_strategy:
             await self._rest_strategy.stop()
-            
+
         # Clean up network client resources
         await self._network_client.close()
 
@@ -156,25 +158,27 @@ class CandlesFeed:
         Returns:
             DataFrame with candle data
         """
-        return pd.DataFrame([
-            {
-                'timestamp': c.timestamp,
-                'open': c.open,
-                'high': c.high,
-                'low': c.low,
-                'close': c.close,
-                'volume': c.volume,
-                'quote_asset_volume': c.quote_asset_volume,
-                'n_trades': c.n_trades,
-                'taker_buy_base_volume': c.taker_buy_base_volume,
-                'taker_buy_quote_volume': c.taker_buy_quote_volume
-            }
-            for c in self._candles
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "timestamp": c.timestamp,
+                    "open": c.open,
+                    "high": c.high,
+                    "low": c.low,
+                    "close": c.close,
+                    "volume": c.volume,
+                    "quote_asset_volume": c.quote_asset_volume,
+                    "n_trades": c.n_trades,
+                    "taker_buy_base_volume": c.taker_buy_base_volume,
+                    "taker_buy_quote_volume": c.taker_buy_quote_volume,
+                }
+                for c in self._candles
+            ]
+        )
 
-    async def fetch_candles(self,
-                          start_time: Optional[int] = None,
-                          end_time: Optional[int] = None) -> List[CandleData]:
+    async def fetch_candles(
+        self, start_time: Optional[int] = None, end_time: Optional[int] = None
+    ) -> List[CandleData]:
         """Fetch historical candles.
 
         Args:
@@ -196,7 +200,9 @@ class CandlesFeed:
         # Add candles to the store
         if candles:
             # Clear existing candles if fetching from the beginning
-            if start_time is None or (len(self._candles) > 0 and start_time < self._candles[0].timestamp):
+            if start_time is None or (
+                len(self._candles) > 0 and start_time < self._candles[0].timestamp
+            ):
                 self._candles.clear()
 
             # Add each candle to the store

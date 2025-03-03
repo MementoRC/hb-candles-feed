@@ -49,24 +49,25 @@ class TestKuCoinPerpetualAdapter:
         params = self.adapter.get_rest_params(self.trading_pair, self.interval)
 
         assert params["symbol"] == self.trading_pair
-        assert params["granularity"] == INTERVAL_TO_KUCOIN_PERP_FORMAT.get(self.interval, self.interval)
+        assert params["granularity"] == INTERVAL_TO_KUCOIN_PERP_FORMAT.get(
+            self.interval, self.interval
+        )
         assert "from" not in params
         assert "to" not in params
 
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
-            self.interval,
-            start_time=start_time,
-            end_time=end_time
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time
         )
 
         assert params["symbol"] == self.trading_pair
-        assert params["granularity"] == INTERVAL_TO_KUCOIN_PERP_FORMAT.get(self.interval, self.interval)
+        assert params["granularity"] == INTERVAL_TO_KUCOIN_PERP_FORMAT.get(
+            self.interval, self.interval
+        )
         assert params["from"] == start_time * 1000  # Converted to milliseconds
         assert params["to"] == end_time * 1000  # Converted to milliseconds
 
@@ -79,23 +80,23 @@ class TestKuCoinPerpetualAdapter:
             "data": [
                 [
                     timestamp,
-                    50000.0,     # open
-                    50500.0,     # close
-                    51000.0,     # high
-                    49000.0,     # low
-                    100.0,       # volume
-                    5000000.0    # turnover
+                    50000.0,  # open
+                    50500.0,  # close
+                    51000.0,  # high
+                    49000.0,  # low
+                    100.0,  # volume
+                    5000000.0,  # turnover
                 ],
                 [
                     timestamp + 60,
-                    50500.0,     # open
-                    51500.0,     # close
-                    52000.0,     # high
-                    50000.0,     # low
-                    150.0,       # volume
-                    7500000.0    # turnover
-                ]
-            ]
+                    50500.0,  # open
+                    51500.0,  # close
+                    52000.0,  # high
+                    50000.0,  # low
+                    150.0,  # volume
+                    7500000.0,  # turnover
+                ],
+            ],
         }
 
         candles = self.adapter.parse_rest_response(response)
@@ -127,7 +128,7 @@ class TestKuCoinPerpetualAdapter:
         candles = self.adapter.parse_rest_response(response)
         assert candles == []
 
-    @patch('time.time')
+    @patch("time.time")
     def test_get_ws_subscription_payload(self, mock_time):
         """Test WebSocket subscription payload generation."""
         mock_time.return_value = 1672531200.0
@@ -156,10 +157,10 @@ class TestKuCoinPerpetualAdapter:
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # turnover
-                ]
-            }
+                    "100.0",  # volume
+                    "5000000.0",  # turnover
+                ],
+            },
         }
 
         candles = self.adapter.parse_ws_message(message)
@@ -192,7 +193,7 @@ class TestKuCoinPerpetualAdapter:
         ws_message = {
             "type": "message",
             "topic": f"/contractMarket/candle:{self.trading_pair}_1min",
-            "data": {"symbol": self.trading_pair}
+            "data": {"symbol": self.trading_pair},
         }
         candles = self.adapter.parse_ws_message(ws_message)
         assert candles is None

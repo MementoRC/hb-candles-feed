@@ -25,7 +25,7 @@ INTERVALS: Dict[str, int] = {
     "4h": 14400,
     "1d": 86400,
     "1w": 604800,
-    "15d": 1296000
+    "15d": 1296000,
 }
 
 # Kraken interval formats (minutes)
@@ -38,7 +38,7 @@ INTERVAL_TO_KRAKEN_FORMAT = {
     "4h": 240,
     "1d": 1440,
     "1w": 10080,
-    "15d": 21600
+    "15d": 21600,
 }
 
 # Websocket supported intervals - Kraken WebSocket uses the same intervals

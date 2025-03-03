@@ -43,12 +43,14 @@ class ExchangeRegistry:
         Returns:
             Decorator function
         """
+
         def decorator(adapter_class: Type[CandleDataAdapter]):
             cls.logger().info(f"Registering adapter: {name}")
             # Register in both collections for compatibility
             cls._adapters[name] = adapter_class
             cls._registry[name] = adapter_class
             return adapter_class
+
         return decorator
 
     @classmethod
@@ -120,11 +122,9 @@ class ExchangeRegistry:
         """
         if package_path is None:
             # Default to candles_feed adapters directory
-            package_path = os.path.abspath(os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "adapters"
-            ))
+            package_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "adapters")
+            )
 
         cls.logger().info(f"Discovering adapters in: {package_path}")
 
@@ -164,7 +164,7 @@ class ExchangeRegistry:
             try:
                 adapter = adapter_class()
                 # Some adapters may implement a get_available_markets method
-                if hasattr(adapter, 'get_available_markets'):
+                if hasattr(adapter, "get_available_markets"):
                     result[name] = adapter.get_available_markets()
                 else:
                     result[name] = []

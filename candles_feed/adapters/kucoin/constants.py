@@ -9,7 +9,7 @@ REST_BASE_URL = "https://api.kucoin.com"
 WSS_BASE_URL = "wss://ws-api.kucoin.com"
 
 # API URLs - Spot
-SPOT_REST_URL = REST_BASE_URL 
+SPOT_REST_URL = REST_BASE_URL
 SPOT_CANDLES_ENDPOINT = "/api/v1/market/candles"
 SPOT_WSS_URL = WSS_BASE_URL
 
@@ -39,7 +39,7 @@ INTERVALS: Dict[str, int] = {
     "8h": 28800,
     "12h": 43200,
     "1d": 86400,
-    "1w": 604800
+    "1w": 604800,
 }
 
 # KuCoin interval formats mapping - perpetual uses different format for some intervals
@@ -53,7 +53,7 @@ INTERVAL_TO_KUCOIN_PERP_FORMAT = {
     "8h": "8hour",
     "12h": "12hour",
     "1d": "1day",
-    "1w": "1week"
+    "1w": "1week",
 }
 
 # Websocket supported intervals - KuCoin has limited websocket support for candles

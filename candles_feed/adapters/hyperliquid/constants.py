@@ -13,7 +13,7 @@ SPOT_REST_URL = REST_BASE_URL
 SPOT_WSS_URL = WSS_BASE_URL
 
 # API URLs - Perpetual
-PERP_REST_URL = REST_BASE_URL 
+PERP_REST_URL = REST_BASE_URL
 PERP_WSS_URL = WSS_BASE_URL
 
 # API rate limits
@@ -29,7 +29,7 @@ INTERVALS: Dict[str, int] = {
     "4h": 14400,
     "12h": 43200,
     "1d": 86400,
-    "1w": 604800
+    "1w": 604800,
 }
 
 # HyperLiquid interval formats mapping
@@ -42,7 +42,7 @@ INTERVAL_TO_HYPERLIQUID_FORMAT = {
     "4h": "240",
     "12h": "720",
     "1d": "D",
-    "1w": "W"
+    "1w": "W",
 }
 
 # Websocket supported intervals

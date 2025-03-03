@@ -56,18 +56,20 @@ class BybitBaseAdapter(BaseAdapter):
 
     def get_category_param(self) -> Optional[str]:
         """Get the category parameter for the market type.
-        
+
         Returns:
             Category parameter string or None if not applicable
         """
         return None
 
-    def get_rest_params(self,
-                      trading_pair: str,
-                      interval: str,
-                      start_time: Optional[int] = None,
-                      end_time: Optional[int] = None,
-                      limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -84,7 +86,7 @@ class BybitBaseAdapter(BaseAdapter):
         params = {
             "symbol": self.get_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_BYBIT_FORMAT.get(interval, interval),
-            "limit": limit
+            "limit": limit,
         }
 
         # Add category parameter if specified by the subclass
@@ -130,18 +132,20 @@ class BybitBaseAdapter(BaseAdapter):
 
         if data is None:
             return []
-            
+
         candles = []
         for row in data.get("result", {}).get("list", []):
-            candles.append(CandleData(
-                timestamp_raw=int(row[0]) / 1000,  # Convert milliseconds to seconds
-                open=float(row[1]),
-                high=float(row[2]),
-                low=float(row[3]),
-                close=float(row[4]),
-                volume=float(row[5]),
-                quote_asset_volume=float(row[6])
-            ))
+            candles.append(
+                CandleData(
+                    timestamp_raw=int(row[0]) / 1000,  # Convert milliseconds to seconds
+                    open=float(row[1]),
+                    high=float(row[2]),
+                    low=float(row[3]),
+                    close=float(row[4]),
+                    volume=float(row[5]),
+                    quote_asset_volume=float(row[6]),
+                )
+            )
         return candles
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -159,7 +163,7 @@ class BybitBaseAdapter(BaseAdapter):
             "op": "subscribe",
             "args": [
                 f"kline.{INTERVAL_TO_BYBIT_FORMAT.get(interval, interval)}.{self.get_trading_pair_format(trading_pair)}"
-            ]
+            ],
         }
 
     def parse_ws_message(self, data: Optional[dict]) -> Optional[List[CandleData]]:
@@ -195,19 +199,21 @@ class BybitBaseAdapter(BaseAdapter):
 
         if data is None:
             return None
-            
+
         if "topic" in data and data["topic"].startswith("kline.") and "data" in data:
             candles = []
             for item in data["data"]:
-                candles.append(CandleData(
-                    timestamp_raw=item["start"] / 1000,  # Convert milliseconds to seconds
-                    open=float(item["open"]),
-                    high=float(item["high"]),
-                    low=float(item["low"]),
-                    close=float(item["close"]),
-                    volume=float(item["volume"]),
-                    quote_asset_volume=float(item["turnover"])
-                ))
+                candles.append(
+                    CandleData(
+                        timestamp_raw=item["start"] / 1000,  # Convert milliseconds to seconds
+                        open=float(item["open"]),
+                        high=float(item["high"]),
+                        low=float(item["low"]),
+                        close=float(item["close"]),
+                        volume=float(item["volume"]),
+                        quote_asset_volume=float(item["turnover"]),
+                    )
+                )
             return candles
 
         return None

@@ -19,10 +19,10 @@ from candles_feed.core.candle_data import CandleData
 
 class ConcreteBybitAdapter(BybitBaseAdapter):
     """Concrete implementation of BybitBaseAdapter for testing."""
-    
+
     def get_ws_url(self) -> str:
         return "wss://test.bybit.com/ws"
-        
+
     def get_category_param(self) -> Optional[str]:
         return "test"
 
@@ -65,15 +65,11 @@ class TestBybitBaseAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
-            self.interval,
-            start_time=start_time,
-            end_time=end_time,
-            limit=limit
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
         )
 
         assert params["symbol"] == "BTCUSDT"
@@ -81,7 +77,7 @@ class TestBybitBaseAdapter:
         assert params["limit"] == limit
         assert params["category"] == "test"  # From our concrete implementation
         assert params["start"] == start_time * 1000  # Should be in milliseconds
-        assert params["end"] == end_time * 1000      # Should be in milliseconds
+        assert params["end"] == end_time * 1000  # Should be in milliseconds
 
     def test_parse_rest_response(self, candlestick_response_bybit):
         """Test parsing REST API response."""
@@ -110,7 +106,10 @@ class TestBybitBaseAdapter:
 
         assert payload["op"] == "subscribe"
         assert len(payload["args"]) == 1
-        assert payload["args"][0] == f"kline.{INTERVAL_TO_BYBIT_FORMAT.get(self.interval)}.{self.adapter.get_trading_pair_format(self.trading_pair)}"
+        assert (
+            payload["args"][0]
+            == f"kline.{INTERVAL_TO_BYBIT_FORMAT.get(self.interval)}.{self.adapter.get_trading_pair_format(self.trading_pair)}"
+        )
 
     def test_parse_ws_message_valid(self, websocket_message_bybit):
         """Test parsing valid WebSocket message."""

@@ -33,7 +33,7 @@ INTERVALS: Dict[str, int] = {
     "1d": 86400,
     "3d": 259200,
     "1w": 604800,
-    "1M": 2592000
+    "1M": 2592000,
 }
 
 # Websocket supported intervals

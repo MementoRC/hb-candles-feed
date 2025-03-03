@@ -44,7 +44,7 @@ class TestGateIoPerpetualAdapter:
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
         assert self.adapter.get_ws_url() == PERP_WSS_URL
-        
+
     def test_get_channel_name(self):
         """Test channel name retrieval."""
         assert self.adapter.get_channel_name() == PERP_CHANNEL_NAME
@@ -62,15 +62,11 @@ class TestGateIoPerpetualAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
-            self.interval,
-            start_time=start_time,
-            end_time=end_time,
-            limit=limit
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
         )
 
         assert params["currency_pair"] == "BTC_USDT"
@@ -128,7 +124,7 @@ class TestGateIoPerpetualAdapter:
         # Modify the channel to match perpetual
         modified_message = websocket_message_gate_io.copy()
         modified_message["channel"] = PERP_CHANNEL_NAME
-        
+
         candles = self.adapter.parse_ws_message(modified_message)
 
         # Verify message parsing

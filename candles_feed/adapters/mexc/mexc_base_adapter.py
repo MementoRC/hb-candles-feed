@@ -53,35 +53,37 @@ class MEXCBaseAdapter(BaseAdapter):
             WebSocket URL
         """
         pass
-    
+
     @abstractmethod
     def get_kline_topic(self) -> str:
         """Get WebSocket kline topic prefix.
-        
+
         Returns:
             Kline topic prefix string
         """
         pass
-    
+
     @abstractmethod
     def get_interval_format(self, interval: str) -> str:
         """Get exchange-specific interval format.
-        
+
         Args:
             interval: Standard interval format
-            
+
         Returns:
             Exchange-specific interval format
         """
         pass
-        
+
     @abstractmethod
-    def get_rest_params(self,
-                     trading_pair: str,
-                     interval: str,
-                     start_time: Optional[int] = None,
-                     end_time: Optional[int] = None,
-                     limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
+    def get_rest_params(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict:
         """Get parameters for REST API request.
 
         Args:
@@ -95,7 +97,7 @@ class MEXCBaseAdapter(BaseAdapter):
             Dictionary of parameters for REST API request
         """
         pass
-        
+
     @abstractmethod
     def parse_rest_response(self, data: Optional[list]) -> List[CandleData]:
         """Parse REST API response into CandleData objects.
@@ -121,10 +123,10 @@ class MEXCBaseAdapter(BaseAdapter):
         # Prepare the symbol in MEXC format
         symbol = self.get_trading_pair_format(trading_pair).replace("_", "").lower()
         mexc_interval = self.get_interval_format(interval)
-        
+
         return {
             "method": SUB_ENDPOINT_NAME,
-            "params": [f"{self.get_kline_topic()}{mexc_interval}_{symbol}"]
+            "params": [f"{self.get_kline_topic()}{mexc_interval}_{symbol}"],
         }
 
     @abstractmethod

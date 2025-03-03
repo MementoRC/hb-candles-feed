@@ -32,32 +32,34 @@ class NetworkClient:
         """Ensure aiohttp session exists."""
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
-            
+
     async def close(self):
         """Close the client session.
-        
+
         Should be called when the network client is no longer needed
         to properly clean up resources.
         """
         if self._session and not self._session.closed:
             await self._session.close()
             self._session = None
-            
+
     async def __aenter__(self):
         """Async context manager enter method."""
         await self._ensure_session()
         return self
-        
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit method."""
         await self.close()
 
-    async def get_rest_data(self,
-                         url: str,
-                         params: Optional[Dict[str, Any]] = None,
-                         data: Optional[Dict[str, Any]] = None,
-                         headers: Optional[Dict[str, str]] = None,
-                         method: str = "GET") -> Any:
+    async def get_rest_data(
+        self,
+        url: str,
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        method: str = "GET",
+    ) -> Any:
         """Get data from REST API.
 
         Args:
@@ -88,11 +90,7 @@ class NetworkClient:
 
         try:
             async with self._session.request(
-                method=method,
-                url=url,
-                params=cleaned_params,
-                json=cleaned_data,
-                headers=headers
+                method=method, url=url, params=cleaned_params, json=cleaned_data, headers=headers
             ) as response:
                 response.raise_for_status()
                 return await response.json()
@@ -122,9 +120,7 @@ class NetworkClient:
             self.logger.error(f"WebSocket connection failed: {e}")
             raise
 
-    async def send_ws_message(self,
-                           ws_assistant: WSAssistant,
-                           payload: Dict[str, Any]) -> None:
+    async def send_ws_message(self, ws_assistant: WSAssistant, payload: Dict[str, Any]) -> None:
         """Send a message over WebSocket.
 
         Args:

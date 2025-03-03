@@ -68,7 +68,7 @@ class TestKrakenSpotAdapter:
             self.trading_pair,
             self.interval,
             start_time=start_time,
-            limit=500  # Note: Kraken ignores limit parameter
+            limit=500,  # Note: Kraken ignores limit parameter
         )
 
         assert params["pair"] == "XXBTZUSD"

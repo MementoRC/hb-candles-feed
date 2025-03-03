@@ -20,7 +20,7 @@ class TestBybitPerpetualAdapter:
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
         assert self.adapter.get_ws_url() == PERP_WSS_URL
-        
+
     def test_get_category_param(self):
         """Test category param retrieval."""
         assert self.adapter.get_category_param() == "linear"
