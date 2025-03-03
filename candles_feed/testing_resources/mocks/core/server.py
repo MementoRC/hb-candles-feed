@@ -280,7 +280,10 @@ class MockExchangeServer:
                         last_time = self.last_candle_time[trading_pair][interval]
 
                         # Check if it's time to generate a new candle
-                        if current_time >= last_time + interval_seconds and self.candles[trading_pair][interval]:
+                        if (
+                            current_time >= last_time + interval_seconds
+                            and self.candles[trading_pair][interval]
+                        ):
                             last_candle = self.candles[trading_pair][interval][-1]
 
                             # Generate a new candle based on the last one
@@ -300,9 +303,7 @@ class MockExchangeServer:
                             self.trading_pairs[trading_pair] = new_candle.close
 
                             # Send WebSocket update to subscribers
-                            await self._broadcast_candle_update(
-                                trading_pair, interval, new_candle
-                            )
+                            await self._broadcast_candle_update(trading_pair, interval, new_candle)
 
                 # Wait for a second
                 await asyncio.sleep(1)

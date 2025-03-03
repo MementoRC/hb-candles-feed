@@ -71,34 +71,34 @@ class TestBinanceSpotAdapterWithMockServer:
 
         # Create WebSocket connection
         async with aiohttp.ClientSession() as session, session.ws_connect(ws_url) as ws:
-                # Create subscription payload
-                payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
+            # Create subscription payload
+            payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
 
-                # Send subscription request
-                await ws.send_json(payload)
+            # Send subscription request
+            await ws.send_json(payload)
 
-                # Wait for subscription response
-                response = await ws.receive_json(timeout=5.0)
+            # Wait for subscription response
+            response = await ws.receive_json(timeout=5.0)
 
-                # Verify subscription was successful
-                assert response is not None
+            # Verify subscription was successful
+            assert response is not None
 
-                # Wait for a candle message
-                try:
-                    message = await ws.receive_json(timeout=5.0)
-                    # Parse the WebSocket message
-                    if message:
-                        candles = self.adapter.parse_ws_message(message)
-                        if candles:
-                            # Verify we have parsed candles
-                            assert len(candles) > 0
-                            for candle in candles:
-                                assert isinstance(candle, CandleData)
-                                assert hasattr(candle, "timestamp")
-                except asyncio.TimeoutError:
-                    # No message received in time, but the test still passes
-                    # as the connection was successful
-                    pass
+            # Wait for a candle message
+            try:
+                message = await ws.receive_json(timeout=5.0)
+                # Parse the WebSocket message
+                if message:
+                    candles = self.adapter.parse_ws_message(message)
+                    if candles:
+                        # Verify we have parsed candles
+                        assert len(candles) > 0
+                        for candle in candles:
+                            assert isinstance(candle, CandleData)
+                            assert hasattr(candle, "timestamp")
+            except asyncio.TimeoutError:
+                # No message received in time, but the test still passes
+                # as the connection was successful
+                pass
 
-                # Close connection
-                await ws.close()
+            # Close connection
+            await ws.close()

@@ -98,22 +98,22 @@ class TestMockServer:
 
         # Just test that we can connect to the WebSocket endpoint
         async with aiohttp.ClientSession() as session, session.ws_connect(ws_url) as ws:
-                # Create subscription message (Binance format)
-                subscription = {"method": "SUBSCRIBE", "params": ["btcusdt@kline_1m"], "id": 1}
+            # Create subscription message (Binance format)
+            subscription = {"method": "SUBSCRIBE", "params": ["btcusdt@kline_1m"], "id": 1}
 
-                # Send subscription
-                await ws.send_json(subscription)
+            # Send subscription
+            await ws.send_json(subscription)
 
-                # Wait for subscription response
-                response = await ws.receive_json(timeout=5.0)
+            # Wait for subscription response
+            response = await ws.receive_json(timeout=5.0)
 
-                # Verify basic response
-                assert response is not None
-                assert "id" in response, "Missing id in subscription response"
-                assert response["id"] == 1, "Wrong id in subscription response"
+            # Verify basic response
+            assert response is not None
+            assert "id" in response, "Missing id in subscription response"
+            assert response["id"] == 1, "Wrong id in subscription response"
 
-                # This test is simplified to just verify we can establish a connection
-                # and receive a subscription response
+            # This test is simplified to just verify we can establish a connection
+            # and receive a subscription response
 
     @pytest.mark.asyncio
     async def test_server_multiple_trading_pairs(self):
@@ -230,10 +230,12 @@ class TestMockServer:
         )
 
         # Verify normal operation is restored
-        async with aiohttp.ClientSession() as session, session.get(f"{mock_server_url}/api/v3/klines", params=params) as response:
-                assert response.status == 200
-                data = await response.json()
-                assert len(data) > 0
+        async with aiohttp.ClientSession() as session, session.get(
+            f"{mock_server_url}/api/v3/klines", params=params
+        ) as response:
+            assert response.status == 200
+            data = await response.json()
+            assert len(data) > 0
 
     @pytest.mark.asyncio
     async def test_mock_candle_data_methods(self):
