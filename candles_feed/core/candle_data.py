@@ -38,6 +38,11 @@ class CandleData:
     n_trades: int = 0
     taker_buy_base_volume: float = 0.0
     taker_buy_quote_volume: float = 0.0
+    
+    @property
+    def timestamp_ms(self) -> int:
+        """Convert timestamp to milliseconds."""
+        return self.timestamp * 1000
 
     _timestamp_keys: ClassVar[tuple[str, ...]] = ('timestamp', 'time', 't')
     _price_keys: ClassVar[dict[str, tuple[str, ...]]] = {

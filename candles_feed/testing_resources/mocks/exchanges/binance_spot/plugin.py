@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from aiohttp import web
 
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
+from candles_feed.core.candle_data import CandleData
 from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 
@@ -57,7 +57,7 @@ class BinanceSpotPlugin(ExchangePlugin):
             '/ws': 'handle_websocket'
         }
     
-    def format_rest_candles(self, candles: List[MockCandleData], 
+    def format_rest_candles(self, candles: List[CandleData], 
                            trading_pair: str, interval: str) -> List[List]:
         """
         Format candle data as a Binance REST API response.
@@ -88,7 +88,7 @@ class BinanceSpotPlugin(ExchangePlugin):
             for c in candles
         ]
     
-    def format_ws_candle_message(self, candle: MockCandleData, 
+    def format_ws_candle_message(self, candle: CandleData, 
                                 trading_pair: str, interval: str, 
                                 is_final: bool = False) -> Dict:
         """

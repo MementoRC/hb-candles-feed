@@ -3,11 +3,11 @@ Exchange plugin interface for the mock exchange server.
 """
 
 import abc
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
 from aiohttp import web
 
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
+from candles_feed.core.candle_data import CandleData
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 
 
@@ -31,7 +31,7 @@ class ExchangePlugin(abc.ABC):
     
     @property
     @abc.abstractmethod
-    def rest_routes(self) -> Dict[str, Tuple[str, str]]:
+    def rest_routes(self) -> dict[str, tuple[str, str]]:
         """
         Get the REST API routes for this exchange.
         
@@ -43,7 +43,7 @@ class ExchangePlugin(abc.ABC):
     
     @property
     @abc.abstractmethod
-    def ws_routes(self) -> Dict[str, str]:
+    def ws_routes(self) -> dict[str, str]:
         """
         Get the WebSocket routes for this exchange.
         
@@ -54,7 +54,7 @@ class ExchangePlugin(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def format_rest_candles(self, candles: List[MockCandleData], 
+    def format_rest_candles(self, candles: list[CandleData], 
                            trading_pair: str, interval: str) -> Any:
         """
         Format candle data as a REST API response for this exchange.
@@ -70,7 +70,7 @@ class ExchangePlugin(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def format_ws_candle_message(self, candle: MockCandleData, 
+    def format_ws_candle_message(self, candle: CandleData, 
                                 trading_pair: str, interval: str, 
                                 is_final: bool = False) -> Any:
         """
@@ -88,7 +88,7 @@ class ExchangePlugin(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def parse_ws_subscription(self, message: Dict) -> List[Tuple[str, str]]:
+    def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
         """
         Parse a WebSocket subscription message.
         
@@ -101,8 +101,8 @@ class ExchangePlugin(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def create_ws_subscription_success(self, message: Dict, 
-                                      subscriptions: List[Tuple[str, str]]) -> Dict:
+    def create_ws_subscription_success(self, message: dict,
+                                      subscriptions: list[tuple[str, str]]) -> dict:
         """
         Create a WebSocket subscription success response.
         
@@ -130,7 +130,7 @@ class ExchangePlugin(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def parse_rest_candles_params(self, request: web.Request) -> Dict[str, Any]:
+    def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
         """
         Parse REST API parameters for candle requests.
         

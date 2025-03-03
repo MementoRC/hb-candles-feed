@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 import time
 import pytest
 
+from candles_feed.core.candle_data import CandleData
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
 from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
 
 
@@ -20,8 +20,8 @@ class TestBinanceSpotPlugin(unittest.TestCase):
         self.plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
         
         # Create a sample candle for testing
-        self.candle = MockCandleData(
-            timestamp=1613677200,
+        self.candle = CandleData(
+            timestamp_raw=1613677200,
             open=50000.0,
             high=50500.0,
             low=49500.0,

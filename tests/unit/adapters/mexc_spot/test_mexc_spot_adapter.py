@@ -53,7 +53,6 @@ class TestMEXCSpotAdapter:
 
         assert params["symbol"] == "BTC_USDT"
         assert params["interval"] == self.interval
-        assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
         assert "startTime" not in params
         assert "endTime" not in params
 

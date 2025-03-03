@@ -48,7 +48,10 @@ class TestOKXPerpetualAdapter:
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+        params = self.adapter.get_rest_params(
+            self.adapter.get_trading_pair_format(self.trading_pair),
+            self.interval
+        )
 
         # For perpetual markets, we need the SWAP suffix and replace hyphen with slash
         assert params["instId"] == "BTC-USDT-SWAP".replace("-", "/")
@@ -64,7 +67,7 @@ class TestOKXPerpetualAdapter:
         limit = 200
 
         params = self.adapter.get_rest_params(
-            self.trading_pair,
+            self.adapter.get_trading_pair_format(self.trading_pair),
             self.interval,
             start_time=start_time,
             end_time=end_time,
@@ -104,7 +107,10 @@ class TestOKXPerpetualAdapter:
 
     def test_get_ws_subscription_payload(self):
         """Test WebSocket subscription payload generation."""
-        payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
+        payload = self.adapter.get_ws_subscription_payload(
+            self.adapter.get_trading_pair_format(self.trading_pair),
+            self.interval
+        )
 
         assert payload["op"] == "subscribe"
         assert len(payload["args"]) == 1

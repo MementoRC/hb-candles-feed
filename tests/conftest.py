@@ -23,7 +23,6 @@ from candles_feed.core.network_strategies import RESTPollingStrategy, WebSocketS
 from candles_feed.core.protocols import CandleDataAdapter, WSAssistant
 
 # Import MockExchangeServer components for testing
-from candles_feed.testing_resources.mocks.core.candle_data import MockCandleData
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 
 
@@ -44,7 +43,7 @@ def configure_logging():
 @pytest.fixture
 def mock_candle():
     """Create a mock candle for testing."""
-    return MockCandleData(
+    return CandleData(
         timestamp=int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()),
         open=50000.0, 
         high=51000.0,
@@ -64,7 +63,7 @@ def mock_candles():
     base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
     
     return [
-        MockCandleData(
+        CandleData(
             timestamp=base_time + (i * 60),  # 1-minute intervals
             open=50000.0 + (i * 100),
             high=51000.0 + (i * 100),

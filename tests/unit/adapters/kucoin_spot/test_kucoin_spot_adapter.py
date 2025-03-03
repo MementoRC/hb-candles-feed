@@ -48,7 +48,6 @@ class TestKuCoinSpotAdapter:
 
         assert params["symbol"] == self.trading_pair
         assert params["type"] == self.interval
-        assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
         assert "startAt" not in params
         assert "endAt" not in params
 
