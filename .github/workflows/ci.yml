@@ -1,0 +1,111 @@
+name: Package CI
+
+on:
+  push:
+    branches: [main, master, develop, development]
+  pull_request:
+    branches: [main, master, develop, development]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Cython cmake
+          
+          # Detect if we're in a standalone repo or within Hummingbot
+          if [ -d "../../hummingbot" ]; then
+            # We're in the Hummingbot monorepo
+            pip install -e ".[dev]"
+          else
+            # We're in a standalone repo
+            pip install -e ".[dev]"
+          fi
+      
+      - name: Run tests
+        run: |
+          python -m pytest
+      
+      - name: Run coverage
+        run: |
+          # The actual package name will be replaced by the create_subpackage.py script
+          python -m pytest --cov=candles_feed
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel Cython cmake
+      
+      - name: Build package
+        run: |
+          python -m build
+      
+      - name: Store built packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist-py${{ matrix.python-version }}
+          path: dist/
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy ruff
+      
+      - name: Format and lint with ruff
+        run: |
+          # Check formatting
+          ruff format --check .
+          
+          # Check imports and other linting rules
+          ruff check .
+      
+      - name: Type check with mypy
+        run: |
+          # The actual package name will be replaced by the create_subpackage.py script
+          mypy candles_feed/
