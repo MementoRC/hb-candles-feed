@@ -100,4 +100,4 @@ jobs:
       - name: Type check with mypy
         run: |
           # The actual package name will be replaced by the create_subpackage.py script
-          mypy --install-types candles_feed/
+          mypy --install-types -y candles_feed/
