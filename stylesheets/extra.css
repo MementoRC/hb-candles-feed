@@ -1,0 +1,44 @@
+/* Add your custom CSS here */
+
+.mermaid {
+    text-align: center;
+}
+
+.md-typeset h1 {
+    color: #2e7ec1;
+}
+
+.md-typeset h2 {
+    color: #3e93db;
+}
+
+.md-typeset code {
+    background-color: #f0f6fc;
+}
+
+pre {
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border: 1px solid #eaecef;
+}
+
+table {
+    width: 100%;
+    overflow: auto;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    padding: 6px 13px;
+    border: 1px solid #dfe2e5;
+}
+
+table tr:nth-child(2n) {
+    background-color: #f6f8fa;
+}
+
+blockquote {
+    border-left: 4px solid #3e93db;
+    padding-left: 15px;
+    color: #666;
+}

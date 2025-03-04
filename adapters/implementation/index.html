@@ -1,0 +1,1809 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Candles Feed framework">
+      
+      
+        <meta name="author" content="Hummingbot Team">
+      
+      
+      
+        <link rel="prev" href="../overview/">
+      
+      
+        <link rel="next" href="../rest_api/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7">
+    
+    
+      
+        <title>Implementation - Candles Feed Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8608ea7d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#adapter-implementation-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Candles Feed Documentation" class="md-header__button md-logo" aria-label="Candles Feed Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Candles Feed Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Implementation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/hummingbot/hummingbot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hummingbot/hummingbot
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting_started/installation/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  Adapters
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing_resources/overview/" class="md-tabs__link">
+          
+  
+  Testing Resources
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/simple_usage/" class="md-tabs__link">
+          
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api_reference/core/" class="md-tabs__link">
+          
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/contributing.md" class="md-tabs__link">
+          
+  
+  Development Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Candles Feed Documentation" class="md-nav__button md-logo" aria-label="Candles Feed Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Candles Feed Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/hummingbot/hummingbot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hummingbot/hummingbot
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/quick_start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Adapters
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Adapters
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Implementation
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Implementation
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-set-up-directory-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Set Up Directory Structure
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-create-constants-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Create Constants File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-implement-the-adapter-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Implement the Adapter Class
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-create-the-init-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Create the Init File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-update-the-adapters-init-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 5: Update the Adapters Init File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation Workflow
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Considerations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rest_api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    REST API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../websocket/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    WebSocket
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing Resources
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing Resources
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing_resources/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing_resources/mock_server/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Mock Server
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing_resources/candle_data_factory.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candle Data Factory
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing_resources/exchange_simulation.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Exchange Simulation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing_resources/usage_examples.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Usage Examples
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/simple_usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Simple Usage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/binance_spot_example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Binance Spot Example
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/mock_server_example/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Mock Server Example
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/core/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Core Components
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/adapters.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Adapters
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/utilities.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Utilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/testing_resources.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing Resources
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Development Guide
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Development Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/coding_standards/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Coding Standards
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing_guide.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-set-up-directory-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Set Up Directory Structure
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-create-constants-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Create Constants File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-implement-the-adapter-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Implement the Adapter Class
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-create-the-init-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Create the Init File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-update-the-adapters-init-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 5: Update the Adapters Init File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation Workflow
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Considerations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="adapter-implementation-guide">Adapter Implementation Guide<a class="headerlink" href="#adapter-implementation-guide" title="Permanent link">&para;</a></h1>
+<p>This guide walks you through the process of implementing an adapter for a new exchange.</p>
+<h2 id="step-1-set-up-directory-structure">Step 1: Set Up Directory Structure<a class="headerlink" href="#step-1-set-up-directory-structure" title="Permanent link">&para;</a></h2>
+<p>First, create the necessary directory structure:</p>
+<div class="highlight"><pre><span></span><code>mkdir<span class="w"> </span>-p<span class="w"> </span>candles_feed/adapters/your_exchange_name
+</code></pre></div>
+<h2 id="step-2-create-constants-file">Step 2: Create Constants File<a class="headerlink" href="#step-2-create-constants-file" title="Permanent link">&para;</a></h2>
+<p>Create a constants file to define exchange-specific values:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># candles_feed/adapters/your_exchange_name/constants.py</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="c1"># API URLs</span>
+<span class="n">REST_URL</span> <span class="o">=</span> <span class="s2">&quot;https://api.your-exchange.com&quot;</span>
+<span class="n">WSS_URL</span> <span class="o">=</span> <span class="s2">&quot;wss://ws.your-exchange.com&quot;</span>
+
+<span class="c1"># API endpoints</span>
+<span class="n">CANDLES_ENDPOINT</span> <span class="o">=</span> <span class="s2">&quot;/api/v1/klines&quot;</span>
+<span class="n">SERVER_TIME_ENDPOINT</span> <span class="o">=</span> <span class="s2">&quot;/api/v1/time&quot;</span>
+
+<span class="c1"># API rate limits</span>
+<span class="n">MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST</span> <span class="o">=</span> <span class="mi">1000</span>
+
+<span class="c1"># Intervals mapping: interval name -&gt; seconds</span>
+<span class="n">INTERVALS</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;1m&quot;</span><span class="p">:</span> <span class="mi">60</span><span class="p">,</span>
+    <span class="s2">&quot;5m&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+    <span class="s2">&quot;15m&quot;</span><span class="p">:</span> <span class="mi">900</span><span class="p">,</span>
+    <span class="s2">&quot;1h&quot;</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>
+    <span class="s2">&quot;4h&quot;</span><span class="p">:</span> <span class="mi">14400</span><span class="p">,</span>
+    <span class="s2">&quot;1d&quot;</span><span class="p">:</span> <span class="mi">86400</span><span class="p">,</span>
+    <span class="s2">&quot;1w&quot;</span><span class="p">:</span> <span class="mi">604800</span>
+<span class="p">}</span>
+
+<span class="c1"># Exchange-specific interval formats (if needed)</span>
+<span class="n">INTERVAL_TO_EXCHANGE_FORMAT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;1m&quot;</span><span class="p">:</span> <span class="s2">&quot;1min&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;5m&quot;</span><span class="p">:</span> <span class="s2">&quot;5min&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;15m&quot;</span><span class="p">:</span> <span class="s2">&quot;15min&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;1h&quot;</span><span class="p">:</span> <span class="s2">&quot;1hour&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;4h&quot;</span><span class="p">:</span> <span class="s2">&quot;4hour&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;1d&quot;</span><span class="p">:</span> <span class="s2">&quot;1day&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;1w&quot;</span><span class="p">:</span> <span class="s2">&quot;1week&quot;</span>
+<span class="p">}</span>
+
+<span class="c1"># Websocket supported intervals</span>
+<span class="n">WS_INTERVALS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;1m&quot;</span><span class="p">,</span> <span class="s2">&quot;5m&quot;</span><span class="p">,</span> <span class="s2">&quot;15m&quot;</span><span class="p">,</span> <span class="s2">&quot;1h&quot;</span><span class="p">]</span>  <span class="c1"># Not all exchanges support all intervals via WebSocket</span>
+</code></pre></div>
+<h2 id="step-3-implement-the-adapter-class">Step 3: Implement the Adapter Class<a class="headerlink" href="#step-3-implement-the-adapter-class" title="Permanent link">&para;</a></h2>
+<p>Create the adapter class that inherits from <code>BaseAdapter</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># candles_feed/adapters/your_exchange_name/your_exchange_adapter.py</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.base_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.your_exchange_name.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">INTERVALS</span><span class="p">,</span> <span class="n">REST_URL</span><span class="p">,</span> <span class="n">WSS_URL</span><span class="p">,</span> <span class="n">WS_INTERVALS</span><span class="p">,</span> <span class="n">CANDLES_ENDPOINT</span><span class="p">,</span>
+    <span class="n">MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST</span><span class="p">,</span> <span class="n">INTERVAL_TO_EXCHANGE_FORMAT</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.core.candle_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">CandleData</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.core.exchange_registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExchangeRegistry</span>
+
+
+<span class="nd">@ExchangeRegistry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;your_exchange_name&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">YourExchangeAdapter</span><span class="p">(</span><span class="n">BaseAdapter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Your exchange adapter implementation.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_trading_pair_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trading_pair</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert standard trading pair format to exchange format.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trading_pair: Trading pair in standard format (e.g., &quot;BTC-USDT&quot;)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Trading pair in exchange format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Implement exchange-specific trading pair formatting</span>
+        <span class="c1"># For example, some exchanges use format like &quot;BTCUSDT&quot; without hyphen</span>
+        <span class="k">return</span> <span class="n">trading_pair</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_rest_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get REST API URL for candles.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            REST API URL</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">REST_URL</span><span class="si">}{</span><span class="n">CANDLES_ENDPOINT</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ws_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get WebSocket URL.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            WebSocket URL</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">WSS_URL</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_rest_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                      <span class="n">trading_pair</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                      <span class="n">interval</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                      <span class="n">start_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                      <span class="n">end_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                      <span class="n">limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get parameters for REST API request.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trading_pair: Trading pair</span>
+<span class="sd">            interval: Candle interval</span>
+<span class="sd">            start_time: Start time in seconds</span>
+<span class="sd">            end_time: End time in seconds</span>
+<span class="sd">            limit: Maximum number of candles to return</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary of parameters for REST API request</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Implement exchange-specific REST parameters</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_trading_pair_format</span><span class="p">(</span><span class="n">trading_pair</span><span class="p">),</span>
+            <span class="s2">&quot;interval&quot;</span><span class="p">:</span> <span class="n">INTERVAL_TO_EXCHANGE_FORMAT</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">interval</span><span class="p">,</span> <span class="n">interval</span><span class="p">),</span>
+            <span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="n">limit</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Some exchanges use different parameter names or formats for timestamps</span>
+        <span class="k">if</span> <span class="n">start_time</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;startTime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_time</span> <span class="o">*</span> <span class="mi">1000</span>  <span class="c1"># Convert to milliseconds if needed</span>
+
+        <span class="k">if</span> <span class="n">end_time</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;endTime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_time</span> <span class="o">*</span> <span class="mi">1000</span>  <span class="c1"># Convert to milliseconds if needed</span>
+
+        <span class="k">return</span> <span class="n">params</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_rest_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CandleData</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse REST API response into CandleData objects.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: REST API response</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of CandleData objects</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Implement exchange-specific response parsing</span>
+        <span class="n">candles</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Example implementation (adjust according to exchange response format)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">candles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CandleData</span><span class="p">(</span>
+                <span class="n">timestamp_raw</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="c1"># Timestamp (adjust format as needed)</span>
+                <span class="nb">open</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>    <span class="c1"># Open price</span>
+                <span class="n">high</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>    <span class="c1"># High price</span>
+                <span class="n">low</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>     <span class="c1"># Low price</span>
+                <span class="n">close</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>   <span class="c1"># Close price</span>
+                <span class="n">volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span>  <span class="c1"># Volume</span>
+                <span class="c1"># Optional fields (set to 0 if not provided)</span>
+                <span class="n">quote_asset_volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">n_trades</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">7</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="n">taker_buy_base_volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">taker_buy_quote_volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">9</span> <span class="k">else</span> <span class="mf">0.0</span>
+            <span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">candles</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ws_subscription_payload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trading_pair</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get WebSocket subscription payload.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trading_pair: Trading pair</span>
+<span class="sd">            interval: Candle interval</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            WebSocket subscription payload</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Implement exchange-specific WebSocket subscription payload</span>
+        <span class="c1"># Example implementation (adjust according to exchange format)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;kline_</span><span class="si">{</span><span class="n">interval</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_trading_pair_format</span><span class="p">(</span><span class="n">trading_pair</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_ws_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">CandleData</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse WebSocket message into CandleData objects.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: WebSocket message</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of CandleData objects or None if message is not a candle update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Implement exchange-specific WebSocket message parsing</span>
+        <span class="c1"># Example implementation (adjust according to exchange message format)</span>
+        <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="s2">&quot;k&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{}):</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;k&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">CandleData</span><span class="p">(</span>
+                <span class="n">timestamp_raw</span><span class="o">=</span><span class="n">k</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">],</span>  <span class="c1"># Timestamp (adjust format as needed)</span>
+                <span class="nb">open</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="s2">&quot;o&quot;</span><span class="p">]),</span>    <span class="c1"># Open price</span>
+                <span class="n">high</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="s2">&quot;h&quot;</span><span class="p">]),</span>    <span class="c1"># High price</span>
+                <span class="n">low</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="s2">&quot;l&quot;</span><span class="p">]),</span>     <span class="c1"># Low price</span>
+                <span class="n">close</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]),</span>   <span class="c1"># Close price</span>
+                <span class="n">volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]),</span>  <span class="c1"># Volume</span>
+                <span class="c1"># Optional fields (set to 0 if not provided)</span>
+                <span class="n">quote_asset_volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="n">n_trades</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="n">taker_buy_base_volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="n">taker_buy_quote_volume</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="p">)]</span>
+
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_supported_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get supported intervals and their durations in seconds.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary mapping interval strings to their duration in seconds</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">INTERVALS</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ws_supported_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get intervals supported by WebSocket API.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of interval strings supported by WebSocket API</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">WS_INTERVALS</span>
+</code></pre></div>
+<h2 id="step-4-create-the-init-file">Step 4: Create the Init File<a class="headerlink" href="#step-4-create-the-init-file" title="Permanent link">&para;</a></h2>
+<p>Create an <code>__init__.py</code> file to expose your adapter:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># candles_feed/adapters/your_exchange_name/__init__.py</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.your_exchange_name.your_exchange_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">YourExchangeAdapter</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;YourExchangeAdapter&quot;</span><span class="p">]</span>
+</code></pre></div>
+<h2 id="step-5-update-the-adapters-init-file">Step 5: Update the Adapters Init File<a class="headerlink" href="#step-5-update-the-adapters-init-file" title="Permanent link">&para;</a></h2>
+<p>Update the main adapters <code>__init__.py</code> file to include your new adapter:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># candles_feed/adapters/__init__.py</span>
+
+<span class="c1"># Import all adapters</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.base_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.binance_spot.binance_spot_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinanceSpotAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.bybit_spot.bybit_spot_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">BybitSpotAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.coinbase_advanced_trade.coinbase_advanced_trade_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoinbaseAdvancedTradeAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.kraken_spot.kraken_spot_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrakenSpotAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.kucoin_spot.kucoin_spot_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">KuCoinSpotAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.okx_spot.okx_spot_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">OKXSpotAdapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">candles_feed.adapters.your_exchange_name.your_exchange_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">YourExchangeAdapter</span>  <span class="c1"># Add your adapter here</span>
+
+<span class="c1"># Export all adapters</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;BaseAdapter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BinanceSpotAdapter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BybitSpotAdapter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CoinbaseAdvancedTradeAdapter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;KrakenSpotAdapter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;KuCoinSpotAdapter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;OKXSpotAdapter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;YourExchangeAdapter&quot;</span>  <span class="c1"># Add your adapter here</span>
+<span class="p">]</span>
+</code></pre></div>
+<h2 id="implementation-workflow">Implementation Workflow<a class="headerlink" href="#implementation-workflow" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    A[Study Exchange API Docs] --&gt; B[Identify Endpoints]
+    B --&gt; C[Define Constants]
+    C --&gt; D[Implement Trading Pair Format]
+    D --&gt; E[Implement REST Parameters]
+    E --&gt; F[Implement REST Response Parsing]
+    F --&gt; G[Implement WebSocket Subscription]
+    G --&gt; H[Implement WebSocket Message Parsing]
+    H --&gt; I[Test Your Adapter]
+
+    style I fill:#f96,stroke:#333,stroke-width:2px</code></pre>
+<h2 id="key-considerations">Key Considerations<a class="headerlink" href="#key-considerations" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>API Documentation</strong>: Thoroughly study the exchange's API documentation to understand:</li>
+<li>Endpoint structure</li>
+<li>Required parameters</li>
+<li>Response formats</li>
+<li>Rate limits</li>
+<li>
+<p>Authentication (if needed)</p>
+</li>
+<li>
+<p><strong>Error Handling</strong>: Implement robust error handling for:</p>
+</li>
+<li>Network errors</li>
+<li>Invalid responses</li>
+<li>Rate limiting</li>
+<li>
+<p>API changes</p>
+</li>
+<li>
+<p><strong>Edge Cases</strong>: Consider edge cases such as:</p>
+</li>
+<li>Different interval formats</li>
+<li>Timestamp conversions</li>
+<li>Special trading pair formats</li>
+<li>
+<p>Missing data fields</p>
+</li>
+<li>
+<p><strong>Performance</strong>: Optimize for performance by:</p>
+</li>
+<li>Minimizing unnecessary conversions</li>
+<li>Handling large datasets efficiently</li>
+<li>
+<p>Using appropriate data structures</p>
+</li>
+<li>
+<p><strong>Testing</strong>: Test your adapter with real API calls to ensure:</p>
+</li>
+<li>Correct data parsing</li>
+<li>Handling of different trading pairs</li>
+<li>Proper WebSocket connection management</li>
+<li>Robustness to API changes</li>
+</ol>
+<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<p>Once you've implemented the basic adapter structure, proceed to:</p>
+<ol>
+<li><a href="../rest_api/">REST API Integration</a>: Detailed guide for REST API implementation</li>
+<li><a href="../websocket/">WebSocket Integration</a>: Detailed guide for WebSocket implementation</li>
+<li><a href="../testing/">Testing Your Adapter</a>: Guide for thoroughly testing your adapter</li>
+</ol>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">February 28, 2025</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.path", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>
