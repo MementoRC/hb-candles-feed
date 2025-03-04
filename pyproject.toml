@@ -24,10 +24,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    # Common dependencies
-    "pandas>=1.0.0",
-    "numpy>=1.20.0",
     "aiohttp>=3.8.0",
+    "hatch>=1.9.0",
+    "hatch-conda>=0.5.2",
+    "numpy>=1.20.0",
+    "pandas>=1.0.0",
     "pydantic>=2",
 ]
 dynamic = ["version"]
@@ -50,14 +51,12 @@ dev = [
     "cython-lint>=0.15.0",
 ]
 doc = [
-    "mkdocs>=1.3.0",
+    "mkdocs",
     "mkdocs-git-revision-date-localized-plugin",
     "mkdocs-material>=8.2.0",
-    "mkdocstrings-handlers",
     "mkdocstrings-python",
     "mkdocstrings>=0.18.0",
     "pymdown-extensions>=8.0.0",
-    "mkdocs-pyproject>=1.0.0",
 ]
 hummingbot = []
 
@@ -69,25 +68,33 @@ path = "candles_feed/__about__.py"
 requires = ["hatch-conda>=0.5.2"]
 type = "conda"
 
-# Default environment
-[tool.hatch.envs.default]
+# Documentation environment
+[tool.hatch.envs.docs]
+conda-channels = ["conda-forge", "defaults"]
+features = ["doc"]
+dependencies = []
+
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build --clean --strict"
+serve = "mkdocs serve --dev-addr localhost:8008"
+deploy = "mkdocs gh-deploy"
+
+# CI environment
+[tool.hatch.envs.CI]
 conda-channels = ["conda-forge", "defaults"]
 features = ["dev"]
 dependencies = [
-    # Core dependencies
-    "aiohttp>=3.8.0",
-    "pandas>=1.0.0",
-    "python>=3.10",
-
-    # Include project dependencies automatically
-    # "{root:dependencies}",
-
-    # Development tools
-    "cython>=3",
-    "hatch>=1.9.0",
-    "hatch-conda>=0.5.2",
-    "wheel>=0.37.0",
+    "types-setuptools",
 ]
+
+[tool.hatch.envs.CI.scripts]
+check = "ruff check candles_feed tests; ruff format --check candles_feed tests"
+hints = "mypy --install-types --non-interactive --ignore-missing-imports candles_feed/"
+
+[tool.hatch.envs.default]
+conda-channels = ["conda-forge", "defaults"]
+features = ["dev"]
+dependencies = []
 
 # Pip dependencies with --no-deps flag
 [tool.hatch.envs.default.pip-no-deps]
@@ -103,22 +110,6 @@ format = "ruff format candles_feed tests"
 typecheck = "mypy candles_feed"
 lint-cython = "cython-lint candles_feed"
 check = ["format", "lint", "typecheck", "test"]
-
-# Documentation environment
-[tool.hatch.envs.docs]
-conda-channels = ["conda-forge", "defaults"]
-features = ["doc"]
-dependencies = [
-    # Documentation-specific dependencies
-    "mkdocs>=1.3.0",
-    "mkdocs-material>=8.2.0",
-    "mkdocstrings>=0.18.0",
-]
-
-# Documentation scripts
-[tool.hatch.envs.docs.scripts]
-build = "mkdocs build"
-serve = "mkdocs serve"
 
 # Hatch build configuration with Cython integration via custom hook
 [tool.hatch.build.targets.wheel]

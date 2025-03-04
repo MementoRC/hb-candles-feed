@@ -100,13 +100,11 @@ jobs:
       - name: Install dependencies
         run: |
           conda install -c conda-forge hatch
-          hatch env create
-      
+
       - name: Format and lint with ruff
         run: |
-          ruff format --check .
-          ruff check .
-      
+          hatch run CI:check
+
       - name: Type check with mypy
         run: |
-          mypy --install-types --non-interactive --ignore-missing-imports candles_feed/
+          hatch run CI:hints
