@@ -99,5 +99,4 @@ jobs:
       
       - name: Type check with mypy
         run: |
-          pip install types-aiohttp pandas-stubs pytest-stubs
-          mypy --install-types -y candles_feed/
+          mypy --install-types --non-interactive -y candles_feed/
