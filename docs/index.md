@@ -77,7 +77,6 @@ This documentation is organized into the following sections:
 ### Testing Resources
 - [Overview](testing_resources/overview.md): Introduction to testing tools
 - [Mock Server](testing_resources/mock_server.md): Simulate exchange APIs
-- [Exchange Simulation](testing_resources/exchange_simulation.md): Testing without real exchanges
 
 ### Examples
 - [Simple Usage](examples/simple_usage.md): Basic usage patterns
@@ -86,17 +85,13 @@ This documentation is organized into the following sections:
 
 ### API Reference
 - [Core Components](api_reference/core.md): Reference for core framework classes
-- [Adapters](api_reference/adapters.md): Exchange adapter interfaces
-- [Utilities](api_reference/utilities.md): Helper functions and utilities
 
-### Development Guide
-- [Contributing](development/contributing.md): How to contribute to the project
+### Development
 - [Coding Standards](development/coding_standards.md): Code style guidelines
-- [Testing Guide](development/testing_guide.md): Writing effective tests
 
 ## For Developers
 
-If you want to contribute to the framework or add support for a new exchange, see the [Adding New Exchange](adapters/overview.md) section and the [Development Guide](development/contributing.md).
+If you want to contribute to the framework or add support for a new exchange, see the [Adding New Exchange](adapters/overview.md) section.
 
 ## Compatibility Notes
 

@@ -240,6 +240,4 @@ class NewExchangePlugin(ExchangePlugin):
 
 ## See Also
 
-- [Candle Data Factory](candle_data_factory.md) - For generating test data
-- [Exchange Simulation](exchange_simulation.md) - For more details on the simulation framework
-- [Usage Examples](usage_examples.md) - For practical examples of using the mock server
+- [Mock Server Example](../examples/mock_server_example.md) - For practical examples of using the mock server

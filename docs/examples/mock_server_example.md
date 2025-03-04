@@ -331,6 +331,4 @@ if __name__ == "__main__":
 For more information about the mock server functionality, refer to:
 
 - [Mock Server Documentation](../testing_resources/mock_server.md)
-- [Exchange Simulation](../testing_resources/exchange_simulation.md)
-- [Candle Data Factory](../testing_resources/candle_data_factory.md)
-- [Testing Guide](../development/testing_guide.md)
+- [Testing Resources Overview](../testing_resources/overview.md)

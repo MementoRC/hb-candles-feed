@@ -1,15 +1,15 @@
-site_name: Candles Feed Documentation
-site_description: 'Documentation for the Candles Feed framework'
-site_author: 'Hummingbot Team'
+site_name: "Candles Feed Documentation"
+site_description: "Documentation for the Candles Feed framework"
+site_author: "Hummingbot Team"
 
-repo_name: 'hummingbot/hummingbot'
-repo_url: 'https://github.com/hummingbot/hummingbot'
+repo_name: "MementoRC/hb-candles-feed"
+repo_url: "https://github.com/MementoRC/hb-candles-feed"
 
 theme:
-  name: 'material'
+  name: material
   palette:
-    primary: 'blue'
-    accent: 'blue'
+    primary: blue
+    accent: blue
   features:
     - navigation.tabs
     - navigation.sections
@@ -36,41 +36,6 @@ markdown_extensions:
   - toc:
       permalink: true
 
-nav:
-  - Home: index.md
-  - Getting Started:
-    - Installation: getting_started/installation.md
-    - Quick Start: getting_started/quick_start.md
-    - Architecture: getting_started/architecture.md
-  - Adapters:
-    - Overview: adapters/overview.md
-    - Implementation: adapters/implementation.md
-    - REST API: adapters/rest_api.md
-    - WebSocket: adapters/websocket.md
-    - Testing: adapters/testing.md
-  - Testing Resources:
-    - Overview: testing_resources/overview.md
-    - Mock Server: testing_resources/mock_server.md
-    - Candle Data Factory: testing_resources/candle_data_factory.md
-    - Exchange Simulation: testing_resources/exchange_simulation.md
-    - Usage Examples: testing_resources/usage_examples.md
-  - Examples:
-    - Simple Usage: examples/simple_usage.md
-    - Binance Spot Example: examples/binance_spot_example.md
-    - Mock Server Example: examples/mock_server_example.md
-  - API Reference:
-    - Core Components: api_reference/core.md
-    - Adapters: api_reference/adapters.md
-    - Utilities: api_reference/utilities.md
-    - Testing Resources: api_reference/testing_resources.md
-  - Development Guide:
-    - Contributing: development/contributing.md
-    - Coding Standards: development/coding_standards.md
-    - Testing Guide: development/testing_guide.md
-
-extra_css:
-  - stylesheets/extra.css
-
 plugins:
   - search
   - mkdocstrings:
@@ -84,3 +49,30 @@ plugins:
             show_if_no_docstring: false
             heading_level: 2
   - git-revision-date-localized
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting_started/installation.md
+      - Quick Start: getting_started/quick_start.md
+      - Architecture: getting_started/architecture.md
+  - Adapters:
+      - Overview: adapters/overview.md
+      - Implementation: adapters/implementation.md
+      - REST API: adapters/rest_api.md
+      - WebSocket: adapters/websocket.md
+      - Testing: adapters/testing.md
+  - Testing Resources:
+      - Overview: testing_resources/overview.md
+      - Mock Server: testing_resources/mock_server.md
+  - Examples:
+      - Simple Usage: examples/simple_usage.md
+      - Binance Spot Example: examples/binance_spot_example.md
+      - Mock Server Example: examples/mock_server_example.md
+  - API Reference:
+      - Core Components: api_reference/core.md
+  - Development:
+      - Coding Standards: development/coding_standards.md

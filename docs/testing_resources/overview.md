@@ -90,8 +90,6 @@ This testing framework is designed for:
 To get started with the testing resources:
 
 1. See the [Mock Server](mock_server.md) documentation for setting up a test server
-2. Use the [Candle Data Factory](candle_data_factory.md) to generate test data
-3. Review the [Exchange Simulation](exchange_simulation.md) guide for detailed simulation options
-4. Check out the [Usage Examples](usage_examples.md) for practical demonstrations
+2. Check out the [Examples](../examples/mock_server_example.md) section for practical demonstrations
 
-For detailed API documentation, see the [API Reference](../api_reference/testing_resources.md) section.
+Additional documentation will be added in future updates.
