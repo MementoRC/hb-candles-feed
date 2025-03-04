@@ -13,7 +13,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "Hummingbot Contributors", email = "dev@hummingbot.io"}
+    {name = "Memento RC Mori", email = "claude.rc@gmail.com"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -34,7 +34,7 @@ dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/MementoRC/hb-candles-feed"
-Documentation = "https://github.com/MementoRC/hb-candles-feed/tree/master/docs"
+Documentation = "https://mementorc.github.io/hb-candles-feed"
 Repository = "https://github.com/MementoRC/hb-candles-feed/tree/master"
 
 [project.optional-dependencies]
@@ -59,12 +59,10 @@ doc = [
     "pymdown-extensions>=8.0.0",
     "mkdocs-pyproject>=1.0.0",
 ]
-hummingbot = [
-    # Hummingbot-specific dependencies would go here
-]
+hummingbot = []
 
 [tool.hatch.version]
-path = "condles_feed/__about__.py"
+path = "candles_feed/__about__.py"
 
 # Hatch configuration for conda environments
 [tool.hatch.env]
