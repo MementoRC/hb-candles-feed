@@ -13,30 +13,33 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10"]
-    
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
+          auto-update-conda: true
+          auto-activate-base: true
       
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install Cython
-          pip install -e ".[dev]"
+          conda install -c conda-forge hatch
+          hatch env create
 
       - name: Run tests
         run: |
-          python -m pytest
-      
+          hatch run test
+
       - name: Run coverage
         run: |
-          # The actual package name will be replaced by the create_subpackage.py script
-          python -m pytest --cov=candles_feed
-      
+          hatch run test --cov=candles-feed
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -49,19 +52,24 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10"]
-    
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
-      
-      - name: Install build dependencies
+          auto-update-conda: true
+          auto-activate-base: true
+
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install build wheel Cython
+          conda install -c conda-forge hatch
+          hatch env create
       
       - name: Build package
         run: |
@@ -75,26 +83,28 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: "3.10"
+          auto-update-conda: true
+          auto-activate-base: true
       
-      - name: Install linting tools
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install mypy ruff
+          conda install -c conda-forge hatch
+          hatch env create
       
       - name: Format and lint with ruff
         run: |
-          # Check formatting
           ruff format --check .
-          
-          # Check imports and other linting rules
           ruff check .
       
       - name: Type check with mypy

@@ -51,8 +51,13 @@ dev = [
 ]
 doc = [
     "mkdocs>=1.3.0",
+    "mkdocs-git-revision-date-localized-plugin",
     "mkdocs-material>=8.2.0",
+    "mkdocstrings-handlers",
+    "mkdocstrings-python",
     "mkdocstrings>=0.18.0",
+    "pymdown-extensions>=8.0.0",
+    "mkdocs-pyproject>=1.0.0",
 ]
 hummingbot = [
     # Hummingbot-specific dependencies would go here
@@ -196,3 +201,78 @@ markers = [
 ]
 log_cli = true
 log_cli_level = "INFO"
+
+[tool.mkdocs]
+site_name = "Candles Feed Documentation"
+site_description = "Documentation for the Candles Feed framework"
+site_author = "Hummingbot Team"
+
+repo_name = "hummingbot/hummingbot"
+repo_url = "https://github.com/hummingbot/hummingbot"
+
+[tool.mkdocs.theme]
+name = "material"
+palette = { primary = "blue", accent = "blue" }
+features = [
+    "navigation.tabs",
+    "navigation.sections",
+    "navigation.path",
+    "content.code.copy",
+    "content.code.annotate"
+]
+
+[tool.mkdocs.markdown_extensions]
+admonition = {}
+codehilite = {}
+pymdownx = { superfences = { custom_fences = [{ name = "mermaid", class = "mermaid", format = "!!python/name:pymdownx.superfences.fence_code_format" }] } }
+pymdownx-tabbed = { alternate_style = true }
+pymdownx-highlight = {}
+pymdownx-inlinehilite = {}
+pymdownx-snippets = {}
+pymdownx-smartsymbols = {}
+pymdownx-tasklist = {}
+pymdownx-emoji = {}
+toc = { permalink = true }
+
+[tool.mkdocs.plugins]
+search = {}
+mkdocstrings = { default_handler = "python", handlers = { python = { selection = { docstring_style = "restructured-text" }, rendering = { show_source = true, show_if_no_docstring = false, heading_level = 2 } } } }
+"git-revision-date-localized" = {}
+
+[tool.mkdocs.nav]
+Home = "index.md"
+"Getting Started" = [
+    { Installation = "getting_started/installation.md" },
+    { "Quick Start" = "getting_started/quick_start.md" },
+    { Architecture = "getting_started/architecture.md" }
+]
+Adapters = [
+    { Overview = "adapters/overview.md" },
+    { Implementation = "adapters/implementation.md" },
+    { "REST API" = "adapters/rest_api.md" },
+    { WebSocket = "adapters/websocket.md" },
+    { Testing = "adapters/testing.md" }
+]
+"Testing Resources" = [
+    { Overview = "testing_resources/overview.md" },
+    { "Mock Server" = "testing_resources/mock_server.md" },
+    { "Candle Data Factory" = "testing_resources/candle_data_factory.md" },
+    { "Exchange Simulation" = "testing_resources/exchange_simulation.md" },
+    { "Usage Examples" = "testing_resources/usage_examples.md" }
+]
+Examples = [
+    { "Simple Usage" = "examples/simple_usage.md" },
+    { "Binance Spot Example" = "examples/binance_spot_example.md" },
+    { "Mock Server Example" = "examples/mock_server_example.md" }
+]
+"API Reference" = [
+    { "Core Components" = "api_reference/core.md" },
+    { Adapters = "api_reference/adapters.md" },
+    { Utilities = "api_reference/utilities.md" },
+    { "Testing Resources" = "api_reference/testing_resources.md" }
+]
+"Development Guide" = [
+    { Contributing = "development/contributing.md" },
+    { "Coding Standards" = "development/coding_standards.md" },
+    { "Testing Guide" = "development/testing_guide.md" }
+]
