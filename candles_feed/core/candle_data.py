@@ -193,5 +193,5 @@ class CandleData:
             quote_asset_volume=float(data.get("quote_asset_volume", 0)),
             n_trades=int(data.get("n_trades", 0)),
             taker_buy_base_volume=float(data.get("taker_buy_base_volume", 0)),
-            taker_buy_quote_volume=float(data.get("taker_buy_quote_volume", 0))
+            taker_buy_quote_volume=float(data.get("taker_buy_quote_volume", 0)),
         )

@@ -97,10 +97,10 @@ class KuCoinPerpetualAdapter(KuCoinBaseAdapter):
         # }
 
         candles: list[CandleData] = []
-        
+
         if data is None:
             return candles
-            
+
         if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
             for row in data["data"]:
                 if len(row) >= 7:  # Ensure we have enough data

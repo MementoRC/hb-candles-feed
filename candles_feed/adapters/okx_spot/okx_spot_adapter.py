@@ -58,10 +58,10 @@ class OKXSpotAdapter(OKXBaseAdapter):
         # ]
 
         candles: list[CandleData] = []
-        
+
         if data is None:
             return candles
-            
+
         # Check for fixture format from the test
         if isinstance(data, dict) and "code" in data and data.get("code") == "0" and "data" in data:
             # This is likely the test fixture format

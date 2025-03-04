@@ -5,8 +5,8 @@ This module defines the core interface contracts for the framework
 using Python's typing.Protocol system.
 """
 
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 from collections.abc import AsyncGenerator
+from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 from candles_feed.core.candle_data import CandleData
 

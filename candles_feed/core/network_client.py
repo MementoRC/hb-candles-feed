@@ -144,7 +144,9 @@ class NetworkClient:
 class SimpleWSAssistant(WSAssistant):
     """Simple implementation of WSAssistant using aiohttp."""
 
-    def __init__(self, ws_connection: aiohttp.ClientWebSocketResponse, logger: Logger | None = None):
+    def __init__(
+        self, ws_connection: aiohttp.ClientWebSocketResponse, logger: Logger | None = None
+    ):
         """Initialize the SimpleWSAssistant.
 
         Args:

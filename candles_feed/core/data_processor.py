@@ -4,8 +4,8 @@ Data processing utilities for the Candle Feed framework.
 
 import logging
 from collections import deque
-from typing import Deque, List, Optional
 from collections.abc import Sequence
+from typing import Deque, List, Optional
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import Logger
@@ -100,8 +100,7 @@ class DataProcessor:
         sorted_candles = sorted(candles, key=lambda x: x.timestamp)
 
         return all(
-            sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp
-            == interval_in_seconds
+            sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp == interval_in_seconds
             for i in range(len(sorted_candles) - 1)
         )
 

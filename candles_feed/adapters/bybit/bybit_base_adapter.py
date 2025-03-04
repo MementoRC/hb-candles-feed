@@ -138,8 +138,7 @@ class BybitBaseAdapter(BaseAdapter):
         candles: list[CandleData] = []
         candles.extend(
             CandleData(
-                timestamp_raw=int(row[0])
-                / 1000,  # Convert milliseconds to seconds
+                timestamp_raw=int(row[0]) / 1000,  # Convert milliseconds to seconds
                 open=float(row[1]),
                 high=float(row[2]),
                 low=float(row[3]),

@@ -75,7 +75,10 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         Returns:
             Dictionary of parameters for REST API request
         """
-        params: dict[str, str | int] = {"symbol": self.get_trading_pair_format(trading_pair), "interval": interval}
+        params: dict[str, str | int] = {
+            "symbol": self.get_trading_pair_format(trading_pair),
+            "interval": interval,
+        }
 
         if limit:
             params["limit"] = limit
@@ -117,7 +120,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         # ]
 
         candles: list[CandleData] = []
-        
+
         # Check if data is a list (standard format)
         if isinstance(data, list):
             for row in data:

@@ -92,12 +92,17 @@ class KuCoinSpotAdapter(KuCoinBaseAdapter):
         # ]
 
         candles: list[CandleData] = []
-        
+
         if data is None:
             return candles
-            
+
         # Check if data is a dict with a 'candles' key (test fixture format)
-        if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict) and "candles" in data["data"]:
+        if (
+            isinstance(data, dict)
+            and "data" in data
+            and isinstance(data["data"], dict)
+            and "candles" in data["data"]
+        ):
             candle_data = data["data"]["candles"]
 
             # Test fixture format in conftest.py has different order:
