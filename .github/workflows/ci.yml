@@ -25,17 +25,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install Cython cmake
-          
-          # Detect if we're in a standalone repo or within Hummingbot
-          if [ -d "../../hummingbot" ]; then
-            # We're in the Hummingbot monorepo
-            pip install -e ".[dev]"
-          else
-            # We're in a standalone repo
-            pip install -e ".[dev]"
-          fi
-      
+          pip install Cython
+          pip install -e ".[dev]"
+
       - name: Run tests
         run: |
           python -m pytest
