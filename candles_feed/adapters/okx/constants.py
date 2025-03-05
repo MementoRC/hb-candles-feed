@@ -21,6 +21,12 @@ PERP_WSS_URL = WSS_BASE_URL
 # API endpoints
 STATUS_ENDPOINT = "/api/v5/system/status"
 
+# Compatibility constants
+REST_URL = REST_BASE_URL
+WSS_URL = "wss://ws.okx.com:8443/ws/v5/business"
+CANDLES_ENDPOINT = "/api/v5/market/history-candles"
+HEALTH_CHECK_ENDPOINT = "/api/v5/public/time"
+
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 300
 

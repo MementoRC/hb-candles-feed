@@ -22,6 +22,13 @@ PERP_WSS_URL = "wss://ws-api-futures.kucoin.com"
 TICKER_ENDPOINT = "/api/v1/market/orderbook/level1"
 TOKEN_ENDPOINT = "/api/v1/bullet-public"
 
+# Compatibility constants
+REST_URL = REST_BASE_URL
+WSS_URL = WSS_BASE_URL
+HEALTH_CHECK_ENDPOINT = "/api/v1/timestamp"
+CANDLES_ENDPOINT = SPOT_CANDLES_ENDPOINT
+PUBLIC_WS_DATA_PATH_URL = TOKEN_ENDPOINT
+
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1500
 
