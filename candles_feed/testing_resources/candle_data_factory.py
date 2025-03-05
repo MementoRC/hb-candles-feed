@@ -24,14 +24,11 @@ class CandleDataFactory:
         """
         Create a random candle, optionally based on a previous candle.
 
-        Args:
-            timestamp: Unix timestamp in seconds
-            previous_candle: Previous candle to base price movements on
-            base_price: Base price if no previous candle is provided
-            volatility: Price volatility as a decimal percentage (0.01 = 1%)
-
-        Returns:
-            A new CandleData instance with random but realistic values
+        :param timestamp: Unix timestamp in seconds.
+        :param previous_candle: Previous candle to base price movements on.
+        :param base_price: Base price if no previous candle is provided.
+        :param volatility: Price volatility as a decimal percentage (0.01 = 1%).
+        :returns: A new CandleData instance with random but realistic values.
         """
         if previous_candle:
             # Base the new candle on the previous close price
@@ -84,16 +81,13 @@ class CandleDataFactory:
         """
         Create a series of candles with an underlying trend.
 
-        Args:
-            start_timestamp: Starting timestamp in seconds
-            count: Number of candles to generate
-            interval_seconds: Time between candles in seconds
-            start_price: Starting price
-            trend: Price trend as a decimal percentage per candle (0.001 = 0.1%)
-            volatility: Random price volatility as a decimal percentage (0.005 = 0.5%)
-
-        Returns:
-            List of CandleData instances with a trending price pattern
+        :param start_timestamp: Starting timestamp in seconds.
+        :param count: Number of candles to generate.
+        :param interval_seconds: Time between candles in seconds.
+        :param start_price: Starting price.
+        :param trend: Price trend as a decimal percentage per candle (0.001 = 0.1%).
+        :param volatility: Random price volatility as a decimal percentage (0.005 = 0.5%).
+        :returns: List of CandleData instances with a trending price pattern.
         """
         candles: list[CandleData] = []
         current_price = start_price
@@ -127,13 +121,10 @@ class CandleDataFactory:
         """
         Create a significant price event (spike or drop) at a specific index.
 
-        Args:
-            candles: Existing list of candles to modify
-            event_index: Index at which to create the price event
-            event_magnitude: Size of price change as a decimal percentage (0.05 = 5%)
-
-        Returns:
-            Modified list of candles with the price event
+        :param candles: Existing list of candles to modify.
+        :param event_index: Index at which to create the price event.
+        :param event_magnitude: Size of price change as a decimal percentage (0.05 = 5%).
+        :returns: Modified list of candles with the price event.
         """
         if not candles or event_index >= len(candles):
             return candles
@@ -195,14 +186,11 @@ class CandleDataFactory:
         """
         Create a realistic market simulation with trends and volatility events.
 
-        Args:
-            start_timestamp: Starting timestamp in seconds
-            count: Number of candles to generate
-            interval_seconds: Time between candles in seconds
-            initial_price: Starting price
-
-        Returns:
-            List of CandleData instances simulating realistic market behavior
+        :param start_timestamp: Starting timestamp in seconds.
+        :param count: Number of candles to generate.
+        :param interval_seconds: Time between candles in seconds.
+        :param initial_price: Starting price.
+        :returns: List of CandleData instances simulating realistic market behavior.
         """
         # First create a base trend (randomly bullish or bearish)
         trend = (random.random() - 0.4) * 0.002  # -0.04% to +0.16% per candle

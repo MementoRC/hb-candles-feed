@@ -240,7 +240,7 @@ class TestCompatibility:
         import candles_feed.adapters.binance_spot.binance_spot_adapter  # noqa: F401
         import candles_feed.adapters.bybit_spot.bybit_spot_adapter  # noqa: F401
         import candles_feed.adapters.coinbase_advanced_trade.coinbase_advanced_trade_adapter  # noqa: F401
-        import candles_feed.adapters.kraken_spot.kraken_spot_adapter  # noqa: F401
+        import candles_feed.adapters.kraken.kraken_spot_adapter  # noqa: F401
         import candles_feed.adapters.kucoin_spot.kucoin_spot_adapter  # noqa: F401
         import candles_feed.adapters.okx_spot.okx_spot_adapter  # noqa: F401
         from candles_feed.core.exchange_registry import ExchangeRegistry

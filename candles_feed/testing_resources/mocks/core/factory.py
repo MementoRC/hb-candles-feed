@@ -4,6 +4,7 @@ Server factory for creating mock exchange servers.
 
 import importlib
 import logging
+from typing import TypeVar
 
 from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 
@@ -14,15 +15,11 @@ _PLUGIN_REGISTRY = {}
 
 
 def register_plugin(exchange_type: ExchangeType, plugin):
-    """
-    Register an exchange plugin.
+    """Register an exchange plugin.
 
-    Args:
-        exchange_type: The exchange type
-        plugin: The plugin instance
-
-    Raises:
-        ValueError: If a plugin is already registered for this exchange type
+    :param exchange_type: The exchange type
+    :param plugin: The plugin instance
+    :raises ValueError: If a plugin is already registered for this exchange type
     """
     if exchange_type in _PLUGIN_REGISTRY:
         raise ValueError(f"Plugin already registered for exchange type {exchange_type.value}")
@@ -31,14 +28,10 @@ def register_plugin(exchange_type: ExchangeType, plugin):
 
 
 def get_plugin(exchange_type: ExchangeType):
-    """
-    Get the plugin for an exchange type.
+    """Get the plugin for an exchange type.
 
-    Args:
-        exchange_type: The exchange type
-
-    Returns:
-        The plugin instance, or None if not found
+    :param exchange_type: ExchangeType:
+    :returns: The plugin instance, or None if not found
     """
     # Check if we already have a plugin registered
     if exchange_type in _PLUGIN_REGISTRY:
@@ -71,21 +64,22 @@ def get_plugin(exchange_type: ExchangeType):
         return None
 
 
+MockExchangeServerT = TypeVar("MockExchangeServerT", bound="MockExchangeServer")
+
 def create_mock_server(
-    exchange_type: ExchangeType, host: str = "127.0.0.1", port: int = 8080, trading_pairs=None
-):
-    """
-    Create a mock exchange server.
+    exchange_type: ExchangeType,
+        host: str = "127.0.0.1",
+        port: int = 8080,
+        trading_pairs=None
+) -> MockExchangeServerT:
+    """Create a mock exchange server.
 
-    Args:
-        exchange_type: The type of exchange to mock
-        host: The host to bind to
-        port: The port to bind to
-        trading_pairs: Optional list of trading pairs to initialize
-                    Each tuple contains (symbol, interval, initial_price)
-
-    Returns:
-        A configured MockExchangeServer instance, or None if the plugin
+    :param exchange_type: The type of exchange to mock
+    :param host: The host to bind to (Default value = "127.0.0.1")
+    :param port: The port to bind to (Default value = 8080)
+    :param trading_pairs: Optional list of trading pairs to initialize
+                    Each tuple contains (symbol, interval, initial_price) (Default value = None)
+    :returns: A configured MockExchangeServer instance, or None if the plugin
         for the specified exchange type cannot be found
     """
     # Import here to avoid circular imports

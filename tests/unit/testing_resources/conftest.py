@@ -2,8 +2,6 @@
 Pytest fixtures for testing the mock exchange server components.
 """
 
-import asyncio
-
 import pytest
 
 from candles_feed import CandleData
@@ -75,9 +73,9 @@ async def binance_mock_server():
     await server.stop()
 
 
-@pytest.fixture
-def event_loop():
-    """Create an event loop for each test."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# @pytest.fixture
+# def event_loop():
+#     """Create an event loop for each test."""
+#     loop = asyncio.get_event_loop_policy().new_event_loop()
+#     yield loop
+#     loop.close()

@@ -27,7 +27,7 @@ INTERVALS: dict[str, int] = {
 # Websocket supported intervals
 WS_INTERVALS = list(INTERVALS.keys())
 
-# API rate limits
+# API rate limits 
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
 # API URLs - Spot
@@ -41,3 +41,9 @@ PERP_REST_BASE_URL = "https://fapi.binance.com"
 PERP_CANDLES_ENDPOINT = "/fapi/v1/klines"
 PERP_REST_URL = f"{PERP_REST_BASE_URL}{PERP_CANDLES_ENDPOINT}"
 PERP_WSS_URL = "wss://fstream.binance.com/ws"
+
+# Additional constants for backward compatibility with tests
+REST_URL = SPOT_REST_URL
+WSS_URL = SPOT_WSS_URL
+HEALTH_CHECK_ENDPOINT = "/api/v3/ping"
+CANDLES_ENDPOINT = SPOT_CANDLES_ENDPOINT

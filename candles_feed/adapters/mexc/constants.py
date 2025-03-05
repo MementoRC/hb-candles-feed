@@ -10,9 +10,13 @@ WSS_BASE_URL = "wss://wbs.mexc.com/ws"
 
 # API URLs - Spot
 SPOT_REST_URL = REST_BASE_URL
-SPOT_CANDLES_ENDPOINT = "/api/v3/klines"
+REST_URL = SPOT_REST_URL
+CANDLES_ENDPOINT = "/api/v3/klines"
+SPOT_CANDLES_ENDPOINT = CANDLES_ENDPOINT
 SPOT_WSS_URL = WSS_BASE_URL
-SPOT_KLINE_TOPIC = "spot@public.kline."
+WSS_URL = SPOT_WSS_URL
+KLINE_TOPIC = "spot@public.kline."
+SPOT_KLINE_TOPIC = KLINE_TOPIC
 
 # API URLs - Perpetual
 PERP_REST_URL = "https://contract.mexc.com"

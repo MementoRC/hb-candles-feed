@@ -21,8 +21,7 @@ class DataProcessor:
     def __init__(self, logger: Logger | None = None):
         """Initialize the DataProcessor.
 
-        Args:
-            logger: Logger instance
+        :param logger: Logger instance
         """
         self.logger = logger or logging.getLogger(__name__)
 
@@ -36,12 +35,9 @@ class DataProcessor:
         2. Intervals might not be uniform
         3. Candles might be out of order
 
-        Args:
-            candles: Sequence of candle data
-            interval_in_seconds: Expected interval between candles in seconds
-
-        Returns:
-            List of validated, chronological candles with uniform intervals
+        :param candles: Sequence of candle data
+        :param interval_in_seconds: Expected interval between candles in seconds
+        :return: List of validated, chronological candles with uniform intervals
         """
         if not candles:
             return []
@@ -87,12 +83,9 @@ class DataProcessor:
     ) -> bool:
         """Validate that all candles have the correct interval.
 
-        Args:
-            candles: Sequence of candle data
-            interval_in_seconds: Expected interval between candles in seconds
-
-        Returns:
-            True if all candles have the correct interval, False otherwise
+        :param candles: Sequence of candle data
+        :param interval_in_seconds: Expected interval between candles in seconds
+        :return: True if all candles have the correct interval, False otherwise
         """
         if len(candles) <= 1:
             return True
@@ -107,9 +100,8 @@ class DataProcessor:
     def process_candle(self, candle: CandleData, candles_store: Deque[CandleData]) -> None:
         """Process a single candle and add it to the store.
 
-        Args:
-            candle: Candle to process
-            candles_store: Store to add the candle to
+        :param candle: Candle to process
+        :param candles_store: Store to add the candle to
         """
         # Check if we already have this timestamp
         existing_indices = [

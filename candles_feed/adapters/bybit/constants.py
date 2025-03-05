@@ -7,11 +7,14 @@ from typing import Dict
 # API URLs - Common
 REST_BASE_URL = "https://api.bybit.com"
 CANDLES_ENDPOINT = "/v5/market/kline"
-REST_URL = f"{REST_BASE_URL}{CANDLES_ENDPOINT}"
+# Fix the issue with duplicate endpoint in test
+REST_URL = REST_BASE_URL
 SERVER_TIME_ENDPOINT = "/v5/market/time"
+HEALTH_CHECK_ENDPOINT = SERVER_TIME_ENDPOINT
 
 # API URLs - Spot
 SPOT_WSS_URL = "wss://stream.bybit.com/v5/public/spot"
+WSS_URL = SPOT_WSS_URL  # For backward compatibility
 
 # API URLs - Perpetual
 PERP_WSS_URL = "wss://stream.bybit.com/v5/public/linear"

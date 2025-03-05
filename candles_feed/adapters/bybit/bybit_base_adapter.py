@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.bybit.constants import (
+    CANDLES_ENDPOINT,
     INTERVAL_TO_BYBIT_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
@@ -29,36 +30,30 @@ class BybitBaseAdapter(BaseAdapter):
     def get_trading_pair_format(self, trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
-        Args:
-            trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
-
-        Returns:
-            Trading pair in Bybit format (e.g., "BTCUSDT")
+        :param trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
+        :return: Trading pair in Bybit format (e.g., "BTCUSDT")
         """
         return trading_pair.replace("-", "")
 
     def get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
-        Returns:
-            REST API URL
+        :return: REST API URL
         """
-        return REST_URL
+        return f"{REST_URL}{CANDLES_ENDPOINT}"
 
     @abstractmethod
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
-        Returns:
-            WebSocket URL
+        :return: WebSocket URL
         """
         pass
 
     def get_category_param(self) -> str | None:
         """Get the category parameter for the market type.
 
-        Returns:
-            Category parameter string or None if not applicable
+        :return: Category parameter string or None if not applicable
         """
         return None
 
@@ -72,15 +67,12 @@ class BybitBaseAdapter(BaseAdapter):
     ) -> dict:
         """Get parameters for REST API request.
 
-        Args:
-            trading_pair: Trading pair
-            interval: Candle interval
-            start_time: Start time in seconds
-            end_time: End time in seconds
-            limit: Maximum number of candles to return
-
-        Returns:
-            Dictionary of parameters for REST API request
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds
+        :param end_time: End time in seconds
+        :param limit: Maximum number of candles to return
+        :return: Dictionary of parameters for REST API request
         """
         # Bybit uses startTime and endTime parameters with timestamps in milliseconds
         params = {
@@ -105,11 +97,8 @@ class BybitBaseAdapter(BaseAdapter):
     def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
-        Args:
-            data: REST API response
-
-        Returns:
-            List of CandleData objects
+        :param data: REST API response
+        :return: List of CandleData objects
         """
         # Bybit candle format:
         # {
@@ -153,12 +142,9 @@ class BybitBaseAdapter(BaseAdapter):
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
-        Args:
-            trading_pair: Trading pair
-            interval: Candle interval
-
-        Returns:
-            WebSocket subscription payload
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :return: WebSocket subscription payload
         """
         # Bybit WebSocket subscription format:
         return {
@@ -171,11 +157,8 @@ class BybitBaseAdapter(BaseAdapter):
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
-        Args:
-            data: WebSocket message
-
-        Returns:
-            List of CandleData objects or None if message is not a candle update
+        :param data: WebSocket message
+        :return: List of CandleData objects or None if message is not a candle update
         """
         # Bybit WebSocket message format:
         # {
@@ -223,15 +206,13 @@ class BybitBaseAdapter(BaseAdapter):
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
-        Returns:
-            Dictionary mapping interval strings to their duration in seconds
+        :return: Dictionary mapping interval strings to their duration in seconds
         """
         return INTERVALS
 
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
-        Returns:
-            List of interval strings supported by WebSocket API
+        :return: List of interval strings supported by WebSocket API
         """
         return WS_INTERVALS

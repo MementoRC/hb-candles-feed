@@ -34,10 +34,9 @@ class MockExchangeServer:
         """
         Initialize the mock exchange server.
 
-        Args:
-            plugin: The exchange plugin to use for exchange-specific behavior
-            host: Host to bind the server to
-            port: Port to bind the server to
+        :param plugin: The exchange plugin to use for exchange-specific behavior.
+        :param host: Host to bind the server to.
+        :param port: Port to bind the server to.
         """
         self.plugin: ExchangePlugin = plugin
         self.exchange_type: ExchangeType = plugin.exchange_type
@@ -137,10 +136,9 @@ class MockExchangeServer:
         """
         Add a trading pair with initial candle data.
 
-        Args:
-            trading_pair: Trading pair symbol (e.g., "BTCUSDT")
-            interval: Candle interval (e.g., "1m")
-            initial_price: Initial price for candle generation
+        :param trading_pair: Trading pair symbol (e.g., "BTCUSDT").
+        :param interval: Candle interval (e.g., "1m").
+        :param initial_price: Initial price for candle generation.
         """
         # Normalize the trading pair to the standard format
         trading_pair = self.plugin.normalize_trading_pair(trading_pair)
@@ -191,10 +189,9 @@ class MockExchangeServer:
         """
         Set network condition parameters for simulation.
 
-        Args:
-            latency_ms: Artificial latency in milliseconds
-            packet_loss_rate: Rate of packet loss (0.0-1.0)
-            error_rate: Rate of error responses (0.0-1.0)
+        :param latency_ms: Artificial latency in milliseconds.
+        :param packet_loss_rate: Rate of packet loss (0.0-1.0).
+        :param error_rate: Rate of error responses (0.0-1.0).
         """
         if latency_ms is not None:
             self.latency_ms = max(0, latency_ms)
@@ -215,11 +212,10 @@ class MockExchangeServer:
         """
         Set rate limiting parameters.
 
-        Args:
-            rest_limit: Number of REST requests allowed per period
-            rest_period_ms: Period for REST rate limit in milliseconds
-            ws_limit: Number of WebSocket messages per second
-            ws_burst: Maximum burst of WebSocket messages
+        :param rest_limit: Number of REST requests allowed per period.
+        :param rest_period_ms: Period for REST rate limit in milliseconds.
+        :param ws_limit: Number of WebSocket messages per second.
+        :param ws_burst: Maximum burst of WebSocket messages.
         """
         if rest_limit is not None:
             self.rate_limits["rest"]["limit"] = max(1, rest_limit)
@@ -233,8 +229,11 @@ class MockExchangeServer:
         if ws_burst is not None:
             self.rate_limits["ws"]["burst"] = max(1, ws_burst)
 
-    async def start(self):
-        """Start the mock exchange server."""
+    async def start(self) -> str:
+        """Start the mock exchange server.
+
+        :returns: The URL of the mock exchange server.
+        """
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         self.site = web.TCPSite(self.runner, self.host, self.port)
@@ -317,7 +316,12 @@ class MockExchangeServer:
 
     @staticmethod
     def _interval_to_seconds(interval: str) -> int:
-        """Convert interval string to seconds."""
+        """Convert interval string to seconds.
+
+        :param interval: The interval string.
+        :returns: The interval in seconds.
+        :raises ValueError: If the interval unit is unknown.
+        """
         unit = interval[-1]
         value = int(interval[:-1])
 
@@ -340,12 +344,9 @@ class MockExchangeServer:
         """
         Check if the client exceeds rate limits.
 
-        Args:
-            ip: Client IP address
-            api_type: API type ('rest' or 'ws')
-
-        Returns:
-            True if allowed, False if rate limited
+        :param ip: Client IP address.
+        :param api_type: API type ('rest' or 'ws').
+        :returns: True if allowed, False if rate limited.
         """
         now = int(time.time() * 1000)
 
@@ -427,11 +428,10 @@ class MockExchangeServer:
         """
         Broadcast a candle update to WebSocket subscribers.
 
-        Args:
-            trading_pair: The trading pair
-            interval: The candle interval
-            candle: The candle data to broadcast
-            is_final: Whether this is the final candle update (closed candle)
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :param candle: The candle data to broadcast.
+        :param is_final: Whether this is the final candle update (closed candle).
         """
         # Get the subscription key for this trading pair and interval
         subscription_key = self.plugin.create_ws_subscription_key(trading_pair, interval)
@@ -450,7 +450,11 @@ class MockExchangeServer:
     # Common REST endpoint handlers
 
     async def handle_ping(self, request):
-        """Handle ping endpoint."""
+        """Handle ping endpoint.
+
+        :param request: The request object.
+        :returns: An empty JSON response.
+        """
         await self._simulate_network_conditions()
 
         # Check rate limit
@@ -461,7 +465,11 @@ class MockExchangeServer:
         return web.json_response({})
 
     async def handle_time(self, request):
-        """Handle time endpoint."""
+        """Handle time endpoint.
+
+        :param request: The request object.
+        :returns: A JSON response with the server time.
+        """
         await self._simulate_network_conditions()
 
         # Check rate limit
@@ -477,6 +485,9 @@ class MockExchangeServer:
 
         This is a generic handler that uses the plugin to parse parameters
         and format the response.
+
+        :param request: The request object.
+        :returns: A JSON response with candle data.
         """
         await self._simulate_network_conditions()
 
@@ -547,6 +558,9 @@ class MockExchangeServer:
 
         This is a generic handler that delegates to the plugin for
         exchange-specific message handling.
+
+        :param request: The request object.
+        :returns: The WebSocket response.
         """
         ws = web.WebSocketResponse()
         await ws.prepare(request)
@@ -572,6 +586,9 @@ class MockExchangeServer:
         Handle incoming WebSocket message.
 
         This method delegates to the plugin for exchange-specific message parsing.
+
+        :param ws: The WebSocket response object.
+        :param message: The incoming message.
         """
         client_ip = "ws_client"  # Could track per client if needed
 
@@ -624,7 +641,10 @@ class MockExchangeServer:
             self.logger.error(f"Error handling WebSocket message: {e}")
 
     def _remove_ws_connection(self, ws: web.WebSocketResponse):
-        """Remove WebSocket connection and subscriptions."""
+        """Remove WebSocket connection and subscriptions.
+
+        :param ws: The WebSocket response object.
+        """
         if ws in self.ws_connections:
             self.ws_connections.remove(ws)
 

@@ -14,17 +14,16 @@ class CandleData:
     This class provides a structured and type-safe representation of candle data
     with automatic timestamp normalization.
 
-    Attributes:
-        timestamp: The candle timestamp in seconds
-        open: Opening price
-        high: Highest price during period
-        low: Lowest price during period
-        close: Closing price
-        volume: Trading volume
-        quote_asset_volume: Quote asset volume (optional)
-        n_trades: Number of trades (optional)
-        taker_buy_base_volume: Base asset volume from taker buys (optional)
-        taker_buy_quote_volume: Quote asset volume from taker buys (optional)
+    :ivar timestamp: The candle timestamp in seconds
+    :ivar open: Opening price
+    :ivar high: Highest price during period
+    :ivar low: Lowest price during period
+    :ivar close: Closing price
+    :ivar volume: Trading volume
+    :ivar quote_asset_volume: Quote asset volume (optional)
+    :ivar n_trades: Number of trades (optional)
+    :ivar taker_buy_base_volume: Base asset volume from taker buys (optional)
+    :ivar taker_buy_quote_volume: Quote asset volume from taker buys (optional)
     """
 
     timestamp_raw: InitVar[int | float | str | datetime]
@@ -57,8 +56,7 @@ class CandleData:
     def __post_init__(self, timestamp_raw: int | float | str | datetime) -> None:
         """Convert timestamp to integer seconds after initialization.
 
-        Args:
-            timestamp_raw: Raw timestamp input in various formats
+        :param timestamp_raw: Raw timestamp input in various formats
         """
         self.timestamp = self._normalize_timestamp(timestamp_raw)
 
@@ -66,14 +64,9 @@ class CandleData:
     def _normalize_timestamp(ts: int | float | str | datetime) -> int:
         """Convert various timestamp formats to integer seconds.
 
-        Args:
-            ts: Timestamp in various formats
-
-        Returns:
-            Timestamp as integer seconds
-
-        Raises:
-            ValueError: If timestamp cannot be converted
+        :param ts: Timestamp in various formats
+        :return: Timestamp as integer seconds
+        :raises ValueError: If timestamp cannot be converted
         """
         if isinstance(ts, int):
             # Handle milliseconds/microseconds timestamps
@@ -105,11 +98,8 @@ class CandleData:
     def to_utc_seconds(dt: datetime) -> int:
         """Convert datetime to UTC timestamp in seconds.
 
-        Args:
-            dt: Datetime to convert
-
-        Returns:
-            UTC timestamp in seconds
+        :param dt: Datetime to convert
+        :return: UTC timestamp in seconds
         """
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
@@ -118,8 +108,7 @@ class CandleData:
     def to_array(self) -> list[float]:
         """Convert to array format for backward compatibility.
 
-        Returns:
-            List of candle values
+        :return: List of candle values
         """
         return [
             float(self.timestamp),
@@ -138,11 +127,8 @@ class CandleData:
     def from_array(cls, data: list[float]) -> "CandleData":
         """Create from array format for backward compatibility.
 
-        Args:
-            data: Array of candle values
-
-        Returns:
-            CandleData instance
+        :param data: Array of candle values
+        :return: CandleData instance
         """
         return cls(
             timestamp_raw=data[0],
@@ -161,14 +147,9 @@ class CandleData:
     def from_dict(cls, data: dict) -> "CandleData":
         """Create CandleData from a dictionary.
 
-        Args:
-            data: Dictionary containing candle data
-
-        Returns:
-            CandleData instance
-
-        Raises:
-            ValueError: If required fields are missing or invalid
+        :param data: Dictionary containing candle data
+        :return: CandleData instance
+        :raises ValueError: If required fields are missing or invalid
         """
         timestamp_raw = next((data[key] for key in cls._timestamp_keys if key in data), None)
         if timestamp_raw is None:

@@ -4,23 +4,24 @@ Core candles feed class for the Candle Feed framework.
 This module provides the main class for managing candle data feeds.
 """
 
-import asyncio
 import logging
 from collections import deque
-from typing import Deque, Dict, List, Optional
+from typing import Deque, Optional
 
 import pandas as pd
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
-from candles_feed.core.network_client import NetworkClient
+# Import the adapter factory
+from candles_feed.core.hummingbot_network_client_adapter import NetworkClientFactory
 from candles_feed.core.network_strategies import (
-    NetworkStrategyFactory,
     RESTPollingStrategy,
     WebSocketStrategy,
 )
-from candles_feed.core.protocols import CandleDataAdapter, Logger, NetworkStrategy
+from candles_feed.core.protocols import (
+    Logger,
+)
 
 
 class CandlesFeed:
@@ -37,15 +38,18 @@ class CandlesFeed:
         interval: str = "1m",
         max_records: int = 150,
         logger: Logger | None = None,
+        hummingbot_components: Optional[dict] = None,
     ):
         """Initialize the candles feed.
 
-        Args:
-            exchange: Name of the exchange
-            trading_pair: Trading pair
-            interval: Candle interval
-            max_records: Maximum number of candles to store
-            logger: Logger instance
+        :param exchange: Name of the exchange
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param max_records: Maximum number of candles to store
+        :param logger: Logger instance
+        :param hummingbot_components: Optional dictionary containing Hummingbot components:
+            - throttler: AsyncThrottlerBase instance
+            - web_assistants_factory: WebAssistantsFactory instance
         """
         self.exchange = exchange
         self.trading_pair = trading_pair
@@ -59,7 +63,11 @@ class CandlesFeed:
 
         # Initialize components
         self._candles: Deque[CandleData] = deque(maxlen=max_records)
-        self._network_client = NetworkClient()
+
+        # Create the appropriate network client based on available components
+        self._network_client = NetworkClientFactory.create_client(
+            hummingbot_components=hummingbot_components, logger=self.logger
+        )
         self._data_processor = DataProcessor()
 
         # Strategy attributes
@@ -67,6 +75,9 @@ class CandlesFeed:
         self._ws_strategy = None
         self._active = False
         self._using_ws = False
+
+        # Store the components for potential later use
+        self._hummingbot_components = hummingbot_components
 
     def _create_ws_strategy(self):
         """Create a WebSocket strategy instance.
@@ -99,8 +110,7 @@ class CandlesFeed:
     async def start(self, strategy: str = "auto") -> None:
         """Start the feed.
 
-        Args:
-            strategy: Strategy to use ("auto", "websocket", or "polling")
+        :param strategy: Strategy to use ("auto", "websocket", or "polling")
         """
         if self._active:
             return
@@ -161,8 +171,7 @@ class CandlesFeed:
     def get_candles_df(self) -> pd.DataFrame:
         """Get candles as a pandas DataFrame.
 
-        Returns:
-            DataFrame with candle data
+        :return: DataFrame with candle data
         """
         return pd.DataFrame(
             [
@@ -187,12 +196,9 @@ class CandlesFeed:
     ) -> list[CandleData]:
         """Fetch historical candles.
 
-        Args:
-            start_time: Start time in seconds (optional)
-            end_time: End time in seconds (optional)
-
-        Returns:
-            List of candle data objects
+        :param start_time: Start time in seconds (optional)
+        :param end_time: End time in seconds (optional)
+        :return: List of candle data objects
         """
         self.logger.info(f"Fetching historical candles for {self.trading_pair} on {self.exchange}")
 
@@ -223,16 +229,14 @@ class CandlesFeed:
     def get_candles(self) -> list[CandleData]:
         """Get raw candle data.
 
-        Returns:
-            List of CandleData objects
+        :return: List of CandleData objects
         """
         return list(self._candles)
 
     def add_candle(self, candle: CandleData) -> None:
         """Add a candle to the store.
 
-        Args:
-            candle: Candle data to add
+        :param candle: Candle data to add
         """
         self._data_processor.process_candle(candle, self._candles)
 
@@ -240,8 +244,7 @@ class CandlesFeed:
     def ready(self) -> bool:
         """Check if the feed is ready.
 
-        Returns:
-            True if the feed is ready, False otherwise
+        :return: True if the feed is ready, False otherwise
         """
         return len(self._candles) >= self.max_records * 0.9  # At least 90% filled
 
@@ -249,8 +252,7 @@ class CandlesFeed:
     def last_timestamp(self) -> int | None:
         """Get the timestamp of the most recent candle.
 
-        Returns:
-            Timestamp in seconds, or None if no candles available
+        :return: Timestamp in seconds, or None if no candles available
         """
         return self._candles[-1].timestamp if self._candles else None
 
@@ -258,7 +260,6 @@ class CandlesFeed:
     def first_timestamp(self) -> int | None:
         """Get the timestamp of the oldest candle.
 
-        Returns:
-            Timestamp in seconds, or None if no candles available
+        :return: Timestamp in seconds, or None if no candles available
         """
         return self._candles[0].timestamp if self._candles else None

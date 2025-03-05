@@ -24,8 +24,7 @@ class ExchangePlugin(abc.ABC):
         """
         Initialize the exchange plugin.
 
-        Args:
-            exchange_type: The type of exchange this plugin handles
+        :param exchange_type: The type of exchange this plugin handles.
         """
         self.exchange_type = exchange_type
 
@@ -35,9 +34,8 @@ class ExchangePlugin(abc.ABC):
         """
         Get the REST API routes for this exchange.
 
-        Returns:
-            A dictionary mapping URL paths to tuples of (HTTP method, handler name)
-            Example: {'/api/v3/klines': ('GET', 'handle_klines')}
+        :returns: A dictionary mapping URL paths to tuples of (HTTP method, handler name).
+            Example: {'/api/v3/klines': ('GET', 'handle_klines')}.
         """
         pass
 
@@ -47,9 +45,8 @@ class ExchangePlugin(abc.ABC):
         """
         Get the WebSocket routes for this exchange.
 
-        Returns:
-            A dictionary mapping URL paths to handler names
-            Example: {'/ws': 'handle_websocket'}
+        :returns: A dictionary mapping URL paths to handler names.
+            Example: {'/ws': 'handle_websocket'}.
         """
         pass
 
@@ -60,13 +57,10 @@ class ExchangePlugin(abc.ABC):
         """
         Format candle data as a REST API response for this exchange.
 
-        Args:
-            candles: List of candle data to format
-            trading_pair: The trading pair
-            interval: The candle interval
-
-        Returns:
-            Formatted response as expected from the exchange's REST API
+        :param candles: List of candle data to format.
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :returns: Formatted response as expected from the exchange's REST API.
         """
         pass
 
@@ -77,14 +71,11 @@ class ExchangePlugin(abc.ABC):
         """
         Format candle data as a WebSocket message for this exchange.
 
-        Args:
-            candle: Candle data to format
-            trading_pair: The trading pair
-            interval: The candle interval
-            is_final: Whether this is the final update for this candle
-
-        Returns:
-            Formatted message as expected from the exchange's WebSocket API
+        :param candle: Candle data to format.
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :param is_final: Whether this is the final update for this candle.
+        :returns: Formatted message as expected from the exchange's WebSocket API.
         """
         pass
 
@@ -93,11 +84,8 @@ class ExchangePlugin(abc.ABC):
         """
         Parse a WebSocket subscription message.
 
-        Args:
-            message: The subscription message from the client
-
-        Returns:
-            A list of (trading_pair, interval) tuples that the client wants to subscribe to
+        :param message: The subscription message from the client.
+        :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         pass
 
@@ -108,12 +96,9 @@ class ExchangePlugin(abc.ABC):
         """
         Create a WebSocket subscription success response.
 
-        Args:
-            message: The original subscription message
-            subscriptions: List of (trading_pair, interval) tuples that were subscribed to
-
-        Returns:
-            A subscription success response message
+        :param message: The original subscription message.
+        :param subscriptions: List of (trading_pair, interval) tuples that were subscribed to.
+        :returns: A subscription success response message.
         """
         pass
 
@@ -122,12 +107,9 @@ class ExchangePlugin(abc.ABC):
         """
         Create a WebSocket subscription key for internal tracking.
 
-        Args:
-            trading_pair: The trading pair
-            interval: The candle interval
-
-        Returns:
-            A string key used to track subscriptions
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :returns: A string key used to track subscriptions.
         """
         pass
 
@@ -136,12 +118,9 @@ class ExchangePlugin(abc.ABC):
         """
         Parse REST API parameters for candle requests.
 
-        Args:
-            request: The web request
-
-        Returns:
-            A dictionary with standardized parameter names
-            (symbol, interval, start_time, end_time, limit)
+        :param request: The web request.
+        :returns: A dictionary with standardized parameter names
+            (symbol, interval, start_time, end_time, limit).
         """
         pass
 
@@ -149,11 +128,8 @@ class ExchangePlugin(abc.ABC):
         """
         Normalize a trading pair to a standard format.
 
-        Args:
-            trading_pair: The trading pair in exchange-specific format
-
-        Returns:
-            The trading pair in standard format
+        :param trading_pair: The trading pair in exchange-specific format.
+        :returns: The trading pair in standard format.
         """
         # Default implementation (might be overridden by specific exchanges)
         return trading_pair.upper()
@@ -162,13 +138,10 @@ class ExchangePlugin(abc.ABC):
         """
         Translate between standard interval format and exchange-specific format.
 
-        Args:
-            interval: The interval to translate
-            to_exchange: If True, translate from standard to exchange format
-                        If False, translate from exchange to standard format
-
-        Returns:
-            The translated interval
+        :param interval: The interval to translate.
+        :param to_exchange: If True, translate from standard to exchange format.
+            If False, translate from exchange to standard format.
+        :returns: The translated interval.
         """
         # Default implementation (can be overridden by specific exchanges)
         return interval

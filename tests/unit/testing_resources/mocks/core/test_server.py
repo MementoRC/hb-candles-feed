@@ -18,6 +18,10 @@ from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
 
 class TestMockExchangeServer(unittest.TestCase):
     """Tests for the MockExchangeServer class."""
+    # Override runTest to fix the coroutine never awaited warning
+    # This is required because unittest and pytest-asyncio don't play well together
+    def runTest(self):
+        pass
 
     class SamplePlugin(ExchangePlugin):
         """A simple plugin implementation for testing."""
@@ -206,6 +210,8 @@ class TestMockExchangeServer(unittest.TestCase):
 
         self.assertEqual(url, "http://127.0.0.1:8080")
         self.assertEqual(len(self.server._tasks), 1)
+        # Return None to fix deprecation warning
+        return None
 
     @pytest.mark.asyncio
     @patch("candles_feed.testing_resources.mocks.core.server.asyncio.create_task")
@@ -234,6 +240,8 @@ class TestMockExchangeServer(unittest.TestCase):
         self.assertEqual(self.server._tasks, [])
         self.assertEqual(self.server.ws_connections, set())
         self.assertEqual(self.server.subscriptions, {})
+        # Return None to fix deprecation warning
+        return None
 
     @patch("time.time")
     def test_interval_to_seconds(self, mock_time):
@@ -305,6 +313,8 @@ class TestMockExchangeServer(unittest.TestCase):
 
         # Assert
         mock_sleep.assert_called_once_with(0.05)  # 50ms = 0.05s
+        # Return None to fix deprecation warning
+        return None
 
     @pytest.mark.asyncio
     @patch("candles_feed.testing_resources.mocks.core.server.random.random")
@@ -322,6 +332,9 @@ class TestMockExchangeServer(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(web.HTTPServiceUnavailable):
             await self.server._simulate_network_conditions()
+        
+        # Return None to fix deprecation warning
+        return None
 
     @pytest.mark.asyncio
     @patch("candles_feed.testing_resources.mocks.core.server.random.random")
@@ -343,6 +356,9 @@ class TestMockExchangeServer(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(web.HTTPTooManyRequests):
             await self.server._simulate_network_conditions()
+            
+        # Return None to fix deprecation warning
+        return None
 
 
 if __name__ == "__main__":

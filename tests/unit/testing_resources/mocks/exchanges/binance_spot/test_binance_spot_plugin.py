@@ -15,6 +15,10 @@ from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import B
 
 class TestBinanceSpotPlugin(unittest.TestCase):
     """Tests for the BinanceSpotPlugin class."""
+    # Override runTest to fix the coroutine never awaited warning
+    # This is required because unittest and pytest-asyncio don't play well together
+    def runTest(self):
+        pass
 
     def setUp(self):
         """Set up test fixtures."""
@@ -227,6 +231,9 @@ class TestBinanceSpotPlugin(unittest.TestCase):
         self.assertEqual(btc_symbol["baseAsset"], "BTC")
         self.assertEqual(btc_symbol["quoteAsset"], "USDT")
         self.assertEqual(btc_symbol["status"], "TRADING")
+        
+        # Return None to fix deprecation warning
+        return None
 
 
 if __name__ == "__main__":

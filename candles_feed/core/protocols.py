@@ -200,3 +200,78 @@ class Logger(Protocol):
     def exception(self, msg: str, *args, **kwargs) -> None:
         """Log exception message."""
         ...
+
+
+@runtime_checkable
+class NetworkClientProtocol(Protocol):
+    """Protocol defining the network client interface.
+
+    This protocol abstracts the network communication layer,
+    allowing for different implementations (standalone, Hummingbot-based, etc.)
+    """
+
+    async def get_rest_data(
+        self,
+        url: str,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        method: str = "GET",
+    ) -> Any:
+        """Get data from REST API.
+
+        :param url: REST API URL
+        :param params: Query parameters
+        :param data: Request body data
+        :param headers: Request headers
+        :param method: HTTP method
+        :return: REST API response
+        """
+        ...
+
+    async def establish_ws_connection(self, url: str) -> WSAssistant:
+        """Establish a websocket connection.
+
+        :param url: WebSocket URL
+        :return: WSAssistant instance
+        """
+        ...
+
+    async def send_ws_message(self, ws_assistant: WSAssistant, payload: dict[str, Any]) -> None:
+        """Send a message over WebSocket.
+
+        :param ws_assistant: WebSocket assistant
+        :param payload: Message payload
+        """
+        ...
+
+    async def close(self) -> None:
+        """Close the client, cleaning up any resources."""
+        ...
+
+    async def __aenter__(self) -> "NetworkClientProtocol":
+        """Allow usage as an async context manager."""
+        ...
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit the async context manager."""
+        ...
+
+
+@runtime_checkable
+class AsyncThrottlerProtocol(Protocol):
+    """Protocol for API rate limiters.
+
+    This protocol abstracts the rate limiting functionality,
+    allowing for different implementations.
+    """
+
+    async def execute_task(self, limit_id: str, weight: int = 1) -> None:
+        """Execute a task respecting rate limits.
+
+        :param limit_id: The rate limit identifier
+        :param weight: The weight of the task (default: 1)
+        
+        This method should delay execution if necessary to respect rate limits.
+        """
+        ...

@@ -32,14 +32,13 @@ class WebSocketStrategy:
     ):
         """Initialize the WebSocketStrategy.
 
-        Args:
-            network_client: Network client for API communication
-            adapter: Exchange adapter
-            trading_pair: Trading pair
-            interval: Candle interval
-            data_processor: Data processor
-            candles_store: Deque for storing candles
-            logger: Logger instance
+        :param network_client: Network client for API communication
+        :param adapter: Exchange adapter
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param data_processor: Data processor
+        :param candles_store: Deque for storing candles
+        :param logger: Logger instance
         """
         self.network_client = network_client
         self.adapter = adapter

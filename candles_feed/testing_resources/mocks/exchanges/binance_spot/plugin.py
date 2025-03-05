@@ -3,7 +3,7 @@ Binance Spot plugin implementation for the mock exchange server.
 """
 
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from aiohttp import web
 
@@ -25,8 +25,7 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Initialize the Binance Spot plugin.
 
-        Args:
-            exchange_type: The exchange type (should be ExchangeType.BINANCE_SPOT)
+        :param exchange_type: The exchange type (should be ExchangeType.BINANCE_SPOT).
         """
         super().__init__(exchange_type)
 
@@ -35,8 +34,7 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Get the REST API routes for Binance Spot.
 
-        Returns:
-            A dictionary mapping URL paths to tuples of (HTTP method, handler name)
+        :returns: A dictionary mapping URL paths to tuples of (HTTP method, handler name).
         """
         return {
             "/api/v3/ping": ("GET", "handle_ping"),
@@ -50,8 +48,7 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Get the WebSocket routes for Binance Spot.
 
-        Returns:
-            A dictionary mapping URL paths to handler names
+        :returns: A dictionary mapping URL paths to handler names.
         """
         return {"/ws": "handle_websocket"}
 
@@ -61,13 +58,10 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Format candle data as a Binance REST API response.
 
-        Args:
-            candles: List of candle data to format
-            trading_pair: The trading pair
-            interval: The candle interval
-
-        Returns:
-            Formatted response as expected from Binance's REST API
+        :param candles: List of candle data to format.
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :returns: Formatted response as expected from Binance's REST API.
         """
         return [
             [
@@ -93,14 +87,11 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Format candle data as a Binance WebSocket message.
 
-        Args:
-            candle: Candle data to format
-            trading_pair: The trading pair
-            interval: The candle interval
-            is_final: Whether this is the final update for this candle
-
-        Returns:
-            Formatted message as expected from Binance's WebSocket API
+        :param candle: Candle data to format.
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :param is_final: Whether this is the final update for this candle.
+        :returns: Formatted message as expected from Binance's WebSocket API.
         """
         interval_seconds = self._interval_to_seconds(interval)
 
@@ -132,11 +123,8 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Parse a Binance WebSocket subscription message.
 
-        Args:
-            message: The subscription message from the client
-
-        Returns:
-            A list of (trading_pair, interval) tuples that the client wants to subscribe to
+        :param message: The subscription message from the client.
+        :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         subscriptions = []
 
@@ -162,12 +150,9 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Create a Binance WebSocket subscription success response.
 
-        Args:
-            message: The original subscription message
-            subscriptions: List of (trading_pair, interval) tuples that were subscribed to
-
-        Returns:
-            A subscription success response message
+        :param message: The original subscription message.
+        :param subscriptions: List of (trading_pair, interval) tuples that were subscribed to.
+        :returns: A subscription success response message.
         """
         return {"result": None, "id": message.get("id", 1)}
 
@@ -175,12 +160,9 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Create a WebSocket subscription key for internal tracking.
 
-        Args:
-            trading_pair: The trading pair
-            interval: The candle interval
-
-        Returns:
-            A string key used to track subscriptions
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :returns: A string key used to track subscriptions.
         """
         return f"{trading_pair.lower()}@kline_{interval}"
 
@@ -188,11 +170,8 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Parse REST API parameters for Binance candle requests.
 
-        Args:
-            request: The web request
-
-        Returns:
-            A dictionary with standardized parameter names
+        :param request: The web request.
+        :returns: A dictionary with standardized parameter names.
         """
         params = request.query
 
@@ -208,12 +187,9 @@ class BinanceSpotPlugin(ExchangePlugin):
         """
         Handle the Binance exchangeInfo endpoint.
 
-        Args:
-            server: The mock server instance
-            request: The web request
-
-        Returns:
-            A JSON response with exchange information
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: A JSON response with exchange information.
         """
         await server._simulate_network_conditions()
 
@@ -291,7 +267,12 @@ class BinanceSpotPlugin(ExchangePlugin):
 
     @staticmethod
     def _interval_to_seconds(interval: str) -> int:
-        """Convert interval string to seconds."""
+        """Convert interval string to seconds.
+
+        :param interval: The interval string.
+        :returns: The interval in seconds.
+        :raises ValueError: If the interval unit is unknown.
+        """
         unit = interval[-1]
         value = int(interval[:-1])
 

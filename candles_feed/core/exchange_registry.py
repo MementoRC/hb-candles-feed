@@ -26,8 +26,7 @@ class ExchangeRegistry:
     def logger(cls) -> Logger:
         """Get the logger.
 
-        Returns:
-            Logger instance
+        :return: Logger instance
         """
         if cls._logger is None:
             cls._logger = logging.getLogger(__name__)
@@ -37,11 +36,8 @@ class ExchangeRegistry:
     def register(cls, name: str):
         """Decorator for registering exchange adapters.
 
-        Args:
-            name: Adapter name
-
-        Returns:
-            Decorator function
+        :param name: Adapter name
+        :return: Decorator function
         """
 
         def decorator(adapter_class: type[CandleDataAdapter]):
@@ -57,14 +53,9 @@ class ExchangeRegistry:
     def get_adapter_class(cls, name: str) -> type[CandleDataAdapter]:
         """Get adapter class by name.
 
-        Args:
-            name: Adapter name
-
-        Returns:
-            Adapter class
-
-        Raises:
-            ValueError: If no adapter is registered with the given name
+        :param name: Adapter name
+        :return: Adapter class
+        :raises ValueError: If no adapter is registered with the given name
         """
         adapter_class = cls._registry.get(name)
         if adapter_class is None:
@@ -75,14 +66,9 @@ class ExchangeRegistry:
     def get_adapter(cls, name: str) -> CandleDataAdapter:
         """Get adapter instance by name.
 
-        Args:
-            name: Adapter name
-
-        Returns:
-            Adapter instance
-
-        Raises:
-            ValueError: If no adapter is registered with the given name
+        :param name: Adapter name
+        :return: Adapter instance
+        :raises ValueError: If no adapter is registered with the given name
         """
         adapter_class = cls.get_adapter_class(name)
         cls.logger().debug(f"Creating adapter instance: {name}")
@@ -92,13 +78,11 @@ class ExchangeRegistry:
     def get_adapter_instance(cls, name: str, *args, **kwargs) -> CandleDataAdapter:
         """Get adapter instance by name with custom args.
 
-        Args:
-            name: Adapter name
-            *args: Positional arguments to pass to the adapter constructor
-            **kwargs: Keyword arguments to pass to the adapter constructor
-
-        Returns:
-            Adapter instance
+        :param name: Adapter name
+        :param args: Positional arguments to pass to the adapter constructor
+        :param kwargs: Keyword arguments to pass to the adapter constructor
+        :return: Adapter instance
+        :raises ValueError: If no adapter is registered with the given name
         """
         adapter_class = cls.get_adapter_class(name)
         cls.logger().debug(f"Creating adapter instance with args: {name}")

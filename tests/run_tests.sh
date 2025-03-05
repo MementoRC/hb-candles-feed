@@ -18,7 +18,7 @@ run_tests() {
     
     echo -e "${YELLOW}Running $category tests...${NC}"
     
-    python -m pytest -xvs "$test_path" > "$category.log" 2>&1
+    /home/memento/ClaudeCode/candles-feed/bin/python -m pytest -xvs "$test_path" > "$category.log" 2>&1
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ $category tests PASSED${NC}"

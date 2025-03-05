@@ -22,10 +22,9 @@ class MockedCandlesFeedServer:
     def __init__(self, exchange_type: ExchangeType, host: str = "127.0.0.1", port: int = 8789):
         """Initialize the test exchange server.
 
-        Args:
-            exchange_type: Type of exchange to mock
-            host: Host to bind the server to
-            port: Port to bind the server to
+        :param exchange_type: Type of exchange to mock
+        :param host: Host to bind the server to
+        :param port: Port to bind the server to
         """
         self.exchange_type = exchange_type
         self.host = host
@@ -40,7 +39,11 @@ class MockedCandlesFeedServer:
         self.server = MockExchangeServer(self.plugin, host, port)
 
     def _create_plugin(self, exchange_type: ExchangeType) -> ExchangePlugin:
-        """Create the appropriate plugin for the exchange type."""
+        """Create the appropriate plugin for the exchange type.
+
+        :param exchange_type: The exchange type.
+        :returns: The exchange plugin.
+        """
         if exchange_type not in [
             ExchangeType.BINANCE_SPOT,
             ExchangeType.BINANCE_PERPETUAL,
@@ -53,13 +56,10 @@ class MockedCandlesFeedServer:
         return BinanceSpotPlugin(exchange_type)
 
     async def start(self, trading_pairs: list[tuple[str, str, float]] | None = None) -> str | None:
-        """Start the test exchange server.
+        """ "Start the test exchange server.
 
-        Args:
-            trading_pairs: List of (trading_pair, interval, initial_price) tuples
-
-        Returns:
-            Server URL
+        :param trading_pairs: List of (trading_pair, interval, initial_price) tuples
+        :returns: Server URL
         """
         if trading_pairs is None:
             # Default trading pairs
@@ -89,10 +89,9 @@ class MockedCandlesFeedServer:
     ):
         """Configure network conditions for error simulation.
 
-        Args:
-            latency_ms: Artificial latency in milliseconds
-            packet_loss_rate: Rate of packet loss (0.0-1.0)
-            error_rate: Rate of error responses (0.0-1.0)
+        :param latency_ms: Artificial latency in milliseconds
+        :param packet_loss_rate: Rate of packet loss (0.0-1.0)
+        :param error_rate: Rate of error responses (0.0-1.0)
         """
         if self.server:
             self.server.set_network_conditions(
@@ -108,8 +107,10 @@ class MockedCandlesFeedServer:
         self._restore_adapter_urls()
 
     def _get_adapter_constants_module(self) -> tuple[str, dict[str, str]]:
-        """Get the adapter constants module name and URL attributes based on exchange
-        type."""
+        """Get the adapter constants module name and URL attributes based on exchange type.
+
+        :returns: A tuple containing the module name and a dictionary of URL attributes.
+        """
         exchange_name = self.exchange_type.value
 
         # Map exchange types to their module paths and URL attributes

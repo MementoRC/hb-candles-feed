@@ -22,8 +22,7 @@ class NetworkClient:
     def __init__(self, logger: Logger | None = None):
         """Initialize the NetworkClient.
 
-        Args:
-            logger: Logger instance
+        :param logger: Logger instance
         """
         self.logger: Logger = logger or logging.getLogger(__name__)
         self._session: aiohttp.ClientSession | None = None
@@ -62,18 +61,13 @@ class NetworkClient:
     ) -> Any:
         """Get data from REST API.
 
-        Args:
-            url: REST API URL
-            params: Query parameters
-            data: Request body data
-            headers: Request headers
-            method: HTTP method
-
-        Returns:
-            REST API response
-
-        Raises:
-            Exception: If the request fails
+        :param url: REST API URL
+        :param params: Query parameters
+        :param data: Request body data
+        :param headers: Request headers
+        :param method: HTTP method
+        :return: REST API response
+        :raises Exception: If the request fails
         """
         await self._ensure_session()
         assert self._session is not None
@@ -103,14 +97,9 @@ class NetworkClient:
     async def establish_ws_connection(self, url: str) -> WSAssistant:
         """Establish a websocket connection.
 
-        Args:
-            url: WebSocket URL
-
-        Returns:
-            WSAssistant instance
-
-        Raises:
-            Exception: If the connection fails
+        :param url: WebSocket URL
+        :return: WSAssistant instance
+        :raises Exception: If the connection fails
         """
         await self._ensure_session()
         assert self._session is not None
@@ -127,12 +116,9 @@ class NetworkClient:
     async def send_ws_message(self, ws_assistant: WSAssistant, payload: dict[str, Any]) -> None:
         """Send a message over WebSocket.
 
-        Args:
-            ws_assistant: WebSocket assistant
-            payload: Message payload
-
-        Raises:
-            Exception: If sending fails
+        :param ws_assistant: WebSocket assistant
+        :param payload: Message payload
+        :raises Exception: If sending fails
         """
         try:
             await ws_assistant.send(payload)
@@ -149,9 +135,8 @@ class SimpleWSAssistant(WSAssistant):
     ):
         """Initialize the SimpleWSAssistant.
 
-        Args:
-            ws_connection: WebSocket connection
-            logger: Logger instance
+        :param ws_connection: WebSocket connection
+        :param logger: Logger instance
         """
         self._ws = ws_connection
         self._logger = logger or logging.getLogger(__name__)
@@ -168,11 +153,8 @@ class SimpleWSAssistant(WSAssistant):
     async def send(self, payload: dict[str, Any]) -> None:
         """Send a message over WebSocket.
 
-        Args:
-            payload: Message payload
-
-        Raises:
-            Exception: If sending fails
+        :param payload: Message payload
+        :raises Exception: If sending fails
         """
         await self._ws.send_json(payload)
 
@@ -181,8 +163,7 @@ class SimpleWSAssistant(WSAssistant):
 
         This method implements an async iterator protocol.
 
-        Yields:
-            WebSocket messages
+        :yield: WebSocket messages
         """
         try:
             async for msg in self._ws:
@@ -202,5 +183,7 @@ class SimpleWSAssistant(WSAssistant):
         """Return self as an async iterator.
 
         This method is required for the async iterator protocol.
+        
+        :return: Async iterator for messages
         """
         return self.iter_messages()
