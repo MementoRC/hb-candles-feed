@@ -11,11 +11,10 @@ import time
 
 import pytest
 
-from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
-from candles_feed.testing_resources.mocked_candle_feed_server import MockedCandlesFeedServer
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
+from mocking_resources.core.candle_data_factory import CandleDataFactory
+from candles_feed.mocking_resources.mocked_candle_feed_server import MockedCandlesFeedServer
+from mocking_resources.core import ExchangeType
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -32,17 +31,17 @@ class TestEndToEnd:
         url = await server.start()
 
         # Directly patch the adapter method that gets called
-        from candles_feed.adapters.binance_spot.binance_spot_adapter import BinanceSpotAdapter
+        from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
 
         # Define patched methods that return our mock server URLs
-        def patched_get_rest_url(self):
+        def patched_get_rest_url():
             base_url = url.rstrip("/")
             return f"{base_url}/api/v3/klines"
 
-        def patched_get_ws_url(self):
+        def patched_get_ws_url():
             return f"ws://{server.host}:{server.port}/ws"
 
-        # Apply patches using monkeypatch
+        # Apply patches using monkeypatch - note these are now staticmethods
         monkeypatch.setattr(BinanceSpotAdapter, "get_rest_url", patched_get_rest_url)
         monkeypatch.setattr(BinanceSpotAdapter, "get_ws_url", patched_get_ws_url)
 
@@ -101,7 +100,7 @@ class TestEndToEnd:
             logger.info(f"Received {rest_count} candles via REST")
 
             # Debug the subscription status
-            logger.info("Checking MockExchangeServer state before WebSocket start:")
+            logger.info("Checking MockedExchangeServer state before WebSocket start:")
             logger.info(f"Subscriptions: {mock_binance_server.server.subscriptions}")
             logger.info(f"WS connections: {len(mock_binance_server.server.ws_connections)}")
             logger.info(
@@ -242,7 +241,6 @@ class TestEndToEnd:
             await asyncio.gather(btc_feed.stop(), eth_feed.stop(), sol_feed.stop())
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Needs adjustment for the new CandleDataFactory")
     async def test_different_intervals(self, mock_binance_server):
         """Test working with different candle intervals."""
         # Configure the mock server with additional intervals
@@ -287,7 +285,6 @@ class TestEndToEnd:
                 await feed.stop()
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Needs adjustment for the new CandleDataFactory")
     async def test_error_handling(self, mock_binance_server):
         """Test error handling capabilities."""
         # Test the URL patching first to ensure we're using our mock server

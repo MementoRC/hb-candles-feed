@@ -2,14 +2,13 @@
 Test the integration of the Candle Feed with Hummingbot components.
 """
 
-import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from candles_feed import CandlesFeed, create_candles_feed_with_hummingbot
-from candles_feed.testing_resources.mocks.hummingbot.mock_components import (
+from mocking_resources.hummingbot import (
     create_mock_hummingbot_components,
 )
 

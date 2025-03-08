@@ -3,13 +3,11 @@ Unit tests for the CandlesFeed class using the mock exchange server.
 """
 
 import asyncio
-from datetime import datetime, timezone
 
 import aiohttp
 import pytest
 
 from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
 
 
 # Add a fixture to clean up unclosed aiohttp client sessions

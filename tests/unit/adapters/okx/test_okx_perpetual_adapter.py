@@ -8,14 +8,14 @@ import pytest
 
 from candles_feed.adapters.okx.constants import (
     CANDLES_ENDPOINT,
-    INTERVAL_TO_OKX_FORMAT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
+    PERP_REST_URL,
     WS_INTERVALS,
-    WSS_URL,
+    PERP_WSS_URL,
 )
-from candles_feed.adapters.okx.okx_perpetual_adapter import OKXPerpetualAdapter
+from candles_feed.adapters.okx.perpetual_adapter import OKXPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
 
 
@@ -40,11 +40,11 @@ class TestOKXPerpetualAdapter:
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert self.adapter.get_rest_url() == f"{PERP_REST_URL}{CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert self.adapter.get_ws_url() == PERP_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
@@ -54,7 +54,7 @@ class TestOKXPerpetualAdapter:
 
         # For perpetual markets, we need the SWAP suffix and replace hyphen with slash
         assert params["instId"] == "BTC-USDT-SWAP".replace("-", "/")
-        assert params["bar"] == INTERVAL_TO_OKX_FORMAT[self.interval]
+        assert params["bar"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
         assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
         assert "after" not in params
         assert "before" not in params
@@ -74,10 +74,10 @@ class TestOKXPerpetualAdapter:
         )
 
         assert params["instId"] == "BTC-USDT-SWAP".replace("-", "/")
-        assert params["bar"] == INTERVAL_TO_OKX_FORMAT[self.interval]
+        assert params["bar"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
         assert params["limit"] == limit
-        assert params["after"] == start_time
-        assert params["before"] == end_time
+        assert params["after"] == start_time * 1000
+        assert params["before"] == end_time * 1000
 
     def test_parse_rest_response(self, candlestick_response_okx):
         """Test parsing REST API response."""
@@ -89,18 +89,18 @@ class TestOKXPerpetualAdapter:
         # Check first candle
         assert candles[0].timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
         assert candles[0].open == 50000.0
-        assert candles[0].high == 51000.0
-        assert candles[0].low == 49000.0
-        assert candles[0].close == 50500.0
+        assert candles[0].high == 50500.0
+        assert candles[0].low == 51000.0
+        assert candles[0].close == 49000.0
         assert candles[0].volume == 100.0
         assert candles[0].quote_asset_volume == 5000000.0
 
         # Check second candle
         assert candles[1].timestamp == 1672531260  # 2023-01-01 00:01:00 UTC in seconds
-        assert candles[1].open == 50500.0
-        assert candles[1].high == 52000.0
-        assert candles[1].low == 50000.0
-        assert candles[1].close == 51500.0
+        assert candles[1].open == 51500.0
+        assert candles[1].high == 50500.0
+        assert candles[1].low == 52000.0
+        assert candles[1].close == 50000.0
         assert candles[1].volume == 150.0
         assert candles[1].quote_asset_volume == 7500000.0
 
@@ -112,7 +112,7 @@ class TestOKXPerpetualAdapter:
 
         assert payload["op"] == "subscribe"
         assert len(payload["args"]) == 1
-        assert payload["args"][0]["channel"] == f"candle{INTERVAL_TO_OKX_FORMAT[self.interval]}"
+        assert payload["args"][0]["channel"] == f"candle{INTERVAL_TO_EXCHANGE_FORMAT[self.interval]}"
         # For perpetual markets, we need the SWAP suffix and replace hyphen with slash
         assert payload["args"][0]["instId"] == "BTC-USDT-SWAP".replace("-", "/")
 
@@ -150,7 +150,7 @@ class TestOKXPerpetualAdapter:
         # Test with missing data field
         ws_message = {
             "arg": {
-                "channel": f"candle{INTERVAL_TO_OKX_FORMAT[self.interval]}",
+                "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT[self.interval]}",
                 "instId": "BTC-USDT-SWAP",
             }
         }

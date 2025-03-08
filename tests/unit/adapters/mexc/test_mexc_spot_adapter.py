@@ -7,15 +7,15 @@ from unittest.mock import MagicMock
 import pytest
 
 from candles_feed.adapters.mexc.constants import (
-    CANDLES_ENDPOINT,
-    INTERVAL_TO_MEXC_FORMAT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
     WS_INTERVALS,
-    WSS_URL,
 )
-from candles_feed.adapters.mexc.mexc_spot_adapter import MEXCSpotAdapter
+from candles_feed.adapters.mexc.spot_adapter import MEXCSpotAdapter
 from candles_feed.core.candle_data import CandleData
 
 
@@ -31,21 +31,21 @@ class TestMEXCSpotAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
+        assert MEXCSpotAdapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
+        assert MEXCSpotAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
 
         # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
+        assert MEXCSpotAdapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
 
     def test_get_rest_url(self):
         """Test REST API URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert MEXCSpotAdapter.get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert MEXCSpotAdapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
@@ -113,7 +113,7 @@ class TestMEXCSpotAdapter:
         payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
 
         assert payload["method"] == "sub"
-        mexc_interval = INTERVAL_TO_MEXC_FORMAT.get(self.interval, self.interval)
+        mexc_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
         expected_topic = f"spot@public.kline.{mexc_interval}_btcusdt"
         assert payload["params"][0] == expected_topic
 
@@ -148,7 +148,7 @@ class TestMEXCSpotAdapter:
 
     def test_get_supported_intervals(self):
         """Test getting supported intervals."""
-        intervals = self.adapter.get_supported_intervals()
+        intervals = MEXCSpotAdapter.get_supported_intervals()
 
         # Verify intervals match the expected values
         assert intervals == INTERVALS
@@ -161,7 +161,7 @@ class TestMEXCSpotAdapter:
 
     def test_get_ws_supported_intervals(self):
         """Test getting WebSocket supported intervals."""
-        ws_intervals = self.adapter.get_ws_supported_intervals()
+        ws_intervals = MEXCSpotAdapter.get_ws_supported_intervals()
 
         # Verify WS intervals match the expected values
         assert ws_intervals == WS_INTERVALS

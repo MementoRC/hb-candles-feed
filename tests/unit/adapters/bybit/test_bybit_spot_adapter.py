@@ -6,15 +6,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from candles_feed.adapters.bybit.bybit_spot_adapter import BybitSpotAdapter
+from candles_feed.adapters.bybit.spot_adapter import BybitSpotAdapter
 from candles_feed.adapters.bybit.constants import (
     CANDLES_ENDPOINT,
-    INTERVAL_TO_BYBIT_FORMAT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     REST_URL,
+    SPOT_WSS_URL,
     WS_INTERVALS,
-    WSS_URL,
 )
 from candles_feed.core.candle_data import CandleData
 
@@ -31,28 +31,28 @@ class TestBybitSpotAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTCUSDT"
+        assert BybitSpotAdapter.get_trading_pair_format("BTC-USDT") == "BTCUSDT"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTCUSDTPERP"
+        assert BybitSpotAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTCUSDTPERP"
 
         # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btcusdt"
+        assert BybitSpotAdapter.get_trading_pair_format("btc-usdt") == "btcusdt"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert BybitSpotAdapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert BybitSpotAdapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
         params = self.adapter.get_rest_params(self.trading_pair, self.interval)
 
         assert params["symbol"] == "BTCUSDT"
-        assert params["interval"] == INTERVAL_TO_BYBIT_FORMAT[self.interval]
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
         assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
         assert "start" not in params
         assert "end" not in params
@@ -68,7 +68,7 @@ class TestBybitSpotAdapter:
         )
 
         assert params["symbol"] == "BTCUSDT"
-        assert params["interval"] == INTERVAL_TO_BYBIT_FORMAT[self.interval]
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
         assert params["limit"] == limit
         assert params["start"] == start_time * 1000  # Should be in milliseconds
         assert params["end"] == end_time * 1000  # Should be in milliseconds
@@ -104,7 +104,7 @@ class TestBybitSpotAdapter:
 
         assert payload["op"] == "subscribe"
         assert len(payload["args"]) == 1
-        assert payload["args"][0] == f"kline.{INTERVAL_TO_BYBIT_FORMAT[self.interval]}.BTCUSDT"
+        assert payload["args"][0] == f"kline.{INTERVAL_TO_EXCHANGE_FORMAT[self.interval]}.BTCUSDT"
 
     def test_parse_ws_message_valid(self, websocket_message_bybit):
         """Test parsing valid WebSocket message."""

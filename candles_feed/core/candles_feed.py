@@ -115,7 +115,7 @@ class CandlesFeed:
         if self._active:
             return
 
-        self.logger.info(f"Starting candles feed for {self.trading_pair} on {self.exchange}")
+        self.logger.debug(f"Starting candles feed for {self.trading_pair} on {self.exchange}")
 
         # Determine which strategy to use
         use_websocket = False
@@ -156,7 +156,7 @@ class CandlesFeed:
         if not self._active:
             return
 
-        self.logger.info(f"Stopping candles feed for {self.trading_pair}")
+        self.logger.debug(f"Stopping candles feed for {self.trading_pair}")
 
         if self._using_ws and self._ws_strategy:
             await self._ws_strategy.stop()
@@ -192,15 +192,19 @@ class CandlesFeed:
         )
 
     async def fetch_candles(
-        self, start_time: int | None = None, end_time: int | None = None
+        self,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        limit: int = 500,
     ) -> list[CandleData]:
         """Fetch historical candles.
 
         :param start_time: Start time in seconds (optional)
         :param end_time: End time in seconds (optional)
+        :param limit: Maximum number of candles to fetch (default: 500)
         :return: List of candle data objects
         """
-        self.logger.info(f"Fetching historical candles for {self.trading_pair} on {self.exchange}")
+        self.logger.debug(f"Fetching historical candles for {self.trading_pair} on {self.exchange}")
 
         # Create REST strategy if it doesn't exist
         if not self._rest_strategy:
@@ -210,7 +214,7 @@ class CandlesFeed:
             raise ValueError("REST polling strategy not supported by this adapter")
 
         # Fetch candles
-        candles = await self._rest_strategy.poll_once(start_time, end_time)
+        candles = await self._rest_strategy.poll_once(start_time, end_time, limit)
 
         # Add candles to the store
         if candles:

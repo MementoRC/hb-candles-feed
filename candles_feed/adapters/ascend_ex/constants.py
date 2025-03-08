@@ -2,8 +2,6 @@
 Constants for the AscendEx spot adapter.
 """
 
-from typing import Dict
-
 # API URLs
 REST_URL = "https://ascendex.com/api/pro/v1/"
 WSS_URL = "wss://ascendex.com:443/api/pro/v1/websocket-for-hummingbot-liq-mining/stream"
@@ -18,7 +16,7 @@ SUB_ENDPOINT_NAME = "sub"
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 500
 
-# Intervals mapping: interval name -> seconds and AscendEx format
+# Intervals mapping: interval name -> seconds
 INTERVALS: dict[str, int] = {
     "1m": 60,
     "5m": 300,
@@ -34,8 +32,8 @@ INTERVALS: dict[str, int] = {
     "1M": 2592000,
 }
 
-# AscendEx interval formats
-INTERVAL_TO_ASCENDEX_FORMAT = {
+# Exchange-specific interval formats
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "1m": "1",
     "5m": "5",
     "15m": "15",

@@ -2,19 +2,15 @@
 Unit tests for the BinanceSpotAdapter class.
 """
 
-from unittest.mock import MagicMock
-
-import pytest
-
-from candles_feed.adapters.binance.binance_spot_adapter import BinanceSpotAdapter
 from candles_feed.adapters.binance.constants import (
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
     WS_INTERVALS,
-    WSS_URL,
 )
-from candles_feed.core.candle_data import CandleData
+from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
 
 
 class TestBinanceSpotAdapter:
@@ -29,21 +25,22 @@ class TestBinanceSpotAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTCUSDT"
+        assert BinanceSpotAdapter.get_trading_pair_format("BTC-USDT") == "BTCUSDT"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTCUSDTPERP"
+        assert BinanceSpotAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTCUSDTPERP"
 
         # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btcusdt"
+        assert BinanceSpotAdapter.get_trading_pair_format("btc-usdt") == "btcusdt"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == REST_URL
+        expected_url = f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+        assert BinanceSpotAdapter.get_rest_url() == expected_url
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert BinanceSpotAdapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""

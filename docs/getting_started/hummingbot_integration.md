@@ -148,7 +148,7 @@ candles = await candles_feed.fetch_candles(
 For testing without actual exchange connections, you can use the provided mocks:
 
 ```python
-from candles_feed.testing_resources.mocks.hummingbot.mock_components import (
+from mocking_resources.hummingbot import (
     create_mock_hummingbot_components
 )
 

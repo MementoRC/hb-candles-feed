@@ -2,30 +2,22 @@
 Common constants for Gate.io adapters.
 """
 
-from typing import Dict
-
 # API URLs - Common
-REST_BASE_URL = "https://api.gateio.ws/api/v4"
-WSS_BASE_URL = "wss://api.gateio.ws/ws/v4/"
+REST_URL = "https://api.gateio.ws/api/v4"
+WSS_URL = "wss://api.gateio.ws/ws/v4/"
 
 # API URLs - Spot
 SPOT_CANDLES_ENDPOINT = "/spot/candlesticks"
 SPOT_CHANNEL_NAME = "spot.candlesticks"
-SPOT_REST_URL = f"{REST_BASE_URL}{SPOT_CANDLES_ENDPOINT}"
-SPOT_WSS_URL = WSS_BASE_URL
+SPOT_WSS_URL = WSS_URL
 
 # API URLs - Perpetual
 PERP_CANDLES_ENDPOINT = "/futures/usdt/candlesticks"
 PERP_CHANNEL_NAME = "futures.candlesticks"
-PERP_REST_URL = f"{REST_BASE_URL}{PERP_CANDLES_ENDPOINT}"
-PERP_WSS_URL = WSS_BASE_URL
+PERP_WSS_URL = WSS_URL
 
-# Compatibility constants
-REST_URL = REST_BASE_URL
-WSS_URL = WSS_BASE_URL
+# Health check endpoint
 HEALTH_CHECK_ENDPOINT = "/spot/currencies/BTC"
-CANDLES_ENDPOINT = SPOT_CANDLES_ENDPOINT
-WS_CANDLES_ENDPOINT = SPOT_CHANNEL_NAME
 
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
@@ -44,8 +36,8 @@ INTERVALS: dict[str, int] = {
     "7d": 604800,
 }
 
-# Gate.io interval formats mapping
-INTERVAL_TO_GATE_IO_FORMAT = {
+# Exchange-specific interval formats
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "10s": "10s",
     "1m": "1m",
     "5m": "5m",

@@ -2,16 +2,17 @@
 Unit tests for the BybitBaseAdapter class.
 """
 
-from typing import Optional
 from unittest.mock import MagicMock
 
 import pytest
 
-from candles_feed.adapters.bybit.bybit_base_adapter import BybitBaseAdapter
+from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
-    INTERVAL_TO_BYBIT_FORMAT,
+    CANDLES_ENDPOINT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    REST_URL,
     WS_INTERVALS,
 )
 from candles_feed.core.candle_data import CandleData
@@ -20,7 +21,12 @@ from candles_feed.core.candle_data import CandleData
 class ConcreteBybitAdapter(BybitBaseAdapter):
     """Concrete implementation of BybitBaseAdapter for testing."""
 
-    def get_ws_url(self) -> str:
+    @staticmethod
+    def get_rest_url() -> str:
+        return f"{REST_URL}{CANDLES_ENDPOINT}"
+        
+    @staticmethod
+    def get_ws_url() -> str:
         return "wss://test.bybit.com/ws"
 
     def get_category_param(self) -> str | None:
@@ -39,24 +45,24 @@ class TestBybitBaseAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTCUSDT"
+        assert ConcreteBybitAdapter.get_trading_pair_format("BTC-USDT") == "BTCUSDT"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTCUSDTPERP"
+        assert ConcreteBybitAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTCUSDTPERP"
 
         # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btcusdt"
+        assert ConcreteBybitAdapter.get_trading_pair_format("btc-usdt") == "btcusdt"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == "https://api.bybit.com/v5/market/kline"
+        assert ConcreteBybitAdapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
         params = self.adapter.get_rest_params(self.trading_pair, self.interval)
 
         assert params["symbol"] == "BTCUSDT"
-        assert params["interval"] == INTERVAL_TO_BYBIT_FORMAT.get(self.interval, self.interval)
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
         assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
         assert params["category"] == "test"  # From our concrete implementation
         assert "start" not in params
@@ -73,7 +79,7 @@ class TestBybitBaseAdapter:
         )
 
         assert params["symbol"] == "BTCUSDT"
-        assert params["interval"] == INTERVAL_TO_BYBIT_FORMAT.get(self.interval, self.interval)
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
         assert params["limit"] == limit
         assert params["category"] == "test"  # From our concrete implementation
         assert params["start"] == start_time * 1000  # Should be in milliseconds
@@ -108,7 +114,7 @@ class TestBybitBaseAdapter:
         assert len(payload["args"]) == 1
         assert (
             payload["args"][0]
-            == f"kline.{INTERVAL_TO_BYBIT_FORMAT.get(self.interval)}.{self.adapter.get_trading_pair_format(self.trading_pair)}"
+            == f"kline.{INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval)}.{ConcreteBybitAdapter.get_trading_pair_format(self.trading_pair)}"
         )
 
     def test_parse_ws_message_valid(self, websocket_message_bybit):

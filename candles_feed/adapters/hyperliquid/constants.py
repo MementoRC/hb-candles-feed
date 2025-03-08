@@ -2,25 +2,18 @@
 Common constants for HyperLiquid adapters.
 """
 
-from typing import Dict
-
 # API URLs - Common
-REST_BASE_URL = "https://api.hyperliquid.xyz/info"
-WSS_BASE_URL = "wss://api.hyperliquid.xyz/ws"
+REST_URL = "https://api.hyperliquid.xyz/info"
+WSS_URL = "wss://api.hyperliquid.xyz/ws"
 
 # API URLs - Spot
-SPOT_REST_URL = REST_BASE_URL
-SPOT_WSS_URL = WSS_BASE_URL
+SPOT_WSS_URL = WSS_URL
 
 # API URLs - Perpetual
-PERP_REST_URL = REST_BASE_URL
-PERP_WSS_URL = WSS_BASE_URL
+PERP_WSS_URL = WSS_URL
 
-# Compatibility constants
-REST_URL = REST_BASE_URL
-WSS_URL = WSS_BASE_URL
+# Health check constants
 HEALTH_CHECK_PAYLOAD = {"type": "spotMeta"}
-CANDLES_ENDPOINT = "candleSnapshot"
 
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 500
@@ -38,8 +31,8 @@ INTERVALS: dict[str, int] = {
     "1w": 604800,
 }
 
-# HyperLiquid interval formats mapping
-INTERVAL_TO_HYPERLIQUID_FORMAT = {
+# Exchange-specific interval formats
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "1m": "1",
     "5m": "5",
     "15m": "15",

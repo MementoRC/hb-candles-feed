@@ -2,20 +2,18 @@
 Constants for the Kraken spot adapter.
 """
 
-from typing import Dict
-
 # API URLs
-REST_URL = "https://api.kraken.com"
-WSS_URL = "wss://ws.kraken.com"
+SPOT_REST_URL = "https://api.kraken.com"
+SPOT_WSS_URL = "wss://ws.kraken.com"
 
 # API endpoints
-CANDLES_ENDPOINT = "/0/public/OHLC"
+SPOT_CANDLES_ENDPOINT = "/0/public/OHLC"
 TIME_ENDPOINT = "/0/public/Time"
 
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 720
 
-# Intervals mapping: interval name -> seconds and Kraken format
+# Intervals mapping: interval name -> seconds
 INTERVALS: dict[str, int] = {
     "1m": 60,
     "5m": 300,
@@ -28,8 +26,8 @@ INTERVALS: dict[str, int] = {
     "15d": 1296000,
 }
 
-# Kraken interval formats (minutes)
-INTERVAL_TO_KRAKEN_FORMAT = {
+# Exchange-specific interval formats (minutes)
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "1m": 1,
     "5m": 5,
     "15m": 15,
@@ -41,5 +39,5 @@ INTERVAL_TO_KRAKEN_FORMAT = {
     "15d": 21600,
 }
 
-# Websocket supported intervals - Kraken WebSocket uses the same intervals
+# Websocket supported intervals
 WS_INTERVALS = list(INTERVALS.keys())

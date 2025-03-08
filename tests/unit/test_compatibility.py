@@ -35,12 +35,12 @@ class TestCompatibility:
         """Test importing the adapter modules."""
         modules = [
             "candles_feed.adapters.base_adapter",
-            "candles_feed.adapters.binance_spot.binance_spot_adapter",
-            "candles_feed.adapters.bybit_spot.bybit_spot_adapter",
+            "candles_feed.adapters.binance.spot_adapter",
+            "candles_feed.adapters.bybit.bybit_spot_adapter",
             "candles_feed.adapters.coinbase_advanced_trade.coinbase_advanced_trade_adapter",
-            "candles_feed.adapters.kraken_spot.kraken_spot_adapter",
-            "candles_feed.adapters.kucoin_spot.kucoin_spot_adapter",
-            "candles_feed.adapters.okx_spot.okx_spot_adapter",
+            "candles_feed.adapters.kraken.kraken_spot_adapter",
+            "candles_feed.adapters.kucoin.kucoin_spot_adapter",
+            "candles_feed.adapters.okx.spot_adapter",
         ]
 
         for module_name in modules:
@@ -237,12 +237,12 @@ class TestCompatibility:
         # Ensure adapters are registered first
         # Import all adapter modules to trigger their registration if not already done
         # These imports are needed for their side effects (registering adapters)
-        import candles_feed.adapters.binance_spot.binance_spot_adapter  # noqa: F401
-        import candles_feed.adapters.bybit_spot.bybit_spot_adapter  # noqa: F401
-        import candles_feed.adapters.coinbase_advanced_trade.coinbase_advanced_trade_adapter  # noqa: F401
-        import candles_feed.adapters.kraken.kraken_spot_adapter  # noqa: F401
-        import candles_feed.adapters.kucoin_spot.kucoin_spot_adapter  # noqa: F401
-        import candles_feed.adapters.okx_spot.okx_spot_adapter  # noqa: F401
+        import candles_feed.adapters.binance.spot_adapter  # noqa: F401
+        import candles_feed.adapters.bybit.spot_adapter  # noqa: F401
+        import candles_feed.adapters.coinbase_advanced_trade.base_adapter  # noqa: F401
+        import candles_feed.adapters.kraken.spot_adapter  # noqa: F401
+        import candles_feed.adapters.kucoin.spot_adapter  # noqa: F401
+        import candles_feed.adapters.okx.spot_adapter  # noqa: F401
         from candles_feed.core.exchange_registry import ExchangeRegistry
         from candles_feed.core.protocols import CandleDataAdapter
 

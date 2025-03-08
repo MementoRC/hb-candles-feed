@@ -2,21 +2,11 @@
 Common constants for MEXC adapters.
 """
 
-from typing import Dict
-
-# API URLs - Common
-REST_BASE_URL = "https://api.mexc.com"
-WSS_BASE_URL = "wss://wbs.mexc.com/ws"
-
 # API URLs - Spot
-SPOT_REST_URL = REST_BASE_URL
-REST_URL = SPOT_REST_URL
-CANDLES_ENDPOINT = "/api/v3/klines"
-SPOT_CANDLES_ENDPOINT = CANDLES_ENDPOINT
-SPOT_WSS_URL = WSS_BASE_URL
-WSS_URL = SPOT_WSS_URL
-KLINE_TOPIC = "spot@public.kline."
-SPOT_KLINE_TOPIC = KLINE_TOPIC
+SPOT_REST_URL = "https://api.mexc.com"
+SPOT_WSS_URL = "wss://wbs.mexc.com/ws"
+SPOT_CANDLES_ENDPOINT = "/api/v3/klines"
+SPOT_KLINE_TOPIC = "spot@public.kline."
 
 # API URLs - Perpetual
 PERP_REST_URL = "https://contract.mexc.com"
@@ -45,8 +35,8 @@ INTERVALS: dict[str, int] = {
     "1M": 2592000,
 }
 
-# MEXC interval formats mapping
-INTERVAL_TO_MEXC_FORMAT = {
+# MEXC interval formats mapping for spot
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "1m": "Min1",
     "5m": "Min5",
     "15m": "Min15",
@@ -57,8 +47,8 @@ INTERVAL_TO_MEXC_FORMAT = {
     "1M": "Month1",
 }
 
-# MEXC contract interval formats mapping
-INTERVAL_TO_MEXC_CONTRACT_FORMAT = {
+# MEXC interval formats mapping for perpetual
+INTERVAL_TO_PERPETUAL_FORMAT = {
     "1m": "Min1",
     "5m": "Min5",
     "15m": "Min15",

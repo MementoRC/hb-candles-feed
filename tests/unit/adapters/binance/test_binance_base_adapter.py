@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from candles_feed.adapters.binance.binance_base_adapter import BinanceBaseAdapter
+from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
 from candles_feed.adapters.binance.constants import (
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,

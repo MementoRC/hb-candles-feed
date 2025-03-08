@@ -7,14 +7,15 @@ from unittest.mock import MagicMock
 import pytest
 
 from candles_feed.adapters.gate_io.constants import (
-    CANDLES_ENDPOINT,
     INTERVALS,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     REST_URL,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_WSS_URL,
     WS_INTERVALS,
-    WSS_URL,
 )
-from candles_feed.adapters.gate_io.gate_io_spot_adapter import GateIoSpotAdapter
+from candles_feed.adapters.gate_io.spot_adapter import GateIoSpotAdapter
 from candles_feed.core.candle_data import CandleData
 
 
@@ -30,21 +31,21 @@ class TestGateIoSpotAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
+        assert GateIoSpotAdapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
+        assert GateIoSpotAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
 
         # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
+        assert GateIoSpotAdapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert GateIoSpotAdapter.get_rest_url() == f"{REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert GateIoSpotAdapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""

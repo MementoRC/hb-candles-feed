@@ -1,9 +1,6 @@
 """
 Common constants for Binance adapters.
 """
-
-from typing import Dict
-
 # Intervals mapping: interval name -> seconds
 INTERVALS: dict[str, int] = {
     "1s": 1,
@@ -24,26 +21,24 @@ INTERVALS: dict[str, int] = {
     "1M": 2592000,
 }
 
+# OKX interval formats - Binance uses the same format as our standard intervals
+INTERVAL_TO_EXCHANGE_FORMAT = {k: k for k in INTERVALS}
+
 # Websocket supported intervals
 WS_INTERVALS = list(INTERVALS.keys())
 
 # API rate limits 
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
-# API URLs - Spot
-SPOT_REST_BASE_URL = "https://api.binance.com"
+# API URLs and endpoints
+# Spot
+SPOT_REST_URL = "https://api.binance.com"
 SPOT_CANDLES_ENDPOINT = "/api/v3/klines"
-SPOT_REST_URL = f"{SPOT_REST_BASE_URL}{SPOT_CANDLES_ENDPOINT}"
 SPOT_WSS_URL = "wss://stream.binance.com:9443/ws"
+SPOT_HEALTH_CHECK_ENDPOINT = "/api/v3/ping"
 
-# API URLs - Perpetual
-PERP_REST_BASE_URL = "https://fapi.binance.com"
-PERP_CANDLES_ENDPOINT = "/fapi/v1/klines"
-PERP_REST_URL = f"{PERP_REST_BASE_URL}{PERP_CANDLES_ENDPOINT}"
-PERP_WSS_URL = "wss://fstream.binance.com/ws"
-
-# Additional constants for backward compatibility with tests
-REST_URL = SPOT_REST_URL
-WSS_URL = SPOT_WSS_URL
-HEALTH_CHECK_ENDPOINT = "/api/v3/ping"
-CANDLES_ENDPOINT = SPOT_CANDLES_ENDPOINT
+# Perpetual
+PERPETUAL_REST_URL = "https://fapi.binance.com"
+PERPETUAL_CANDLES_ENDPOINT = "/fapi/v1/klines"
+PERPETUAL_WSS_URL = "wss://fstream.binance.com/ws"
+PERPETUAL_HEALTH_CHECK_ENDPOINT = "/fapi/v1/ping"

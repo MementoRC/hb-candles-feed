@@ -1,5 +1,5 @@
 """
-Unit tests for the KuCoinPerpetualAdapter class.
+Unit tests for the KucoinPerpetualAdapter class.
 """
 
 import time
@@ -8,48 +8,46 @@ from unittest.mock import patch
 import pytest
 
 from candles_feed.adapters.kucoin.constants import (
-    INTERVAL_TO_KUCOIN_PERP_FORMAT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
+    PERPETUAL_CANDLES_ENDPOINT,
+    PERPETUAL_REST_URL,
+    PERPETUAL_WSS_URL,
     WS_INTERVALS,
 )
-from candles_feed.adapters.kucoin.constants import (
-    PERP_CANDLES_ENDPOINT,
-    PERP_REST_URL,
-    PERP_WSS_URL,
-)
-from candles_feed.adapters.kucoin.kucoin_perpetual_adapter import KuCoinPerpetualAdapter
+from candles_feed.adapters.kucoin.perpetual_adapter import KucoinPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
 
 
 class TestKuCoinPerpetualAdapter:
-    """Test suite for the KuCoinPerpetualAdapter class."""
+    """Test suite for the KucoinPerpetualAdapter class."""
 
     def setup_method(self):
         """Setup method called before each test."""
-        self.adapter = KuCoinPerpetualAdapter()
+        self.adapter = KucoinPerpetualAdapter()
         self.trading_pair = "BTC-USDT"
         self.interval = "1m"
 
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # KuCoin doesn't change the format
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT"
-        assert self.adapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC"
+        assert KucoinPerpetualAdapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT"
+        assert KucoinPerpetualAdapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{PERP_REST_URL}{PERP_CANDLES_ENDPOINT}"
+        assert KucoinPerpetualAdapter.get_rest_url() == f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == PERP_WSS_URL
+        assert KucoinPerpetualAdapter.get_ws_url() == PERPETUAL_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
         params = self.adapter.get_rest_params(self.trading_pair, self.interval)
 
         assert params["symbol"] == self.trading_pair
-        assert params["granularity"] == INTERVAL_TO_KUCOIN_PERP_FORMAT.get(
+        assert params["granularity"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
         assert "from" not in params
@@ -65,7 +63,7 @@ class TestKuCoinPerpetualAdapter:
         )
 
         assert params["symbol"] == self.trading_pair
-        assert params["granularity"] == INTERVAL_TO_KUCOIN_PERP_FORMAT.get(
+        assert params["granularity"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
         assert params["from"] == start_time * 1000  # Converted to milliseconds
@@ -134,7 +132,7 @@ class TestKuCoinPerpetualAdapter:
         mock_time.return_value = 1672531200.0
         payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
 
-        perp_interval = INTERVAL_TO_KUCOIN_PERP_FORMAT.get(self.interval, self.interval)
+        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
         assert payload["id"] == 1672531200000  # Fixed timestamp from mock
         assert payload["type"] == "subscribe"
         assert payload["topic"] == f"/contractMarket/candle:{self.trading_pair}_{perp_interval}"
@@ -147,7 +145,7 @@ class TestKuCoinPerpetualAdapter:
         timestamp = 1672531200  # 2023-01-01 00:00:00 UTC
         message = {
             "type": "message",
-            "topic": f"/contractMarket/candle:{self.trading_pair}_{INTERVAL_TO_KUCOIN_PERP_FORMAT.get(self.interval, self.interval)}",
+            "topic": f"/contractMarket/candle:{self.trading_pair}_{INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)}",
             "subject": "candle.update",
             "data": {
                 "symbol": self.trading_pair,
@@ -200,7 +198,7 @@ class TestKuCoinPerpetualAdapter:
 
     def test_get_supported_intervals(self):
         """Test getting supported intervals."""
-        intervals = self.adapter.get_supported_intervals()
+        intervals = KucoinPerpetualAdapter.get_supported_intervals()
 
         # Verify intervals match the expected values
         assert intervals == INTERVALS
@@ -213,7 +211,7 @@ class TestKuCoinPerpetualAdapter:
 
     def test_get_ws_supported_intervals(self):
         """Test getting WebSocket supported intervals."""
-        ws_intervals = self.adapter.get_ws_supported_intervals()
+        ws_intervals = KucoinPerpetualAdapter.get_ws_supported_intervals()
 
         # Verify WS intervals match the expected values
         assert ws_intervals == WS_INTERVALS

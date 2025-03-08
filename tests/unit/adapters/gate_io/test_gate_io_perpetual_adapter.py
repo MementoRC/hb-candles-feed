@@ -6,14 +6,15 @@ import pytest
 
 from candles_feed.adapters.gate_io.constants import (
     INTERVALS,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     PERP_CANDLES_ENDPOINT,
     PERP_CHANNEL_NAME,
-    PERP_REST_URL,
     PERP_WSS_URL,
+    REST_URL,
     WS_INTERVALS,
 )
-from candles_feed.adapters.gate_io.gate_io_perpetual_adapter import GateIoPerpetualAdapter
+from candles_feed.adapters.gate_io.perpetual_adapter import GateIoPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
 
 
@@ -29,21 +30,21 @@ class TestGateIoPerpetualAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
+        assert GateIoPerpetualAdapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
+        assert GateIoPerpetualAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
 
         # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
+        assert GateIoPerpetualAdapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == PERP_REST_URL
+        assert GateIoPerpetualAdapter.get_rest_url() == f"{REST_URL}{PERP_CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == PERP_WSS_URL
+        assert GateIoPerpetualAdapter.get_ws_url() == PERP_WSS_URL
 
     def test_get_channel_name(self):
         """Test channel name retrieval."""

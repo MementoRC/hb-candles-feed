@@ -2,19 +2,14 @@
 Common constants for Bybit adapters.
 """
 
-from typing import Dict
-
 # API URLs - Common
-REST_BASE_URL = "https://api.bybit.com"
+REST_URL = "https://api.bybit.com"
 CANDLES_ENDPOINT = "/v5/market/kline"
-# Fix the issue with duplicate endpoint in test
-REST_URL = REST_BASE_URL
 SERVER_TIME_ENDPOINT = "/v5/market/time"
 HEALTH_CHECK_ENDPOINT = SERVER_TIME_ENDPOINT
 
 # API URLs - Spot
 SPOT_WSS_URL = "wss://stream.bybit.com/v5/public/spot"
-WSS_URL = SPOT_WSS_URL  # For backward compatibility
 
 # API URLs - Perpetual
 PERP_WSS_URL = "wss://stream.bybit.com/v5/public/linear"
@@ -22,7 +17,7 @@ PERP_WSS_URL = "wss://stream.bybit.com/v5/public/linear"
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
-# Intervals mapping: interval name -> seconds and Bybit format
+# Intervals mapping: interval name -> seconds
 INTERVALS: dict[str, int] = {
     "1m": 60,
     "3m": 180,
@@ -39,8 +34,8 @@ INTERVALS: dict[str, int] = {
     "1M": 2592000,
 }
 
-# Bybit interval formats
-INTERVAL_TO_BYBIT_FORMAT = {
+# Exchange-specific interval formats
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "1m": "1",
     "3m": "3",
     "5m": "5",

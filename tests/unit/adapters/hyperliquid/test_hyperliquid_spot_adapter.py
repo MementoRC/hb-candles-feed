@@ -7,14 +7,14 @@ from unittest.mock import MagicMock
 import pytest
 
 from candles_feed.adapters.hyperliquid.constants import (
-    INTERVAL_TO_HYPERLIQUID_FORMAT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     REST_URL,
+    SPOT_WSS_URL,
     WS_INTERVALS,
-    WSS_URL,
 )
-from candles_feed.adapters.hyperliquid.hyperliquid_spot_adapter import HyperliquidSpotAdapter
+from candles_feed.adapters.hyperliquid.spot_adapter import HyperliquidSpotAdapter
 from candles_feed.core.candle_data import CandleData
 
 
@@ -30,18 +30,18 @@ class TestHyperliquidSpotAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case - HyperLiquid only uses the base asset
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC"
+        assert HyperliquidSpotAdapter.get_trading_pair_format("BTC-USDT") == "BTC"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("ETH-BTC-PERP") == "ETH"
+        assert HyperliquidSpotAdapter.get_trading_pair_format("ETH-BTC-PERP") == "ETH"
 
     def test_get_rest_url(self):
         """Test REST API URL retrieval."""
-        assert self.adapter.get_rest_url() == REST_URL
+        assert HyperliquidSpotAdapter.get_rest_url() == REST_URL
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert HyperliquidSpotAdapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
@@ -49,7 +49,7 @@ class TestHyperliquidSpotAdapter:
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
-        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+        assert params["resolution"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
         assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
@@ -68,7 +68,7 @@ class TestHyperliquidSpotAdapter:
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
-        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+        assert params["resolution"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
         assert params["limit"] == limit
@@ -112,7 +112,7 @@ class TestHyperliquidSpotAdapter:
         assert payload["method"] == "subscribe"
         assert payload["channel"] == "candles"
         assert payload["coin"] == "BTC"
-        assert payload["interval"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+        assert payload["interval"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
 

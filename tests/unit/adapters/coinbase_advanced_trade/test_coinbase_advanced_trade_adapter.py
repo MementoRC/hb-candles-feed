@@ -1,46 +1,48 @@
 """
-Unit tests for the CoinbaseAdvancedTradeAdapter class.
+Unit tests for the CoinbaseAdvancedTradeSpotAdapter class.
 """
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from candles_feed.adapters.coinbase_advanced_trade.coinbase_advanced_trade_adapter import (
-    CoinbaseAdvancedTradeAdapter,
+from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
+    CoinbaseAdvancedTradeSpotAdapter,
 )
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    BASE_REST_URL,
+    CANDLES_ENDPOINT,
     INTERVALS,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     MAX_CANDLES_SIZE,
+    REST_URL,
     WS_INTERVALS,
     WSS_URL,
 )
 from candles_feed.core.candle_data import CandleData
 
 
-class TestCoinbaseAdvancedTradeAdapter:
-    """Test suite for the CoinbaseAdvancedTradeAdapter class."""
+class TestCoinbaseAdvancedTradeSpotAdapter:
+    """Test suite for the CoinbaseAdvancedTradeSpotAdapter class."""
 
     def setup_method(self):
         """Setup method called before each test."""
-        self.adapter = CoinbaseAdvancedTradeAdapter()
+        self.adapter = CoinbaseAdvancedTradeSpotAdapter()
         self.trading_pair = "BTC-USD"
         self.interval = "1m"
 
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Coinbase keeps the same format
-        assert self.adapter.get_trading_pair_format("BTC-USD") == "BTC-USD"
-        assert self.adapter.get_trading_pair_format("ETH-USDT") == "ETH-USDT"
+        assert CoinbaseAdvancedTradeSpotAdapter.get_trading_pair_format("BTC-USD") == "BTC-USD"
+        assert CoinbaseAdvancedTradeSpotAdapter.get_trading_pair_format("ETH-USDT") == "ETH-USDT"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == BASE_REST_URL
+        assert CoinbaseAdvancedTradeSpotAdapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert CoinbaseAdvancedTradeSpotAdapter.get_ws_url() == WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""

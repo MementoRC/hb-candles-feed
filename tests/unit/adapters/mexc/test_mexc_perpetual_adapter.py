@@ -5,17 +5,15 @@ Unit tests for the MEXCPerpetualAdapter class.
 import pytest
 
 from candles_feed.adapters.mexc.constants import (
-    INTERVAL_TO_MEXC_CONTRACT_FORMAT,
+    INTERVAL_TO_PERPETUAL_FORMAT,
     INTERVALS,
-    WS_INTERVALS,
-)
-from candles_feed.adapters.mexc.constants import (
     PERP_CANDLES_ENDPOINT,
     PERP_KLINE_TOPIC,
     PERP_REST_URL,
     PERP_WSS_URL,
+    WS_INTERVALS,
 )
-from candles_feed.adapters.mexc.mexc_perpetual_adapter import MEXCPerpetualAdapter
+from candles_feed.adapters.mexc.perpetual_adapter import MEXCPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
 
 
@@ -31,21 +29,21 @@ class TestMEXCPerpetualAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
+        assert MEXCPerpetualAdapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
+        assert MEXCPerpetualAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
 
         # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
+        assert MEXCPerpetualAdapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
 
     def test_get_rest_url(self):
         """Test REST API URL retrieval."""
-        assert self.adapter.get_rest_url() == PERP_REST_URL
+        assert MEXCPerpetualAdapter.get_rest_url() == PERP_REST_URL
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == PERP_WSS_URL
+        assert MEXCPerpetualAdapter.get_ws_url() == PERP_WSS_URL
 
     def test_get_kline_topic(self):
         """Test kline topic retrieval."""
@@ -66,7 +64,7 @@ class TestMEXCPerpetualAdapter:
         params = self.adapter.get_rest_params(self.trading_pair, self.interval)
 
         assert params["symbol"] == "BTC_USDT"
-        assert params["interval"] == INTERVAL_TO_MEXC_CONTRACT_FORMAT.get(self.interval)
+        assert params["interval"] == INTERVAL_TO_PERPETUAL_FORMAT.get(self.interval)
         assert "start" not in params
         assert "end" not in params
         assert "size" not in params
@@ -82,7 +80,7 @@ class TestMEXCPerpetualAdapter:
         )
 
         assert params["symbol"] == "BTC_USDT"
-        assert params["interval"] == INTERVAL_TO_MEXC_CONTRACT_FORMAT.get(self.interval)
+        assert params["interval"] == INTERVAL_TO_PERPETUAL_FORMAT.get(self.interval)
         assert params["size"] == limit
         assert params["start"] == start_time  # Already in seconds
         assert params["end"] == end_time  # Already in seconds
@@ -159,7 +157,7 @@ class TestMEXCPerpetualAdapter:
         payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
 
         assert payload["method"] == "sub"
-        mexc_interval = INTERVAL_TO_MEXC_CONTRACT_FORMAT.get(self.interval, self.interval)
+        mexc_interval = INTERVAL_TO_PERPETUAL_FORMAT.get(self.interval, self.interval)
         expected_topic = f"{PERP_KLINE_TOPIC}{mexc_interval}_btcusdt"
         assert payload["params"][0] == expected_topic
 
@@ -217,7 +215,7 @@ class TestMEXCPerpetualAdapter:
 
     def test_get_supported_intervals(self):
         """Test getting supported intervals."""
-        intervals = self.adapter.get_supported_intervals()
+        intervals = MEXCPerpetualAdapter.get_supported_intervals()
 
         # Verify intervals match the expected values
         assert intervals == INTERVALS
@@ -230,7 +228,7 @@ class TestMEXCPerpetualAdapter:
 
     def test_get_ws_supported_intervals(self):
         """Test getting WebSocket supported intervals."""
-        ws_intervals = self.adapter.get_ws_supported_intervals()
+        ws_intervals = MEXCPerpetualAdapter.get_ws_supported_intervals()
 
         # Verify WS intervals match the expected values
         assert ws_intervals == WS_INTERVALS

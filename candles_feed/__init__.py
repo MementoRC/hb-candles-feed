@@ -9,14 +9,14 @@ __version__ = "0.1.0"
 from candles_feed.adapters.base_adapter import BaseAdapter
 
 # Import exchange adapters
-from candles_feed.adapters.binance.binance_spot_adapter import BinanceSpotAdapter
-from candles_feed.adapters.bybit.bybit_spot_adapter import BybitSpotAdapter
-from candles_feed.adapters.coinbase_advanced_trade.coinbase_advanced_trade_adapter import (
+from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+from candles_feed.adapters.bybit.spot_adapter import BybitSpotAdapter
+from candles_feed.adapters.coinbase_advanced_trade.base_adapter import (
     CoinbaseAdvancedTradeAdapter,
 )
-from candles_feed.adapters.kraken.kraken_spot_adapter import KrakenSpotAdapter
-from candles_feed.adapters.kucoin.kucoin_spot_adapter import KuCoinSpotAdapter
-from candles_feed.adapters.okx.okx_spot_adapter import OKXSpotAdapter
+from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
+from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
+from candles_feed.adapters.okx.spot_adapter import OKXSpotAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.data_processor import DataProcessor
@@ -56,7 +56,7 @@ __all__ = [
     "BybitSpotAdapter",
     "CoinbaseAdvancedTradeAdapter",
     "KrakenSpotAdapter",
-    "KuCoinSpotAdapter",
+    "KucoinSpotAdapter",
     "OKXSpotAdapter",
     # Integration helpers
     "create_candles_feed_with_hummingbot",

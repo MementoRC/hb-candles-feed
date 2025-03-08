@@ -7,15 +7,15 @@ from unittest.mock import MagicMock
 import pytest
 
 from candles_feed.adapters.kraken.constants import (
-    CANDLES_ENDPOINT,
-    INTERVAL_TO_KRAKEN_FORMAT,
+    SPOT_CANDLES_ENDPOINT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
+    SPOT_REST_URL,
     WS_INTERVALS,
-    WSS_URL,
+    SPOT_WSS_URL,
 )
-from candles_feed.adapters.kraken.kraken_spot_adapter import KrakenSpotAdapter
+from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
 from candles_feed.core.candle_data import CandleData
 
 
@@ -31,33 +31,33 @@ class TestKrakenSpotAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USD") == "XXBTZUSD"
+        assert KrakenSpotAdapter.get_trading_pair_format("BTC-USD") == "XXBTZUSD"
 
         # Test with other currencies
-        assert self.adapter.get_trading_pair_format("ETH-USD") == "XETHZUSD"
-        assert self.adapter.get_trading_pair_format("BTC-EUR") == "XXBTZEUR"
+        assert KrakenSpotAdapter.get_trading_pair_format("ETH-USD") == "XETHZUSD"
+        assert KrakenSpotAdapter.get_trading_pair_format("BTC-EUR") == "XXBTZEUR"
 
         # Test with USDT
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "XXBTZUSD"
+        assert KrakenSpotAdapter.get_trading_pair_format("BTC-USDT") == "XXBTZUSD"
 
         # Test with non-prefixed pairs
-        assert self.adapter.get_trading_pair_format("DOT-USD") == "DOTZUSD"
-        assert self.adapter.get_trading_pair_format("XRP-USD") == "XXRPZUSD"
+        assert KrakenSpotAdapter.get_trading_pair_format("DOT-USD") == "DOTZUSD"
+        assert KrakenSpotAdapter.get_trading_pair_format("XRP-USD") == "XXRPZUSD"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert KrakenSpotAdapter.get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert KrakenSpotAdapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
         params = self.adapter.get_rest_params(self.trading_pair, self.interval)
 
         assert params["pair"] == "XXBTZUSD"
-        assert params["interval"] == INTERVAL_TO_KRAKEN_FORMAT[self.interval]
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
         assert "since" not in params
 
     def test_get_rest_params_full(self):
@@ -72,7 +72,7 @@ class TestKrakenSpotAdapter:
         )
 
         assert params["pair"] == "XXBTZUSD"
-        assert params["interval"] == INTERVAL_TO_KRAKEN_FORMAT[self.interval]
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
         assert params["since"] == start_time
 
     def test_parse_rest_response(self, candlestick_response_kraken):
@@ -108,7 +108,7 @@ class TestKrakenSpotAdapter:
         assert payload["reqid"] == 1
         assert payload["pair"] == ["XXBTZUSD"]
         assert payload["subscription"]["name"] == "ohlc"
-        assert payload["subscription"]["interval"] == INTERVAL_TO_KRAKEN_FORMAT[self.interval]
+        assert payload["subscription"]["interval"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
 
     def test_parse_ws_message_valid(self, websocket_message_kraken):
         """Test parsing valid WebSocket message."""

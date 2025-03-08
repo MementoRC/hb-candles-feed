@@ -3,8 +3,6 @@ Global test fixtures and configuration for the Candles Feed framework tests.
 """
 
 import logging
-import os
-import sys
 from collections import deque
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
@@ -17,8 +15,8 @@ from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.network_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.protocols import CandleDataAdapter, WSAssistant
 
-# Import MockExchangeServer components for testing
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
+
+from candles_feed.mocking_resources import ExchangeType
 
 
 # Configure logging for tests
@@ -39,7 +37,7 @@ def configure_logging():
 def mock_candle():
     """Create a mock candle for testing."""
     return CandleData(
-        timestamp=int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()),
+        timestamp_raw=int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()),
         open=50000.0,
         high=51000.0,
         low=49000.0,
@@ -59,7 +57,7 @@ def mock_candles():
 
     return [
         CandleData(
-            timestamp=base_time + (i * 60),  # 1-minute intervals
+            timestamp_raw=base_time + (i * 60),  # 1-minute intervals
             open=50000.0 + (i * 100),
             high=51000.0 + (i * 100),
             low=49000.0 + (i * 100),
@@ -77,16 +75,16 @@ def mock_candles():
 @pytest.fixture
 async def binance_mock_server(unused_tcp_port):
     """Create and start a Binance mock server for testing."""
-    from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
-    from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+    from mocking_resources.core import MockedExchangeServer
+    from mocking_resources.exchanges.binance import BinanceSpotPlugin
 
     port = unused_tcp_port
 
     # Create plugin directly
-    plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
+    plugin = BinanceSpotPlugin()
 
     # Create server
-    server = MockExchangeServer(plugin, "127.0.0.1", port)
+    server = MockedExchangeServer(plugin, "127.0.0.1", port)
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -108,10 +106,10 @@ async def binance_mock_server(unused_tcp_port):
 @pytest.fixture
 async def bybit_mock_server(unused_tcp_port):
     """Create and start a Bybit mock server for testing."""
-    from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
+    from mocking_resources.core import MockedExchangeServer
 
     # We're using the Binance plugin for now since we don't have an explicit Bybit plugin yet
-    from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+    from mocking_resources.exchanges.binance import BinanceSpotPlugin
 
     port = unused_tcp_port
 
@@ -119,7 +117,7 @@ async def bybit_mock_server(unused_tcp_port):
     plugin = BinanceSpotPlugin(ExchangeType.BYBIT_SPOT)
 
     # Create server
-    server = MockExchangeServer(plugin, "127.0.0.1", port)
+    server = MockedExchangeServer(plugin, "127.0.0.1", port)
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -140,10 +138,10 @@ async def bybit_mock_server(unused_tcp_port):
 @pytest.fixture
 async def coinbase_mock_server(unused_tcp_port):
     """Create and start a Coinbase Advanced Trade mock server for testing."""
-    from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
+    from mocking_resources.core import MockedExchangeServer
 
     # We're using the Binance plugin for now since we don't have an explicit Coinbase plugin yet
-    from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+    from mocking_resources.exchanges.binance import BinanceSpotPlugin
 
     port = unused_tcp_port
 
@@ -151,7 +149,7 @@ async def coinbase_mock_server(unused_tcp_port):
     plugin = BinanceSpotPlugin(ExchangeType.COINBASE_ADVANCED_TRADE)
 
     # Create server
-    server = MockExchangeServer(plugin, "127.0.0.1", port)
+    server = MockedExchangeServer(plugin, "127.0.0.1", port)
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -610,8 +608,33 @@ def candlestick_response_okx():
             [str(base_time), "50000.0", "50500.0", "51000.0", "49000.0", "100.0", "5000000.0"],
             [
                 str(base_time + 60000),
-                "50500.0",
                 "51500.0",
+                "50500.0",
+                "52000.0",
+                "50000.0",
+                "150.0",
+                "7500000.0",
+            ],
+        ],
+    }
+
+
+@pytest.fixture
+def websocket_response_okx():
+    """Create a sample OKX REST API response."""
+    base_time = (
+        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    )  # OKX uses milliseconds
+
+    return {
+        "code": "0",
+        "msg": "",
+        "data": [
+            [str(base_time), "50000.0", "50500.0", "51000.0", "49000.0", "100.0", "5000000.0"],
+            [
+                str(base_time + 60000),
+                "51500.0",
+                "50500.0",
                 "52000.0",
                 "50000.0",
                 "150.0",

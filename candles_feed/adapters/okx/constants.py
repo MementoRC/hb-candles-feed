@@ -2,33 +2,30 @@
 Common constants for OKX adapters.
 """
 
-from typing import Dict
-
 # API URLs - Common
 REST_BASE_URL = "https://www.okx.com"
 WSS_BASE_URL = "wss://ws.okx.com:8443/ws/v5/public"
+WSS_BUSINESS_URL = "wss://ws.okx.com:8443/ws/v5/business"
 
 # API URLs - Spot
 SPOT_REST_URL = REST_BASE_URL
-SPOT_CANDLES_ENDPOINT = "/api/v5/market/candles"
 SPOT_WSS_URL = WSS_BASE_URL
 
 # API URLs - Perpetual
 PERP_REST_URL = REST_BASE_URL
-PERP_CANDLES_ENDPOINT = "/api/v5/market/candles"
 PERP_WSS_URL = WSS_BASE_URL
 
 # API endpoints
 STATUS_ENDPOINT = "/api/v5/system/status"
+HEALTH_CHECK_ENDPOINT = "/api/v5/public/time"
+CANDLES_ENDPOINT = "/api/v5/market/candles"
 
 # Compatibility constants
-REST_URL = REST_BASE_URL
-WSS_URL = "wss://ws.okx.com:8443/ws/v5/business"
-CANDLES_ENDPOINT = "/api/v5/market/history-candles"
-HEALTH_CHECK_ENDPOINT = "/api/v5/public/time"
+SPOT_CANDLES_ENDPOINT = CANDLES_ENDPOINT
+PERP_CANDLES_ENDPOINT = CANDLES_ENDPOINT
 
 # API rate limits
-MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 300
+MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1440
 
 # Intervals mapping: interval name -> seconds and OKX format
 INTERVALS: dict[str, int] = {
@@ -48,7 +45,7 @@ INTERVALS: dict[str, int] = {
 }
 
 # OKX interval formats
-INTERVAL_TO_OKX_FORMAT = {
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "1m": "1m",
     "3m": "3m",
     "5m": "5m",

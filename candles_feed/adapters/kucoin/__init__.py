@@ -2,8 +2,7 @@
 KuCoin exchange adapter package.
 """
 
-from candles_feed.adapters.kucoin.kucoin_base_adapter import KuCoinBaseAdapter
-from candles_feed.adapters.kucoin.kucoin_perpetual_adapter import KuCoinPerpetualAdapter
-from candles_feed.adapters.kucoin.kucoin_spot_adapter import KuCoinSpotAdapter
+from candles_feed.adapters.kucoin.perpetual_adapter import KucoinPerpetualAdapter
+from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
 
-__all__ = ["KuCoinBaseAdapter", "KuCoinPerpetualAdapter", "KuCoinSpotAdapter"]
+__all__ = ["KucoinPerpetualAdapter", "KucoinSpotAdapter"]

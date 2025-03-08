@@ -5,14 +5,14 @@ Unit tests for the HyperliquidPerpetualAdapter class.
 import pytest
 
 from candles_feed.adapters.hyperliquid.constants import (
-    INTERVAL_TO_HYPERLIQUID_FORMAT,
+    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    PERP_REST_URL,
     PERP_WSS_URL,
+    REST_URL,
     WS_INTERVALS,
 )
-from candles_feed.adapters.hyperliquid.hyperliquid_perpetual_adapter import (
+from candles_feed.adapters.hyperliquid.perpetual_adapter import (
     HyperliquidPerpetualAdapter,
 )
 from candles_feed.core.candle_data import CandleData
@@ -30,18 +30,18 @@ class TestHyperliquidPerpetualAdapter:
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # Test standard case - HyperLiquid only uses the base asset
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC"
+        assert HyperliquidPerpetualAdapter.get_trading_pair_format("BTC-USDT") == "BTC"
 
         # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("ETH-BTC-PERP") == "ETH"
+        assert HyperliquidPerpetualAdapter.get_trading_pair_format("ETH-BTC-PERP") == "ETH"
 
     def test_get_rest_url(self):
         """Test REST API URL retrieval."""
-        assert self.adapter.get_rest_url() == PERP_REST_URL
+        assert HyperliquidPerpetualAdapter.get_rest_url() == REST_URL
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == PERP_WSS_URL
+        assert HyperliquidPerpetualAdapter.get_ws_url() == PERP_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
@@ -49,7 +49,7 @@ class TestHyperliquidPerpetualAdapter:
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
-        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+        assert params["resolution"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
         assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
@@ -68,7 +68,7 @@ class TestHyperliquidPerpetualAdapter:
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
-        assert params["resolution"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+        assert params["resolution"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
         assert params["limit"] == limit
@@ -112,7 +112,7 @@ class TestHyperliquidPerpetualAdapter:
         assert payload["method"] == "subscribe"
         assert payload["channel"] == "candles"
         assert payload["coin"] == "BTC"
-        assert payload["interval"] == INTERVAL_TO_HYPERLIQUID_FORMAT.get(
+        assert payload["interval"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
             self.interval, self.interval
         )
 

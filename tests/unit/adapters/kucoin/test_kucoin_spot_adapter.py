@@ -1,5 +1,5 @@
 """
-Unit tests for the KuCoinSpotAdapter class.
+Unit tests for the KucoinSpotAdapter class.
 """
 
 import time
@@ -8,39 +8,38 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from candles_feed.adapters.kucoin.constants import (
-    CANDLES_ENDPOINT,
     INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
     WS_INTERVALS,
-    WSS_URL,
 )
-from candles_feed.adapters.kucoin.kucoin_spot_adapter import KuCoinSpotAdapter
+from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
 from candles_feed.core.candle_data import CandleData
 
 
 class TestKuCoinSpotAdapter:
-    """Test suite for the KuCoinSpotAdapter class."""
+    """Test suite for the KucoinSpotAdapter class."""
 
     def setup_method(self):
         """Setup method called before each test."""
-        self.adapter = KuCoinSpotAdapter()
+        self.adapter = KucoinSpotAdapter()
         self.trading_pair = "BTC-USDT"
         self.interval = "1m"
 
     def test_get_trading_pair_format(self):
         """Test trading pair format conversion."""
         # KuCoin doesn't change the format
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT"
-        assert self.adapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC"
+        assert KucoinSpotAdapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT"
+        assert KucoinSpotAdapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC"
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert KucoinSpotAdapter.get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == WSS_URL
+        assert KucoinSpotAdapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
@@ -64,8 +63,8 @@ class TestKuCoinSpotAdapter:
         assert params["symbol"] == self.trading_pair
         assert params["type"] == self.interval
         assert params["limit"] == limit
-        assert params["startAt"] == start_time
-        assert params["endAt"] == end_time
+        assert params["startAt"] == start_time * 1000  # Convert to milliseconds
+        assert params["endAt"] == end_time * 1000  # Convert to milliseconds
 
     def test_parse_rest_response(self, candlestick_response_kucoin):
         """Test parsing REST API response."""
@@ -143,7 +142,7 @@ class TestKuCoinSpotAdapter:
 
     def test_get_supported_intervals(self):
         """Test getting supported intervals."""
-        intervals = self.adapter.get_supported_intervals()
+        intervals = KucoinSpotAdapter.get_supported_intervals()
 
         # Verify intervals match the expected values
         assert intervals == INTERVALS
@@ -156,7 +155,7 @@ class TestKuCoinSpotAdapter:
 
     def test_get_ws_supported_intervals(self):
         """Test getting WebSocket supported intervals."""
-        ws_intervals = self.adapter.get_ws_supported_intervals()
+        ws_intervals = KucoinSpotAdapter.get_ws_supported_intervals()
 
         # Verify WS intervals match the expected values
         assert ws_intervals == WS_INTERVALS

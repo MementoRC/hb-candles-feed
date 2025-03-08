@@ -8,17 +8,14 @@ the CandlesFeed component with different exchange adapters.
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Tuple
-from unittest.mock import patch
 
-import aiohttp
 import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
-from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
-from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+from mocking_resources.core import ExchangeType
+from mocking_resources.core import MockedExchangeServer
+from mocking_resources.exchanges.binance import BinanceSpotPlugin
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +30,7 @@ class TestCandlesFeedIntegration:
         """Create a standalone mock server for testing."""
         # Create a mock exchange server for Binance Spot
         plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
-        server = MockExchangeServer(plugin, "127.0.0.1", 8789)
+        server = MockedExchangeServer(plugin, "127.0.0.1", 8789)
 
         # Add default trading pairs
         server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -100,7 +97,6 @@ class TestCandlesFeedIntegration:
             # Stop the feed
             await feed.stop()
 
-    @pytest.mark.skip(reason="WebSocket implementation in mock server needs further work")
     @pytest.mark.asyncio
     async def test_websocket_strategy_integration(self, standalone_mock_server):
         """Test CandlesFeed with WebSocket strategy."""
@@ -145,7 +141,7 @@ class TestCandlesFeedIntegration:
                     for i, candle in enumerate(mock_server.candles[trading_pair][feed.interval]):
                         if candle.timestamp == latest_candle.timestamp:
                             # Create a modified candle with a different close price
-                            from candles_feed.testing_resources.candle_data_factory import (
+                            from mocking_resources.core.candle_data_factory import (
                                 CandleDataFactory,
                             )
 
@@ -336,7 +332,6 @@ class TestCandlesFeedIntegration:
             for _, feed in interval_feeds:
                 await feed.stop()
 
-    @pytest.mark.skip(reason="Error handling with WebSocket needs further work")
     @pytest.mark.asyncio
     async def test_error_handling_integration(self, standalone_mock_server):
         """Test CandlesFeed error handling and recovery."""
@@ -445,7 +440,6 @@ class TestCandlesFeedIntegration:
             # Stop the feed
             await feed.stop()
 
-    @pytest.mark.skip(reason="Time-based tests can be flaky")
     @pytest.mark.asyncio
     async def test_historical_data_fetch(self, standalone_mock_server):
         """Test fetching historical candle data with specific time ranges."""

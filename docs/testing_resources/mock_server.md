@@ -42,8 +42,8 @@ The mock server provides:
 The `MockedCandleFeedServer` class is the main entry point for the mock server functionality:
 
 ```python
-from candles_feed.testing_resources.mocked_candle_feed_server import MockedCandleFeedServer
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.mocked_candle_feed_server import MockedCandleFeedServer
+from mocking_resources.core import ExchangeType
 
 # Create a mock server for Binance Spot
 server = MockedCandleFeedServer(
@@ -55,7 +55,7 @@ server = MockedCandleFeedServer(
 # Configure with custom trading pairs
 custom_pairs = [
     ("BTCUSDT", "1m", 50000.0),  # BTC with initial price of $50,000
-    ("ETHUSDT", "1m", 3000.0),   # ETH with initial price of $3,000
+    ("ETHUSDT", "1m", 3000.0),  # ETH with initial price of $3,000
 ]
 
 # Start the server
@@ -191,33 +191,34 @@ async def test_error_handling(mock_server):
 To add support for a new exchange in the mock server, you need to create a plugin that implements the exchange's API behavior:
 
 ```python
-from candles_feed.testing_resources.mocks.core.exchange_plugin import ExchangePlugin
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
+from mocking_resources.core import ExchangePlugin
+from mocking_resources.core import ExchangeType
+
 
 class NewExchangePlugin(ExchangePlugin):
     def __init__(self, exchange_type: ExchangeType):
         super().__init__(exchange_type)
-    
+
     @property
     def rest_routes(self):
         return {
             '/api/candles': ('GET', 'handle_klines'),
             # ... other routes
         }
-    
+
     async def handle_klines(self, request):
         """Handle klines request for the new exchange."""
         # Parse request parameters
         # Generate response data
         # Return formatted response
-        
+
     @property
     def ws_message_handlers(self):
         return {
             'subscribe': self.handle_subscribe,
             # ... other message types
         }
-    
+
     async def handle_subscribe(self, websocket, message):
         """Handle subscription request for the new exchange."""
         # Parse subscription request

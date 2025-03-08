@@ -4,30 +4,33 @@ Common constants for KuCoin adapters.
 
 from typing import Dict
 
-# API URLs - Common
+# API URLs
 REST_BASE_URL = "https://api.kucoin.com"
 WSS_BASE_URL = "wss://ws-api.kucoin.com"
 
 # API URLs - Spot
 SPOT_REST_URL = REST_BASE_URL
-SPOT_CANDLES_ENDPOINT = "/api/v1/market/candles"
 SPOT_WSS_URL = WSS_BASE_URL
 
 # API URLs - Perpetual
-PERP_REST_URL = "https://api-futures.kucoin.com"
-PERP_CANDLES_ENDPOINT = "/api/v1/kline/query"
-PERP_WSS_URL = "wss://ws-api-futures.kucoin.com"
+PERPETUAL_REST_URL = "https://api-futures.kucoin.com"
+PERPETUAL_WSS_URL = "wss://ws-api-futures.kucoin.com"
 
 # API endpoints
+SPOT_CANDLES_ENDPOINT = "/api/v1/market/candles"
+PERPETUAL_CANDLES_ENDPOINT = "/api/v1/kline/query"
 TICKER_ENDPOINT = "/api/v1/market/orderbook/level1"
 TOKEN_ENDPOINT = "/api/v1/bullet-public"
+HEALTH_CHECK_ENDPOINT = "/api/v1/timestamp"
 
-# Compatibility constants
+# Compatibility constants (for backward compatibility)
 REST_URL = REST_BASE_URL
 WSS_URL = WSS_BASE_URL
-HEALTH_CHECK_ENDPOINT = "/api/v1/timestamp"
 CANDLES_ENDPOINT = SPOT_CANDLES_ENDPOINT
 PUBLIC_WS_DATA_PATH_URL = TOKEN_ENDPOINT
+PERP_REST_URL = PERPETUAL_REST_URL
+PERP_WSS_URL = PERPETUAL_WSS_URL
+PERP_CANDLES_ENDPOINT = PERPETUAL_CANDLES_ENDPOINT
 
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1500
@@ -49,8 +52,8 @@ INTERVALS: dict[str, int] = {
     "1w": 604800,
 }
 
-# KuCoin interval formats mapping - perpetual uses different format for some intervals
-INTERVAL_TO_KUCOIN_PERP_FORMAT = {
+# Exchange-specific interval formats mapping
+INTERVAL_TO_EXCHANGE_FORMAT = {
     "1m": "1min",
     "5m": "5min",
     "15m": "15min",
@@ -62,6 +65,9 @@ INTERVAL_TO_KUCOIN_PERP_FORMAT = {
     "1d": "1day",
     "1w": "1week",
 }
+
+# Keep the old name for backward compatibility
+INTERVAL_TO_KUCOIN_PERP_FORMAT = INTERVAL_TO_EXCHANGE_FORMAT
 
 # Websocket supported intervals - KuCoin has limited websocket support for candles
 WS_INTERVALS = ["1m"]

@@ -13,10 +13,10 @@ import aiohttp
 import pytest
 
 from candles_feed.core.candle_data import CandleData
-from candles_feed.testing_resources.candle_data_factory import CandleDataFactory
-from candles_feed.testing_resources.mocks.core.exchange_type import ExchangeType
-from candles_feed.testing_resources.mocks.core.server import MockExchangeServer
-from candles_feed.testing_resources.mocks.exchanges.binance_spot.plugin import BinanceSpotPlugin
+from mocking_resources.core.candle_data_factory import CandleDataFactory
+from mocking_resources.core import ExchangeType
+from mocking_resources.core import MockedExchangeServer
+from mocking_resources.exchanges.binance import BinanceSpotPlugin
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +30,7 @@ class TestMockServer:
     async def standalone_mock_server(self):
         """Create a standalone mock server for testing."""
         plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
-        server = MockExchangeServer(plugin, "127.0.0.1", 8790)
+        server = MockedExchangeServer(plugin, "127.0.0.1", 8790)
 
         # Add trading pairs
         server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -86,7 +86,6 @@ class TestMockServer:
                 assert isinstance(first_candle[4], str), "Close price should be a string"
                 assert isinstance(first_candle[5], str), "Volume should be a string"
 
-    @pytest.mark.skip(reason="WebSocket implementation in mock server needs further work")
     @pytest.mark.asyncio
     async def test_server_websocket_connection_simple(self, standalone_mock_server):
         """Test basic WebSocket connection to the mock server."""
@@ -120,7 +119,7 @@ class TestMockServer:
         """Test the mock server with multiple trading pairs."""
         # Create a new server instance for this test
         plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
-        server = MockExchangeServer(plugin, "127.0.0.1", 8791)
+        server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
 
         # Add multiple trading pairs with different prices
         trading_pairs = [
