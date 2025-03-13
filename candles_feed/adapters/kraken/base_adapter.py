@@ -4,20 +4,48 @@ Kraken spot exchange adapter for the Candle Feed framework.
 from abc import abstractmethod
 
 from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.kraken.constants import (
+from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.protocols import NetworkClientProtocol
+
+from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
-class KrakenBaseAdapter(BaseAdapter):
+class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Kraken spot exchange adapter."""
 
     TIMESTAMP_UNIT: str = "seconds"
-    
+
+    @staticmethod
+    @abstractmethod
+    def _get_rest_url() -> str:
+        """Get REST API URL for candles.
+
+        :returns: REST API URL
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def _get_ws_url() -> str:
+        """Get WebSocket URL.
+
+        :returns: WebSocket URL
+        """
+        pass
+
+    def get_ws_url(self) -> str:
+        """Get WebSocket URL.
+
+        :returns: WebSocket URL
+        """
+        return self._get_ws_url()
+
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
@@ -42,25 +70,7 @@ class KrakenBaseAdapter(BaseAdapter):
 
         return base + quote
 
-    @staticmethod
-    @abstractmethod
-    def get_rest_url() -> str:
-        """Get REST API URL for candles.
-
-        :returns: REST API URL
-        """
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def get_ws_url() -> str:
-        """Get WebSocket URL.
-
-        :returns: WebSocket URL
-        """
-        pass
-
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
@@ -70,12 +80,12 @@ class KrakenBaseAdapter(BaseAdapter):
     ) -> dict:
         """Get parameters for REST API request.
 
-        :param trading_pair: Trading pair.
-        :param interval: Candle interval.
-        :param start_time: Start time in seconds.
-        :param end_time: End time in seconds.
-        :param limit: Maximum number of candles to return.
-        :returns: Dictionary of parameters for REST API request.
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds
+        :param end_time: End time in seconds
+        :param limit: Maximum number of candles to return
+        :returns: Dictionary of parameters for REST API request
         """
         # Kraken uses 'pair', 'interval' in minutes, and 'since' parameter
         params = {
@@ -88,7 +98,7 @@ class KrakenBaseAdapter(BaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response.
@@ -155,6 +165,32 @@ class KrakenBaseAdapter(BaseAdapter):
                         )
                     )
         return candles
+
+    async def fetch_rest_candles(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: int | None = None,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        network_client: NetworkClientProtocol | None = None,
+    ) -> list[CandleData]:
+        """Fetch candles from REST API asynchronously.
+
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds
+        :param limit: Maximum number of candles to return
+        :param network_client: Network client to use for API requests
+        :returns: List of CandleData objects
+        """
+        return await AsyncOnlyAdapter._fetch_rest_candles(
+            adapter_implementation=self,
+            trading_pair=trading_pair,
+            interval=interval,
+            start_time=start_time,
+            limit=limit,
+            network_client=network_client,
+        )
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
@@ -252,7 +288,6 @@ class KrakenBaseAdapter(BaseAdapter):
                     n_trades=int(candle_data[8]) if len(candle_data) > 8 else 0,
                 )
             ]
-
         return None
 
     def get_supported_intervals(self) -> dict[str, int]:

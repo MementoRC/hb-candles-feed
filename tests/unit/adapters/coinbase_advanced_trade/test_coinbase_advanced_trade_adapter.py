@@ -10,13 +10,13 @@ from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
     CoinbaseAdvancedTradeSpotAdapter,
 )
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    CANDLES_ENDPOINT,
+    SPOT_CANDLES_ENDPOINT,
     INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
-    MAX_CANDLES_SIZE,
-    REST_URL,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    SPOT_REST_URL,
     WS_INTERVALS,
-    WSS_URL,
+    SPOT_WSS_URL,
 )
 from candles_feed.core.candle_data import CandleData
 
@@ -38,15 +38,15 @@ class TestCoinbaseAdvancedTradeSpotAdapter:
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert CoinbaseAdvancedTradeSpotAdapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert CoinbaseAdvancedTradeSpotAdapter._get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert CoinbaseAdvancedTradeSpotAdapter.get_ws_url() == WSS_URL
+        assert self.adapter.get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+        params = self.adapter._get_rest_params(self.trading_pair, self.interval)
 
         assert params["granularity"] == INTERVALS[self.interval]
         assert "start" not in params
@@ -57,7 +57,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter:
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
         end_time = 1622592000  # 2021-06-02 00:00:00 UTC
 
-        params = self.adapter.get_rest_params(
+        params = self.adapter._get_rest_params(
             self.trading_pair, self.interval, start_time=start_time, end_time=end_time
         )
 
@@ -68,7 +68,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter:
 
     def test_parse_rest_response(self, candlestick_response_coinbase):
         """Test parsing REST API response."""
-        candles = self.adapter.parse_rest_response(candlestick_response_coinbase)
+        candles = self.adapter._parse_rest_response(candlestick_response_coinbase)
 
         # Verify response parsing
         assert len(candles) == 2

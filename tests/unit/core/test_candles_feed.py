@@ -2,7 +2,6 @@
 Unit tests for the CandlesFeed class.
 """
 
-import asyncio
 from collections import deque
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,10 +11,9 @@ import pytest
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_client import NetworkClient
-from candles_feed.core.network_strategies import RESTPollingStrategy, WebSocketStrategy
+from candles_feed.core.collection_strategies import RESTPollingStrategy, WebSocketStrategy
 
 
 class TestCandlesFeed:

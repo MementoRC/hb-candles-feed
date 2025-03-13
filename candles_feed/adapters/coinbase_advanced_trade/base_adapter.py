@@ -1,39 +1,49 @@
 """
 Coinbase Advanced Trade adapter for the Candle Feed framework.
 """
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT,
+from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.protocols import NetworkClientProtocol
+
+from .constants import (
     INTERVALS,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
-class CoinbaseAdvancedTradeAdapter(BaseAdapter, ABC):
+class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Coinbase Advanced Trade exchange adapter."""
 
     TIMESTAMP_UNIT: str = "seconds"
-    
+
     @staticmethod
     @abstractmethod
-    def get_rest_url() -> str:
+    def _get_rest_url() -> str:
         """Get REST API URL for candles.
-        
+
         :returns: REST API URL
         """
         pass
-        
+
     @staticmethod
     @abstractmethod
-    def get_ws_url() -> str:
-        """Get WebSocket URL.
-        
+    def _get_ws_url() -> str:
+        """Get WebSocket URL (internal implementation).
+
         :returns: WebSocket URL
         """
         pass
+
+    def get_ws_url(self) -> str:
+        """Get WebSocket URL.
+
+        :returns: WebSocket URL
+        """
+        return self._get_ws_url()
 
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
@@ -44,13 +54,13 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter, ABC):
         """
         return trading_pair
 
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
         end_time: int | None = None,
-        limit: int | None = None,
+        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
@@ -70,11 +80,11 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter, ABC):
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
-        :param data: REST API response.
-        :returns: List of CandleData objects.
+        :param data: REST API response
+        :returns: List of CandleData objects
         """
         # Coinbase candle format:
         # {
@@ -108,12 +118,38 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter, ABC):
         )
         return candles
 
+    async def fetch_rest_candles(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: int | None = None,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        network_client: NetworkClientProtocol | None = None,
+    ) -> list[CandleData]:
+        """Fetch candles from REST API asynchronously.
+
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds
+        :param limit: Maximum number of candles to return
+        :param network_client: Network client to use for API requests
+        :returns: List of CandleData objects
+        """
+        return await AsyncOnlyAdapter._fetch_rest_candles(
+            adapter_implementation=self,
+            trading_pair=trading_pair,
+            interval=interval,
+            start_time=start_time,
+            limit=limit,
+            network_client=network_client,
+        )
+
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
-        :param trading_pair: Trading pair.
-        :param interval: Candle interval.
-        :returns: WebSocket subscription payload.
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :returns: WebSocket subscription payload
         """
         return {
             "type": "subscribe",
@@ -122,11 +158,11 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter, ABC):
             "granularity": INTERVALS[interval],
         }
 
-    def parse_ws_message(self, data: dict) -> list[CandleData] | None:
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
-        :param data: WebSocket message.
-        :returns: List of CandleData objects or None if message is not a candle update.
+        :param data: WebSocket message
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         # Coinbase WS candle format:
         # {
@@ -150,6 +186,9 @@ class CoinbaseAdvancedTradeAdapter(BaseAdapter, ABC):
         #     }
         #   ]
         # }
+
+        if data is None:
+            return None
 
         if not isinstance(data, dict) or "events" not in data:
             return None

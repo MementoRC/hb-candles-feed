@@ -42,7 +42,7 @@ The mock server provides:
 The `MockedCandleFeedServer` class is the main entry point for the mock server functionality:
 
 ```python
-from candles_feed.mocking_resources.mocked_candle_feed_server import MockedCandleFeedServer
+from mocking_resources.core.candle_feed_server import MockedCandleFeedServer
 from mocking_resources.core import ExchangeType
 
 # Create a mock server for Binance Spot

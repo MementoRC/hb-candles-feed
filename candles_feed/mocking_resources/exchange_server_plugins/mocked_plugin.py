@@ -1,0 +1,546 @@
+"""
+A simple mock server plugin for the MockedExchangeServer.
+
+This plugin implements a basic, standardized exchange API for testing purposes.
+It doesn't emulate any specific exchange but provides a consistent interface 
+that can be used for unit testing the mock server framework.
+"""
+
+import asyncio
+import json
+from typing import Any
+from aiohttp import web
+
+from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.adapter import MockedAdapter
+
+
+class MockedPlugin(ExchangePlugin):
+    """
+    A simple mock plugin implementation for testing the mock server framework.
+    
+    This plugin provides a standardized set of REST and WebSocket endpoints
+    with consistent, predictable formatting, making it suitable for testing
+    the mock server without depending on exchange-specific implementations.
+    """
+
+    def __init__(self, exchange_type: ExchangeType = ExchangeType.MOCK):
+        """
+        Initialize the simple mock plugin.
+
+        :param exchange_type: The exchange type, defaults to ExchangeType.MOCK
+        """
+        # Initialize with None as adapter_class since we're just mocking for tests
+        super().__init__(exchange_type, MockedAdapter)
+
+    @property
+    def rest_url(self) -> str:
+        """
+        Get the base REST API URL.
+
+        :returns: The base REST API URL.
+        """
+        return "https://mock-exchange.test/api"
+
+    @property
+    def wss_url(self) -> str:
+        """
+        Get the base WebSocket API URL.
+
+        :returns: The base WebSocket API URL.
+        """
+        return "wss://mock-exchange.test/ws"
+
+    @property
+    def ws_routes(self) -> dict[str, str]:
+        """
+        Get the WebSocket routes.
+
+        :returns: A dictionary mapping URL paths to handler names.
+        """
+        return {"/ws": "handle_websocket"}
+
+    @property
+    def rest_routes(self) -> dict[str, tuple[str, str]]:
+        """
+        Get the REST API routes.
+
+        :returns: A dictionary mapping URL paths to tuples of (HTTP method, handler name).
+        """
+        return {
+            "/api/candles": ("GET", "handle_klines"),
+            "/api/v3/klines": ("GET", "handle_klines"),
+            "/api/time": ("GET", "handle_time"),
+            "/api/v3/time": ("GET", "handle_time"),
+            "/api/v3/ping": ("GET", "handle_ping"),
+            "/api/instruments": ("GET", "handle_instruments"),
+        }
+
+    def format_rest_candles(
+        self, candles: list[CandleData], trading_pair: str, interval: str
+    ) -> list:
+        """
+        Format candle data as a REST API response.
+
+        :param candles: List of candle data to format.
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :returns: Formatted response.
+        """
+        # Format candles in the Binance pattern for test compatibility
+        # Convert to the format:
+        # [
+        #   [time, "open", "high", "low", "close", "volume", close_time, "quote_volume", trades, "taker_base", "taker_quote", "ignored"]
+        # ]
+        interval_ms = self._interval_to_milliseconds(interval)
+        
+        return [
+            [
+                int(candle.timestamp_ms),  # Open time
+                str(candle.open),          # Open
+                str(candle.high),          # High
+                str(candle.low),           # Low
+                str(candle.close),         # Close
+                str(candle.volume),        # Volume
+                int(candle.timestamp_ms) + interval_ms,  # Close time
+                str(candle.quote_asset_volume) if candle.quote_asset_volume else "0",  # Quote volume
+                100,                        # Number of trades
+                str(candle.volume * 0.7),   # Taker buy base asset volume
+                str(candle.quote_asset_volume * 0.7) if candle.quote_asset_volume else "0",  # Taker buy quote volume
+                "0"                         # Ignore
+            ]
+            for candle in candles
+        ]
+
+    def format_ws_candle_message(
+        self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
+    ) -> dict:
+        """
+        Format candle data as a WebSocket message.
+
+        :param candle: Candle data to format.
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :param is_final: Whether this is the final update for this candle.
+        :returns: Formatted message.
+        """
+        # Return a standardized WebSocket message format
+        return {
+            "type": "candle_update",
+            "symbol": trading_pair,
+            "interval": interval,
+            "is_final": is_final,
+            "data": {
+                "timestamp": int(candle.timestamp_ms),
+                "open": str(candle.open),
+                "high": str(candle.high),
+                "low": str(candle.low),
+                "close": str(candle.close),
+                "volume": str(candle.volume),
+                "quote_volume": str(candle.quote_asset_volume) if candle.quote_asset_volume else "0",
+            }
+        }
+
+    def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
+        """
+        Parse a WebSocket subscription message.
+
+        :param message: The subscription message from the client.
+        :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
+        """
+        subscriptions = []
+        
+        # Support both our format and the Binance format for compatibility
+        if message.get("type") == "subscribe":
+            # Our format
+            for sub in message.get("subscriptions", []):
+                trading_pair = sub.get("symbol")
+                interval = sub.get("interval")
+                if trading_pair and interval:
+                    subscriptions.append((trading_pair, interval))
+        elif message.get("method") == "SUBSCRIBE":
+            # Binance format
+            for param in message.get("params", []):
+                # Format is: "btcusdt@kline_1m"
+                if "@kline_" in param:
+                    parts = param.split("@kline_")
+                    if len(parts) == 2:
+                        symbol = parts[0].upper()
+                        interval = parts[1]
+                        subscriptions.append((symbol, interval))
+        
+        return subscriptions
+
+    def create_ws_subscription_success(
+        self, message: dict, subscriptions: list[tuple[str, str]]
+    ) -> dict:
+        """
+        Create a WebSocket subscription success response.
+
+        :param message: The original subscription message.
+        :param subscriptions: List of (trading_pair, interval) tuples that were subscribed to.
+        :returns: A subscription success response message.
+        """
+        # Handle the Binance format if it's detected
+        if message.get("method") == "SUBSCRIBE":
+            # Binance format response
+            return {
+                "result": None,
+                "id": message.get("id", 1)
+            }
+        
+        # Otherwise, use our standard format
+        subscription_details = [
+            {"symbol": pair, "interval": interval}
+            for pair, interval in subscriptions
+        ]
+        
+        return {
+            "type": "subscribe_result",
+            "status": "success",
+            "subscriptions": subscription_details
+        }
+
+    def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
+        """
+        Create a WebSocket subscription key for internal tracking.
+
+        :param trading_pair: The trading pair.
+        :param interval: The candle interval.
+        :returns: A string key used to track subscriptions.
+        """
+        return f"{trading_pair}_{interval}"
+        
+    def normalize_trading_pair(self, trading_pair: str) -> str:
+        """
+        Normalize a trading pair to a standardized format.
+        
+        :param trading_pair: The trading pair to normalize.
+        :returns: The normalized trading pair.
+        """
+        # If already contains a separator, return as is
+        if "-" in trading_pair:
+            return trading_pair
+            
+        # Try to find common quote asset patterns
+        for quote in ["USDT", "USD", "BTC", "ETH", "BNB", "USDC"]:
+            if trading_pair.endswith(quote):
+                base = trading_pair[:-len(quote)]
+                return f"{base}-{quote}"
+                
+        # Default case: assume last 4 characters are the quote asset
+        if len(trading_pair) > 4:
+            base = trading_pair[:-4]
+            quote = trading_pair[-4:]
+            return f"{base}-{quote}"
+            
+        # If all else fails, return as is
+        return trading_pair
+        
+    def _interval_to_seconds(self, interval: str) -> int:
+        """
+        Convert interval string to seconds.
+        
+        :param interval: The interval string (e.g., "1m", "1h", "1d").
+        :returns: The interval in seconds.
+        """
+        unit = interval[-1]
+        value = int(interval[:-1])
+        
+        if unit == "s":
+            return value
+        elif unit == "m":
+            return value * 60
+        elif unit == "h":
+            return value * 60 * 60
+        elif unit == "d":
+            return value * 24 * 60 * 60
+        elif unit == "w":
+            return value * 7 * 24 * 60 * 60
+        else:
+            return 60  # Default to 1 minute
+            
+    def _interval_to_milliseconds(self, interval: str) -> int:
+        """
+        Convert interval string to milliseconds.
+        
+        :param interval: The interval string (e.g., "1m", "1h", "1d").
+        :returns: The interval in milliseconds.
+        """
+        # Convert seconds to milliseconds
+        return self._interval_to_seconds(interval) * 1000
+
+    def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
+        """
+        Parse REST API parameters for candle requests.
+
+        :param request: The web request.
+        :returns: A dictionary with standardized parameter names.
+        """
+        params = request.query
+        
+        # Extract standard parameters
+        symbol = params.get("symbol")
+        interval = params.get("interval")
+        limit = params.get("limit")
+        start_time = params.get("start_time")
+        end_time = params.get("end_time")
+        
+        # Convert limit to int if provided
+        if limit is not None:
+            try:
+                limit = int(limit)
+            except ValueError:
+                limit = 1000  # Default value
+        
+        # Return standardized parameter dict
+        return {
+            "symbol": symbol,
+            "interval": interval,
+            "limit": limit,
+            "start_time": start_time,
+            "end_time": end_time,
+        }
+
+    async def handle_time(self, server, request):
+        """
+        Handle the time endpoint.
+
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: A JSON response with server time.
+        """
+        await server._simulate_network_conditions()
+        
+        client_ip = request.remote
+        if not server._check_rate_limit(client_ip, "rest"):
+            return web.json_response({"error": "Rate limit exceeded"}, status=429)
+        
+        current_time = int(server._time() * 1000)
+        
+        return web.json_response({
+            "status": "ok",
+            "timestamp": current_time,
+            "server_time": current_time
+        })
+
+    async def handle_instruments(self, server, request):
+        """
+        Handle the instruments endpoint.
+
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: A JSON response with available instruments.
+        """
+        await server._simulate_network_conditions()
+        
+        client_ip = request.remote
+        if not server._check_rate_limit(client_ip, "rest"):
+            return web.json_response({"error": "Rate limit exceeded"}, status=429)
+            
+        instruments = []
+        for trading_pair in server.trading_pairs:
+            base, quote = trading_pair.split("-") if "-" in trading_pair else (trading_pair[:-4], trading_pair[-4:])
+            instruments.append({
+                "symbol": trading_pair,
+                "base_asset": base,
+                "quote_asset": quote,
+                "status": "TRADING"
+            })
+            
+        return web.json_response({
+            "status": "ok",
+            "instruments": instruments
+        })
+
+    async def handle_ping(self, server, request):
+        """
+        Handle ping endpoint (health check).
+
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: Empty JSON response.
+        """
+        await server._simulate_network_conditions()
+        
+        client_ip = request.remote
+        if not server._check_rate_limit(client_ip, "rest"):
+            return web.json_response({"error": "Rate limit exceeded"}, status=429)
+            
+        # Return empty response
+        return web.json_response({})
+
+    async def handle_websocket(self, server, request):
+        """
+        Handle WebSocket connections.
+
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: WebSocket response.
+        """
+        # Apply artificial latency to initial connection
+        if server.latency_ms > 0:
+            await asyncio.sleep(server.latency_ms / 1000.0)
+
+        # Check connection limit
+        client_ip = request.remote
+        if not server._check_rate_limit(client_ip, "ws"):
+            return web.Response(status=429, text="Too many requests")
+
+        # Create WebSocket
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        # Add to active connections
+        server.ws_connections.add(ws)
+
+        # Handle WebSocket messages
+        try:
+            async for msg in ws:
+                if msg.type == web.WSMsgType.TEXT:
+                    try:
+                        data = json.loads(msg.data)
+                        if data.get("method") == "SUBSCRIBE":
+                            # Parse subscriptions
+                            subscriptions = self.parse_ws_subscription(data)
+                            
+                            # Create success response first (before sending data)
+                            success_response = self.create_ws_subscription_success(data, subscriptions)
+                            await ws.send_json(success_response)
+                            
+                            # Handle subscriptions
+                            for trading_pair, interval in subscriptions:
+                                # Find the actual trading pair in server
+                                normalized_pair = None
+                                for pair in server.candles:
+                                    if self.normalize_trading_pair(pair).replace("-", "").lower() == trading_pair.lower():
+                                        normalized_pair = pair
+                                        break
+                                        
+                                if normalized_pair and interval in server.candles.get(normalized_pair, {}):
+                                    # Create subscription key
+                                    subscription_key = self.create_ws_subscription_key(normalized_pair, interval)
+                                    
+                                    # Add to subscriptions
+                                    if subscription_key not in server.subscriptions:
+                                        server.subscriptions[subscription_key] = set()
+                                        
+                                    server.subscriptions[subscription_key].add(ws)
+                                    
+                                    # Send the current candle (optional after confirmation)
+                                    candles = server.candles[normalized_pair][interval]
+                                    if candles:
+                                        current_candle = candles[-1]
+                                        message = self.format_ws_candle_message(
+                                            candle=current_candle,
+                                            trading_pair=normalized_pair,
+                                            interval=interval,
+                                            is_final=True
+                                        )
+                                        # Delay sending initial data to ensure subscription confirmation is processed first
+                                        await asyncio.sleep(0.1)
+                                        await ws.send_json(message)
+                            
+                        elif data.get("method") == "UNSUBSCRIBE":
+                            # Parse subscriptions
+                            subscriptions = self.parse_ws_subscription(data)
+                            
+                            # Unsubscribe from each topic
+                            for trading_pair, interval in subscriptions:
+                                for pair in server.candles:
+                                    if self.normalize_trading_pair(pair).replace("-", "").lower() == trading_pair.lower():
+                                        trading_pair = pair
+                                        break
+                                        
+                                # Create subscription key
+                                subscription_key = self.create_ws_subscription_key(trading_pair, interval)
+                                
+                                # Remove from subscriptions
+                                if subscription_key in server.subscriptions:
+                                    server.subscriptions[subscription_key].discard(ws)
+                                    
+                                    # Remove the set if empty
+                                    if not server.subscriptions[subscription_key]:
+                                        del server.subscriptions[subscription_key]
+                                        
+                            # Send unsubscription success response
+                            success_response = self.create_ws_subscription_success(data, subscriptions)
+                            await ws.send_json(success_response)
+                            
+                    except json.JSONDecodeError:
+                        await ws.send_json({"error": "Invalid JSON"})
+                    except Exception as e:
+                        await ws.send_json({"error": f"Error: {str(e)}"})
+                        
+                elif msg.type == web.WSMsgType.ERROR:
+                    server.logger.error(f"WebSocket connection closed with exception: {ws.exception()}")
+                    break
+                    
+        finally:
+            # Clean up when the connection is closed
+            server.ws_connections.discard(ws)
+            
+            # Remove from all subscriptions
+            for subscribers in server.subscriptions.values():
+                subscribers.discard(ws)
+                
+            # Clean up empty subscription lists
+            empty_keys = [k for k, v in server.subscriptions.items() if not v]
+            for k in empty_keys:
+                del server.subscriptions[k]
+                
+        return ws
+
+    async def handle_klines(self, server, request):
+        """
+        Handle the klines (candles) endpoint.
+
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: JSON response with candle data.
+        """
+        await server._simulate_network_conditions()
+        
+        client_ip = request.remote
+        if not server._check_rate_limit(client_ip, "rest"):
+            return web.json_response({"error": "Rate limit exceeded"}, status=429)
+            
+        # Parse parameters
+        params = self.parse_rest_candles_params(request)
+        symbol = params.get("symbol")
+        interval = params.get("interval")
+        limit = params.get("limit", 100)
+        
+        # Find the trading pair in our list
+        trading_pair = None
+        for pair in server.candles:
+            if pair.replace("-", "") == symbol:
+                trading_pair = pair
+                break
+                
+        if not trading_pair and symbol:
+            # Try to find by normalized symbol
+            for pair in server.candles:
+                if pair.lower() == symbol.lower() or pair.replace("-", "").lower() == symbol.lower():
+                    trading_pair = pair
+                    break
+        
+        if not trading_pair:
+            return web.json_response({"error": f"Symbol not found: {symbol}"}, status=404)
+            
+        # Check if we have this interval
+        if interval not in server.candles.get(trading_pair, {}):
+            return web.json_response({"error": f"Interval not found: {interval}"}, status=404)
+            
+        # Get the candles
+        candles = server.candles[trading_pair][interval]
+        
+        # Apply limit
+        if limit and len(candles) > limit:
+            candles = candles[-limit:]
+            
+        # Format response
+        formatted_response = self.format_rest_candles(candles, trading_pair, interval)
+        return web.json_response(formatted_response)

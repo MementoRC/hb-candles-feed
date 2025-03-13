@@ -37,15 +37,17 @@ class TestHyperliquidSpotAdapter:
 
     def test_get_rest_url(self):
         """Test REST API URL retrieval."""
-        assert HyperliquidSpotAdapter.get_rest_url() == REST_URL
+        assert HyperliquidSpotAdapter._get_rest_url() == REST_URL
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert HyperliquidSpotAdapter.get_ws_url() == SPOT_WSS_URL
+        # Test both the instance method and the static method
+        assert self.adapter.get_ws_url() == SPOT_WSS_URL
+        assert HyperliquidSpotAdapter._get_ws_url() == SPOT_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+        params = self.adapter._get_rest_params(self.trading_pair, self.interval)
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
@@ -62,7 +64,7 @@ class TestHyperliquidSpotAdapter:
         end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 200
 
-        params = self.adapter.get_rest_params(
+        params = self.adapter._get_rest_params(
             self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
         )
 
@@ -77,7 +79,7 @@ class TestHyperliquidSpotAdapter:
 
     def test_parse_rest_response(self, candlestick_response_hyperliquid):
         """Test parsing REST API response."""
-        candles = self.adapter.parse_rest_response(candlestick_response_hyperliquid)
+        candles = self.adapter._parse_rest_response(candlestick_response_hyperliquid)
 
         # Verify response parsing
         assert len(candles) == 2
@@ -102,7 +104,7 @@ class TestHyperliquidSpotAdapter:
 
     def test_parse_rest_response_none(self):
         """Test parsing None REST API response."""
-        candles = self.adapter.parse_rest_response(None)
+        candles = self.adapter._parse_rest_response(None)
         assert candles == []
 
     def test_get_ws_subscription_payload(self):
@@ -165,3 +167,36 @@ class TestHyperliquidSpotAdapter:
         assert ws_intervals == WS_INTERVALS
         assert "1m" in ws_intervals
         assert "1h" in ws_intervals
+        
+    @pytest.mark.asyncio
+    async def test_fetch_rest_candles_async(self):
+        """Test async fetch_rest_candles method."""
+        # Create a mock network client
+        mock_client = AsyncMock()
+        mock_client.post_rest_data = MagicMock()
+        
+        # Configure the mock to return a specific response when called
+        response_data = [
+            [1672531200000, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
+            [1672531260000, "50500.0", "52000.0", "50000.0", "51500.0", "150.0", "7500000.0"]
+        ]
+        mock_client.post_rest_data.return_value = response_data
+        
+        # Test the method with our mock
+        candles = await self.adapter.fetch_rest_candles(
+            trading_pair=self.trading_pair,
+            interval=self.interval,
+            network_client=mock_client
+        )
+        
+        # Verify the result
+        assert len(candles) == 2
+        
+        # Check that the mock was called with the correct parameters
+        url = self.adapter._get_rest_url()
+        params = self.adapter._get_rest_params(self.trading_pair, self.interval)
+        
+        mock_client.post_rest_data.assert_called_once()
+        args, kwargs = mock_client.post_rest_data.call_args
+        assert kwargs['url'] == url
+        assert kwargs['data'] == params

@@ -237,7 +237,8 @@ async def analyze_data():
 The framework automatically selects the best strategy (WebSocket or REST polling) based on exchange capabilities:
 
 ```python
-from candles_feed.core.network_strategies import WebSocketStrategy, RESTPollingStrategy
+from candles_feed.core.collection_strategies import WebSocketStrategy, RESTPollingStrategy
+
 
 def check_strategy(candles_feed):
     """Check which network strategy is being used."""

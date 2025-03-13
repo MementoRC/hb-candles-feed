@@ -5,8 +5,8 @@ Pytest fixtures for testing the mock exchange server components.
 import pytest
 
 from candles_feed import CandleData
-from mocking_resources.core import ExchangeType
-from mocking_resources.core import create_mock_server
+from candles_feed.mocking_resources.core import ExchangeType
+from candles_feed.mocking_resources.core import create_mock_server
 
 
 @pytest.fixture

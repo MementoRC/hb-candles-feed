@@ -4,13 +4,13 @@ KuCoin perpetual exchange adapter for the Candle Feed framework.
 
 import time
 
-from candles_feed.adapters.kucoin.constants import (
+from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
 )
-from candles_feed.adapters.kucoin.base_adapter import KucoinBaseAdapter
+from .base_adapter import KucoinBaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
@@ -23,7 +23,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
     def get_rest_url() -> str:
         """Get REST API URL for candles.
 
-        :return: REST API URL
+        :returns: REST API URL
         """
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
@@ -31,7 +31,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
     def get_ws_url() -> str:
         """Get WebSocket URL.
 
-        :return: WebSocket URL
+        :returns: WebSocket URL
         """
         return PERPETUAL_WSS_URL
 
@@ -50,7 +50,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         :param start_time: Start time in seconds
         :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
-        :return: Dictionary of parameters for REST API request
+        :returns: Dictionary of parameters for REST API request
         """
         # KuCoin Futures uses different API parameters
         params: dict[str, str | int] = {
@@ -70,7 +70,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
-        :return: List of CandleData objects
+        :returns: List of CandleData objects
         """
         # KuCoin Futures candle format:
         # {
@@ -118,7 +118,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
-        :return: WebSocket subscription payload
+        :returns: WebSocket subscription payload
         """
         # Futures uses a different topic format
         perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
@@ -134,7 +134,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
-        :return: List of CandleData objects or None if message is not a candle update
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         # KuCoin Futures websocket message format:
         # {

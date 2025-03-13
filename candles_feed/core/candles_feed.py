@@ -15,7 +15,7 @@ from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
 # Import the adapter factory
 from candles_feed.core.hummingbot_network_client_adapter import NetworkClientFactory
-from candles_feed.core.network_strategies import (
+from candles_feed.core.collection_strategies import (
     RESTPollingStrategy,
     WebSocketStrategy,
 )

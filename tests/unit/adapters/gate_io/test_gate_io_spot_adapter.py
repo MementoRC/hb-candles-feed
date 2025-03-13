@@ -1,176 +1,174 @@
 """
-Unit tests for the GateIoSpotAdapter class.
+Tests for the GateIoSpotAdapter using the base adapter test class.
 """
 
-from unittest.mock import MagicMock
-
 import pytest
+from unittest import mock
+from datetime import datetime, timezone
 
+from candles_feed.adapters.gate_io.spot_adapter import GateIoSpotAdapter
 from candles_feed.adapters.gate_io.constants import (
     INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
     SPOT_CANDLES_ENDPOINT,
+    SPOT_CHANNEL_NAME,
+    SPOT_REST_URL,
     SPOT_WSS_URL,
-    WS_INTERVALS,
 )
-from candles_feed.adapters.gate_io.spot_adapter import GateIoSpotAdapter
 from candles_feed.core.candle_data import CandleData
+from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
-class TestGateIoSpotAdapter:
-    """Test suite for the GateIoSpotAdapter class."""
+class TestGateIoSpotAdapter(BaseAdapterTest):
+    """Test suite for the GateIoSpotAdapter using the base adapter test class."""
 
-    def setup_method(self):
-        """Setup method called before each test."""
-        self.adapter = GateIoSpotAdapter()
-        self.trading_pair = "BTC-USDT"
-        self.interval = "1m"
+    def create_adapter(self):
+        """Create an instance of the adapter to test."""
+        return GateIoSpotAdapter()
 
-    def test_get_trading_pair_format(self):
-        """Test trading pair format conversion."""
-        # Test standard case
-        assert GateIoSpotAdapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
+    def get_expected_trading_pair_format(self, trading_pair):
+        """Return the expected trading pair format for the adapter."""
+        return trading_pair.replace("-", "_")
 
-        # Test with multiple hyphens
-        assert GateIoSpotAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
+    def get_expected_rest_url(self):
+        """Return the expected REST URL for the adapter."""
+        return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
+    def get_expected_ws_url(self):
+        """Return the expected WebSocket URL for the adapter."""
+        return SPOT_WSS_URL
+
+    def get_expected_rest_params_minimal(self, trading_pair, interval):
+        """Return the expected minimal REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            "to": end_time,      # Gate.io uses seconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+        """Return the expected WebSocket subscription payload for the adapter."""
+        return {
+            "method": "subscribe",
+            "params": [
+                f"{SPOT_CHANNEL_NAME}",
+                {
+                    "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+                    "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+                },
+            ],
+            "id": 12345,
+        }
+
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        
+        return [
+            [
+                str(base_time),      # timestamp
+                "50000.0",           # open
+                "50500.0",           # close
+                "49000.0",           # low
+                "51000.0",           # high
+                "100.0",             # volume
+                "5000000.0",         # quote currency volume
+                "BTC_USDT",          # currency pair
+            ],
+            [
+                str(base_time + 60), # timestamp
+                "50500.0",           # open
+                "51500.0",           # close
+                "50000.0",           # low
+                "52000.0",           # high
+                "150.0",             # volume
+                "7500000.0",         # quote currency volume
+                "BTC_USDT",          # currency pair
+            ],
+        ]
+
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        
+        return {
+            "method": "update",
+            "channel": SPOT_CHANNEL_NAME,
+            "params": [
+                {"currency_pair": "BTC_USDT", "interval": "1m", "status": "open"},
+                [
+                    str(base_time),  # timestamp
+                    "50000.0",       # open
+                    "50500.0",       # close
+                    "49000.0",       # low
+                    "51000.0",       # high
+                    "100.0",         # volume
+                    "5000000.0",     # quote currency volume
+                    "BTC_USDT",      # currency pair
+                ],
+            ],
+        }
+        
+    # Additional test cases specific to GateIoSpotAdapter
+    
+    def test_gate_io_specific_timestamp_handling(self, adapter):
+        """Test Gate.io-specific timestamp handling."""
+        # Gate.io uses seconds for timestamps
+        assert adapter.TIMESTAMP_UNIT == "seconds"
+        
+        # Test conversion
+        timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
+        
+        # Convert to exchange format (should be in seconds)
+        assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_seconds
+        
+        # Convert from exchange format (should be in seconds)
+        assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
+        
+    def test_gate_io_specific_trading_pair_format(self, adapter):
+        """Test Gate.io-specific trading pair format."""
+        # Test various trading pair formats
+        assert adapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
+        assert adapter.get_trading_pair_format("ETH-BTC") == "ETH_BTC"
+        assert adapter.get_trading_pair_format("SOL-USDT") == "SOL_USDT"
+        
         # Test with lowercase
-        assert GateIoSpotAdapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
-
-    def test_get_rest_url(self):
-        """Test REST URL retrieval."""
-        assert GateIoSpotAdapter.get_rest_url() == f"{REST_URL}{SPOT_CANDLES_ENDPOINT}"
-
-    def test_get_ws_url(self):
-        """Test WebSocket URL retrieval."""
-        assert GateIoSpotAdapter.get_ws_url() == SPOT_WSS_URL
-
-    def test_get_rest_params_minimal(self):
-        """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
-
-        assert params["currency_pair"] == "BTC_USDT"
-        assert params["interval"] == self.interval
-        assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
-        assert "from" not in params
-        assert "to" not in params
-
-    def test_get_rest_params_full(self):
-        """Test REST params with all parameters."""
-        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
-        limit = 500
-
-        params = self.adapter.get_rest_params(
-            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
-        )
-
-        assert params["currency_pair"] == "BTC_USDT"
-        assert params["interval"] == self.interval
-        assert params["limit"] == limit
-        assert params["from"] == start_time
-        assert params["to"] == end_time
-
-    def test_parse_rest_response(self, candlestick_response_gate_io):
-        """Test parsing REST API response."""
-        candles = self.adapter.parse_rest_response(candlestick_response_gate_io)
-
-        # Verify response parsing
-        assert len(candles) == 2
-
-        # Check first candle
-        assert candles[0].timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
-        assert candles[0].open == 50000.0
-        assert candles[0].high == 51000.0
-        assert candles[0].low == 49000.0
-        assert candles[0].close == 50500.0
-        assert candles[0].volume == 100.0
-        assert candles[0].quote_asset_volume == 5000000.0
-        assert candles[0].n_trades == 0  # Gate.io doesn't provide trade count
-        assert candles[0].taker_buy_base_volume == 0.0  # Gate.io doesn't provide taker data
-        assert candles[0].taker_buy_quote_volume == 0.0  # Gate.io doesn't provide taker data
-
-        # Check second candle
-        assert candles[1].timestamp == 1672531260  # 2023-01-01 00:01:00 UTC in seconds
-        assert candles[1].open == 50500.0
-        assert candles[1].high == 52000.0
-        assert candles[1].low == 50000.0
-        assert candles[1].close == 51500.0
-        assert candles[1].volume == 150.0
-        assert candles[1].quote_asset_volume == 7500000.0
-
-    def test_parse_rest_response_none(self):
-        """Test parsing None REST API response."""
-        candles = self.adapter.parse_rest_response(None)
-        assert candles == []
-
-    def test_get_ws_subscription_payload(self):
-        """Test WebSocket subscription payload generation."""
-        payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
-
-        assert payload["method"] == "subscribe"
-        assert len(payload["params"]) == 2
-        assert payload["params"][0] == "spot.candlesticks"
-        assert payload["params"][1]["currency_pair"] == "BTC_USDT"
-        assert payload["params"][1]["interval"] == "1m"
-        assert payload["id"] == 12345
-
-    def test_parse_ws_message_valid(self, websocket_message_gate_io):
-        """Test parsing valid WebSocket message."""
-        candles = self.adapter.parse_ws_message(websocket_message_gate_io)
-
-        # Verify message parsing
-        assert candles is not None
-        assert len(candles) == 1
-
-        candle = candles[0]
-        assert candle.timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
-        assert candle.open == 50000.0
-        assert candle.high == 51000.0
-        assert candle.low == 49000.0
-        assert candle.close == 50500.0
-        assert candle.volume == 100.0
-        assert candle.quote_asset_volume == 5000000.0
-        assert candle.n_trades == 0  # Gate.io doesn't provide trade count
-        assert candle.taker_buy_base_volume == 0.0  # Gate.io doesn't provide taker data
-        assert candle.taker_buy_quote_volume == 0.0  # Gate.io doesn't provide taker data
-
-    def test_parse_ws_message_invalid(self):
-        """Test parsing invalid WebSocket message."""
-        # Test with non-candle message
-        ws_message = {"method": "ping", "params": []}
-        candles = self.adapter.parse_ws_message(ws_message)
-        assert candles is None
-
-        # Test with None
-        candles = self.adapter.parse_ws_message(None)
-        assert candles is None
-
-        # Test with wrong channel
-        ws_message = {"method": "update", "channel": "spot.trades", "params": []}
-        candles = self.adapter.parse_ws_message(ws_message)
-        assert candles is None
-
-    def test_get_supported_intervals(self):
-        """Test getting supported intervals."""
-        intervals = self.adapter.get_supported_intervals()
-
-        # Verify intervals match the expected values
-        assert intervals == INTERVALS
-        assert "1m" in intervals
-        assert intervals["1m"] == 60
-        assert "1h" in intervals
-        assert intervals["1h"] == 3600
-        assert "1d" in intervals
-        assert intervals["1d"] == 86400
-
-    def test_get_ws_supported_intervals(self):
-        """Test getting WebSocket supported intervals."""
-        ws_intervals = self.adapter.get_ws_supported_intervals()
-
-        # Verify WS intervals match the expected values
-        assert ws_intervals == WS_INTERVALS
-        assert "1m" in ws_intervals
-        assert "1h" in ws_intervals
+        assert adapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
+        
+    def test_gate_io_channel_name(self, adapter):
+        """Test Gate.io channel name getter."""
+        assert adapter.get_channel_name() == SPOT_CHANNEL_NAME
+        
+    @pytest.mark.asyncio
+    async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
+        """Test fetch_rest_candles async method."""
+        # Create a mock network client
+        mock_client = mock.MagicMock()
+        mock_client.get_rest_data = mock.AsyncMock(return_value=self.get_mock_candlestick_response())
+        
+        # Call the async method
+        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        
+        # Basic validation
+        assert isinstance(candles, list)
+        assert all(isinstance(candle, CandleData) for candle in candles)
+        assert len(candles) > 0
+        
+        # Verify the network client was called correctly
+        mock_client.get_rest_data.assert_called_once()
+        args, kwargs = mock_client.get_rest_data.call_args
+        assert kwargs['url'] == adapter._get_rest_url()
+        # Verify params match expected values
+        expected_params = adapter._get_rest_params(trading_pair, interval)
+        assert kwargs['params'] == expected_params

@@ -11,15 +11,16 @@ import os
 import pkgutil
 from typing import Dict, List, Optional, Type
 
-from candles_feed.core.protocols import CandleDataAdapter, Logger
+from candles_feed.core.protocols import Logger
+from candles_feed.adapters.protocols import AdapterProtocol
 
 
 class ExchangeRegistry:
     """Registry for exchange adapters with auto-discovery."""
 
     # Use both _adapters (new API) and _registry (old API) for compatibility
-    _adapters: dict[str, type[CandleDataAdapter]] = {}
-    _registry: dict[str, type[CandleDataAdapter]] = {}
+    _adapters: dict[str, type[AdapterProtocol]] = {}
+    _registry: dict[str, type[AdapterProtocol]] = {}
     _logger: Logger | None = None
 
     @classmethod
@@ -40,7 +41,7 @@ class ExchangeRegistry:
         :return: Decorator function
         """
 
-        def decorator(adapter_class: type[CandleDataAdapter]):
+        def decorator(adapter_class: type[AdapterProtocol]):
             cls.logger().info(f"Registering adapter: {name}")
             # Register in both collections for compatibility
             cls._adapters[name] = adapter_class
@@ -50,7 +51,7 @@ class ExchangeRegistry:
         return decorator
 
     @classmethod
-    def get_adapter_class(cls, name: str) -> type[CandleDataAdapter]:
+    def get_adapter_class(cls, name: str) -> type[AdapterProtocol]:
         """Get adapter class by name.
 
         :param name: Adapter name
@@ -63,7 +64,7 @@ class ExchangeRegistry:
         return adapter_class
 
     @classmethod
-    def get_adapter(cls, name: str) -> CandleDataAdapter:
+    def get_adapter(cls, name: str) -> AdapterProtocol:
         """Get adapter instance by name.
 
         :param name: Adapter name
@@ -75,7 +76,7 @@ class ExchangeRegistry:
         return adapter_class()
 
     @classmethod
-    def get_adapter_instance(cls, name: str, *args, **kwargs) -> CandleDataAdapter:
+    def get_adapter_instance(cls, name: str, *args, **kwargs) -> AdapterProtocol:
         """Get adapter instance by name with custom args.
 
         :param name: Adapter name

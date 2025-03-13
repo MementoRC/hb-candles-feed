@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from candles_feed import CandlesFeed, create_candles_feed_with_hummingbot
-from mocking_resources.hummingbot import (
+from candles_feed.mocking_resources.hummingbot.mock_components import (
     create_mock_hummingbot_components,
 )
 
@@ -61,16 +61,26 @@ def create_mock_adapter():
     mock_adapter.get_supported_intervals.return_value = {"1m": 60}
     mock_adapter.get_ws_supported_intervals.return_value = ["1m"]
     mock_adapter.get_rest_params.return_value = {}
-    mock_adapter.parse_rest_response.return_value = [
-        MagicMock(
-            timestamp=1625097600,
-            open=35000.1,
-            high=35100.5,
-            low=34900.2,
-            close=35050.3,
-            volume=10.5
-        )
-    ]
+    
+    # Create a sample candle for the mock response
+    from candles_feed.core.candle_data import CandleData
+    sample_candle = CandleData(
+        timestamp_raw=1625097600,
+        open=35000.1,
+        high=35100.5,
+        low=34900.2,
+        close=35050.3,
+        volume=10.5,
+        quote_asset_volume=350000.0,
+        n_trades=100,
+        taker_buy_base_volume=5.0,
+        taker_buy_quote_volume=175000.0
+    )
+    
+    # Create AsyncMock for async methods
+    mock_adapter.fetch_rest_candles = AsyncMock(return_value=[sample_candle])
+    mock_adapter.parse_rest_response.return_value = [sample_candle]
+    
     return mock_adapter
 
 
@@ -255,7 +265,7 @@ async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
         )
 
         # Mock WebSocketStrategy._listen_for_updates to avoid network calls
-        with patch("candles_feed.core.network_strategies.WebSocketStrategy._listen_for_updates", 
+        with patch("candles_feed.core.collection_strategies.WebSocketStrategy._listen_for_updates", 
                new_callable=AsyncMock) as mock_listen:
             
             # Start the feed with websocket strategy

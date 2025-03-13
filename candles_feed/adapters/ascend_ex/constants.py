@@ -1,13 +1,14 @@
 """
 Constants for the AscendEx spot adapter.
 """
+# Removed circular import
 
 # API URLs
-REST_URL = "https://ascendex.com/api/pro/v1/"
-WSS_URL = "wss://ascendex.com:443/api/pro/v1/websocket-for-hummingbot-liq-mining/stream"
+SPOT_REST_URL = "https://ascendex.com/api/pro/v1/"
+SPOT_WSS_URL = "wss://ascendex.com:443/api/pro/v1/websocket-for-hummingbot-liq-mining/stream"
 
 # API endpoints
-CANDLES_ENDPOINT = "barhist"
+SPOT_CANDLES_ENDPOINT = "barhist"
 HEALTH_CHECK_ENDPOINT = "risk-limit-info"
 
 # WebSocket

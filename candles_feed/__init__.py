@@ -12,7 +12,7 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
 from candles_feed.adapters.bybit.spot_adapter import BybitSpotAdapter
 from candles_feed.adapters.coinbase_advanced_trade.base_adapter import (
-    CoinbaseAdvancedTradeAdapter,
+    CoinbaseAdvancedTradeBaseAdapter,
 )
 from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
 from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
@@ -22,8 +22,8 @@ from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_client import NetworkClient
-from candles_feed.core.network_strategies import (
-    NetworkStrategyFactory,
+from candles_feed.core.collection_strategies import (
+    CollectionStrategyFactory,
     RESTPollingStrategy,
     WebSocketStrategy,
 )
@@ -48,13 +48,13 @@ __all__ = [
     "NetworkClient",
     "WebSocketStrategy",
     "RESTPollingStrategy",
-    "NetworkStrategyFactory",
+    "CollectionStrategyFactory",
     # Base classes
     "BaseAdapter",
     # Exchange adapters
     "BinanceSpotAdapter",
     "BybitSpotAdapter",
-    "CoinbaseAdvancedTradeAdapter",
+    "CoinbaseAdvancedTradeBaseAdapter",
     "KrakenSpotAdapter",
     "KucoinSpotAdapter",
     "OKXSpotAdapter",

@@ -3,14 +3,14 @@ Constants for the Coinbase Advanced Trade adapter.
 """
 
 # API URLs
-REST_URL = "https://api.coinbase.com"
-CANDLES_ENDPOINT = "/api/v3/brokerage/products/{product_id}/candles"
+SPOT_REST_URL = "https://api.coinbase.com"
+SPOT_CANDLES_ENDPOINT = "/api/v3/brokerage/products/{product_id}/candles"
 SERVER_TIME_ENDPOINT = "/api/v3/time"
 PRODUCTS_ENDPOINT = "/api/v3/brokerage/products"
-WSS_URL = "wss://advanced-trade-ws.coinbase.com"
+SPOT_WSS_URL = "wss://advanced-trade-ws.coinbase.com"
 
 # API rate limits
-MAX_CANDLES_SIZE = 300
+MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 300
 
 # Intervals mapping: interval name -> seconds
 INTERVALS: dict[str, int] = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "6h": 21600, "1d": 86400}

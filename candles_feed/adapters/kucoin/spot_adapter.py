@@ -2,12 +2,12 @@
 KuCoin spot exchange adapter for the Candle Feed framework.
 """
 
-from candles_feed.adapters.kucoin.constants import (
+from .constants import (
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
-from candles_feed.adapters.kucoin.base_adapter import KucoinBaseAdapter
+from .base_adapter import KucoinBaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
@@ -17,22 +17,22 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
     """KuCoin spot exchange adapter."""
 
     @staticmethod
-    def get_rest_url() -> str:
+    def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
-        :return: REST API URL
+        :returns: REST API URL
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     @staticmethod
-    def get_ws_url() -> str:
-        """Get WebSocket URL.
+    def _get_ws_url() -> str:
+        """Get WebSocket URL (internal implementation).
 
-        :return: WebSocket URL
+        :returns: WebSocket URL
         """
         return SPOT_WSS_URL
 
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
@@ -47,7 +47,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         :param start_time: Start time in seconds
         :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
-        :return: Dictionary of parameters for REST API request
+        :returns: Dictionary of parameters for REST API request
         """
         # KuCoin uses startAt and endAt parameters with unix timestamps
         params: dict[str, str | int] = {"symbol": trading_pair, "type": interval}
@@ -63,11 +63,11 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
-        :return: List of CandleData objects
+        :returns: List of CandleData objects
         """
         # KuCoin candle format:
         # [
@@ -135,7 +135,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
-        :return: List of CandleData objects or None if message is not a candle update
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         # KuCoin websocket message format:
         # {

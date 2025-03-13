@@ -4,7 +4,7 @@ Unit tests for the ExchangeType enum in mocking_resources.
 
 import unittest
 
-from mocking_resources.core import ExchangeType
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
 
 class TestExchangeType(unittest.TestCase):
@@ -47,7 +47,7 @@ class TestExchangeType(unittest.TestCase):
 
         # Make sure we have the expected number of exchange types
         # Update this if more exchanges are added
-        self.assertEqual(count, 17)
+        self.assertEqual(count, 18)
 
 
 if __name__ == "__main__":

@@ -16,17 +16,17 @@ class BinanceSpotAdapter(BinanceBaseAdapter):
     """Binance spot exchange adapter."""
 
     @staticmethod
-    def get_rest_url() -> str:
+    def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
-        :return: REST API URL
+        :returns: REST API URL
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     @staticmethod
-    def get_ws_url() -> str:
+    def _get_ws_url() -> str:
         """Get WebSocket URL.
 
-        :return: WebSocket URL
+        :returns: WebSocket URL
         """
         return SPOT_WSS_URL

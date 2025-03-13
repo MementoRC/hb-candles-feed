@@ -23,7 +23,7 @@ class TestCompatibility:
             "candles_feed.core.data_processor",
             "candles_feed.core.exchange_registry",
             "candles_feed.core.network_client",
-            "candles_feed.core.network_strategies",
+            "candles_feed.core.collection_strategies",
             "candles_feed.core.protocols",
         ]
 
@@ -36,10 +36,10 @@ class TestCompatibility:
         modules = [
             "candles_feed.adapters.base_adapter",
             "candles_feed.adapters.binance.spot_adapter",
-            "candles_feed.adapters.bybit.bybit_spot_adapter",
-            "candles_feed.adapters.coinbase_advanced_trade.coinbase_advanced_trade_adapter",
-            "candles_feed.adapters.kraken.kraken_spot_adapter",
-            "candles_feed.adapters.kucoin.kucoin_spot_adapter",
+            "candles_feed.adapters.bybit.spot_adapter",
+            "candles_feed.adapters.coinbase_advanced_trade.spot_adapter",
+            "candles_feed.adapters.kraken.spot_adapter",
+            "candles_feed.adapters.kucoin.spot_adapter",
             "candles_feed.adapters.okx.spot_adapter",
         ]
 
@@ -124,9 +124,9 @@ class TestCompatibility:
         ), patch(
             "candles_feed.core.network_client.NetworkClient", return_value=mock_network_client
         ), patch(
-            "candles_feed.core.candles_feed.WebSocketStrategy", return_value=mock_ws_strategy
+            "candles_feed.core.collection_strategies.WebSocketStrategy", return_value=mock_ws_strategy
         ), patch(
-            "candles_feed.core.candles_feed.RESTPollingStrategy", return_value=mock_rest_strategy
+            "candles_feed.core.collection_strategies.RESTPollingStrategy", return_value=mock_rest_strategy
         ):
             # Create a candles feed instance
             feed = CandlesFeed(
@@ -244,7 +244,7 @@ class TestCompatibility:
         import candles_feed.adapters.kucoin.spot_adapter  # noqa: F401
         import candles_feed.adapters.okx.spot_adapter  # noqa: F401
         from candles_feed.core.exchange_registry import ExchangeRegistry
-        from candles_feed.core.protocols import CandleDataAdapter
+        from candles_feed.adapters.protocols import AdapterProtocol
 
         # Create mock adapter classes and register them
         adapter_names = [
@@ -259,7 +259,7 @@ class TestCompatibility:
         for name in adapter_names:
             # Create a factory function that will return a fresh mock each time
             def create_mock_adapter():
-                return MagicMock(spec=CandleDataAdapter)
+                return MagicMock(spec=AdapterProtocol)
 
             # Register the mock adapter factory
             ExchangeRegistry._adapters[name] = create_mock_adapter
@@ -280,7 +280,7 @@ class TestCompatibility:
 
         from candles_feed.core.candles_feed import CandlesFeed
         from candles_feed.core.exchange_registry import ExchangeRegistry
-        from candles_feed.core.protocols import CandleDataAdapter
+        from candles_feed.adapters.protocols import AdapterProtocol
 
         # Mock the CandlesFeed dependencies
         exchanges = [
@@ -298,7 +298,7 @@ class TestCompatibility:
         try:
             # Create a mock to replace get_adapter
             def mock_get_adapter(name):
-                mock_adapter = MagicMock(spec=CandleDataAdapter)
+                mock_adapter = MagicMock(spec=AdapterProtocol)
                 mock_adapter.get_rest_url.return_value = "https://api.example.com"
                 mock_adapter.get_ws_url.return_value = "wss://ws.example.com"
                 mock_adapter.get_supported_intervals.return_value = {"1m": 60}

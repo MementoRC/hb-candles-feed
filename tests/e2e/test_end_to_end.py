@@ -12,9 +12,11 @@ import time
 import pytest
 
 from candles_feed.core.candles_feed import CandlesFeed
-from mocking_resources.core.candle_data_factory import CandleDataFactory
-from candles_feed.mocking_resources.mocked_candle_feed_server import MockedCandlesFeedServer
-from mocking_resources.core import ExchangeType
+from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.factory import get_plugin
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -27,28 +29,22 @@ class TestEndToEnd:
     @pytest.fixture
     async def mock_binance_server(self, monkeypatch):
         """Create a mock Binance server for testing."""
-        server = MockedCandlesFeedServer(ExchangeType.BINANCE_SPOT)
+        # Get the Binance Spot plugin
+        plugin = get_plugin(ExchangeType.BINANCE_SPOT)
+        
+        # Create the server
+        server = MockedExchangeServer(plugin, "127.0.0.1", 8080)
         url = await server.start()
-
-        # Directly patch the adapter method that gets called
-        from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
-
-        # Define patched methods that return our mock server URLs
-        def patched_get_rest_url():
-            base_url = url.rstrip("/")
-            return f"{base_url}/api/v3/klines"
-
-        def patched_get_ws_url():
-            return f"ws://{server.host}:{server.port}/ws"
-
-        # Apply patches using monkeypatch - note these are now staticmethods
-        monkeypatch.setattr(BinanceSpotAdapter, "get_rest_url", patched_get_rest_url)
-        monkeypatch.setattr(BinanceSpotAdapter, "get_ws_url", patched_get_ws_url)
+        
+        # Create URL patcher
+        patcher = ExchangeURLPatcher(ExchangeType.BINANCE_SPOT, "127.0.0.1", 8080)
+        patcher.patch_urls(plugin)
 
         yield server
 
-        # monkeypatch will automatically restore the original methods
+        # Clean up
         await server.stop()
+        patcher.restore_urls()
 
     @pytest.mark.asyncio
     async def test_rest_candles_retrieval(self, mock_binance_server):
@@ -101,8 +97,8 @@ class TestEndToEnd:
 
             # Debug the subscription status
             logger.info("Checking MockedExchangeServer state before WebSocket start:")
-            logger.info(f"Subscriptions: {mock_binance_server.server.subscriptions}")
-            logger.info(f"WS connections: {len(mock_binance_server.server.ws_connections)}")
+            logger.info(f"Subscriptions: {mock_binance_server.subscriptions}")
+            logger.info(f"WS connections: {len(mock_binance_server.ws_connections)}")
             logger.info(
                 f"Initial candle for BTC-USDT: {rest_candles[-1].timestamp}, close: {rest_candles[-1].close}"
             )
@@ -123,9 +119,9 @@ class TestEndToEnd:
 
             # For testing purposes, send a new candle update
             # This is needed because the background candle generation might take too long
-            trading_pair = "BTCUSDT"
+            trading_pair = "BTC-USDT"  
             interval = "1m"
-            last_candle = mock_binance_server.server.candles[trading_pair][interval][-1]
+            last_candle = mock_binance_server.candles[trading_pair][interval][-1]
             new_candle = CandleDataFactory.create_random(
                 timestamp=int(time.time()),
                 previous_candle=last_candle,
@@ -134,7 +130,7 @@ class TestEndToEnd:
 
             # Send the test candle update immediately
             logger.info("Sending test candle update via WebSocket...")
-            await mock_binance_server.server._broadcast_candle_update(
+            await mock_binance_server._push_candle_update(
                 trading_pair, interval, new_candle, True
             )
 
@@ -244,8 +240,8 @@ class TestEndToEnd:
     async def test_different_intervals(self, mock_binance_server):
         """Test working with different candle intervals."""
         # Configure the mock server with additional intervals
-        mock_binance_server.server.add_trading_pair("BTCUSDT", "5m", 50000.0)
-        mock_binance_server.server.add_trading_pair("BTCUSDT", "1h", 50000.0)
+        mock_binance_server.add_trading_pair("BTC-USDT", "5m", 50000.0)
+        mock_binance_server.add_trading_pair("BTC-USDT", "1h", 50000.0)
 
         # Create feeds for different intervals
         feeds = []
@@ -294,14 +290,11 @@ class TestEndToEnd:
         logger.info(f"Current SPOT_WSS_URL: {binance_constants.SPOT_WSS_URL}")
 
         # Make sure we're using our mock server, not the real Binance API
-        assert mock_binance_server.url in binance_constants.SPOT_REST_URL, "URL patching failed"
-        assert (
-            f"ws://{mock_binance_server.host}:{mock_binance_server.port}"
-            in binance_constants.SPOT_WSS_URL
-        ), "WebSocket URL patching failed"
+        assert "127.0.0.1:8080" in binance_constants.SPOT_REST_URL, "URL patching failed"
+        assert "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL, "WebSocket URL patching failed"
 
         # Add a known valid trading pair to the server
-        mock_binance_server.server.add_trading_pair("BTCUSDT", "1m", 50000.0)
+        mock_binance_server.add_trading_pair("BTC-USDT", "1m", 50000.0)
 
         # First test with a valid trading pair to confirm basic functionality
         valid_feed = CandlesFeed(

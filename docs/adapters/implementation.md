@@ -260,7 +260,7 @@ Update the main adapters `__init__.py` file to include your new adapter:
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.binance_spot.binance_spot_adapter import BinanceSpotAdapter
 from candles_feed.adapters.bybit_spot.bybit_spot_adapter import BybitSpotAdapter
-from candles_feed.adapters.coinbase_advanced_trade.base_adapter import CoinbaseAdvancedTradeAdapter
+from candles_feed.adapters.coinbase_advanced_trade.base_adapter import CoinbaseAdvancedTradeBaseAdapter
 from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
 from candles_feed.adapters.kucoin_spot.kucoin_spot_adapter import KuCoinSpotAdapter
 from candles_feed.adapters.okx_spot.okx_spot_adapter import OKXSpotAdapter
@@ -268,14 +268,14 @@ from candles_feed.adapters.your_exchange_name.your_exchange_adapter import YourE
 
 # Export all adapters
 __all__ = [
-   "BaseAdapter",
-   "BinanceSpotAdapter",
-   "BybitSpotAdapter",
-   "CoinbaseAdvancedTradeAdapter",
-   "KrakenSpotAdapter",
-   "KucoinSpotAdapter",
-   "OKXSpotAdapter",
-   "YourExchangeAdapter"  # Add your adapter here
+    "BaseAdapter",
+    "BinanceSpotAdapter",
+    "BybitSpotAdapter",
+    "CoinbaseAdvancedTradeBaseAdapter",
+    "KrakenSpotAdapter",
+    "KucoinSpotAdapter",
+    "OKXSpotAdapter",
+    "YourExchangeAdapter"  # Add your adapter here
 ]
 ```
 

@@ -37,15 +37,15 @@ class TestHyperliquidPerpetualAdapter:
 
     def test_get_rest_url(self):
         """Test REST API URL retrieval."""
-        assert HyperliquidPerpetualAdapter.get_rest_url() == REST_URL
+        assert self.adapter._get_rest_url() == REST_URL
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""
-        assert HyperliquidPerpetualAdapter.get_ws_url() == PERP_WSS_URL
+        assert self.adapter.get_ws_url() == PERP_WSS_URL
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+        params = self.adapter._get_rest_params(self.trading_pair, self.interval)
 
         assert params["type"] == "candles"
         assert params["coin"] == "BTC"  # Only base asset
@@ -62,7 +62,7 @@ class TestHyperliquidPerpetualAdapter:
         end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 200
 
-        params = self.adapter.get_rest_params(
+        params = self.adapter._get_rest_params(
             self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
         )
 
@@ -77,7 +77,7 @@ class TestHyperliquidPerpetualAdapter:
 
     def test_parse_rest_response(self, candlestick_response_hyperliquid):
         """Test parsing REST API response."""
-        candles = self.adapter.parse_rest_response(candlestick_response_hyperliquid)
+        candles = self.adapter._parse_rest_response(candlestick_response_hyperliquid)
 
         # Verify response parsing
         assert len(candles) == 2
@@ -102,7 +102,7 @@ class TestHyperliquidPerpetualAdapter:
 
     def test_parse_rest_response_none(self):
         """Test parsing None REST API response."""
-        candles = self.adapter.parse_rest_response(None)
+        candles = self.adapter._parse_rest_response(None)
         assert candles == []
 
     def test_get_ws_subscription_payload(self):

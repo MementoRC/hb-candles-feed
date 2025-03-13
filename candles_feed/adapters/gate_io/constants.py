@@ -7,14 +7,21 @@ REST_URL = "https://api.gateio.ws/api/v4"
 WSS_URL = "wss://api.gateio.ws/ws/v4/"
 
 # API URLs - Spot
+SPOT_REST_URL = REST_URL
+SPOT_WSS_URL = WSS_URL
 SPOT_CANDLES_ENDPOINT = "/spot/candlesticks"
 SPOT_CHANNEL_NAME = "spot.candlesticks"
-SPOT_WSS_URL = WSS_URL
 
 # API URLs - Perpetual
-PERP_CANDLES_ENDPOINT = "/futures/usdt/candlesticks"
-PERP_CHANNEL_NAME = "futures.candlesticks"
-PERP_WSS_URL = WSS_URL
+PERPETUAL_REST_URL = REST_URL
+PERPETUAL_WSS_URL = WSS_URL
+PERPETUAL_CANDLES_ENDPOINT = "/futures/usdt/candlesticks"
+PERPETUAL_CHANNEL_NAME = "futures.candlesticks"
+
+# Legacy/compatibility constants
+PERP_CANDLES_ENDPOINT = PERPETUAL_CANDLES_ENDPOINT
+PERP_CHANNEL_NAME = PERPETUAL_CHANNEL_NAME
+PERP_WSS_URL = PERPETUAL_WSS_URL
 
 # Health check endpoint
 HEALTH_CHECK_ENDPOINT = "/spot/currencies/BTC"

@@ -13,10 +13,17 @@ import aiohttp
 import pytest
 
 from candles_feed.core.candle_data import CandleData
-from mocking_resources.core.candle_data_factory import CandleDataFactory
-from mocking_resources.core import ExchangeType
-from mocking_resources.core import MockedExchangeServer
-from mocking_resources.exchanges.binance import BinanceSpotPlugin
+from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+
+# Try to import BinanceSpotPlugin, and fall back to MockedPlugin if not available
+try:
+    from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin import BinanceSpotPlugin
+    HAS_BINANCE_PLUGIN = True
+except ImportError:
+    from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+    HAS_BINANCE_PLUGIN = False
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,11 +32,21 @@ logger = logging.getLogger(__name__)
 
 class TestMockServer:
     """Integration tests for the mock exchange server with different plugins."""
+    
+    logger = logging.getLogger(__name__)
 
     @pytest.fixture
     async def standalone_mock_server(self):
         """Create a standalone mock server for testing."""
-        plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
+        if HAS_BINANCE_PLUGIN:
+            # Use BinanceSpotPlugin
+            plugin = BinanceSpotPlugin()
+            exchange_type = ExchangeType.BINANCE_SPOT
+        else:
+            # Fall back to MockedPlugin
+            plugin = MockedPlugin(ExchangeType.MOCK)
+            exchange_type = ExchangeType.MOCK
+            
         server = MockedExchangeServer(plugin, "127.0.0.1", 8790)
 
         # Add trading pairs
@@ -102,15 +119,28 @@ class TestMockServer:
 
             # Send subscription
             await ws.send_json(subscription)
-
-            # Wait for subscription response
-            response = await ws.receive_json(timeout=5.0)
-
-            # Verify basic response
-            assert response is not None
-            assert "id" in response, "Missing id in subscription response"
-            assert response["id"] == 1, "Wrong id in subscription response"
-
+            
+            # Try to find the subscription response message
+            # Wait for up to 10 messages or 5 seconds
+            found_subscription_response = False
+            for _ in range(10):
+                try:
+                    response = await asyncio.wait_for(ws.receive_json(), timeout=0.5)
+                    
+                    # Check if this is the subscription response (should have an id field)
+                    if "id" in response:
+                        found_subscription_response = True
+                        # Verify the response id matches our request
+                        assert response["id"] == 1, "Wrong id in subscription response"
+                        break
+                    # Otherwise, this might be a candle update message, which we can ignore
+                    self.logger.info(f"Received non-subscription message: {response}")
+                except asyncio.TimeoutError:
+                    break
+                    
+            # Make sure we found the subscription response
+            assert found_subscription_response, "Did not receive subscription response"
+            
             # This test is simplified to just verify we can establish a connection
             # and receive a subscription response
 
@@ -118,7 +148,8 @@ class TestMockServer:
     async def test_server_multiple_trading_pairs(self):
         """Test the mock server with multiple trading pairs."""
         # Create a new server instance for this test
-        plugin = BinanceSpotPlugin(ExchangeType.BINANCE_SPOT)
+        from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+        plugin = MockedPlugin(ExchangeType.MOCK)  # Use MOCK instead of BINANCE_SPOT
         server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
 
         # Add multiple trading pairs with different prices

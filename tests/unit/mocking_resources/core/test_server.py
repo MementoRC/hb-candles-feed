@@ -9,11 +9,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 
-from candles_feed import CandleData, BinanceSpotAdapter
-from mocking_resources import BinanceSpotPlugin
-from mocking_resources.core import ExchangePlugin
-from mocking_resources.core import ExchangeType
-from mocking_resources.core import MockedExchangeServer
+from candles_feed.core.candle_data import CandleData
+from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
 
 class TestMockExchangeServer(IsolatedAsyncioTestCase):

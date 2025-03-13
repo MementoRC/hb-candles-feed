@@ -12,9 +12,9 @@ import pytest
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.network_client import NetworkClient
-from candles_feed.core.network_strategies import RESTPollingStrategy, WebSocketStrategy
-from candles_feed.core.protocols import CandleDataAdapter, WSAssistant
-
+from candles_feed.core.collection_strategies import RESTPollingStrategy, WebSocketStrategy
+from candles_feed.core.protocols import WSAssistant
+from candles_feed.adapters.protocols import AdapterProtocol
 
 from candles_feed.mocking_resources import ExchangeType
 
@@ -75,13 +75,14 @@ def mock_candles():
 @pytest.fixture
 async def binance_mock_server(unused_tcp_port):
     """Create and start a Binance mock server for testing."""
-    from mocking_resources.core import MockedExchangeServer
-    from mocking_resources.exchanges.binance import BinanceSpotPlugin
+    from candles_feed.mocking_resources.core.server import MockedExchangeServer
+    from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
     port = unused_tcp_port
 
-    # Create plugin directly
-    plugin = BinanceSpotPlugin()
+    # Create plugin directly - using MockedPlugin instead of BinanceSpotPlugin
+    plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
     server = MockedExchangeServer(plugin, "127.0.0.1", port)
@@ -101,20 +102,57 @@ async def binance_mock_server(unused_tcp_port):
 
     # Clean up
     await server.stop()
+    
+    
+@pytest.fixture
+async def mocked_server_fixture(unused_tcp_port):
+    """Create and start a simple mock server for testing."""
+    from candles_feed.mocking_resources.core.server import MockedExchangeServer
+    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+    from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+
+    port = unused_tcp_port
+
+    # Create plugin directly
+    plugin = MockedPlugin(ExchangeType.MOCK)
+
+    # Create server
+    server = MockedExchangeServer(plugin, "127.0.0.1", port)
+
+    # Add trading pairs
+    server.add_trading_pair("BTC-USDT", "1m", 50000.0)
+    server.add_trading_pair("ETH-USDT", "1m", 3000.0)
+    server.add_trading_pair("SOL-USDT", "1m", 100.0)
+
+    # Start the server
+    url = await server.start()
+
+    # Store the URL for other fixtures to access
+    server.url = url
+
+    yield server
+
+    # Clean up
+    await server.stop()
+
+
+@pytest.fixture
+def mock_server_url_simple(mocked_server_fixture):
+    """Return the URL for the simple mock server."""
+    return mocked_server_fixture.url
 
 
 @pytest.fixture
 async def bybit_mock_server(unused_tcp_port):
     """Create and start a Bybit mock server for testing."""
-    from mocking_resources.core import MockedExchangeServer
-
-    # We're using the Binance plugin for now since we don't have an explicit Bybit plugin yet
-    from mocking_resources.exchanges.binance import BinanceSpotPlugin
+    from candles_feed.mocking_resources.core.server import MockedExchangeServer
+    from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
     port = unused_tcp_port
 
-    # Create plugin directly
-    plugin = BinanceSpotPlugin(ExchangeType.BYBIT_SPOT)
+    # Create plugin directly - using MockedPlugin
+    plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
     server = MockedExchangeServer(plugin, "127.0.0.1", port)
@@ -138,15 +176,14 @@ async def bybit_mock_server(unused_tcp_port):
 @pytest.fixture
 async def coinbase_mock_server(unused_tcp_port):
     """Create and start a Coinbase Advanced Trade mock server for testing."""
-    from mocking_resources.core import MockedExchangeServer
-
-    # We're using the Binance plugin for now since we don't have an explicit Coinbase plugin yet
-    from mocking_resources.exchanges.binance import BinanceSpotPlugin
+    from candles_feed.mocking_resources.core.server import MockedExchangeServer
+    from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
     port = unused_tcp_port
 
-    # Create plugin directly
-    plugin = BinanceSpotPlugin(ExchangeType.COINBASE_ADVANCED_TRADE)
+    # Create plugin directly - using MockedPlugin
+    plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
     server = MockedExchangeServer(plugin, "127.0.0.1", port)
@@ -228,7 +265,7 @@ def mock_network_client(mock_throttler, mock_websocket_assistant):
 @pytest.fixture
 def mock_adapter():
     """Create a mock adapter for testing."""
-    adapter = MagicMock(spec=CandleDataAdapter)
+    adapter = MagicMock(spec=AdapterProtocol)
 
     # Setup basic methods
     adapter.get_trading_pair_format.return_value = "BTCUSDT"

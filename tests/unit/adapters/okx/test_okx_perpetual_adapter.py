@@ -1,180 +1,185 @@
 """
-Unit tests for the OKXPerpetualAdapter class.
+Tests for the OKXPerpetualAdapter using the base adapter test class.
 """
 
-from unittest.mock import MagicMock
-
 import pytest
+from unittest.mock import MagicMock, AsyncMock
+from datetime import datetime, timezone
 
-from candles_feed.adapters.okx.constants import (
-    CANDLES_ENDPOINT,
-    INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    PERP_REST_URL,
-    WS_INTERVALS,
-    PERP_WSS_URL,
-)
 from candles_feed.adapters.okx.perpetual_adapter import OKXPerpetualAdapter
-from candles_feed.core.candle_data import CandleData
+from candles_feed.adapters.okx.constants import (
+    INTERVALS,
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    PERPETUAL_CANDLES_ENDPOINT,
+    PERPETUAL_REST_URL,
+    PERPETUAL_WSS_URL,
+    WS_INTERVALS,
+)
+from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
-class TestOKXPerpetualAdapter:
-    """Test suite for the OKXPerpetualAdapter class."""
+class TestOKXPerpetualAdapter(BaseAdapterTest):
+    """Test suite for the OKXPerpetualAdapter using the base adapter test class."""
 
-    def setup_method(self):
-        """Setup method called before each test."""
-        self.adapter = OKXPerpetualAdapter()
-        self.trading_pair = "BTC-USDT"
-        self.interval = "1m"
+    def create_adapter(self):
+        """Create an instance of the adapter to test."""
+        return OKXPerpetualAdapter()
 
-    def test_get_trading_pair_format(self):
-        """Test trading pair format conversion."""
-        # Test adding SWAP suffix to regular pairs
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT-SWAP"
-        assert self.adapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC-SWAP"
+    def get_expected_trading_pair_format(self, trading_pair):
+        """Return the expected trading pair format for the adapter."""
+        # For perpetual contracts, OKX requires the SWAP suffix to be added
+        if trading_pair.endswith("-SWAP"):
+            return trading_pair
+        return f"{trading_pair}-SWAP"
 
-        # Test pairs that already have the SWAP suffix
-        assert self.adapter.get_trading_pair_format("BTC-USDT-SWAP") == "BTC-USDT-SWAP"
-        assert self.adapter.get_trading_pair_format("ETH-BTC-SWAP") == "ETH-BTC-SWAP"
+    def get_expected_rest_url(self):
+        """Return the expected REST URL for the adapter."""
+        return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
-    def test_get_rest_url(self):
-        """Test REST URL retrieval."""
-        assert self.adapter.get_rest_url() == f"{PERP_REST_URL}{CANDLES_ENDPOINT}"
+    def get_expected_ws_url(self):
+        """Return the expected WebSocket URL for the adapter."""
+        return PERPETUAL_WSS_URL
 
-    def test_get_ws_url(self):
-        """Test WebSocket URL retrieval."""
-        assert self.adapter.get_ws_url() == PERP_WSS_URL
-
-    def test_get_rest_params_minimal(self):
-        """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(
-            self.adapter.get_trading_pair_format(self.trading_pair), self.interval
-        )
-
-        # For perpetual markets, we need the SWAP suffix and replace hyphen with slash
-        assert params["instId"] == "BTC-USDT-SWAP".replace("-", "/")
-        assert params["bar"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
-        assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
-        assert "after" not in params
-        assert "before" not in params
-
-    def test_get_rest_params_full(self):
-        """Test REST params with all parameters."""
-        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
-        limit = 200
-
-        params = self.adapter.get_rest_params(
-            self.adapter.get_trading_pair_format(self.trading_pair),
-            self.interval,
-            start_time=start_time,
-            end_time=end_time,
-            limit=limit,
-        )
-
-        assert params["instId"] == "BTC-USDT-SWAP".replace("-", "/")
-        assert params["bar"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
-        assert params["limit"] == limit
-        assert params["after"] == start_time * 1000
-        assert params["before"] == end_time * 1000
-
-    def test_parse_rest_response(self, candlestick_response_okx):
-        """Test parsing REST API response."""
-        candles = self.adapter.parse_rest_response(candlestick_response_okx)
-
-        # Verify response parsing
-        assert len(candles) == 2
-
-        # Check first candle
-        assert candles[0].timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
-        assert candles[0].open == 50000.0
-        assert candles[0].high == 50500.0
-        assert candles[0].low == 51000.0
-        assert candles[0].close == 49000.0
-        assert candles[0].volume == 100.0
-        assert candles[0].quote_asset_volume == 5000000.0
-
-        # Check second candle
-        assert candles[1].timestamp == 1672531260  # 2023-01-01 00:01:00 UTC in seconds
-        assert candles[1].open == 51500.0
-        assert candles[1].high == 50500.0
-        assert candles[1].low == 52000.0
-        assert candles[1].close == 50000.0
-        assert candles[1].volume == 150.0
-        assert candles[1].quote_asset_volume == 7500000.0
-
-    def test_get_ws_subscription_payload(self):
-        """Test WebSocket subscription payload generation."""
-        payload = self.adapter.get_ws_subscription_payload(
-            self.adapter.get_trading_pair_format(self.trading_pair), self.interval
-        )
-
-        assert payload["op"] == "subscribe"
-        assert len(payload["args"]) == 1
-        assert payload["args"][0]["channel"] == f"candle{INTERVAL_TO_EXCHANGE_FORMAT[self.interval]}"
-        # For perpetual markets, we need the SWAP suffix and replace hyphen with slash
-        assert payload["args"][0]["instId"] == "BTC-USDT-SWAP".replace("-", "/")
-
-    def test_parse_ws_message_valid(self, websocket_message_okx):
-        """Test parsing valid WebSocket message."""
-        # Modify the websocket message to use the perpetual trading pair format
-        websocket_message_okx["arg"]["instId"] = "BTC-USDT-SWAP"
-
-        candles = self.adapter.parse_ws_message(websocket_message_okx)
-
-        # Verify message parsing
-        assert candles is not None
-        assert len(candles) == 1
-
-        candle = candles[0]
-        assert candle.timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
-        assert candle.open == 50000.0
-        assert candle.high == 51000.0
-        assert candle.low == 49000.0
-        assert candle.close == 50500.0
-        assert candle.volume == 100.0
-        assert candle.quote_asset_volume == 5000000.0
-
-    def test_parse_ws_message_invalid(self):
-        """Test parsing invalid WebSocket message."""
-        # Test with non-candle message
-        ws_message = {"event": "subscribe"}
-        candles = self.adapter.parse_ws_message(ws_message)
-        assert candles is None
-
-        # Test with None
-        candles = self.adapter.parse_ws_message(None)
-        assert candles is None
-
-        # Test with missing data field
-        ws_message = {
-            "arg": {
-                "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT[self.interval]}",
-                "instId": "BTC-USDT-SWAP",
-            }
+    def get_expected_rest_params_minimal(self, trading_pair, interval):
+        """Return the expected minimal REST params for the adapter."""
+        # For minimal params, we don't need to add -SWAP suffix as the adapter will do that
+        # The adapter uses the original trading_pair format for parameter generation
+        return {
+            "instId": trading_pair.replace("-", "/"),  # OKX uses / in API calls
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
-        candles = self.adapter.parse_ws_message(ws_message)
-        assert candles is None
 
-    def test_get_supported_intervals(self):
-        """Test getting supported intervals."""
-        intervals = self.adapter.get_supported_intervals()
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # OKX uses after and before parameters with timestamps
+        # The adapter uses the original trading_pair format for parameter generation
+        return {
+            "instId": trading_pair.replace("-", "/"),
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "after": start_time * 1000,  # Convert to milliseconds
+            "before": end_time * 1000,   # Convert to milliseconds
+        }
 
-        # Verify intervals match the expected values
-        assert intervals == INTERVALS
-        assert "1m" in intervals
-        assert intervals["1m"] == 60
-        assert "1h" in intervals
-        assert intervals["1h"] == 3600
-        assert "1d" in intervals
-        assert intervals["1d"] == 86400
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+        """Return the expected WebSocket subscription payload for the adapter."""
+        # For WebSocket, we don't add -SWAP suffix as the adapter will do that
+        # The adapter uses the original trading_pair format for subscription payload
+        return {
+            "op": "subscribe",
+            "args": [
+                {
+                    "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}",
+                    "instId": trading_pair.replace("-", "/"),
+                }
+            ],
+        }
 
-    def test_get_ws_supported_intervals(self):
-        """Test getting WebSocket supported intervals."""
-        ws_intervals = self.adapter.get_ws_supported_intervals()
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        
+        return {
+            "code": "0",
+            "msg": "",
+            "data": [
+                [
+                    str(base_time),             # Time
+                    "50000.0",                  # Open
+                    "51000.0",                  # High
+                    "49000.0",                  # Low
+                    "50500.0",                  # Close
+                    "100.0",                    # Volume
+                    "5000000.0",                # Quote asset volume
+                ],
+                [
+                    str(base_time + 60000),     # Time
+                    "50500.0",                  # Open
+                    "52000.0",                  # High
+                    "50000.0",                  # Low
+                    "51500.0",                  # Close
+                    "150.0",                    # Volume
+                    "7500000.0",                # Quote asset volume
+                ],
+            ]
+        }
 
-        # Verify WS intervals match the expected values
-        assert ws_intervals == WS_INTERVALS
-        assert "1m" in ws_intervals
-        assert "1h" in ws_intervals
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        
+        return {
+            "arg": {
+                "channel": "candle1m",
+                "instId": "BTC/USDT"
+            },
+            "data": [
+                [
+                    str(base_time),             # Time
+                    "50000.0",                  # Open
+                    "51000.0",                  # High
+                    "49000.0",                  # Low
+                    "50500.0",                  # Close
+                    "100.0",                    # Volume
+                    "5000000.0",                # Quote asset volume
+                ]
+            ]
+        }
+        
+    # Additional test cases specific to OKXPerpetualAdapter
+    
+    def test_okx_specific_timestamp_handling(self, adapter):
+        """Test OKX-specific timestamp handling."""
+        # OKX uses milliseconds for timestamps
+        assert adapter.TIMESTAMP_UNIT == "milliseconds"
+        
+        # Test conversion
+        timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
+        timestamp_ms = timestamp_seconds * 1000
+        
+        # Convert to exchange format (should be in milliseconds)
+        assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_ms
+        
+        # Convert from exchange format (should be in seconds)
+        assert adapter.ensure_timestamp_in_seconds(timestamp_ms) == timestamp_seconds
+        
+    def test_okx_perpetual_trading_pair_format(self, adapter):
+        """Test OKX perpetual-specific trading pair format."""
+        # Test various trading pair formats
+        assert adapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT-SWAP"
+        assert adapter.get_trading_pair_format("ETH-USDT") == "ETH-USDT-SWAP"
+        
+        # If already has SWAP suffix, should return as is
+        assert adapter.get_trading_pair_format("BTC-USDT-SWAP") == "BTC-USDT-SWAP"
+    
+    @pytest.mark.asyncio
+    async def test_fetch_rest_candles_custom(self, adapter, trading_pair, interval):
+        """Custom async test for fetch_rest_candles."""
+        # Create a mock network client
+        mock_client = MagicMock()
+        mock_client.get_rest_data = AsyncMock()
+        
+        # Configure the mock to return a specific response when called
+        response_data = self.get_mock_candlestick_response()
+        mock_client.get_rest_data.return_value = response_data
+        
+        # Test the method with our mock
+        candles = await adapter.fetch_rest_candles(
+            trading_pair=trading_pair,
+            interval=interval,
+            network_client=mock_client
+        )
+        
+        # Verify the result
+        assert len(candles) == 2
+        
+        # Check that the mock was called with the correct parameters
+        url = adapter._get_rest_url()
+        params = adapter._get_rest_params(trading_pair, interval)
+        
+        mock_client.get_rest_data.assert_called_once()
+        args, kwargs = mock_client.get_rest_data.call_args
+        assert kwargs['url'] == url
+        assert kwargs['params'] == params

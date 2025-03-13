@@ -41,7 +41,7 @@ def get_rest_url(self) -> str:
     return f"{REST_URL}{CANDLES_ENDPOINT}"
     
     # Some exchanges might require path parameters in the URL
-    # Example: return f"{REST_URL}{CANDLES_ENDPOINT}".format(product_id=some_id)
+    # Example: return f"{REST_URL}{SPOT_CANDLES_ENDPOINT}".format(product_id=some_id)
 ```
 
 ### 2. Implementing `get_rest_params()`
