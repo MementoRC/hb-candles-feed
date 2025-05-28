@@ -5,6 +5,7 @@ Simple mock adapter for testing the candles feed framework.
 from typing import Any, Dict, List, Optional
 
 from candles_feed.adapters.base_adapter import BaseAdapter
+from candles_feed.core.network_config import NetworkConfig
 from .constants import (
     SPOT_REST_URL,
     REST_CANDLES_ENDPOINT,
@@ -25,6 +26,17 @@ class MockedAdapter(BaseAdapter):
     It provides a simplified, standardized interface that's focused on
     testing rather than mimicking a real exchange.
     """
+
+    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+        """Initialize the adapter.
+
+        :param network_config: Network configuration for testnet/production
+        :param args: Additional positional arguments
+        :param kwargs: Additional keyword arguments, may include 'network_client'
+        """
+        super().__init__()  # Call object.__init__()
+        self._network_config = network_config
+        self._network_client = kwargs.get('network_client')
 
     def get_intervals(self) -> Dict[str, int]:
         """

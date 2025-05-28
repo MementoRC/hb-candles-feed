@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 from .constants import (
@@ -28,6 +29,17 @@ class SyncMockedAdapter(BaseAdapter, SyncOnlyAdapter):
     """
     
     TIMESTAMP_UNIT = "milliseconds"
+
+    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+        """Initialize the adapter.
+
+        :param network_config: Network configuration for testnet/production
+        :param args: Additional positional arguments
+        :param kwargs: Additional keyword arguments, may include 'network_client'
+        """
+        super().__init__()  # Call object.__init__()
+        self._network_config = network_config
+        self._network_client = kwargs.get('network_client')
 
     def get_trading_pair_format(self, trading_pair: str) -> str:
         """Convert trading pair to exchange format.
