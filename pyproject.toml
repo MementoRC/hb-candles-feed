@@ -25,8 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp>=3.8.0",
-    "hatch>=1.9.0",
-    "hatch-conda>=0.5.2",
+    "ccxt",
     "numpy>=1.20.0",
     "pandas>=1.0.0",
     "pydantic>=2",
@@ -62,90 +61,71 @@ doc = [
 ]
 hummingbot = []
 
-[tool.hatch.version]
-path = "candles_feed/__about__.py"
+# Pixi configuration
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 
-# Hatch configuration for conda environments
-[tool.hatch.env]
-requires = ["hatch-conda>=0.5.2"]
-type = "conda"
+# Note: Version info is kept in the project section with dynamic = ["version"]
+# and managed via candles_feed/__about__.py
 
-# Documentation environment
-[tool.hatch.envs.docs]
-conda-channels = ["conda-forge", "defaults"]
-features = ["doc"]
-dependencies = []
+# Conda dependencies
+[tool.pixi.dependencies]
+cython = ">=3"
+wheel = ">=0.37.0"
 
-[tool.hatch.envs.docs.scripts]
-build = "mkdocs build --clean --strict"
-serve = "mkdocs serve --dev-addr localhost:8008"
-deploy = "mkdocs gh-deploy"
-
-# CI environment
-[tool.hatch.envs.CI]
-conda-channels = ["conda-forge", "defaults"]
-features = ["dev"]
-dependencies = [
-    "types-setuptools",
-]
-
-[tool.hatch.envs.CI.scripts]
-check = "ruff check candles_feed tests; ruff format --check candles_feed tests"
-hints = "mypy --install-types --non-interactive --ignore-missing-imports candles_feed/"
-
-[tool.hatch.envs.default]
-conda-channels = ["conda-forge", "defaults"]
-features = ["dev"]
-dependencies = []
-
-# Pip dependencies with --no-deps flag
-[tool.hatch.envs.default.pip-no-deps]
-dependencies = []
-
-# Scripts for the default environment
-[tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
+# Tasks equivalent to hatch scripts
+[tool.pixi.tasks]
+test = "pytest tests"
 test-unit = "pytest tests/unit"
 test-integration = "pytest tests/integration"
 lint = "ruff check candles_feed tests"
 format = "ruff format candles_feed tests"
 typecheck = "mypy candles_feed"
 lint-cython = "cython-lint candles_feed"
-check = ["format", "lint", "typecheck", "test"]
+check = { cmd = ["pixi run format", "pixi run lint", "pixi run typecheck", "pixi run test"] }
 
-# Hatch build configuration with Cython integration via custom hook
-[tool.hatch.build.targets.wheel]
-packages = ["candles_feed"]
-build-hook = "setup-tools.hatch-hooks.cython_build_hook"
+# Documentation tasks
+docs-build = "mkdocs build --clean --strict"
+docs-serve = "mkdocs serve --dev-addr localhost:8008"
+docs-deploy = "mkdocs gh-deploy"
 
-# Distribution package configuration
-[tool.hatch.build.targets.sdist]
-include = [
-    "candles_feed/**/*.py",
-    "candles_feed/**/*.pyx",
-    "candles_feed/**/*.pxd",
-    "docs/**/*.md",
-    "docs/**/*.yml",
-    "setup-tools/**/*",
-    "LICENSE",
-    "README.md",
-    "pyproject.toml",
-    "setup.py",
-]
-exclude = [
-    "build", 
-    "dist", 
-    "**/__pycache__", 
-    "**/*.pyc", 
-    ".git", 
-    ".github",
-    "**/.pytest_cache",
-    "**/.mypy_cache",
-    "**/.DS_Store",
-    "**/*.so",
-    "**/*.dylib",
-]
+# CI tasks
+ci-check = "ruff check candles_feed tests; ruff format --check candles_feed tests"
+ci-hints = "mypy --install-types --non-interactive --ignore-missing-imports candles_feed/"
 
+# Features
+[tool.pixi.feature.docs.dependencies]
+mkdocs = "*"
+mkdocs-git-revision-date-localized-plugin = "*"
+mkdocs-material = ">=8.2.0"
+mkdocstrings-python = "*"
+mkdocstrings = ">=0.18.0"
+pymdown-extensions = ">=8.0.0"
+
+[tool.pixi.feature.dev.dependencies]
+pre-commit = ">=2.15.0"
+pytest = ">=7.0.0"
+pytest-aiohttp = ">=1.1.0"
+pytest-asyncio = ">=0.21.0"
+pytest-cov = ">=4.1.0"
+pytest-mock = ">=3.11.0"
+pytest-timeout = ">=2.1.0"
+pyupgrade = "*"
+ruff = ">=0.1.5"
+mypy = ">=1.5.1"
+cython-lint = ">=0.15.0"
+
+[tool.pixi.feature.ci.dependencies]
+types-setuptools = "*"
+
+# Environments
+[tool.pixi.environments]
+default = { features = ["dev"], solve-group = "default" }
+docs = { features = ["docs"], solve-group = "default" }
+ci = { features = ["ci", "dev"], solve-group = "default" }
+
+# Keep existing tool configurations
 [tool.coverage.run]
 branch = true
 parallel = true
