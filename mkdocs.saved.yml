@@ -59,6 +59,8 @@ nav:
       - Installation: getting_started/installation.md
       - Quick Start: getting_started/quick_start.md
       - Architecture: getting_started/architecture.md
+      - Hummingbot Integration: getting_started/hummingbot_integration.md
+      - Compatibility: getting_started/compatibility.md
   - Adapters:
       - Overview: adapters/overview.md
       - Implementation: adapters/implementation.md
@@ -68,6 +70,11 @@ nav:
   - Testing Resources:
       - Overview: testing_resources/overview.md
       - Mock Server: testing_resources/mock_server.md
+  - Testnet Support:
+      - Overview: testnet/overview.md
+      - Configuration: testnet/configuration.md
+      - Implementation: testnet/implementation.md
+      - Examples: testnet/examples.md
   - Examples:
       - Simple Usage: examples/simple_usage.md
       - Binance Spot Example: examples/binance_spot_example.md

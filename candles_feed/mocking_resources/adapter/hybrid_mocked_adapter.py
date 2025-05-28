@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
 
 from .constants import (
@@ -29,12 +30,16 @@ class HybridMockedAdapter(BaseAdapter):
     
     TIMESTAMP_UNIT = "milliseconds"
     
-    def __init__(self, network_client: NetworkClientProtocol = None):
-        """Initialize with optional network client.
-        
-        :param network_client: Optional network client to use
+    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+        """Initialize the adapter.
+
+        :param network_config: Network configuration for testnet/production
+        :param args: Additional positional arguments
+        :param kwargs: Additional keyword arguments, may include 'network_client'
         """
-        self._network_client = network_client
+        super().__init__()  # Call object.__init__()
+        self._network_config = network_config
+        self._network_client = kwargs.get('network_client')
 
     def get_trading_pair_format(self, trading_pair: str) -> str:
         """Convert trading pair to exchange format.
