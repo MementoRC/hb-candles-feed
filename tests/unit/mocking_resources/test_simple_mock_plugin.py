@@ -145,9 +145,9 @@ class TestMockedPlugin:
     @patch(
         "candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.web.WebSocketResponse"
     )
-    async def test_handle_websocket(self, MockWebSocketResponse):
+    async def test_handle_websocket(self, mock_websocket_response):
         """Test handling WebSocket connections and subscriptions."""
-        # Configure the mock WebSocket instance that MockWebSocketResponse will return
+        # Configure the mock WebSocket instance that mock_websocket_response will return
         mock_ws_instance = AsyncMock()
         mock_ws_instance.prepare = AsyncMock()
         mock_ws_instance.send_json = AsyncMock()
@@ -174,7 +174,7 @@ class TestMockedPlugin:
         mock_ws_instance.__aiter__ = Mock(return_value=mock_receive_messages())
 
         # Configure the patched class to return our mock instance
-        MockWebSocketResponse.return_value = mock_ws_instance
+        mock_websocket_response.return_value = mock_ws_instance
 
         # Setup mock_server
         mock_server = Mock()
@@ -208,7 +208,7 @@ class TestMockedPlugin:
         # --- Assertions ---
 
         # 1. WebSocketResponse was instantiated and prepared
-        MockWebSocketResponse.assert_called_once()
+        mock_websocket_response.assert_called_once()
         mock_ws_instance.prepare.assert_called_once_with(mock_request)
 
         # 2. Subscription success message

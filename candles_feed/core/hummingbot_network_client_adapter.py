@@ -27,7 +27,6 @@ try:
     HUMMINGBOT_AVAILABLE = True
 except ImportError:
     # Define placeholder types for type checking
-    from typing import Any
 
     WebAssistantsFactory = Any
     RESTAssistant = Any
