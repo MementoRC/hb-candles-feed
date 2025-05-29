@@ -9,13 +9,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.collection_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.network_client import NetworkClient
-from candles_feed.core.collection_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.protocols import WSAssistant
-from candles_feed.adapters.protocols import AdapterProtocol
-
 from candles_feed.mocking_resources import ExchangeType
 
 
@@ -75,9 +74,9 @@ def mock_candles():
 @pytest.fixture
 async def binance_mock_server(unused_tcp_port):
     """Create and start a Binance mock server for testing."""
+    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
     from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
-    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
     port = unused_tcp_port
 
@@ -102,13 +101,13 @@ async def binance_mock_server(unused_tcp_port):
 
     # Clean up
     await server.stop()
-    
-    
+
+
 @pytest.fixture
 async def mocked_server_fixture(unused_tcp_port):
     """Create and start a simple mock server for testing."""
-    from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+    from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
     port = unused_tcp_port
@@ -145,9 +144,9 @@ def mock_server_url_simple(mocked_server_fixture):
 @pytest.fixture
 async def bybit_mock_server(unused_tcp_port):
     """Create and start a Bybit mock server for testing."""
+    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
     from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
-    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
     port = unused_tcp_port
 
@@ -176,9 +175,9 @@ async def bybit_mock_server(unused_tcp_port):
 @pytest.fixture
 async def coinbase_mock_server(unused_tcp_port):
     """Create and start a Coinbase Advanced Trade mock server for testing."""
+    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
     from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
-    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
     port = unused_tcp_port
 

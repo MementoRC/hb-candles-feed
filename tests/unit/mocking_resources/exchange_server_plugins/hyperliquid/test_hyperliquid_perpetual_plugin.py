@@ -6,7 +6,9 @@ import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.perpetual_plugin import HyperliquidPerpetualPlugin
+from candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.perpetual_plugin import (
+    HyperliquidPerpetualPlugin,
+)
 
 
 class TestHyperliquidPerpetualPlugin:
@@ -37,19 +39,19 @@ class TestHyperliquidPerpetualPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with JSON body
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "POST", 
+            "POST",
             "/info",
             headers={"Content-Type": "application/json"},
         )
-        
+
         # Mock the request to have a JSON body
         request._read_bytes = b'{"type":"candles","coin":"BTC","resolution":"1","limit":100,"startTime":1620000000,"endTime":1620100000}'
-        
+
         # Parse parameters
         params = await self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTC-USDT"
         assert params["interval"] == "1m"
@@ -74,10 +76,10 @@ class TestHyperliquidPerpetualPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, list)
         assert len(formatted) == 1
@@ -104,10 +106,10 @@ class TestHyperliquidPerpetualPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format
         assert message["channel"] == "candles"
         assert message["coin"] == "BTC"  # Only the base asset
@@ -129,10 +131,10 @@ class TestHyperliquidPerpetualPlugin:
             "coin": "BTC",
             "interval": "1"
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"
@@ -147,10 +149,10 @@ class TestHyperliquidPerpetualPlugin:
             "coin": "BTC",
             "interval": "1"
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert response["success"] is True
         assert "message" in response
@@ -159,6 +161,6 @@ class TestHyperliquidPerpetualPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format
         assert key == "BTC:1"  # Base asset and interval in seconds

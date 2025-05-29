@@ -1,19 +1,20 @@
 from abc import ABC
 from typing import Any
-from aiohttp import web
-from candles_feed.adapters.base_adapter import BaseAdapter
 
+from aiohttp import web
+
+from candles_feed.adapters.base_adapter import BaseAdapter
+from candles_feed.adapters.mexc.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVAL_TO_PERPETUAL_FORMAT,
+    PERP_REST_URL,
+    PERP_WSS_URL,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.adapters.mexc.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT, 
-    INTERVAL_TO_PERPETUAL_FORMAT,
-    SPOT_REST_URL, 
-    SPOT_WSS_URL,
-    PERP_REST_URL,
-    PERP_WSS_URL
-)
 
 
 class MEXCBasePlugin(ExchangePlugin, ABC):
@@ -87,17 +88,17 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
             ]
             for c in candles
         ]
-        
+
     def _interval_to_milliseconds(self, interval: str) -> int:
         """
         Convert interval string to milliseconds.
-        
+
         :param interval: Interval string (e.g., "1m", "1h", "1d")
         :returns: Interval in milliseconds
         """
         unit = interval[-1]
         value = int(interval[:-1])
-        
+
         if unit == "m":
             return value * 60 * 1000
         elif unit == "h":
@@ -127,7 +128,7 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         # Format for MEXC Spot WebSocket API
         symbol = trading_pair.replace("-", "_")
         mexc_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
-        
+
         return {
             "e": "push.kline",
             "d": {
@@ -153,7 +154,7 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         subscriptions = []
-        
+
         # MEXC uses a method and params format similar to Binance, but with different topics
         if message.get("method") == "sub":
             for param in message.get("params", []):
@@ -168,21 +169,21 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
                             if len(interval_symbol) == 2:
                                 interval = interval_symbol[0]
                                 symbol = interval_symbol[1].upper()
-                                
+
                                 # Convert MEXC interval format to standard format
                                 for std_interval, mexc_interval in INTERVAL_TO_EXCHANGE_FORMAT.items():
                                     if mexc_interval == interval:
                                         interval = std_interval
                                         break
-                                
+
                                 # Convert symbol to standardized format (e.g., BTC-USDT)
                                 for i in range(len(symbol) - 1, 2, -1):
                                     if symbol[i:] in ["USDT", "BTC", "ETH", "USD", "USDC"]:
                                         symbol = f"{symbol[:i]}-{symbol[i:]}"
                                         break
-                                        
+
                                 subscriptions.append((symbol, interval))
-                        
+
         return subscriptions
 
     def create_ws_subscription_success(
@@ -199,19 +200,19 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         # {"channel":"push.kline","data":{"interval":"Min1","symbol":"BTC_USDT"},"symbol":"BTC_USDT"}
         if subscriptions:
             trading_pair, interval = subscriptions[0]  # Just take the first one for simplicity
-            symbol = trading_pair.replace("-", "_")
-            mexc_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
-            
+            trading_pair.replace("-", "_")
+            INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+
             return {
                 "channel": "sub.response",
                 "data": {"success": True},
-                "ts": int(1620000000000)  # Fixed timestamp for testing
+                "ts": 1620000000000  # Fixed timestamp for testing
             }
-        
+
         return {
             "channel": "sub.response",
             "data": {"success": False, "message": "No valid subscriptions"},
-            "ts": int(1620000000000)  # Fixed timestamp for testing
+            "ts": 1620000000000  # Fixed timestamp for testing
         }
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
@@ -235,28 +236,28 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Convert MEXC-specific parameter names to the generic ones expected by handle_klines
         symbol = params.get("symbol")
         interval = params.get("interval")
         start_time = params.get("startTime")
         end_time = params.get("endTime")
         limit = params.get("limit")
-        
+
         if limit is not None:
             try:
                 limit = int(limit)
             except ValueError:
                 limit = 500
-                
+
         # Map MEXC parameters to generic parameters expected by handle_klines
         return {
-            "symbol": symbol,            
-            "interval": interval,        
-            "start_time": start_time,    
-            "end_time": end_time,        
-            "limit": limit,              
-            
+            "symbol": symbol,
+            "interval": interval,
+            "start_time": start_time,
+            "end_time": end_time,
+            "limit": limit,
+
             # Also keep the original MEXC parameter names for reference
             "startTime": start_time,
             "endTime": end_time,

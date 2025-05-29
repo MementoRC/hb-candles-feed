@@ -5,7 +5,9 @@ Hyperliquid Spot plugin implementation for the mock exchange server.
 from candles_feed.adapters.hyperliquid.constants import SPOT_WSS_URL
 from candles_feed.adapters.hyperliquid.spot_adapter import HyperliquidSpotAdapter
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.base_plugin import HyperliquidBasePlugin
+from candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.base_plugin import (
+    HyperliquidBasePlugin,
+)
 
 
 class HyperliquidSpotPlugin(HyperliquidBasePlugin):

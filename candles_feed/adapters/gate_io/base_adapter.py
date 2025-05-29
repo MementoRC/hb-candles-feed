@@ -6,8 +6,8 @@ to reduce code duplication across spot and perpetual markets.
 """
 from abc import abstractmethod
 
-from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
 
@@ -17,6 +17,7 @@ from .constants import (
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
+
 
 class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Base class for Gate.io exchange adapters.

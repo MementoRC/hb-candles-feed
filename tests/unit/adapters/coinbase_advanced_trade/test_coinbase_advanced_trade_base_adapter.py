@@ -2,11 +2,14 @@
 Tests for the CoinbaseAdvancedTradeBaseAdapter using the base adapter test class.
 """
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from candles_feed.adapters.coinbase_advanced_trade.base_adapter import CoinbaseAdvancedTradeBaseAdapter
+import pytest
+
+from candles_feed.adapters.coinbase_advanced_trade.base_adapter import (
+    CoinbaseAdvancedTradeBaseAdapter,
+)
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
@@ -26,13 +29,13 @@ class ConcreteCoinbaseAdvancedTradeAdapter(CoinbaseAdvancedTradeBaseAdapter):
     @staticmethod
     def _get_ws_url() -> str:
         return "wss://test.coinbase.com/ws"
-    
+
     # Override _parse_rest_response to handle None properly
     def _parse_rest_response(self, data: dict | list | None) -> list:
         if data is None:
             return []
         return super()._parse_rest_response(data)
-    
+
     # Override get_supported_intervals to include needed intervals for tests
     def get_supported_intervals(self) -> dict[str, int]:
         return {
@@ -91,7 +94,7 @@ class TestCoinbaseAdvancedTradeBaseAdapter(BaseAdapterTest):
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
         base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
-        
+
         return {
             "candles": [
                 {
@@ -116,7 +119,7 @@ class TestCoinbaseAdvancedTradeBaseAdapter(BaseAdapterTest):
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
         base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
-        
+
         return {
             "channel": "candles",
             "client_id": "test-client",
@@ -138,36 +141,36 @@ class TestCoinbaseAdvancedTradeBaseAdapter(BaseAdapterTest):
                 }
             ],
         }
-        
+
     # Additional test cases specific to CoinbaseAdvancedTradeBaseAdapter
-    
+
     def test_coinbase_advanced_trade_specific_timestamp_handling(self, adapter):
         """Test Coinbase Advanced Trade-specific timestamp handling."""
         # Coinbase uses seconds for timestamps
         assert adapter.TIMESTAMP_UNIT == "seconds"
-        
+
         # Test conversion (should be identity since Coinbase uses seconds)
         timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
-        
+
         # Convert to exchange format (should remain in seconds)
         assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_seconds
-        
+
         # Convert from exchange format (should remain in seconds)
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
-        
+
     def test_coinbase_advanced_trade_iso_datetime_parsing(self, adapter):
         """Test Coinbase Advanced Trade-specific ISO datetime parsing."""
         # Test parsing ISO datetime strings
         iso_datetime = "2023-01-01T00:00:00Z"
         timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-        
+
         # Create a simple object with ISO datetime string
         test_data = {"timestamp": iso_datetime}
-        
+
         # Ensure the adapter can handle ISO datetime strings
         result = adapter.ensure_timestamp_in_seconds(test_data.get("timestamp"))
         assert result == timestamp
-    
+
     @pytest.mark.asyncio
     @patch.object(ConcreteCoinbaseAdvancedTradeAdapter, '_get_rest_url')
     async def test_fetch_rest_candles_custom(self, mock_get_rest_url, adapter, trading_pair, interval):
@@ -175,28 +178,28 @@ class TestCoinbaseAdvancedTradeBaseAdapter(BaseAdapterTest):
         # Mock the URL to be pre-formatted with the trading pair
         formatted_url = f"https://test.coinbase.com/api/v3/brokerage/products/{trading_pair}/candles"
         mock_get_rest_url.return_value = formatted_url
-        
+
         # Create a mock network client
         mock_client = MagicMock()
         mock_client.get_rest_data = AsyncMock()
-        
+
         # Configure the mock to return a specific response when called
         response_data = self.get_mock_candlestick_response()
         mock_client.get_rest_data.return_value = response_data
-        
+
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
             trading_pair=trading_pair,
             interval=interval,
             network_client=mock_client
         )
-        
+
         # Verify the result
         assert len(candles) == 2
-        
+
         # Check that the mock was called with the correct parameters
         params = adapter._get_rest_params(trading_pair, interval)
-        
+
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
         assert kwargs['url'] == formatted_url

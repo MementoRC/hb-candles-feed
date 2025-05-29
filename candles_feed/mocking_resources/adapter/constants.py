@@ -2,7 +2,7 @@
 Constants for simple mock adapter.
 """
 
-# REST API URLs 
+# REST API URLs
 SPOT_REST_URL = "https://mock-exchange.test"
 PERPETUAL_REST_URL = "https://mock-exchange.test"
 REST_CANDLES_ENDPOINT = "/api/candles"

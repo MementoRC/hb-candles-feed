@@ -37,16 +37,16 @@ class TestMEXCSpotPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100&startTime=1620000000000&endTime=1620100000000",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTCUSDT"
         assert params["interval"] == "1m"
@@ -71,10 +71,10 @@ class TestMEXCSpotPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, list)
         assert len(formatted) == 1
@@ -102,10 +102,10 @@ class TestMEXCSpotPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format
         assert message["e"] == "push.kline"
         assert message["d"]["s"] == "BTC_USDT"  # Symbol with underscore
@@ -127,10 +127,10 @@ class TestMEXCSpotPlugin:
                 "spot@kline.Min1_btcusdt"
             ]
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"
@@ -145,10 +145,10 @@ class TestMEXCSpotPlugin:
                 "spot@public.kline.Min1_btcusdt"
             ]
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert response["channel"] == "sub.response"
         assert response["data"]["success"] is True
@@ -157,6 +157,6 @@ class TestMEXCSpotPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format
         assert key == "BTC_USDT@Min1"  # Format for MEXC

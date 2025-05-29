@@ -2,10 +2,10 @@
 MEXC Spot plugin implementation for the mock exchange server.
 """
 
+from candles_feed.adapters.mexc.constants import SPOT_WSS_URL
 from candles_feed.adapters.mexc.spot_adapter import MEXCSpotAdapter
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.exchange_server_plugins.mexc.base_plugin import MEXCBasePlugin
-from candles_feed.adapters.mexc.constants import SPOT_WSS_URL
 
 
 class MEXCSpotPlugin(MEXCBasePlugin):

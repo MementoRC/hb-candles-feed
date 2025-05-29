@@ -8,8 +8,8 @@ from unittest.mock import MagicMock
 
 from aiohttp import web
 
-from candles_feed.core.candle_data import CandleData
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 

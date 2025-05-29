@@ -4,20 +4,22 @@ Base class for Kraken exchange plugins.
 This class provides shared functionality for Kraken plugins.
 """
 
+import contextlib
 from abc import ABC
 from typing import Any, Union
-from aiohttp import web
-from candles_feed.adapters.base_adapter import BaseAdapter
 
-from candles_feed.core.candle_data import CandleData
-from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from aiohttp import web
+
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.kraken.constants import (
-    INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
+from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
 
 class KrakenBasePlugin(ExchangePlugin, ABC):
@@ -94,10 +96,10 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         #     "last": 1616691600
         #   }
         # }
-        
+
         kraken_formatted_pair = self._format_trading_pair(trading_pair)
         formatted_candles = []
-        
+
         for candle in candles:
             # Format each candle according to Kraken's format
             formatted_candle = [
@@ -111,12 +113,12 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
                 100                           # Count (number of trades) - placeholder value
             ]
             formatted_candles.append(formatted_candle)
-            
+
         return {
             "error": [],
             "result": {
                 kraken_formatted_pair: formatted_candles,
-                "last": int(candles[-1].timestamp) if candles else int(0)
+                "last": int(candles[-1].timestamp) if candles else 0
             }
         }
 
@@ -149,13 +151,13 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         #   "ohlc-1",            // Channel name with interval
         #   "XBT/USD"            // Pair
         # ]
-        
+
         interval_num = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1)
         kraken_formatted_pair = self._format_trading_pair(trading_pair)
-        
+
         # Calculate end time (this would normally be calculated by Kraken)
         end_time = candle.timestamp + self._interval_to_seconds(interval)
-        
+
         # Format the candle data
         candle_data = [
             f"{candle.timestamp}.000000",     # Time with microsecond precision
@@ -168,7 +170,7 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
             f"{candle.volume:.8f}",           # Volume with 8 decimals
             100                               # Count - placeholder
         ]
-        
+
         # Return the message as an array (Kraken uses arrays, not objects, for WebSocket messages)
         return [
             0,                           # Channel ID (placeholder)
@@ -194,11 +196,11 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         #     "interval": 1
         #   }
         # }
-        
+
         subscriptions = []
         if isinstance(message, dict) and message.get("name") == "subscribe":
             subscription = message.get("subscription", {})
-            
+
             if subscription.get("name") == "ohlc":
                 interval_min = subscription.get("interval")
                 # Convert interval in minutes to our standard format
@@ -206,13 +208,13 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
                     (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval_min),
                     "1m"  # Default to 1m if not found
                 )
-                
+
                 # Extract trading pairs
                 for pair in message.get("pair", []):
                     # Convert Kraken pair (XBT/USD) to our standard format (BTC-USD)
                     trading_pair = self._reverse_format_trading_pair(pair)
                     subscriptions.append((trading_pair, interval))
-                    
+
         return subscriptions
 
     def create_ws_subscription_success(
@@ -237,17 +239,17 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         #     "name": "ohlc"
         #   }
         # }
-        
+
         # For each subscription, create a response
         responses = []
-        subscription = message.get("subscription", {})
+        message.get("subscription", {})
         reqid = message.get("reqid", 1)
-        
+
         # Create a response for each pair
         for trading_pair, interval in subscriptions:
             interval_num = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1)
             kraken_pair = self._format_trading_pair(trading_pair)
-            
+
             responses.append({
                 "channelID": hash(f"{kraken_pair}_{interval}") % 1000,  # Generate a pseudo-random channel ID
                 "channelName": f"ohlc-{interval_num}",
@@ -259,7 +261,7 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
                     "name": "ohlc"
                 }
             })
-            
+
         # Return the first response if there's only one
         # (Kraken sends separate messages for each subscription)
         return responses[0] if responses else {
@@ -288,53 +290,51 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Kraken uses 'pair', 'interval' in minutes, and 'since' parameter
         pair = params.get("pair")
         interval_min = params.get("interval")
         since = params.get("since")
-        
+
         # Convert Kraken's pair format to our standard format
         symbol = self._reverse_format_trading_pair(pair) if pair else None
-        
+
         # Convert interval in minutes to our standard format
         interval = next(
             (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if str(v) == interval_min),
             "1m"  # Default to 1m if not found
         )
-        
+
         # Map Kraken parameters to generic parameters
         result = {
             "symbol": symbol,
             "interval": interval,
             "limit": 720,  # Kraken's default limit
         }
-        
+
         # Handle since parameter (start time)
         if since:
-            try:
+            with contextlib.suppress(ValueError):
                 result["start_time"] = int(since)
-            except ValueError:
-                pass
-        
+
         return result
 
     async def handle_time(self, server, request):
         """
         Handle the Kraken time endpoint.
-        
+
         :param server: The mock server instance.
         :param request: The web request.
         :returns: A JSON response with server time.
         """
         await server._simulate_network_conditions()
-        
+
         client_ip = request.remote
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": ["EAPI:Rate limit exceeded"]}, status=429)
-            
+
         current_time = int(server._time())
-        
+
         return web.json_response({
             "error": [],
             "result": {
@@ -342,57 +342,55 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
                 "rfc1123": "Thu, 1 Jan 1970 00:00:00 +0000"  # Placeholder, not actually formatted
             }
         })
-        
+
     def _format_trading_pair(self, trading_pair: str) -> str:
         """
         Format trading pair to Kraken's format.
-        
+
         :param trading_pair: Trading pair in standard format (e.g., "BTC-USDT").
         :returns: Trading pair in Kraken format (e.g., "XBTUSD").
         """
         if not trading_pair or "-" not in trading_pair:
             return trading_pair
-            
+
         base, quote = trading_pair.split("-")
-        
+
         # Handle special cases
         if base == "BTC":
             base = "XBT"
         if quote == "USDT":
             quote = "USD"
-            
+
         # For major currencies, Kraken adds X/Z prefix
-        base_prefix = "X" if base in ["XBT", "ETH", "LTC", "XMR", "XRP", "ZEC"] else ""
-        quote_prefix = "Z" if quote in ["USD", "EUR", "GBP", "JPY", "CAD"] else ""
-        
+
         # Format as Kraken expects - for simplicity we'll use slash format
         # In a complete implementation, we'd check the context (REST vs WS)
         # REST API uses concatenated format like XXBTZUSD
         # WebSocket uses slash format like XBT/USD
         return f"{base}/{quote}"
-            
+
     def _reverse_format_trading_pair(self, kraken_pair: str) -> str:
         """
         Convert Kraken's trading pair format back to our standard format.
-        
+
         :param kraken_pair: Trading pair in Kraken format (e.g., "XXBTZUSD" or "XBT/USD").
         :returns: Trading pair in standard format (e.g., "BTC-USD").
         """
         if not kraken_pair:
             return kraken_pair
-            
+
         # Handle slash format (WebSocket)
         if "/" in kraken_pair:
             base, quote = kraken_pair.split("/")
-            
+
             # Handle special cases
             if base == "XBT":
                 base = "BTC"
             if quote == "USD" and base == "BTC":
                 quote = "USDT"
-                
+
             return f"{base}-{quote}"
-            
+
         # Handle concatenated format (REST)
         # This is complex due to Kraken's prefixing - simplified implementation
         if kraken_pair.startswith("X") and kraken_pair.endswith("ZUSD"):
@@ -401,19 +399,19 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
             if base == "XBT":
                 base = "BTC"
             return f"{base}-USDT"
-            
+
         # Fallback - just return as is with a hyphen
         if len(kraken_pair) >= 6:
             # Attempt simple split in the middle
             mid = len(kraken_pair) // 2
             return f"{kraken_pair[:mid]}-{kraken_pair[mid:]}"
-            
+
         return kraken_pair
-        
+
     def _interval_to_seconds(self, interval: str) -> int:
         """
         Convert interval string to seconds.
-        
+
         :param interval: Interval string (e.g., "1m", "1h").
         :returns: Interval in seconds.
         """

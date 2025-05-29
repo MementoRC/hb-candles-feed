@@ -2,14 +2,14 @@
 Unit tests for the MockedAdapter class.
 """
 
-from candles_feed.mocking_resources.adapter.mocked_adapter import MockedAdapter
-from candles_feed.mocking_resources.adapter.constants import (
-    SPOT_REST_URL,
-    REST_CANDLES_ENDPOINT,
-    SPOT_WSS_URL,
-    DEFAULT_CANDLES_LIMIT,
-)
 from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.adapter.constants import (
+    DEFAULT_CANDLES_LIMIT,
+    REST_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
+from candles_feed.mocking_resources.adapter.mocked_adapter import MockedAdapter
 
 
 class TestMockedAdapter:
@@ -63,13 +63,13 @@ class TestMockedAdapter:
         assert params["symbol"] == self.trading_pair
         assert params["interval"] == self.interval
         assert params["limit"] == DEFAULT_CANDLES_LIMIT
-        
+
         # Test with all parameters
         params = self.adapter.get_rest_params(
-            self.trading_pair, 
-            self.interval, 
-            limit=100, 
-            start_time=1620000000000, 
+            self.trading_pair,
+            self.interval,
+            limit=100,
+            start_time=1620000000000,
             end_time=1620100000000
         )
         assert params["symbol"] == self.trading_pair
@@ -106,10 +106,10 @@ class TestMockedAdapter:
                 }
             ]
         }
-        
+
         # Process the response
         candles = self.adapter.parse_rest_response(response_data, self.trading_pair, self.interval)
-        
+
         # Check results
         assert len(candles) == 2
         assert isinstance(candles[0], CandleData)
@@ -124,7 +124,7 @@ class TestMockedAdapter:
     def test_get_ws_subscription_payload(self):
         """Test get_ws_subscription_payload method."""
         payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
-        
+
         assert payload["type"] == "subscribe"
         assert isinstance(payload["subscriptions"], list)
         assert len(payload["subscriptions"]) == 1
@@ -148,10 +148,10 @@ class TestMockedAdapter:
                 "quote_volume": "525000.0"
             }
         }
-        
+
         # Process the message
         candle = self.adapter.parse_ws_message(valid_message)
-        
+
         # Check result
         assert isinstance(candle[0], CandleData)
         assert candle[0].timestamp_ms == 1620000000000

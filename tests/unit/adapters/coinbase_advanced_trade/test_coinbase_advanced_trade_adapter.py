@@ -6,17 +6,17 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from candles_feed.adapters.coinbase_advanced_trade.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+    WS_INTERVALS,
+)
 from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
     CoinbaseAdvancedTradeSpotAdapter,
-)
-from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    SPOT_CANDLES_ENDPOINT,
-    INTERVALS,
-    INTERVAL_TO_EXCHANGE_FORMAT,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    SPOT_REST_URL,
-    WS_INTERVALS,
-    SPOT_WSS_URL,
 )
 from candles_feed.core.candle_data import CandleData
 

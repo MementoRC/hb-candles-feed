@@ -3,12 +3,16 @@ KuCoin Perpetual plugin implementation for the mock exchange server.
 """
 
 from typing import Any
+
 from aiohttp import web
-from candles_feed.core.candle_data import CandleData
-from candles_feed.adapters.kucoin.constants import PERPETUAL_WSS_URL, INTERVAL_TO_EXCHANGE_FORMAT
+
+from candles_feed.adapters.kucoin.constants import INTERVAL_TO_EXCHANGE_FORMAT, PERPETUAL_WSS_URL
 from candles_feed.adapters.kucoin.perpetual_adapter import KucoinPerpetualAdapter
+from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.kucoin.base_plugin import KucoinBasePlugin
+from candles_feed.mocking_resources.exchange_server_plugins.kucoin.base_plugin import (
+    KucoinBasePlugin,
+)
 
 
 class KucoinPerpetualPlugin(KucoinBasePlugin):
@@ -82,7 +86,7 @@ class KucoinPerpetualPlugin(KucoinBasePlugin):
                 "granularity": interval
             }
         }
-        
+
     def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
         """
         Parse REST API parameters for KuCoin Perpetual candle requests.
@@ -91,16 +95,16 @@ class KucoinPerpetualPlugin(KucoinBasePlugin):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Convert KuCoin-specific parameter names to the generic ones expected by handle_klines
         symbol = params.get("symbol")
         interval = params.get("granularity", "1min")
         start_time = params.get("from")
         end_time = params.get("to")
-        
+
         # KuCoin may have a limit parameter
         limit = 200  # Default limit is 200 for perpetual futures
-                
+
         # Map KuCoin parameters to generic parameters expected by handle_klines
         return {
             "symbol": symbol,

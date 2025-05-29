@@ -39,16 +39,16 @@ class TestBybitSpotPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/v5/market/kline?symbol=BTCUSDT&interval=1&start=1620000000000&end=1620100000000&limit=100&category=spot",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTCUSDT"
         assert params["interval"] == "1"
@@ -74,17 +74,17 @@ class TestBybitSpotPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, dict)
         assert formatted["retCode"] == 0
         assert formatted["retMsg"] == "OK"
         assert formatted["result"]["category"] == "spot"
         assert formatted["result"]["symbol"] == "BTCUSDT"
-        
+
         # Check the first candle
         assert len(formatted["result"]["list"]) == 1
         candle_data = formatted["result"]["list"][0]
@@ -111,15 +111,15 @@ class TestBybitSpotPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format
-        assert message["topic"] == f"kline.1.BTCUSDT"  # Interval maps from 1m to 1
+        assert message["topic"] == "kline.1.BTCUSDT"  # Interval maps from 1m to 1
         assert message["ts"] == int(candle.timestamp_ms)
         assert message["type"] == "snapshot"
-        
+
         # Check data field
         assert len(message["data"]) == 1
         data = message["data"][0]
@@ -144,10 +144,10 @@ class TestBybitSpotPlugin:
             ],
             "req_id": 12345
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"  # Trading pair should be reformatted
@@ -163,10 +163,10 @@ class TestBybitSpotPlugin:
             ],
             "req_id": 12345
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert response["success"] is True
         assert response["ret_msg"] == "subscribe success"
@@ -177,28 +177,28 @@ class TestBybitSpotPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format
         assert key == "kline.1.BTCUSDT"  # Should map 1m to 1 and remove hyphen
-        
+
     def test_parse_rest_candles_params_with_invalid_limit(self):
         """Test parsing REST API parameters with invalid limit value."""
         from aiohttp.test_utils import make_mocked_request
-        
+
         # Create a request with an invalid limit parameter
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/v5/market/kline?symbol=BTCUSDT&interval=1&start=1620000000000&end=1620100000000&limit=invalid",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check that limit has been set to a default value
         assert isinstance(params["limit"], int)
         assert params["limit"] > 0
-        
+
     def test_parse_ws_subscription_with_invalid_format(self):
         """Test parsing WebSocket subscription with invalid format."""
         # Create an invalid subscription message
@@ -208,18 +208,18 @@ class TestBybitSpotPlugin:
                 "invalid_format"  # Not in the expected kline.interval.pair format
             ]
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(invalid_message)
-        
+
         # Check that no valid subscriptions were found
         assert len(subscriptions) == 0
-        
+
     def test_format_rest_candles_with_empty_list(self):
         """Test formatting REST API candle response with empty candle list."""
         # Format with empty candle list
         formatted = self.plugin.format_rest_candles([], self.trading_pair, self.interval)
-        
+
         # Check that response is properly structured even with no data
         assert isinstance(formatted, dict)
         assert formatted["retCode"] == 0

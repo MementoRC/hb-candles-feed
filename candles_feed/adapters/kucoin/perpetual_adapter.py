@@ -4,15 +4,16 @@ KuCoin perpetual exchange adapter for the Candle Feed framework.
 
 import time
 
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.exchange_registry import ExchangeRegistry
+
+from .base_adapter import KucoinBaseAdapter
 from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
 )
-from .base_adapter import KucoinBaseAdapter
-from candles_feed.core.candle_data import CandleData
-from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
 @ExchangeRegistry.register("kucoin_perpetual")
@@ -20,7 +21,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
     """KuCoin perpetual exchange adapter."""
 
     @staticmethod
-    def get_rest_url() -> str:
+    def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
@@ -28,14 +29,14 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
     @staticmethod
-    def get_ws_url() -> str:
+    def _get_ws_url() -> str:
         """Get WebSocket URL.
 
         :returns: WebSocket URL
         """
         return PERPETUAL_WSS_URL
 
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
@@ -66,7 +67,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response

@@ -1,19 +1,21 @@
 """
-Unit tests for the AscendExBaseAdapter class.
+Tests for the AscendExBaseAdapter using the base adapter test class.
 """
 
-from unittest.mock import MagicMock
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from candles_feed.adapters.ascend_ex.base_adapter import AscendExBaseAdapter
 from candles_feed.adapters.ascend_ex.constants import (
-    INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    SUB_ENDPOINT_NAME,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
+from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
 class ConcreteAscendExAdapter(AscendExBaseAdapter):
@@ -21,65 +23,70 @@ class ConcreteAscendExAdapter(AscendExBaseAdapter):
 
     @staticmethod
     def _get_rest_url() -> str:
+        """Get REST API URL for candles."""
         return "https://test.ascendex.com/api/pro/v1/barhist"
 
     @staticmethod
     def _get_ws_url() -> str:
+        """Get WebSocket URL."""
         return "wss://test.ascendex.com:443/api/pro/v1/websocket-for-hummingbot-liq-mining/stream"
 
 
-class TestAscendExBaseAdapter:
-    """Test suite for the AscendExBaseAdapter class."""
+class TestAscendExBaseAdapter(BaseAdapterTest):
+    """Test suite for the AscendExBaseAdapter using the base adapter test class."""
 
-    def setup_method(self):
-        """Setup method called before each test."""
-        self.adapter = ConcreteAscendExAdapter()
-        self.trading_pair = "BTC-USDT"
-        self.interval = "1m"
+    def create_adapter(self):
+        """Create an instance of the adapter to test."""
+        return ConcreteAscendExAdapter()
 
-    def test_get_trading_pair_format(self):
-        """Test trading pair format conversion."""
-        # Test standard case
-        assert self.adapter.get_trading_pair_format("BTC-USDT") == "BTC/USDT"
+    def get_expected_trading_pair_format(self, trading_pair):
+        """Return the expected trading pair format for the adapter."""
+        return trading_pair.replace("-", "/")
 
-        # Test with multiple hyphens
-        assert self.adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC/USDT/PERP"
+    def get_expected_rest_url(self):
+        """Return the expected REST URL for the adapter."""
+        return "https://test.ascendex.com/api/pro/v1/barhist"
 
-        # Test with lowercase
-        assert self.adapter.get_trading_pair_format("btc-usdt") == "btc/usdt"
+    def get_expected_ws_url(self):
+        """Return the expected WebSocket URL for the adapter."""
+        return "wss://test.ascendex.com:443/api/pro/v1/websocket-for-hummingbot-liq-mining/stream"
 
-    def test_get_rest_params_minimal(self):
-        """Test REST params with minimal parameters."""
-        params = self.adapter._get_rest_params(self.trading_pair, self.interval)
+    def get_expected_rest_params_minimal(self, trading_pair, interval):
+        """Return the expected minimal REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        }
 
-        assert params["symbol"] == "BTC/USDT"
-        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
-        assert params["n"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
-        assert "to" not in params
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": limit,
+            "to": end_time * 1000,  # Convert to milliseconds
+        }
+        # AscendEx doesn't use startTime in its API
+        return params
 
-    def test_get_rest_params_full(self):
-        """Test REST params with all parameters."""
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
-        limit = 500
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+        """Return the expected WebSocket subscription payload for the adapter."""
+        return {
+            "op": "sub",
+            "ch": f"bar:{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}:{self.get_expected_trading_pair_format(trading_pair)}",
+        }
 
-        params = self.adapter._get_rest_params(
-            self.trading_pair, self.interval, end_time=end_time, limit=limit
-        )
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
 
-        assert params["symbol"] == "BTC/USDT"
-        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT[self.interval]
-        assert params["n"] == limit
-        assert params["to"] == end_time * 1000  # Should be in milliseconds
-
-    def test_parse_rest_response(self):
-        """Test parsing REST API response."""
-        # Sample AscendEx REST response
-        rest_response = {
+        return {
             "status": "ok",
             "data": [
                 {
                     "data": {
-                        "ts": 1672531200000,  # 2023-01-01 00:00:00 UTC in milliseconds
+                        "ts": base_time,
                         "o": "50000.0",
                         "h": "51000.0",
                         "l": "49000.0",
@@ -89,7 +96,7 @@ class TestAscendExBaseAdapter:
                 },
                 {
                     "data": {
-                        "ts": 1672531260000,  # 2023-01-01 00:01:00 UTC in milliseconds
+                        "ts": base_time + 60000,
                         "o": "50500.0",
                         "h": "52000.0",
                         "l": "50000.0",
@@ -100,49 +107,14 @@ class TestAscendExBaseAdapter:
             ]
         }
 
-        candles = self.adapter._parse_rest_response(rest_response)
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
 
-        # Verify response parsing
-        assert len(candles) == 2
-
-        # Check first candle
-        assert candles[0].timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
-        assert candles[0].open == 50000.0
-        assert candles[0].high == 51000.0
-        assert candles[0].low == 49000.0
-        assert candles[0].close == 50500.0
-        assert candles[0].volume == 0.0  # No volume data available in AscendEx
-        assert candles[0].quote_asset_volume == 5000000.0
-        assert candles[0].n_trades == 0  # No trades data available in AscendEx
-        assert candles[0].taker_buy_base_volume == 0.0  # No taker data available in AscendEx
-        assert candles[0].taker_buy_quote_volume == 0.0  # No taker data available in AscendEx
-
-        # Check second candle
-        assert candles[1].timestamp == 1672531260  # 2023-01-01 00:01:00 UTC in seconds
-        assert candles[1].open == 50500.0
-        assert candles[1].high == 52000.0
-        assert candles[1].low == 50000.0
-        assert candles[1].close == 51500.0
-        assert candles[1].volume == 0.0  # No volume data available in AscendEx
-        assert candles[1].quote_asset_volume == 7500000.0
-        assert candles[1].n_trades == 0  # No trades data available in AscendEx
-        assert candles[1].taker_buy_base_volume == 0.0  # No taker data available in AscendEx
-        assert candles[1].taker_buy_quote_volume == 0.0  # No taker data available in AscendEx
-
-    def test_get_ws_subscription_payload(self):
-        """Test WebSocket subscription payload generation."""
-        payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
-
-        assert payload["op"] == "sub"
-        assert payload["ch"] == f"bar:{INTERVAL_TO_EXCHANGE_FORMAT[self.interval]}:BTC/USDT"
-
-    def test_parse_ws_message_valid(self):
-        """Test parsing valid WebSocket message."""
-        # Sample AscendEx WebSocket message
-        ws_message = {
+        return {
             "m": "bar",
             "data": {
-                "ts": 1672531200000,  # 2023-01-01 00:00:00 UTC in milliseconds
+                "ts": base_time,
                 "o": "50000.0",
                 "h": "51000.0",
                 "l": "49000.0",
@@ -151,25 +123,47 @@ class TestAscendExBaseAdapter:
             }
         }
 
-        candles = self.adapter.parse_ws_message(ws_message)
+    # Additional test cases specific to AscendExBaseAdapter
 
-        # Verify message parsing
-        assert candles is not None
-        assert len(candles) == 1
+    def test_ascendex_timestamp_handling(self, adapter):
+        """Test AscendEx-specific timestamp handling."""
+        # AscendEx uses milliseconds for timestamps
+        assert adapter.TIMESTAMP_UNIT == "milliseconds"
 
-        candle = candles[0]
-        assert candle.timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
-        assert candle.open == 50000.0
-        assert candle.high == 51000.0
-        assert candle.low == 49000.0
-        assert candle.close == 50500.0
-        assert candle.volume == 0.0  # No volume data available in AscendEx
-        assert candle.quote_asset_volume == 5000000.0
-        assert candle.n_trades == 0  # No trades data available in AscendEx
-        assert candle.taker_buy_base_volume == 0.0  # No taker data available in AscendEx
-        assert candle.taker_buy_quote_volume == 0.0  # No taker data available in AscendEx
+        # Test conversion
+        timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
+        timestamp_ms = timestamp_seconds * 1000
 
-    def test_parse_ws_message_ping(self):
+        # Convert to exchange format (should be in milliseconds)
+        assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_ms
+
+        # Convert from exchange format (should be in seconds)
+        assert adapter.ensure_timestamp_in_seconds(timestamp_ms) == timestamp_seconds
+
+    def test_ascendex_rest_params_unique_format(self, adapter):
+        """Test AscendEx-specific REST parameter format."""
+        # AscendEx uses 'n' instead of 'limit' and 'to' instead of 'endTime'
+        params = adapter._get_rest_params(
+            trading_pair="BTC-USDT",
+            interval="1m",
+            end_time=1622592000,
+            limit=100
+        )
+
+        assert "n" in params
+        assert params["n"] == 100
+        assert "to" in params
+        assert params["to"] == 1622592000 * 1000
+        assert "startTime" not in params  # AscendEx doesn't use startTime
+
+    def test_ascendex_ws_subscription_format(self, adapter):
+        """Test AscendEx-specific websocket subscription format."""
+        payload = adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+
+        assert payload["op"] == "sub"
+        assert payload["ch"] == f"bar:{INTERVAL_TO_EXCHANGE_FORMAT['1m']}:BTC/USDT"
+
+    def test_parse_ws_message_ping(self, adapter):
         """Test parsing ping WebSocket message."""
         # Sample AscendEx ping message
         ws_message = {
@@ -179,45 +173,32 @@ class TestAscendExBaseAdapter:
             }
         }
 
-        candles = self.adapter.parse_ws_message(ws_message)
+        candles = adapter.parse_ws_message(ws_message)
         # Ping messages should be ignored, returning None
         assert candles is None
 
-    def test_parse_ws_message_invalid(self):
-        """Test parsing invalid WebSocket message."""
-        # Test with non-candle message
-        ws_message = {"m": "trade", "data": "some_data"}
-        candles = self.adapter.parse_ws_message(ws_message)
-        assert candles is None
+    def test_parse_rest_response_no_volume(self, adapter):
+        """Test that AscendEx REST response parsing correctly handles volume data."""
+        # AscendEx provides quote asset volume but not base asset volume
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        response = {
+            "status": "ok",
+            "data": [
+                {
+                    "data": {
+                        "ts": base_time,
+                        "o": "50000.0",
+                        "h": "51000.0",
+                        "l": "49000.0",
+                        "c": "50500.0",
+                        "v": "5000000.0"  # This is quote asset volume in AscendEx
+                    }
+                }
+            ]
+        }
 
-        # Test with None
-        candles = self.adapter.parse_ws_message(None)
-        assert candles is None
+        candles = adapter._parse_rest_response(response)
 
-    def test_get_supported_intervals(self):
-        """Test getting supported intervals."""
-        intervals = self.adapter.get_supported_intervals()
-
-        # Verify intervals match the expected values
-        assert intervals == INTERVALS
-        assert "1m" in intervals
-        assert intervals["1m"] == 60
-        assert "1h" in intervals
-        assert intervals["1h"] == 3600
-        assert "1d" in intervals
-        assert intervals["1d"] == 86400
-        
-    def test_get_ws_url_calls_implementation(self):
-        """Test that get_ws_url calls the _get_ws_url implementation."""
-        # Verify that the public get_ws_url method correctly calls the private implementation
-        assert self.adapter.get_ws_url() == "wss://test.ascendex.com:443/api/pro/v1/websocket-for-hummingbot-liq-mining/stream"
-        assert self.adapter.get_ws_url() == ConcreteAscendExAdapter._get_ws_url()
-
-    def test_get_ws_supported_intervals(self):
-        """Test getting WebSocket supported intervals."""
-        ws_intervals = self.adapter.get_ws_supported_intervals()
-
-        # Verify WS intervals match the expected values
-        assert ws_intervals == WS_INTERVALS
-        assert "1m" in ws_intervals
-        assert "1h" in ws_intervals
+        assert len(candles) == 1
+        assert candles[0].quote_asset_volume == 5000000.0
+        assert candles[0].volume == 0.0  # Base asset volume not provided by AscendEx

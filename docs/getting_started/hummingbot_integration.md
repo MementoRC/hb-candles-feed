@@ -2,6 +2,8 @@
 
 The Candles Feed framework can be used both as a standalone package and as an integrated component within Hummingbot. This guide explains how to use Candles Feed with Hummingbot's networking components.
 
+> **Note:** For details on compatibility with the original `CandlesBase` implementation, see the [Compatibility Guide](compatibility.md).
+
 ## Overview
 
 Candles Feed provides a seamless integration path with Hummingbot through adapter components that:

@@ -3,8 +3,8 @@ Coinbase Advanced Trade adapter for the Candle Feed framework.
 """
 from abc import abstractmethod
 
-from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
 

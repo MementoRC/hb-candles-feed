@@ -1,7 +1,8 @@
 from candles_feed.adapters.gate_io.spot_adapter import GateIoSpotAdapter
-
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.gate_io.base_plugin import GateIoBasePlugin
+from candles_feed.mocking_resources.exchange_server_plugins.gate_io.base_plugin import (
+    GateIoBasePlugin,
+)
 
 
 class GateIoSpotPlugin(GateIoBasePlugin):

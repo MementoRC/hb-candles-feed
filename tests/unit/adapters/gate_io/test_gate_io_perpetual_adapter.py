@@ -2,20 +2,21 @@
 Tests for the GateIoPerpetualAdapter using the base adapter test class.
 """
 
-import pytest
-from unittest import mock
 from datetime import datetime, timezone
+from unittest import mock
 
-from candles_feed.adapters.gate_io.perpetual_adapter import GateIoPerpetualAdapter
+import pytest
+
 from candles_feed.adapters.gate_io.constants import (
-    INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_CHANNEL_NAME,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
 )
+from candles_feed.adapters.gate_io.perpetual_adapter import GateIoPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
@@ -74,7 +75,7 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-        
+
         return [
             [
                 str(base_time),      # timestamp
@@ -101,7 +102,7 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-        
+
         return {
             "method": "update",
             "channel": PERPETUAL_CHANNEL_NAME,
@@ -119,34 +120,34 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
                 ],
             ],
         }
-        
+
     # Additional test cases specific to GateIoPerpetualAdapter
-    
+
     def test_perpetual_specific_features(self, adapter):
         """Test perpetual-specific features."""
         # Verify that the adapter uses perpetual-specific URLs
         assert PERPETUAL_REST_URL in adapter._get_rest_url()
         assert adapter._get_ws_url() == PERPETUAL_WSS_URL
-        
+
     def test_gate_io_channel_name(self, adapter):
         """Test Gate.io channel name getter."""
         assert adapter.get_channel_name() == PERPETUAL_CHANNEL_NAME
-        
+
     @pytest.mark.asyncio
     async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
         """Test fetch_rest_candles async method."""
         # Create a mock network client
         mock_client = mock.MagicMock()
         mock_client.get_rest_data = mock.AsyncMock(return_value=self.get_mock_candlestick_response())
-        
+
         # Call the async method
         candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
-        
+
         # Basic validation
         assert isinstance(candles, list)
         assert all(isinstance(candle, CandleData) for candle in candles)
         assert len(candles) > 0
-        
+
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args

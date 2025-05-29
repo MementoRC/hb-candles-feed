@@ -5,8 +5,8 @@ Bybit perpetual exchange adapter for the Candle Feed framework.
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     PERPETUAL_CANDLES_ENDPOINT,
-    PERPETUAL_WSS_URL,
     PERPETUAL_REST_URL,
+    PERPETUAL_WSS_URL,
 )
 from candles_feed.core.exchange_registry import ExchangeRegistry
 

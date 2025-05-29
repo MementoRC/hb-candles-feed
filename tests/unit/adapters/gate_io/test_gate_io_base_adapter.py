@@ -2,14 +2,15 @@
 Tests for the GateIoBaseAdapter using the base adapter test class.
 """
 
-import pytest
-from unittest import mock
 from datetime import datetime, timezone
+from unittest import mock
+
+import pytest
 
 from candles_feed.adapters.gate_io.base_adapter import GateIoBaseAdapter
 from candles_feed.adapters.gate_io.constants import (
-    INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_CHANNEL_NAME,
@@ -92,7 +93,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-        
+
         return [
             [
                 str(base_time),      # timestamp
@@ -119,7 +120,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-        
+
         return {
             "method": "update",
             "channel": SPOT_CHANNEL_NAME,
@@ -137,23 +138,23 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
                 ],
             ],
         }
-        
+
     # Additional test cases specific to GateIoBaseAdapter
-    
+
     def test_timestamp_in_seconds(self, adapter):
         """Test that timestamps are correctly handled in seconds."""
         assert adapter.TIMESTAMP_UNIT == "seconds"
-        
+
         # Test timestamp conversion methods
         timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
-        
+
         # To exchange should remain in seconds
         assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_seconds
-        
+
         # Ensure timestamp is in seconds regardless of input
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
         assert adapter.ensure_timestamp_in_seconds(str(timestamp_seconds)) == timestamp_seconds
-        
+
     def test_param_generation(self, adapter):
         """Test parameter generation for API requests."""
         # Test with minimal parameters
@@ -161,7 +162,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
         assert params["currency_pair"] == "BTC_USDT"
         assert params["interval"] == "1m"
         assert params["limit"] == MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
-        
+
         # Test with full parameters
         start_time = 1622505600
         end_time = 1622592000
@@ -174,7 +175,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
         assert params["limit"] == limit
         assert params["from"] == start_time
         assert params["to"] == end_time
-        
+
     def test_candle_data_field_mapping(self, adapter):
         """Test mapping of raw API data to CandleData fields."""
         # Test parsing a single candle record
@@ -189,13 +190,13 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
             "5000000.0",     # quote currency volume
             "BTC_USDT",      # currency pair
         ]
-        
+
         # Parse a mocked rest response with a single candle
         candles = adapter._parse_rest_response([candle_data])
-        
+
         assert len(candles) == 1
         candle = candles[0]
-        
+
         # Verify field mapping
         assert candle.timestamp == timestamp  # timestamp is in seconds
         assert candle.timestamp_ms == timestamp * 1000  # timestamp_ms is derived from timestamp
@@ -209,15 +210,15 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
         assert candle.n_trades == 0
         assert candle.taker_buy_base_volume == 0.0
         assert candle.taker_buy_quote_volume == 0.0
-        
+
     def test_get_intervals(self, adapter):
         """Test interval handling."""
         # Test that the adapter returns the correct interval mappings
         assert adapter.get_supported_intervals() == INTERVALS
-        
+
         # WebSocket supported intervals should match WS_INTERVALS constant
         ws_intervals = adapter.get_ws_supported_intervals()
-        
+
         # All intervals should be supported for Gate.io
         for interval in INTERVALS:
             assert interval in ws_intervals

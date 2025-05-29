@@ -39,16 +39,16 @@ class TestMockedPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/candles?symbol=BTC-USDT&interval=1m&limit=100&start_time=1620000000000&end_time=1620100000000",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTC-USDT"
         assert params["interval"] == "1m"
@@ -73,17 +73,17 @@ class TestMockedPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, dict)
         assert formatted["status"] == "ok"
         assert formatted["symbol"] == self.trading_pair
         assert formatted["interval"] == self.interval
         assert isinstance(formatted["data"], list)
-        
+
         # Check the first candle
         candle_data = formatted["data"][0]
         assert candle_data["timestamp"] == int(candles[0].timestamp_ms)
@@ -109,17 +109,17 @@ class TestMockedPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format
         assert isinstance(message, dict)
         assert message["type"] == "candle_update"
         assert message["symbol"] == self.trading_pair
         assert message["interval"] == self.interval
         assert isinstance(message["is_final"], bool)
-        
+
         # Check data field
         data = message["data"]
         assert data["timestamp"] == int(candle.timestamp_ms)
@@ -142,10 +142,10 @@ class TestMockedPlugin:
                 }
             ]
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"
@@ -163,10 +163,10 @@ class TestMockedPlugin:
                 }
             ]
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert response["type"] == "subscribe_result"
         assert response["status"] == "success"
@@ -179,24 +179,24 @@ class TestMockedPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format
         assert key == "BTC-USDT_1m"
-        
+
     def test_parse_rest_candles_params_with_invalid_limit(self):
         """Test parsing REST API parameters with invalid limit value."""
         from aiohttp.test_utils import make_mocked_request
-        
+
         # Create a request with an invalid limit parameter
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/candles?symbol=BTC-USDT&interval=1m&limit=invalid",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check that limit has been set to a default value
         assert isinstance(params["limit"], int)
         assert params["limit"] == 1000  # Default value from our implementation

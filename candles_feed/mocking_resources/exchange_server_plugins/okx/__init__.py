@@ -3,7 +3,7 @@
 OKX plugins for the mock exchange server.
 """
 
-from .spot_plugin import OKXSpotPlugin
 from .perpetual_plugin import OKXPerpetualPlugin
+from .spot_plugin import OKXSpotPlugin
 
 __all__ = ["OKXSpotPlugin", "OKXPerpetualPlugin"]

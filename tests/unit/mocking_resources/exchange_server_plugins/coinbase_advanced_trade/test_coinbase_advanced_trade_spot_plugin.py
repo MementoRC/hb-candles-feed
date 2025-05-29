@@ -8,7 +8,9 @@ import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.coinbase_advanced_trade.spot_plugin import CoinbaseAdvancedTradeSpotPlugin
+from candles_feed.mocking_resources.exchange_server_plugins.coinbase_advanced_trade.spot_plugin import (
+    CoinbaseAdvancedTradeSpotPlugin,
+)
 
 
 class TestCoinbaseAdvancedTradeSpotPlugin:
@@ -40,16 +42,16 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/v3/brokerage/products/BTC-USD/candles?granularity=60&start=2023-01-01T00:00:00Z&end=2023-01-01T01:00:00Z",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTC-USD"
         assert params["interval"] == "1m"
@@ -74,15 +76,15 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, dict)
         assert "candles" in formatted
         assert len(formatted["candles"]) == 1
-        
+
         # Check first candle
         candle_data = formatted["candles"][0]
         expected_iso = datetime.fromtimestamp(candles[0].timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -108,10 +110,10 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format
         assert message["channel"] == "candles"
         assert "client_id" in message
@@ -120,7 +122,7 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         assert "events" in message
         assert len(message["events"]) == 1
         assert message["events"][0]["type"] == "candle"
-        
+
         # Check candle data
         candle_data = message["events"][0]["candles"][0]
         expected_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -140,10 +142,10 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
             "channel": "candles",
             "granularity": 60
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 2
         assert subscriptions[0][0] == "BTC-USD"
@@ -160,10 +162,10 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
             "channel": "candles",
             "granularity": 60
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USD", "1m")])
-        
+
         # Check response format
         assert response["type"] == "subscriptions"
         assert "channels" in response
@@ -175,56 +177,56 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USD", "1m")
-        
+
         # Check key format
         assert key == "candles_BTC-USD_60"
 
     @pytest.mark.asyncio
     async def test_handle_products(self):
         """Test handling products endpoint."""
-        from unittest.mock import MagicMock, AsyncMock
-        
+        from unittest.mock import AsyncMock, MagicMock
+
         # Create mocks
         mock_server = MagicMock()
         mock_server._simulate_network_conditions = AsyncMock()
         mock_server._check_rate_limit = MagicMock(return_value=True)
         mock_server.trading_pairs = {"BTC-USD": 50000.0, "ETH-USD": 3000.0}
-        
+
         # Create mock request
         mock_request = MagicMock()
         mock_request.remote = "127.0.0.1"
-        
+
         # Call the method
         response = await self.plugin.handle_products(mock_server, mock_request)
-        
+
         # Check if server methods were called
         mock_server._simulate_network_conditions.assert_called_once()
         mock_server._check_rate_limit.assert_called_once_with("127.0.0.1", "rest")
-        
+
         # Response should not be None
         assert response is not None
 
     @pytest.mark.asyncio
     async def test_handle_time(self):
         """Test handling time endpoint."""
-        from unittest.mock import MagicMock, AsyncMock
-        
+        from unittest.mock import AsyncMock, MagicMock
+
         # Create mocks
         mock_server = MagicMock()
         mock_server._simulate_network_conditions = AsyncMock()
         mock_server._check_rate_limit = MagicMock(return_value=True)
         mock_server._time = MagicMock(return_value=1620000000)
-        
+
         # Create mock request
         mock_request = MagicMock()
         mock_request.remote = "127.0.0.1"
-        
+
         # Call the method
         response = await self.plugin.handle_time(mock_server, mock_request)
-        
+
         # Check if server methods were called
         mock_server._simulate_network_conditions.assert_called_once()
         mock_server._check_rate_limit.assert_called_once_with("127.0.0.1", "rest")
-        
+
         # Response should not be None
         assert response is not None

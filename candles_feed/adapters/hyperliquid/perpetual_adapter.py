@@ -2,13 +2,14 @@
 HyperLiquid perpetual exchange adapter for the Candle Feed framework.
 """
 
-from .constants import (
-    PERPETUAL_WSS_URL,
-    PERPETUAL_REST_URL,
-    PERPETUAL_CANDLES_ENDPOINT,
-)
-from .base_adapter import HyperliquidBaseAdapter
 from candles_feed.core.exchange_registry import ExchangeRegistry
+
+from .base_adapter import HyperliquidBaseAdapter
+from .constants import (
+    PERPETUAL_CANDLES_ENDPOINT,
+    PERPETUAL_REST_URL,
+    PERPETUAL_WSS_URL,
+)
 
 
 @ExchangeRegistry.register("hyperliquid_perpetual")

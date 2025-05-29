@@ -8,18 +8,19 @@ import json
 from abc import ABC
 from datetime import datetime, timezone
 from typing import Any
-from aiohttp import web
-from candles_feed.adapters.base_adapter import BaseAdapter
 
-from candles_feed.core.candle_data import CandleData
-from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from aiohttp import web
+
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
+from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
 
 class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
@@ -90,7 +91,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         #     ...
         #   ]
         # }
-        
+
         formatted_candles = []
         for candle in candles:
             timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -102,7 +103,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
                 "close": str(candle.close),
                 "volume": str(candle.volume)
             })
-            
+
         return {
             "candles": formatted_candles
         }
@@ -141,10 +142,10 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         #     }
         #   ]
         # }
-        
+
         timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         current_time_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
-        
+
         return {
             "channel": "candles",
             "client_id": "mock-client",
@@ -181,20 +182,20 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         #   "channel": "candles",
         #   "granularity": 60
         # }
-        
+
         subscriptions = []
         if isinstance(message, dict) and message.get("type") == "subscribe" and message.get("channel") == "candles":
             granularity = message.get("granularity")
             if granularity is not None:
                 # Convert granularity (seconds) to interval format
                 interval = next(
-                    (k for k, v in INTERVALS.items() if v == granularity), 
+                    (k for k, v in INTERVALS.items() if v == granularity),
                     f"{granularity}s"  # Fallback if not found
                 )
-                
+
                 for product_id in message.get("product_ids", []):
                     subscriptions.append((product_id, interval))
-                    
+
         return subscriptions
 
     def create_ws_subscription_success(
@@ -217,7 +218,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         #     }
         #   ]
         # }
-        
+
         return {
             "type": "subscriptions",
             "channels": [
@@ -248,28 +249,28 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # In Coinbase the product_id is in the URL path, extract it from the request's url
         product_id = request.path.rsplit('/', 2)[-2] if '/products/' in request.path else None
-        
+
         # Convert Coinbase-specific parameter names to generic ones
         granularity = params.get("granularity")
         start = params.get("start")
         end = params.get("end")
-        
+
         # Convert granularity to interval format
         interval = next(
             (k for k, v in INTERVALS.items() if str(v) == granularity),
             "1m"  # Default to 1m if not found
         )
-        
+
         # Map Coinbase parameters to generic parameters
         result = {
             "symbol": product_id,
             "interval": interval,
             "limit": 300,  # Coinbase maximum
         }
-        
+
         # Handle ISO timestamps
         if start:
             try:
@@ -279,14 +280,14 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
             except ValueError:
                 # If not ISO, assume it's already a timestamp
                 result["start_time"] = start
-                
+
         if end:
             try:
                 dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
                 result["end_time"] = int(dt.timestamp())
             except ValueError:
                 result["end_time"] = end
-        
+
         return result
 
     async def handle_products(self, server, request):
@@ -298,11 +299,11 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         :returns: A JSON response with product information.
         """
         await server._simulate_network_conditions()
-        
+
         client_ip = request.remote
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
-            
+
         products = []
         for trading_pair in server.trading_pairs:
             base, quote = trading_pair.split("-", 1)
@@ -325,26 +326,26 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
                 "post_only": False,
                 "trading_disabled": False
             })
-            
+
         return web.json_response({"products": products})
-        
+
     async def handle_time(self, server, request):
         """
         Handle the Coinbase Advanced Trade time endpoint.
-        
+
         :param server: The mock server instance.
         :param request: The web request.
         :returns: A JSON response with server time.
         """
         await server._simulate_network_conditions()
-        
+
         client_ip = request.remote
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
-            
+
         current_time = datetime.fromtimestamp(server._time(), tz=timezone.utc)
         iso_time = current_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
-        
+
         return web.json_response({
             "iso": iso_time,
             "epoch": server._time()

@@ -11,8 +11,8 @@ import os
 import pkgutil
 from typing import Dict, List, Optional, Type
 
-from candles_feed.core.protocols import Logger
 from candles_feed.adapters.protocols import AdapterProtocol
+from candles_feed.core.protocols import Logger
 
 
 class ExchangeRegistry:

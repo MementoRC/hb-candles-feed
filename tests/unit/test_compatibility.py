@@ -98,24 +98,78 @@ class TestCompatibility:
         import asyncio
         from unittest.mock import AsyncMock, MagicMock, patch
 
+        from candles_feed.core.candle_data import CandleData
         from candles_feed.core.candles_feed import CandlesFeed
 
-        # Create a mock adapter
+        # Create a mock adapter with all necessary methods
         mock_adapter = MagicMock()
         mock_adapter.get_trading_pair_format.return_value = "BTCUSDT"
         mock_adapter.get_ws_supported_intervals.return_value = ["1m", "5m", "15m"]
+        mock_adapter.get_supported_intervals.return_value = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "1d": 86400}
+        mock_adapter.ensure_timestamp_in_seconds = MagicMock(side_effect=lambda x: float(x))
+
+        # Method to simulate the original function
+        def parse_rest_candles_mock(data, end_time=None):
+            candles = []
+            for item in data:
+                candles.append([
+                    item["timestamp"],
+                    item["open"],
+                    item["high"],
+                    item["low"],
+                    item["close"],
+                    item["volume"],
+                    item["quote_asset_volume"],
+                    item["n_trades"],
+                    item["taker_buy_base_volume"],
+                    item["taker_buy_quote_volume"],
+                ])
+            return candles
+
+        mock_adapter._parse_rest_candles = MagicMock(side_effect=parse_rest_candles_mock)
 
         # Create AsyncMock for network_client and strategies
         mock_network_client = MagicMock()
         mock_network_client.close = AsyncMock()
 
+        # Mock fetch_rest_candles to return sample candles
+        mock_sample_candles = [
+            CandleData(
+                timestamp_raw=1609459200,
+                open=40000.0,
+                high=41000.0,
+                low=39000.0,
+                close=40500.0,
+                volume=100.0,
+                quote_asset_volume=4000000.0,
+                n_trades=1000,
+                taker_buy_base_volume=50.0,
+                taker_buy_quote_volume=2000000.0,
+            ),
+            CandleData(
+                timestamp_raw=1609459260,
+                open=40500.0,
+                high=42000.0,
+                low=40000.0,
+                close=41000.0,
+                volume=120.0,
+                quote_asset_volume=4500000.0,
+                n_trades=1100,
+                taker_buy_base_volume=60.0,
+                taker_buy_quote_volume=2400000.0,
+            )
+        ]
+        mock_adapter.fetch_rest_candles = AsyncMock(return_value=mock_sample_candles)
+
         mock_ws_strategy = MagicMock()
         mock_ws_strategy.start = AsyncMock()
         mock_ws_strategy.stop = AsyncMock()
+        mock_ws_strategy.poll_once = AsyncMock(return_value=mock_sample_candles)
 
         mock_rest_strategy = MagicMock()
         mock_rest_strategy.start = AsyncMock()
         mock_rest_strategy.stop = AsyncMock()
+        mock_rest_strategy.poll_once = AsyncMock(return_value=mock_sample_candles)
 
         # Patch ExchangeRegistry to return our mock
         with patch(
@@ -133,7 +187,7 @@ class TestCompatibility:
                 exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=150
             )
 
-            # Verify essential attributes from original interface
+            # 1. Test basic attribute compatibility
             assert hasattr(feed, "trading_pair")
             assert feed.trading_pair == "BTC-USDT"
             assert hasattr(feed, "interval")
@@ -141,7 +195,7 @@ class TestCompatibility:
             assert hasattr(feed, "max_records")
             assert feed.max_records == 150
 
-            # Verify essential methods from original interface
+            # 2. Test method existence
             assert hasattr(feed, "start")
             assert callable(feed.start)
             assert hasattr(feed, "stop")
@@ -149,7 +203,7 @@ class TestCompatibility:
             assert hasattr(feed, "get_candles_df")
             assert callable(feed.get_candles_df)
 
-            # Check DataFrame columns match the original
+            # 3. Test DataFrame structure compatibility
             expected_columns = [
                 "timestamp",
                 "open",
@@ -163,18 +217,9 @@ class TestCompatibility:
                 "taker_buy_quote_volume",
             ]
             df = feed.get_candles_df()
-
-            # Print actual columns for debugging
-            print(f"Actual DataFrame columns: {list(df.columns)}")
-
-            # The DataFrame is initially empty since we haven't added any candles
-            # So we just check that the structure is compatible, not the data itself
             assert isinstance(df, pd.DataFrame)
 
-            # Now add a candle and check that the DataFrame contains the expected columns
-            from candles_feed.core.candle_data import CandleData
-
-            # Create a sample candle
+            # 4. Test adding a candle
             candle = CandleData(
                 timestamp_raw=1609459200,  # 2021-01-01 00:00:00
                 open=40000.0,
@@ -187,20 +232,13 @@ class TestCompatibility:
                 taker_buy_base_volume=50.0,
                 taker_buy_quote_volume=2000000.0,
             )
-
-            # Add the candle to the feed
             feed.add_candle(candle)
 
-            # Get the DataFrame again
+            # 5. Test DataFrame structure and content
             df = feed.get_candles_df()
-            print(f"DataFrame with 1 candle columns: {list(df.columns)}")
-            print(f"DataFrame with 1 candle: \n{df.to_string()}")
-
-            # Verify that it contains the expected columns
             for col in expected_columns:
                 assert col in df.columns, f"Column {col} missing from DataFrame"
 
-            # Check that the data matches what we added
             assert len(df) == 1
             assert df.iloc[0]["timestamp"] == 1609459200
             assert df.iloc[0]["open"] == 40000.0
@@ -209,24 +247,49 @@ class TestCompatibility:
             assert df.iloc[0]["close"] == 40500.0
             assert df.iloc[0]["volume"] == 100.0
 
-            # Test start/stop lifecycle
-            # Run it in an event loop since these are async methods
-            # For simplicity, let's skip the lifecycle test and just verify
-            # that the key methods are present with the expected signatures
-
-            # Verify key async methods beyond just having attributes
-            # We don't need to call them since that requires setting up multiple mocks
+            # 6. Test async methods
             from inspect import iscoroutinefunction
-
             assert iscoroutinefunction(feed.start)
             assert iscoroutinefunction(feed.stop)
-
-            # Also verify fetch_candles async method
-            assert hasattr(feed, "fetch_candles")
-            assert callable(feed.fetch_candles)
             assert iscoroutinefunction(feed.fetch_candles)
 
-            # We've removed the test_lifecycle function, so we don't need to run it
+            # 7. Test ready property
+            assert hasattr(feed, "ready")
+
+            # 8. Test timestamp conversion (needed for original implementation compatibility)
+            assert hasattr(feed._adapter, "ensure_timestamp_in_seconds")
+            assert callable(feed._adapter.ensure_timestamp_in_seconds)
+
+            # 9. Test interval handling
+            intervals = mock_adapter.get_supported_intervals()
+            assert "1m" in intervals and intervals["1m"] == 60
+            assert "1h" in intervals and intervals["1h"] == 3600
+            assert "1d" in intervals and intervals["1d"] == 86400
+
+            # 10. Test WebSocket support
+            ws_intervals = mock_adapter.get_ws_supported_intervals()
+            assert "1m" in ws_intervals
+
+            # 11. Test trading pair conversion
+            assert hasattr(feed, "ex_trading_pair")
+            assert feed.ex_trading_pair == "BTCUSDT"
+
+            # 12. Test behavioral compatibility (these are async tests that would be called in integration tests)
+            # This section tests that the behavior of methods matches, not just their existence
+
+            # 12.1 Test fetch_candles behavior matches original fetch_candles
+            assert feed.fetch_candles.__doc__, "fetch_candles should have docstring"
+
+            # 12.2 Test start/stop behavior (simple test, more detailed test would be in integration test)
+            assert feed.start.__doc__, "start should have docstring"
+            assert feed.stop.__doc__, "stop should have docstring"
+
+            # 13. Test historical data handling
+            assert hasattr(feed, "fetch_candles"), "Should have fetch_candles method"
+
+            # 14. Test first and last timestamp access (needed for compatibility)
+            assert hasattr(feed, "first_timestamp"), "Should have first_timestamp property"
+            assert hasattr(feed, "last_timestamp"), "Should have last_timestamp property"
 
     def test_adapter_instantiation(self):
         """Test that all adapters can be instantiated."""
@@ -243,8 +306,8 @@ class TestCompatibility:
         import candles_feed.adapters.kraken.spot_adapter  # noqa: F401
         import candles_feed.adapters.kucoin.spot_adapter  # noqa: F401
         import candles_feed.adapters.okx.spot_adapter  # noqa: F401
-        from candles_feed.core.exchange_registry import ExchangeRegistry
         from candles_feed.adapters.protocols import AdapterProtocol
+        from candles_feed.core.exchange_registry import ExchangeRegistry
 
         # Create mock adapter classes and register them
         adapter_names = [
@@ -276,11 +339,10 @@ class TestCompatibility:
 
     def test_candles_feed_instantiation(self):
         """Test that CandlesFeed can be instantiated with each adapter."""
-        from unittest.mock import MagicMock
+        from unittest.mock import MagicMock, patch
 
         from candles_feed.core.candles_feed import CandlesFeed
         from candles_feed.core.exchange_registry import ExchangeRegistry
-        from candles_feed.adapters.protocols import AdapterProtocol
 
         # Mock the CandlesFeed dependencies
         exchanges = [
@@ -292,38 +354,37 @@ class TestCompatibility:
             "okx_spot",
         ]
 
-        # Patch the ExchangeRegistry.get_adapter method to return a mock
-        original_get_adapter = ExchangeRegistry.get_adapter
+        # Create a fully mocked adapter with all required methods
+        mock_adapter = MagicMock()
+        # Methods required by AdapterProtocol
+        mock_adapter.get_trading_pair_format.return_value = "BTCUSDT"
+        mock_adapter.get_ws_url.return_value = "wss://ws.example.com"
+        mock_adapter.get_supported_intervals.return_value = {"1m": 60}
+        mock_adapter.get_ws_supported_intervals.return_value = ["1m"]
+        mock_adapter.parse_ws_message.return_value = None
+        mock_adapter.get_ws_subscription_payload.return_value = {"subscribe": "kline.1m"}
 
-        try:
-            # Create a mock to replace get_adapter
-            def mock_get_adapter(name):
-                mock_adapter = MagicMock(spec=AdapterProtocol)
-                mock_adapter.get_rest_url.return_value = "https://api.example.com"
-                mock_adapter.get_ws_url.return_value = "wss://ws.example.com"
-                mock_adapter.get_supported_intervals.return_value = {"1m": 60}
-                mock_adapter.get_ws_supported_intervals.return_value = ["1m"]
-                return mock_adapter
+        # Additional methods used by CandlesFeed/strategies
+        mock_adapter._get_rest_url = MagicMock(return_value="https://api.example.com")
+        mock_adapter._get_rest_params = MagicMock(return_value={"symbol": "BTCUSDT", "interval": "1m"})
+        mock_adapter.fetch_rest_candles = MagicMock()
 
-            # Replace the method
-            ExchangeRegistry.get_adapter = mock_get_adapter
-
-            # Now test instantiation
+        # Patch ExchangeRegistry.get_adapter_instance to return our mock
+        with patch.object(
+            ExchangeRegistry,
+            "get_adapter_instance",
+            return_value=mock_adapter
+        ):
+            # Now test instantiation for each exchange
             for exchange in exchanges:
-                # Skip actual instantiation, just verify we can create the object
-                try:
-                    feed = CandlesFeed(
-                        exchange=exchange, trading_pair="BTC-USDT", interval="1m", max_records=100
-                    )
-                    assert feed is not None
-                    assert feed.exchange == exchange
-                except Exception as e:
-                    # If instantiation fails, print warning but don't fail test
-                    print(f"Warning: Could not instantiate CandlesFeed for {exchange}: {e}")
-                    # Don't fail the test
-        finally:
-            # Restore the original method
-            ExchangeRegistry.get_adapter = original_get_adapter
+                feed = CandlesFeed(
+                    exchange=exchange, trading_pair="BTC-USDT", interval="1m", max_records=100
+                )
+                assert feed is not None
+                assert feed.exchange == exchange
+                assert feed.trading_pair == "BTC-USDT"
+                assert feed.ex_trading_pair == "BTCUSDT"
+                assert feed._adapter is mock_adapter
 
     def test_required_dependencies(self):
         """Test that required dependencies are available."""

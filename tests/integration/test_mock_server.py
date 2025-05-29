@@ -19,7 +19,9 @@ from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
 # Try to import BinanceSpotPlugin, and fall back to MockedPlugin if not available
 try:
-    from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin import BinanceSpotPlugin
+    from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin import (
+        BinanceSpotPlugin,
+    )
     HAS_BINANCE_PLUGIN = True
 except ImportError:
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
@@ -32,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class TestMockServer:
     """Integration tests for the mock exchange server with different plugins."""
-    
+
     logger = logging.getLogger(__name__)
 
     @pytest.fixture
@@ -41,12 +43,10 @@ class TestMockServer:
         if HAS_BINANCE_PLUGIN:
             # Use BinanceSpotPlugin
             plugin = BinanceSpotPlugin()
-            exchange_type = ExchangeType.BINANCE_SPOT
         else:
             # Fall back to MockedPlugin
             plugin = MockedPlugin(ExchangeType.MOCK)
-            exchange_type = ExchangeType.MOCK
-            
+
         server = MockedExchangeServer(plugin, "127.0.0.1", 8790)
 
         # Add trading pairs
@@ -119,14 +119,14 @@ class TestMockServer:
 
             # Send subscription
             await ws.send_json(subscription)
-            
+
             # Try to find the subscription response message
             # Wait for up to 10 messages or 5 seconds
             found_subscription_response = False
             for _ in range(10):
                 try:
                     response = await asyncio.wait_for(ws.receive_json(), timeout=0.5)
-                    
+
                     # Check if this is the subscription response (should have an id field)
                     if "id" in response:
                         found_subscription_response = True
@@ -137,10 +137,10 @@ class TestMockServer:
                     self.logger.info(f"Received non-subscription message: {response}")
                 except asyncio.TimeoutError:
                     break
-                    
+
             # Make sure we found the subscription response
             assert found_subscription_response, "Did not receive subscription response"
-            
+
             # This test is simplified to just verify we can establish a connection
             # and receive a subscription response
 
@@ -148,7 +148,9 @@ class TestMockServer:
     async def test_server_multiple_trading_pairs(self):
         """Test the mock server with multiple trading pairs."""
         # Create a new server instance for this test
-        from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+        from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import (
+            MockedPlugin,
+        )
         plugin = MockedPlugin(ExchangeType.MOCK)  # Use MOCK instead of BINANCE_SPOT
         server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
 
@@ -177,8 +179,17 @@ class TestMockServer:
                         data = await response.json()
                         assert len(data) > 0
 
-                        # Get the close price of the latest candle
-                        latest_price = float(data[-1][4])  # Close price is at index 4
+                        # Ensure data is not empty before accessing
+                        assert len(data) > 0, f"No candle data returned for {pair}"
+
+                        # Check if data is in list format (Binance style) or dictionary format (Mock style)
+                        if isinstance(data, list) and isinstance(data[0], list):
+                            # Binance format - Access the close price at index 4
+                            latest_price = float(data[0][4])  # Close price is at index 4
+                        elif isinstance(data, dict) and "data" in data:
+                            # Mocked format - Access the first entry in the data array
+                            assert len(data["data"]) > 0, f"No candle data in response for {pair}"
+                            latest_price = float(data["data"][0]["close"])
 
                         # Mock server can change price significantly over time
                         # Just verify the price is a reasonable value > 0

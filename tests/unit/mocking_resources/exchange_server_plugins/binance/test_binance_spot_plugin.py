@@ -6,7 +6,9 @@ import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin import BinanceSpotPlugin
+from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin import (
+    BinanceSpotPlugin,
+)
 
 
 class TestBinanceSpotPlugin:
@@ -38,16 +40,16 @@ class TestBinanceSpotPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=500&startTime=1620000000000&endTime=1620100000000",
             headers={},
         )
-        
+
         # Parse parameters
         params = await self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTCUSDT"
         assert params["interval"] == "1m"
@@ -72,10 +74,10 @@ class TestBinanceSpotPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, list)
         assert len(formatted) == 1
@@ -108,15 +110,15 @@ class TestBinanceSpotPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval, is_final=True)
-        
+
         # Check message format
         assert message["e"] == "kline"
         assert "E" in message
         assert message["s"] == "BTCUSDT"
-        
+
         # Check kline data
         kline = message["k"]
         assert kline["t"] == 1620000000000  # Open time
@@ -143,10 +145,10 @@ class TestBinanceSpotPlugin:
             "params": ["btcusdt@kline_1m", "ethusdt@kline_5m"],
             "id": 12345
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 2
         assert subscriptions[0][0] == "BTC-USDT"
@@ -162,10 +164,10 @@ class TestBinanceSpotPlugin:
             "params": ["btcusdt@kline_1m"],
             "id": 12345
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert response["id"] == 12345
         assert response["result"] is None
@@ -174,14 +176,14 @@ class TestBinanceSpotPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format
         assert key == "btcusdt@kline_1m"
 
     @pytest.mark.asyncio
     async def test_handle_instruments(self):
         """Test handling instruments endpoint."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         # Create mocks
         mock_server = MagicMock()
@@ -189,18 +191,18 @@ class TestBinanceSpotPlugin:
         mock_server._check_rate_limit = MagicMock(return_value=True)
         mock_server.trading_pairs = {"BTC-USDT": 50000.0, "ETH-USDT": 3000.0}
         mock_server._time = MagicMock(return_value=1620000000)
-        
+
         # Instead of using make_mocked_request, create a MagicMock for the request
         mock_request = MagicMock()
         mock_request.query = {"instType": "SPOT"}
         mock_request.remote = "127.0.0.1"
-        
+
         # Call the method
         response = await self.plugin.handle_instruments(mock_server, mock_request)
-        
+
         # Check if server methods were called
         mock_server._simulate_network_conditions.assert_called_once()
         mock_server._check_rate_limit.assert_called_once_with("127.0.0.1", "rest")
-        
+
         # Response should not be None
         assert response is not None

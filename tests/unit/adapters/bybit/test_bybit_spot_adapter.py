@@ -2,21 +2,22 @@
 Tests for the BybitSpotAdapter using the base adapter test class.
 """
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from candles_feed import CandleData
-from candles_feed.adapters.bybit.spot_adapter import BybitSpotAdapter
 from candles_feed.adapters.bybit.constants import (
-    INTERVALS,
     INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
     WS_INTERVALS,
 )
+from candles_feed.adapters.bybit.spot_adapter import BybitSpotAdapter
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
@@ -71,7 +72,7 @@ class TestBybitSpotAdapter(BaseAdapterTest):
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
-        
+
         return {
             "retCode": 0,
             "retMsg": "OK",
@@ -95,7 +96,7 @@ class TestBybitSpotAdapter(BaseAdapterTest):
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
-        
+
         return {
             "topic": "kline.1m.BTCUSDT",
             "data": [
@@ -116,54 +117,54 @@ class TestBybitSpotAdapter(BaseAdapterTest):
             "ts": base_time + 30000,
             "type": "snapshot",
         }
-        
+
     # Additional test cases specific to BybitSpotAdapter
-    
+
     def test_bybit_specific_timestamp_handling(self, adapter):
         """Test Bybit-specific timestamp handling."""
         # Bybit uses milliseconds for timestamps
         assert adapter.TIMESTAMP_UNIT == "milliseconds"
-        
+
         # Test conversion
         timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
         timestamp_ms = timestamp_seconds * 1000
-        
+
         # Convert to exchange format (should be in milliseconds)
         assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_ms
-        
+
         # Convert from exchange format (should be in seconds)
         assert adapter.ensure_timestamp_in_seconds(timestamp_ms) == timestamp_seconds
-        
+
     def test_category_param(self, adapter):
         """Test Bybit-specific category parameter."""
         # Bybit spot uses "spot" as category
         assert adapter.get_category_param() == "spot"
-        
+
     @pytest.mark.asyncio
     async def test_fetch_rest_candles_custom(self, adapter, trading_pair, interval):
         """Custom async test for fetch_rest_candles."""
         # Create a mock network client
         mock_client = MagicMock()
         mock_client.get_rest_data = AsyncMock()
-        
+
         # Configure the mock to return a specific response when called
         response_data = self.get_mock_candlestick_response()
         mock_client.get_rest_data.return_value = response_data
-        
+
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
             trading_pair=trading_pair,
             interval=interval,
             network_client=mock_client
         )
-        
+
         # Verify the result
         assert len(candles) == 2
-        
+
         # Check that the mock was called with the correct parameters
         url = adapter._get_rest_url()
         params = adapter._get_rest_params(trading_pair, interval)
-        
+
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
         assert kwargs['url'] == url
@@ -190,7 +191,7 @@ class TestBybitSpotAdapter(BaseAdapterTest):
         """Test REST params with minimal parameters."""
         expected_params = self.get_expected_rest_params_minimal(trading_pair, interval)
         actual_params = adapter._get_rest_params(trading_pair, interval)
-        
+
         for key, value in expected_params.items():
             assert key in actual_params
             assert actual_params[key] == value
@@ -204,11 +205,11 @@ class TestBybitSpotAdapter(BaseAdapterTest):
         expected_params = self.get_expected_rest_params_full(
             trading_pair, interval, start_time, end_time, limit
         )
-        
+
         actual_params = adapter._get_rest_params(
             trading_pair, interval, start_time=start_time, end_time=end_time, limit=limit
         )
-        
+
         for key, value in expected_params.items():
             assert key in actual_params
             assert actual_params[key] == value
@@ -217,7 +218,7 @@ class TestBybitSpotAdapter(BaseAdapterTest):
         """Test parsing REST API response."""
         mock_response = self.get_mock_candlestick_response()
         candles = adapter._parse_rest_response(mock_response)
-        
+
         # Basic validation
         assert isinstance(candles, list)
         assert all(isinstance(candle, CandleData) for candle in candles)
@@ -227,9 +228,9 @@ class TestBybitSpotAdapter(BaseAdapterTest):
         """Test WebSocket subscription payload generation."""
         expected_payload = self.get_expected_ws_subscription_payload(trading_pair, interval)
         actual_payload = adapter.get_ws_subscription_payload(trading_pair, interval)
-        
+
         assert isinstance(actual_payload, dict)
-        
+
         # Compare key parts of the payload
         for key, value in expected_payload.items():
             assert key in actual_payload
@@ -239,7 +240,7 @@ class TestBybitSpotAdapter(BaseAdapterTest):
         """Test parsing valid WebSocket message."""
         mock_message = self.get_mock_websocket_message()
         candles = adapter.parse_ws_message(mock_message)
-        
+
         # Basic validation
         assert candles is not None
         assert isinstance(candles, list)
@@ -252,7 +253,7 @@ class TestBybitSpotAdapter(BaseAdapterTest):
         invalid_message = {"topic": "trades", "data": "some_data"}
         candles = adapter.parse_ws_message(invalid_message)
         assert candles is None
-        
+
         # Test with None
         candles = adapter.parse_ws_message(None)
         assert candles is None
@@ -260,11 +261,11 @@ class TestBybitSpotAdapter(BaseAdapterTest):
     def test_get_supported_intervals(self, adapter):
         """Test getting supported intervals."""
         intervals = adapter.get_supported_intervals()
-        
+
         # Basic validation
         assert isinstance(intervals, dict)
         assert len(intervals) > 0
-        
+
         # Common intervals that should be supported by all exchanges
         common_intervals = ["1m", "5m", "15m", "1h", "4h", "1d"]
         for interval in common_intervals:
@@ -275,10 +276,10 @@ class TestBybitSpotAdapter(BaseAdapterTest):
     def test_get_ws_supported_intervals(self, adapter):
         """Test getting WebSocket supported intervals."""
         ws_intervals = adapter.get_ws_supported_intervals()
-        
+
         # Basic validation
         assert isinstance(ws_intervals, list)
-        
+
         # Should contain at least some common intervals
         common_intervals = ["1m", "1h"]
         for interval in common_intervals:

@@ -4,7 +4,11 @@ from typing import Any
 from aiohttp import web
 
 from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.okx.constants import INTERVAL_TO_EXCHANGE_FORMAT, SPOT_REST_URL, SPOT_WSS_URL
+from candles_feed.adapters.okx.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
@@ -79,7 +83,7 @@ class OKXBasePlugin(ExchangePlugin, ABC):
         #     ]
         #   ]
         # }
-        
+
         return {
             "code": "0",
             "msg": "",
@@ -128,13 +132,13 @@ class OKXBasePlugin(ExchangePlugin, ABC):
         #     ]
         #   ]
         # }
-        
+
         # OKX uses candle{interval} format
         interval_code = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
-        
+
         return {
             "arg": {
-                "channel": f"candle{interval_code}", 
+                "channel": f"candle{interval_code}",
                 "instId": trading_pair
             },
             "data": [
@@ -198,20 +202,20 @@ class OKXBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Convert OKX-specific parameter names to the generic ones expected by handle_klines
         inst_id = params.get("instId")
         bar = params.get("bar")
         after = params.get("after")
         before = params.get("before")
         limit = params.get("limit")
-        
+
         if limit is not None:
             try:
                 limit = int(limit)
             except ValueError:
                 limit = 500
-                
+
         # Map OKX parameters to generic parameters expected by handle_klines
         return {
             "symbol": inst_id,            # 'instId' in OKX maps to 'symbol' in generic handler
@@ -219,7 +223,7 @@ class OKXBasePlugin(ExchangePlugin, ABC):
             "start_time": after,          # 'after' in OKX maps to 'start_time' in generic handler
             "end_time": before,           # 'before' in OKX maps to 'end_time' in generic handler
             "limit": limit,               # 'limit' has the same name
-            
+
             # Also keep the original OKX parameter names for reference
             "instId": inst_id,
             "bar": bar,

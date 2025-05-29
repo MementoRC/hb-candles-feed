@@ -1,16 +1,17 @@
 from abc import ABC
 from typing import Any
-from aiohttp import web
-from candles_feed.adapters.base_adapter import BaseAdapter
 
-from candles_feed.core.candle_data import CandleData
-from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from aiohttp import web
+
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.gate_io.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     REST_URL,
     WSS_URL,
 )
+from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
 
 class GateIoBasePlugin(ExchangePlugin, ABC):
@@ -81,7 +82,7 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         #   ],
         #   ...
         # ]
-        
+
         formatted_candles = []
         for c in candles:
             formatted_candles.append([
@@ -94,7 +95,7 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
                 str(c.quote_asset_volume),       # Quote asset volume
                 trading_pair.replace("-", "_"),  # Trading pair in Gate.io format
             ])
-        
+
         return formatted_candles
 
     def format_ws_candle_message(
@@ -126,14 +127,14 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         #     "i": "1h"               // interval
         #   }
         # }
-        
+
         interval_code = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
         formatted_pair = trading_pair.replace("-", "_")
-        
+
         channel_name = "spot.candlesticks"
         if self.exchange_type in [ExchangeType.GATE_IO_PERPETUAL]:
             channel_name = "futures.candlesticks"
-        
+
         return {
             "time": int(candle.timestamp_ms / 1000),
             "channel": channel_name,
@@ -204,20 +205,20 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Convert Gate.io-specific parameter names to the generic ones expected by handle_klines
         currency_pair = params.get("currency_pair", "").replace("_", "-")
         interval = params.get("interval")
         limit = params.get("limit")
         from_time = params.get("from")
         to_time = params.get("to")
-        
+
         if limit is not None:
             try:
                 limit = int(limit)
             except ValueError:
                 limit = 100  # Default limit for Gate.io
-                
+
         # Map Gate.io parameters to generic parameters expected by handle_klines
         return {
             "symbol": currency_pair,        # 'currency_pair' in Gate.io maps to 'symbol' in generic handler
@@ -225,7 +226,7 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
             "start_time": from_time,        # 'from' in Gate.io maps to 'start_time' in generic handler
             "end_time": to_time,            # 'to' in Gate.io maps to 'end_time' in generic handler
             "limit": limit,                 # Same parameter name
-            
+
             # Also keep the original Gate.io parameter names for reference
             "currency_pair": params.get("currency_pair"),
             "from": from_time,

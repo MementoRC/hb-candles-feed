@@ -4,7 +4,7 @@ Server factory for creating mock exchange servers.
 
 import importlib
 import logging
-from typing import TypeVar, Optional, List, Tuple
+from typing import List, Optional, Tuple, TypeVar
 
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
@@ -43,7 +43,7 @@ def get_plugin(exchange_type: ExchangeType):
 
 def _get_plugin_from_registry(exchange_type: ExchangeType):
     """Get a plugin instance using the plugin registry mapping.
-    
+
     :param exchange_type: The exchange type to get a plugin for
     :returns: A plugin instance or None if no plugin is registered
     """
@@ -67,7 +67,7 @@ def _get_plugin_from_registry(exchange_type: ExchangeType):
         ExchangeType.HYPERLIQUID_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.perpetual_plugin.HyperliquidPerpetualPlugin",
         ExchangeType.ASCEND_EX_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.ascend_ex.spot_plugin.AscendExSpotPlugin",
     }
-    
+
     # Check if we have a mapping for this exchange type
     plugin_path = PLUGIN_REGISTRY.get(exchange_type)
     if not plugin_path:
@@ -96,17 +96,17 @@ def _get_plugin_from_registry(exchange_type: ExchangeType):
         except (ImportError, AttributeError) as e:
             logger.error(f"Failed to import plugin for {exchange_type.value}: {e}")
             return None
-    
+
     # Use the mapping to import and instantiate the plugin
     try:
         module_path, class_name = plugin_path.rsplit(".", 1)
         module = importlib.import_module(module_path)
         plugin_class = getattr(module, class_name)
         plugin = plugin_class()
-        
+
         # Register for future use
         _PLUGIN_REGISTRY[exchange_type] = plugin
-        
+
         return plugin
     except (ImportError, AttributeError) as e:
         logger.error(f"Failed to import plugin for {exchange_type.value}: {e}")

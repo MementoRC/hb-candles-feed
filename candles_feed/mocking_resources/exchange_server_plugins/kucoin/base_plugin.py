@@ -6,13 +6,18 @@ This class provides shared functionality for KuCoin spot and perpetual plugins.
 
 from abc import ABC
 from typing import Any
-from aiohttp import web
-from candles_feed.adapters.base_adapter import BaseAdapter
 
+from aiohttp import web
+
+from candles_feed.adapters.base_adapter import BaseAdapter
+from candles_feed.adapters.kucoin.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    REST_URL,
+    SPOT_WSS_URL,
+)
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.adapters.kucoin.constants import INTERVAL_TO_EXCHANGE_FORMAT, REST_URL, SPOT_WSS_URL
 
 
 class KucoinBasePlugin(ExchangePlugin, ABC):
@@ -101,7 +106,7 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
         :returns: Formatted message as expected from KuCoin's WebSocket API.
         """
         interval_code = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
-        
+
         # Format similar to KuCoin's WebSocket API response
         return {
             "type": "message",
@@ -139,12 +144,12 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
                     if len(parts) == 2:
                         trading_pair = parts[0]
                         interval_code = parts[1]
-                        
+
                         # Convert interval code back to standard format
                         interval = next((k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval_code), interval_code)
-                        
+
                         subscriptions.append((trading_pair, interval))
-                        
+
         return subscriptions
 
     def create_ws_subscription_success(
@@ -181,13 +186,13 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Convert KuCoin-specific parameter names to the generic ones expected by handle_klines
         symbol = params.get("symbol")
         interval = params.get("type", "1min")
         start_time = params.get("startAt")
         end_time = params.get("endAt")
-        
+
         # KuCoin may have a limit parameter
         limit = params.get("limit")
         if limit is not None:
@@ -195,7 +200,7 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
                 limit = int(limit)
             except ValueError:
                 limit = 100  # Default limit
-                
+
         # Map KuCoin parameters to generic parameters expected by handle_klines
         return {
             "symbol": symbol,

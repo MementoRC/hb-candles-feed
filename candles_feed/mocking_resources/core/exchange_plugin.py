@@ -7,8 +7,8 @@ import time
 from typing import Any, Dict
 
 from aiohttp import web
-from candles_feed.adapters.base_adapter import BaseAdapter
 
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
@@ -33,19 +33,19 @@ class ExchangePlugin(abc.ABC):
         """
         self.exchange_type = exchange_type
         self.adapter_class = adapter_class
-        
+
     @property
     def rate_limits(self) -> Dict:
         """
         Get the rate limits for this exchange.
-        
+
         :returns: A dictionary containing REST and WebSocket rate limits.
         """
         # Default implementation that can be overridden by specific exchanges
         return {
             "rest": {
                 "limit": 100,  # Default weight limit
-                "period_ms": 60000,  # 1 minute window 
+                "period_ms": 60000,  # 1 minute window
                 "weights": {}  # Endpoint-specific weights
             },
             "ws": {
@@ -55,12 +55,12 @@ class ExchangePlugin(abc.ABC):
                 "subscription_limit": 1000,  # Total subscriptions allowed
             }
         }
-    
+
     @property
     def api_keys(self) -> Dict:
         """
         Get the test API keys for this exchange.
-        
+
         :returns: A dictionary of test API keys with associated metadata.
         """
         # Default implementation that can be overridden by specific exchanges
@@ -73,12 +73,12 @@ class ExchangePlugin(abc.ABC):
                 "enabled": True
             }
         }
-    
+
     @property
     def network_settings(self) -> Dict:
         """
         Get network settings for this exchange (keepalive intervals, etc.)
-        
+
         :returns: A dictionary of network-related settings.
         """
         # Default implementation
@@ -206,43 +206,43 @@ class ExchangePlugin(abc.ABC):
         """
         # Default implementation (can be overridden by specific exchanges)
         return interval
-        
+
     @property
     def rest_url(self) -> str:
         """
         Get the base REST URL for this exchange.
-        
+
         :returns: The base REST API URL.
         """
         # Default implementation (must be overridden by specific exchanges)
         return ""
-    
+
     @property
     def wss_url(self) -> str:
         """
         Get the base WebSocket URL for this exchange.
-        
+
         :returns: The base WebSocket API URL.
         """
         # Default implementation (must be overridden by specific exchanges)
         return ""
-    
+
     @property
     def urls(self) -> Dict[str, str]:
         """
         Get the URL mapping for this exchange.
-        
+
         :returns: A dictionary with REST and WebSocket URLs.
         """
         return {
             "rest": self.rest_url,
             "ws": self.wss_url
         }
-    
+
     def get_patched_urls(self, host: str, port: int) -> Dict[str, str]:
         """
         Get URLs to patch during mocked server operation.
-        
+
         :param host: The host address of the mock server.
         :param port: The port number of the mock server.
         :returns: A dictionary with patched REST and WebSocket URLs.

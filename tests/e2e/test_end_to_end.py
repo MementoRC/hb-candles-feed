@@ -13,10 +13,10 @@ import pytest
 
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
-from candles_feed.mocking_resources.core.server import MockedExchangeServer
-from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.core.factory import get_plugin
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -31,11 +31,11 @@ class TestEndToEnd:
         """Create a mock Binance server for testing."""
         # Get the Binance Spot plugin
         plugin = get_plugin(ExchangeType.BINANCE_SPOT)
-        
+
         # Create the server
         server = MockedExchangeServer(plugin, "127.0.0.1", 8080)
-        url = await server.start()
-        
+        await server.start()
+
         # Create URL patcher
         patcher = ExchangeURLPatcher(ExchangeType.BINANCE_SPOT, "127.0.0.1", 8080)
         patcher.patch_urls(plugin)
@@ -119,7 +119,7 @@ class TestEndToEnd:
 
             # For testing purposes, send a new candle update
             # This is needed because the background candle generation might take too long
-            trading_pair = "BTC-USDT"  
+            trading_pair = "BTC-USDT"
             interval = "1m"
             last_candle = mock_binance_server.candles[trading_pair][interval][-1]
             new_candle = CandleDataFactory.create_random(

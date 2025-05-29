@@ -1,10 +1,11 @@
 """
 Bybit Perpetual plugin implementation for the mock exchange server.
 """
-from candles_feed.core.candle_data import CandleData
 from candles_feed.adapters.bybit.constants import PERPETUAL_WSS_URL
 from candles_feed.adapters.bybit.perpetual_adapter import BybitPerpetualAdapter
+from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+
 from .base_plugin import BybitBasePlugin
 
 

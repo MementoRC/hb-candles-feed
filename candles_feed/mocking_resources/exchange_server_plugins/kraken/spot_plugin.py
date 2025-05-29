@@ -2,10 +2,12 @@
 Kraken Spot plugin implementation for the mock exchange server.
 """
 
-from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
 from candles_feed.adapters.kraken.constants import SPOT_CANDLES_ENDPOINT, TIME_ENDPOINT
+from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.kraken.base_plugin import KrakenBasePlugin
+from candles_feed.mocking_resources.exchange_server_plugins.kraken.base_plugin import (
+    KrakenBasePlugin,
+)
 
 
 class KrakenSpotPlugin(KrakenBasePlugin):

@@ -2,13 +2,14 @@
 OKX perpetual exchange adapter for the Candle Feed framework.
 """
 
+from candles_feed.core.exchange_registry import ExchangeRegistry
+
 from .base_adapter import OKXBaseAdapter
 from .constants import (
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
 )
-from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
 @ExchangeRegistry.register("okx_perpetual")

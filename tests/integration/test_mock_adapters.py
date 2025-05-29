@@ -9,21 +9,21 @@ This module tests:
 
 import asyncio
 from collections import deque
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from candles_feed.core.collection_strategies import (
-    WebSocketStrategy,
+    CollectionStrategyFactory,
     RESTPollingStrategy,
-    CollectionStrategyFactory
+    WebSocketStrategy,
 )
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.network_client import NetworkClient
 from candles_feed.mocking_resources.adapter import (
-    SyncMockedAdapter,
     AsyncMockedAdapter,
-    HybridMockedAdapter
+    HybridMockedAdapter,
+    SyncMockedAdapter,
 )
 
 
@@ -67,7 +67,7 @@ class TestMockAdaptersWithStrategies:
 
         # Test poll_once
         candles = await strategy.poll_once(limit=10)
-        
+
         # Verify we got the expected candles
         assert len(candles) == 10
         assert candles[0].open == 100.0
@@ -96,7 +96,7 @@ class TestMockAdaptersWithStrategies:
 
         # Test poll_once
         candles = await strategy.poll_once(limit=10)
-        
+
         # Verify we got the expected candles
         assert len(candles) == 10
         assert candles[0].open == 100.0
@@ -121,7 +121,7 @@ class TestMockAdaptersWithStrategies:
 
         # Test poll_once using the async method
         candles = await strategy.poll_once(limit=10)
-        
+
         # Verify we got the expected candles from the async method
         # (the async method in hybrid adapter produces different values)
         assert len(candles) == 10
@@ -136,12 +136,12 @@ class TestMockAdaptersWithStrategies:
         """Test CollectionStrategyFactory selects WebSocketStrategy for adapters with WS support."""
         # Setup
         adapter = HybridMockedAdapter()
-        
+
         # Mock network client methods that would be used by WebSocketStrategy
         mock_ws_assistant = AsyncMock()
         network_client.establish_ws_connection = AsyncMock(return_value=mock_ws_assistant)
         network_client.send_ws_message = AsyncMock()
-        
+
         # Use the factory to create the strategy
         strategy = CollectionStrategyFactory.create_strategy(
             adapter=adapter,
@@ -151,7 +151,7 @@ class TestMockAdaptersWithStrategies:
             data_processor=data_processor,
             candles_store=candles_store
         )
-        
+
         # Verify it's a WebSocketStrategy
         assert isinstance(strategy, WebSocketStrategy)
 
@@ -162,10 +162,10 @@ class TestMockAdaptersWithStrategies:
         """Test factory handles adapters that raise NotImplementedError for WebSocket."""
         # Setup
         adapter = HybridMockedAdapter()
-        
+
         # Patch get_ws_supported_intervals to raise NotImplementedError
         adapter.get_ws_supported_intervals = Mock(side_effect=NotImplementedError)
-        
+
         # Use the factory to create the strategy
         strategy = CollectionStrategyFactory.create_strategy(
             adapter=adapter,
@@ -175,7 +175,7 @@ class TestMockAdaptersWithStrategies:
             data_processor=data_processor,
             candles_store=candles_store
         )
-        
+
         # Verify it's a RESTPollingStrategy
         assert isinstance(strategy, RESTPollingStrategy)
 
@@ -197,15 +197,15 @@ class TestMockAdaptersWithStrategies:
 
         # Start the strategy
         await strategy.start()
-        
+
         # Wait for the initial poll to complete
         await asyncio.sleep(0.1)
-        
+
         # Verify the candles store was populated
         assert len(candles_store) > 0
-        
+
         # Stop the strategy
         await strategy.stop()
-        
+
         # Verify the polling task was cancelled
         assert strategy._polling_task is None

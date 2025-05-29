@@ -2,15 +2,22 @@
 Unit tests for the KrakenSpotPlugin class.
 """
 
-import pytest
-import aiohttp
-from aiohttp import web
 from typing import Any, Union
 
-from candles_feed.mocking_resources.exchange_server_plugins.kraken.spot_plugin import KrakenSpotPlugin
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+import aiohttp
+import pytest
+from aiohttp import web
+
+from candles_feed.adapters.kraken.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    SPOT_CANDLES_ENDPOINT,
+    TIME_ENDPOINT,
+)
 from candles_feed.core.candle_data import CandleData
-from candles_feed.adapters.kraken.constants import SPOT_CANDLES_ENDPOINT, TIME_ENDPOINT, INTERVAL_TO_EXCHANGE_FORMAT
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.exchange_server_plugins.kraken.spot_plugin import (
+    KrakenSpotPlugin,
+)
 
 
 class TestKrakenSpotPlugin:
@@ -42,16 +49,16 @@ class TestKrakenSpotPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             f"{SPOT_CANDLES_ENDPOINT}?pair=XBT/USD&interval=1&since=1620000000",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTC-USDT"  # XBT/USD -> BTC-USDT
         assert params["interval"] == "1m"  # 1 -> 1m
@@ -75,23 +82,23 @@ class TestKrakenSpotPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data structure
         assert isinstance(formatted, dict)
         assert "error" in formatted
         assert "result" in formatted
         assert len(formatted["error"]) == 0  # No errors
-        
+
         kraken_pair = "XBT/USD"
         assert kraken_pair in formatted["result"]
-        
+
         # Check the candles array
         kraken_candles = formatted["result"][kraken_pair]
         assert len(kraken_candles) == 1
-        
+
         # Check candle fields
         candle_data = kraken_candles[0]
         assert candle_data[0] == int(candles[0].timestamp)  # Time in seconds
@@ -121,20 +128,20 @@ class TestKrakenSpotPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format - Kraken WS messages are arrays, not objects
         assert isinstance(message, list)
         assert len(message) == 4
-        
+
         # Check channel ID (placeholder)
         assert message[0] == 0
-        
+
         # Check candle data
         candle_data = message[1]
-        
+
         # Check timestamp format - Kraken uses seconds.microseconds format
         timestamp_str = candle_data[0]
         assert "." in timestamp_str, "Timestamp should include decimal for microseconds"
@@ -142,11 +149,11 @@ class TestKrakenSpotPlugin:
         assert len(timestamp_parts) == 2, "Timestamp should have seconds and microseconds parts"
         assert timestamp_parts[0] == str(int(candle.timestamp)), "Seconds part should match timestamp"
         assert len(timestamp_parts[1]) > 0, "Microseconds part should not be empty"
-        
+
         # Check end time format
         end_time_str = candle_data[1]
         assert "." in end_time_str, "End time should include decimal for microseconds"
-        
+
         # Check price values with 5 decimal places
         assert float(candle_data[2]) == candle.open  # Open
         assert len(candle_data[2].split(".")[-1]) == 5, "Open price should have 5 decimal places"
@@ -156,17 +163,17 @@ class TestKrakenSpotPlugin:
         assert len(candle_data[4].split(".")[-1]) == 5, "Low price should have 5 decimal places"
         assert float(candle_data[5]) == candle.close # Close
         assert len(candle_data[5].split(".")[-1]) == 5, "Close price should have 5 decimal places"
-        
+
         # Check VWAP (approximated)
         assert float(candle_data[6]) < candle.close
-        
+
         # Check volume with 8 decimal places
         assert float(candle_data[7]) == candle.volume  # Volume
         assert len(candle_data[7].split(".")[-1]) == 8, "Volume should have 8 decimal places"
-        
+
         # Check channel name with interval
         assert message[2] == f"ohlc-{INTERVAL_TO_EXCHANGE_FORMAT.get('1m', 1)}"
-        
+
         # Check pair name
         assert message[3] in ["BTC/USDT", "XBT/USD"]  # Either format is acceptable
 
@@ -182,10 +189,10 @@ class TestKrakenSpotPlugin:
                 "interval": 1
             }
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         # XBT/USD should be converted to BTC-USDT
@@ -205,10 +212,10 @@ class TestKrakenSpotPlugin:
                 "interval": 1
             }
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert isinstance(response, dict)
         assert "channelID" in response
@@ -223,7 +230,7 @@ class TestKrakenSpotPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format - should contain ohlc-1 and the trading pair
         assert key.startswith("ohlc-1_")
         # Key should contain the trading pair in Kraken format
@@ -234,7 +241,7 @@ class TestKrakenSpotPlugin:
         # Test regular pair
         formatted = self.plugin._format_trading_pair("BTC-USDT")
         assert formatted in ["BTC/USDT", "XBT/USD"]
-        
+
         # Test another pair
         formatted = self.plugin._format_trading_pair("ETH-USD")
         assert formatted in ["ETH/USD", "XETH/ZUSD"]
@@ -244,7 +251,7 @@ class TestKrakenSpotPlugin:
         # Test slash format
         standard = self.plugin._reverse_format_trading_pair("XBT/USD")
         assert standard == "BTC-USDT"
-        
+
         # Test non-special pair
         standard = self.plugin._reverse_format_trading_pair("ETH/USD")
         assert standard in ["ETH-USD", "ETH-USDT"]

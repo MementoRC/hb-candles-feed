@@ -4,6 +4,7 @@ AscendEx Spot plugin implementation for the mock exchange server.
 
 from candles_feed.adapters.ascend_ex.spot_adapter import AscendExSpotAdapter
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+
 from .base_plugin import AscendExBasePlugin
 
 

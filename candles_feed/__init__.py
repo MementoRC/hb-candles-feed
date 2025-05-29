@@ -19,14 +19,14 @@ from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
 from candles_feed.adapters.okx.spot_adapter import OKXSpotAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.core.data_processor import DataProcessor
-from candles_feed.core.exchange_registry import ExchangeRegistry
-from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.collection_strategies import (
     CollectionStrategyFactory,
     RESTPollingStrategy,
     WebSocketStrategy,
 )
+from candles_feed.core.data_processor import DataProcessor
+from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.network_client import NetworkClient
 
 # Import integration helpers
 from candles_feed.integration import create_candles_feed_with_hummingbot

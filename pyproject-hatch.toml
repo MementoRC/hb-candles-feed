@@ -1,0 +1,219 @@
+[build-system]
+requires = [
+    "hatchling>=1.18.0",
+    "Cython>=3",
+    "wheel>=0.37.0",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "hb-candles-feed"
+description = "A Hummingbot candles-feed sub-package"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Memento RC Mori", email = "claude.rc@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Cython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "aiohttp>=3.8.0",
+    "ccxt",
+    "hatch>=1.9.0",
+    "hatch-conda>=0.5.2",
+    "numpy>=1.20.0",
+    "pandas>=1.0.0",
+    "pydantic>=2",
+    "uv>=0.5.23",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/MementoRC/hb-candles-feed"
+Documentation = "https://mementorc.github.io/hb-candles-feed"
+Repository = "https://github.com/MementoRC/hb-candles-feed/tree/master"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=2.15.0",
+    "pytest>=7.0.0",
+    "pytest-aiohttp>=1.1.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "pytest-timeout>=2.1.0",
+    "pyupgrade",
+    "ruff>=0.1.5",
+    "mypy>=1.5.1",
+    "cython-lint>=0.15.0",
+]
+doc = [
+    "mkdocs",
+    "mkdocs-git-revision-date-localized-plugin",
+    "mkdocs-material>=8.2.0",
+    "mkdocstrings-python",
+    "mkdocstrings>=0.18.0",
+    "pymdown-extensions>=8.0.0",
+]
+hummingbot = []
+
+[tool.hatch.version]
+path = "candles_feed/__about__.py"
+
+# Hatch configuration for conda environments
+[tool.hatch.env]
+requires = ["hatch-conda>=0.5.2"]
+type = "conda"
+
+# Documentation environment
+[tool.hatch.envs.docs]
+type = "conda"
+conda-channels = ["conda-forge", "defaults"]
+features = ["doc"]
+dependencies = []
+
+[tool.hatch.envs.docs.scripts]
+type = "conda"
+build = "mkdocs build --clean --strict"
+serve = "mkdocs serve --dev-addr localhost:8008"
+deploy = "mkdocs gh-deploy"
+
+# CI environment
+[tool.hatch.envs.CI]
+type = "conda"
+conda-channels = ["conda-forge", "defaults"]
+features = ["dev"]
+dependencies = [
+    "types-setuptools",
+]
+
+[tool.hatch.envs.CI.scripts]
+type = "conda"
+check = "ruff check candles_feed tests; ruff format --check candles_feed tests"
+hints = "mypy --install-types --non-interactive --ignore-missing-imports candles_feed/"
+
+[tool.hatch.envs.default]
+type = "conda"
+conda-channels = ["conda-forge", "defaults"]
+features = ["dev"]
+dependencies = []
+
+# Pip dependencies with --no-deps flag
+[tool.hatch.envs.default.pip-no-deps]
+dependencies = []
+
+# Scripts for the default environment
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-unit = "pytest tests/unit"
+test-integration = "pytest tests/integration"
+lint = "ruff check candles_feed tests"
+format = "ruff format candles_feed tests"
+typecheck = "mypy candles_feed"
+lint-cython = "cython-lint candles_feed"
+check = ["format", "lint", "typecheck", "test"]
+
+# Hatch build configuration with Cython integration via custom hook
+[tool.hatch.build.targets.wheel]
+packages = ["candles_feed"]
+build-hook = "setup-tools.hatch-hooks.cython_build_hook"
+
+# Distribution package configuration
+[tool.hatch.build.targets.sdist]
+include = [
+    "candles_feed/**/*.py",
+    "candles_feed/**/*.pyx",
+    "candles_feed/**/*.pxd",
+    "docs/**/*.md",
+    "docs/**/*.yml",
+    "setup-tools/**/*",
+    "LICENSE",
+    "README.md",
+    "pyproject.toml",
+    "setup.py",
+]
+exclude = [
+    "build", 
+    "dist", 
+    "**/__pycache__", 
+    "**/*.pyc", 
+    ".git", 
+    ".github",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/.DS_Store",
+    "**/*.so",
+    "**/*.dylib",
+]
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source_pkgs = ["candles_feed", "tests"]
+omit = [
+  "candles_feed/__about__.py",
+]
+
+[tool.coverage.report]
+fail_under = 0
+show_missing = true
+skip_covered = true
+skip_empty = true
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+]
+ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long - handled by formatter
+    "F401",  # unused imports - we'll address these gradually
+]
+unfixable = ["F401"]  # unused imports - let the developer decide
+
+[tool.ruff.lint.isort]
+known-first-party = ["candles_feed"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+markers = [
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "e2e: marks tests as end-to-end tests",
+    "asyncio: marks tests as asyncio tests",
+]
+log_cli = true
+log_cli_level = "INFO"

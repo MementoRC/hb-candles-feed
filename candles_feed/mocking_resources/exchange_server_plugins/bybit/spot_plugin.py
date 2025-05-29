@@ -1,9 +1,10 @@
 """
 Bybit Spot plugin implementation for the mock exchange server.
 """
-from candles_feed.core.candle_data import CandleData
 from candles_feed.adapters.bybit.spot_adapter import BybitSpotAdapter
+from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+
 from .base_plugin import BybitBasePlugin
 
 

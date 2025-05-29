@@ -8,10 +8,10 @@ import pytest
 
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
-    SPOT_CANDLES_ENDPOINT,
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     WS_INTERVALS,
 )
@@ -24,7 +24,7 @@ class ConcreteBybitAdapter(BybitBaseAdapter):
     @staticmethod
     def _get_rest_url() -> str:
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
-        
+
     @staticmethod
     def _get_ws_url() -> str:
         return "wss://test.bybit.com/ws"

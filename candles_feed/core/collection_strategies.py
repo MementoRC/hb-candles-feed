@@ -10,11 +10,16 @@ import logging
 import time
 from typing import Deque
 
+from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.network_client import NetworkClient
-from candles_feed.core.protocols import Logger, CollectionStrategy, WSAssistant, NetworkClientProtocol
-from candles_feed.adapters.protocols import AdapterProtocol
+from candles_feed.core.protocols import (
+    CollectionStrategy,
+    Logger,
+    NetworkClientProtocol,
+    WSAssistant,
+)
 
 
 class WebSocketStrategy:
@@ -88,7 +93,7 @@ class WebSocketStrategy:
         try:
             # Check if adapter implements async or sync method
             if (hasattr(self.adapter, 'fetch_rest_candles') and
-                    callable(getattr(self.adapter, 'fetch_rest_candles'))):
+                    callable(self.adapter.fetch_rest_candles)):
                 candles = await self.adapter.fetch_rest_candles(
                     trading_pair=self.trading_pair,
                     interval=self.interval,
@@ -97,7 +102,7 @@ class WebSocketStrategy:
                     network_client=self.network_client,
                 )
             elif (hasattr(self.adapter, 'fetch_rest_candles_synchronous') and
-                    callable(getattr(self.adapter, 'fetch_rest_candles_synchronous'))):
+                    callable(self.adapter.fetch_rest_candles_synchronous)):
                 candles = await asyncio.to_thread(
                     self.adapter.fetch_rest_candles_synchronous,
                     trading_pair=self.trading_pair,
@@ -278,7 +283,7 @@ class RESTPollingStrategy:
             # Check if adapter implements async or sync method
             if (
                     hasattr(self.adapter, 'fetch_rest_candles') and
-                    callable(getattr(self.adapter, 'fetch_rest_candles'))
+                    callable(self.adapter.fetch_rest_candles)
             ):
                 candles = await self.adapter.fetch_rest_candles(
                     trading_pair=self.trading_pair,
@@ -289,7 +294,7 @@ class RESTPollingStrategy:
                 )
             elif (
                     hasattr(self.adapter, 'fetch_rest_candles_synchronous') and
-                    callable(getattr(self.adapter, 'fetch_rest_candles_synchronous'))
+                    callable(self.adapter.fetch_rest_candles_synchronous)
             ):
                 candles = await asyncio.to_thread(
                     self.adapter.fetch_rest_candles_synchronous,
@@ -374,7 +379,7 @@ class CollectionStrategyFactory:
         logger: Logger | None = None,
     ) -> CollectionStrategy:
         """Create appropriate strategy based on adapter capabilities.
-        
+
         :param adapter: Exchange adapter
         :param trading_pair: Trading pair
         :param interval: Candle interval
@@ -400,7 +405,7 @@ class CollectionStrategyFactory:
         except (NotImplementedError, AttributeError):
             # If WebSocket is not supported or method not implemented, fall back to REST
             pass
-        
+
         # Default to REST polling
         return RESTPollingStrategy(
             network_client=network_client,

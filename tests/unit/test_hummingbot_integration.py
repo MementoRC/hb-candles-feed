@@ -16,7 +16,7 @@ from candles_feed.mocking_resources.hummingbot.mock_components import (
 @pytest.fixture
 def binance_rest_candles_response():
     """Sample Binance candles response for testing.
-    
+
     :return: List of mock candle data in Binance format
     """
     return [
@@ -61,7 +61,7 @@ def create_mock_adapter():
     mock_adapter.get_supported_intervals.return_value = {"1m": 60}
     mock_adapter.get_ws_supported_intervals.return_value = ["1m"]
     mock_adapter.get_rest_params.return_value = {}
-    
+
     # Create a sample candle for the mock response
     from candles_feed.core.candle_data import CandleData
     sample_candle = CandleData(
@@ -76,18 +76,18 @@ def create_mock_adapter():
         taker_buy_base_volume=5.0,
         taker_buy_quote_volume=175000.0
     )
-    
+
     # Create AsyncMock for async methods
     mock_adapter.fetch_rest_candles = AsyncMock(return_value=[sample_candle])
     mock_adapter.parse_rest_response.return_value = [sample_candle]
-    
+
     return mock_adapter
 
 
 @pytest.fixture
 def mock_hummingbot_components(binance_rest_candles_response):
     """Create mock Hummingbot components with pre-configured responses.
-    
+
     :param binance_rest_candles_response: Mock response for Binance REST API
     :return: Dictionary with mock Hummingbot components
     """
@@ -132,7 +132,7 @@ def mock_hummingbot_components(binance_rest_candles_response):
 @pytest.mark.asyncio
 async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
     """Test creating a CandlesFeed with Hummingbot components.
-    
+
     :param mock_hummingbot_components: Mock Hummingbot components for testing
     """
     # Set up complete patching to avoid import errors
@@ -153,8 +153,8 @@ async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
     ), patch(
         "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
         return_value=create_mock_adapter()
-    ) as mock_get_adapter:
-        
+    ):
+
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
             exchange="binance_spot",
@@ -178,7 +178,7 @@ async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
 @pytest.mark.asyncio
 async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
     """Test fetching candles with Hummingbot REST integration.
-    
+
     :param mock_hummingbot_components: Mock Hummingbot components for testing
     """
     # Set up complete patching to avoid import errors
@@ -199,7 +199,7 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
     ), patch(
         "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
         return_value=create_mock_adapter()
-    ) as mock_get_adapter:
+    ):
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
             exchange="binance_spot",
@@ -217,7 +217,7 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
             mock_get_rest_data.return_value = mock_hummingbot_components[
                 "web_assistants_factory"
             ].rest_connection.responses.get("https://api.binance.com/api/v3/klines")
-            
+
             # Create a REST strategy with our mocked client
             feed._rest_strategy = feed._create_rest_strategy()
 
@@ -234,7 +234,7 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
 @pytest.mark.asyncio
 async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
     """Test WebSocket connection with Hummingbot integration.
-    
+
     :param mock_hummingbot_components: Mock Hummingbot components for testing
     """
     # Set up complete patching to avoid import errors
@@ -255,7 +255,7 @@ async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
     ), patch(
         "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
         return_value=create_mock_adapter()
-    ) as mock_get_adapter:
+    ):
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
             exchange="binance_spot",
@@ -265,16 +265,16 @@ async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
         )
 
         # Mock WebSocketStrategy._listen_for_updates to avoid network calls
-        with patch("candles_feed.core.collection_strategies.WebSocketStrategy._listen_for_updates", 
+        with patch("candles_feed.core.collection_strategies.WebSocketStrategy._listen_for_updates",
                new_callable=AsyncMock) as mock_listen:
-            
+
             # Start the feed with websocket strategy
             await feed.start(strategy="websocket")
-            
+
             # Verify the websocket strategy was created and started
             assert feed._ws_strategy is not None
             assert feed._using_ws is True
             assert mock_listen.called
-            
+
             # Clean up
             await feed.stop()

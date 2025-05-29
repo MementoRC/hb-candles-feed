@@ -4,8 +4,9 @@ CCXT base adapter for the Candle Feed framework.
 This module provides a base implementation for exchange adapters using CCXT.
 """
 
+from typing import Any, Literal
+
 import ccxt
-from typing import Literal, Any
 
 from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -14,7 +15,7 @@ from candles_feed.core.candle_data import CandleData
 
 class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
     """Base adapter for exchanges integrated via CCXT.
-    
+
     This adapter uses the CCXT library to interact with exchange APIs in a
     standardized way. It implements the SyncOnlyAdapter mixin since CCXT's
     primary API is synchronous.
@@ -27,30 +28,30 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
     # NoWebSocketSupportMixin methods
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
-        
+
         :raises NotImplementedError: Always raised as WebSocket is not supported
         """
         raise NotImplementedError("This adapter does not support WebSocket")
-    
+
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
-        
+
         :raises NotImplementedError: Always raised as WebSocket is not supported
         """
         raise NotImplementedError("This adapter does not support WebSocket")
-    
+
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
-        
-        :param trading_pair: Trading pair 
+
+        :param trading_pair: Trading pair
         :param interval: Candle interval
         :raises NotImplementedError: Always raised as WebSocket is not supported
         """
         raise NotImplementedError("This adapter does not support WebSocket")
-    
+
     def parse_ws_message(self, data: Any) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
-        
+
         :param data: WebSocket message
         :raises NotImplementedError: Always raised as WebSocket is not supported
         """
@@ -66,7 +67,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
     @property
     def exchange_name(self) -> str:
         """Get the CCXT exchange name.
-        
+
         :returns: CCXT exchange identifier
         :raises NotImplementedError: Must be implemented by subclasses
         """
@@ -74,7 +75,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
 
     def _get_ccxt_options(self) -> dict:
         """Define CCXT-specific options.
-        
+
         :returns: Dictionary of CCXT configuration options
         """
         options = {}
@@ -88,7 +89,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
 
     def get_trading_pair_format(self, trading_pair: str) -> str:
         """Convert standard trading pair format to CCXT format.
-        
+
         :param trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
         :returns: Trading pair in CCXT format (e.g., "BTC/USDT")
         """
@@ -103,7 +104,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         limit: int | None = None,
     ) -> dict:
         """Get parameters for CCXT API request.
-        
+
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
@@ -121,7 +122,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
 
     def _parse_rest_response(self, data: list) -> list[CandleData]:
         """Parse CCXT OHLCV response into CandleData objects.
-        
+
         :param data: CCXT OHLCV response
         :returns: List of CandleData objects
         """
@@ -139,13 +140,13 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
 
     def fetch_rest_candles_synchronous(
         self,
-        trading_pair: str, 
-        interval: str, 
+        trading_pair: str,
+        interval: str,
         start_time: int | None = None,
         limit: int = 500,
     ) -> list[CandleData]:
         """Fetch candles using CCXT's synchronous API.
-        
+
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
@@ -163,13 +164,13 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
 
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals from CCXT.
-        
+
         :returns: Dictionary mapping interval strings to their duration in seconds
         """
         timeframes = self.exchange.timeframes
         # Convert CCXT timeframes to seconds
         result = {}
-        
+
         # Basic conversion of common timeframes
         timeframe_to_seconds = {
             '1m': 60,
@@ -188,9 +189,9 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
             '1w': 604800,
             '1M': 2592000,
         }
-        
+
         for tf in timeframes:
             if tf in timeframe_to_seconds:
                 result[tf] = timeframe_to_seconds[tf]
-            
+
         return result

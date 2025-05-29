@@ -2,6 +2,7 @@
 MEXC perpetual exchange adapter for the Candle Feed framework.
 """
 import contextlib
+
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
@@ -19,7 +20,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
     """MEXC perpetual exchange adapter."""
 
     TIMESTAMP_UNIT = "seconds"
-    
+
     @staticmethod
     def _get_rest_url() -> str:
         """Get REST API URL for candles.

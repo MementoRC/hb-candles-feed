@@ -41,7 +41,7 @@ class WSAssistant(Protocol):
 @runtime_checkable
 class CollectionStrategy(Protocol):
     """Protocol for strategies that collect candle data.
-    
+
     This protocol defines the interface for different data collection strategies,
     such as WebSocket streaming or REST API polling.
     """
@@ -53,7 +53,7 @@ class CollectionStrategy(Protocol):
         limit: int | None = None,
     ) -> list[CandleData]:
         """Fetch candles for a specific time range.
-        
+
         :param start_time: Start time in seconds
         :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
@@ -63,14 +63,14 @@ class CollectionStrategy(Protocol):
 
     async def start(self) -> None:
         """Start the collection strategy.
-        
+
         Initiates data collection according to the strategy's approach.
         """
         ...
 
     async def stop(self) -> None:
         """Stop the collection strategy.
-        
+
         Stops data collection and cleans up any resources.
         """
         ...
@@ -169,7 +169,7 @@ class AsyncThrottlerProtocol(Protocol):
 
         :param limit_id: The rate limit identifier
         :param weight: The weight of the task (default: 1)
-        
+
         This method should delay execution if necessary to respect rate limits.
         """
         ...

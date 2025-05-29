@@ -1,5 +1,6 @@
 from candles_feed.adapters.okx.perpetual_adapter import OKXPerpetualAdapter
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+
 from .base_plugin import OKXBasePlugin
 
 

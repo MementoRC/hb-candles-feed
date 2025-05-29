@@ -2,10 +2,12 @@
 KuCoin Spot plugin implementation for the mock exchange server.
 """
 
-from candles_feed.core.candle_data import CandleData
 from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
+from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.kucoin.base_plugin import KucoinBasePlugin
+from candles_feed.mocking_resources.exchange_server_plugins.kucoin.base_plugin import (
+    KucoinBasePlugin,
+)
 
 
 class KucoinSpotPlugin(KucoinBasePlugin):

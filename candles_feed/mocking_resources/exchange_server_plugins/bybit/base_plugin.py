@@ -10,8 +10,11 @@ from typing import Any
 from aiohttp import web
 
 from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.bybit.constants import INTERVAL_TO_EXCHANGE_FORMAT, SPOT_REST_URL, SPOT_WSS_URL
-
+from candles_feed.adapters.bybit.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
@@ -110,7 +113,7 @@ class BybitBasePlugin(ExchangePlugin, ABC):
         """
         interval_code = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
         trading_pair_formatted = trading_pair.replace("-", "")
-        
+
         # Format similar to Bybit's WebSocket API response
         return {
             "topic": f"kline.{interval_code}.{trading_pair_formatted}",
@@ -151,10 +154,10 @@ class BybitBasePlugin(ExchangePlugin, ABC):
                     if len(parts) == 3:
                         interval_code = parts[1]
                         trading_pair = parts[2]
-                        
+
                         # Convert interval code back to standard format
                         interval = next((k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval_code), interval_code)
-                        
+
                         # Convert trading pair to standard format with hyphen
                         if len(trading_pair) >= 6:  # Minimum length for a valid pair like BTCUSDT
                             # Attempt to find the split point - this is a heuristic
@@ -165,9 +168,9 @@ class BybitBasePlugin(ExchangePlugin, ABC):
                                 if quote.upper() in ["USDT", "BTC", "ETH", "USD", "USDC"]:
                                     trading_pair = f"{base}-{quote}"
                                     break
-                        
+
                         subscriptions.append((trading_pair, interval))
-                        
+
         return subscriptions
 
     def create_ws_subscription_success(
@@ -208,20 +211,20 @@ class BybitBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Convert Bybit-specific parameter names to the generic ones expected by handle_klines
         symbol = params.get("symbol")
         interval = params.get("interval")
         start = params.get("start")
         end = params.get("end")
         limit = params.get("limit")
-        
+
         if limit is not None:
             try:
                 limit = int(limit)
             except ValueError:
                 limit = 1000
-                
+
         # Map Bybit parameters to generic parameters expected by handle_klines
         return {
             "symbol": symbol,            # 'symbol' is the same in both
@@ -229,7 +232,7 @@ class BybitBasePlugin(ExchangePlugin, ABC):
             "start_time": start,         # 'start' in Bybit maps to 'start_time' in generic handler
             "end_time": end,             # 'end' in Bybit maps to 'end_time' in generic handler
             "limit": limit,              # 'limit' has the same name
-            
+
             # Also keep the original Bybit parameter names for reference
             "category": params.get("category"),
         }

@@ -2,11 +2,15 @@
 MEXC Perpetual plugin implementation for the mock exchange server.
 """
 
-from candles_feed.adapters.mexc.constants import PERP_WSS_URL, PERP_REST_URL, INTERVAL_TO_PERPETUAL_FORMAT
+from candles_feed.adapters.mexc.constants import (
+    INTERVAL_TO_PERPETUAL_FORMAT,
+    PERP_REST_URL,
+    PERP_WSS_URL,
+)
 from candles_feed.adapters.mexc.perpetual_adapter import MEXCPerpetualAdapter
+from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.exchange_server_plugins.mexc.base_plugin import MEXCBasePlugin
-from candles_feed.core.candle_data import CandleData
 
 
 class MEXCPerpetualPlugin(MEXCBasePlugin):
@@ -79,7 +83,7 @@ class MEXCPerpetualPlugin(MEXCBasePlugin):
                 "vol": str(c.volume),
                 "amount": str(c.quote_asset_volume)
             })
-            
+
         return {
             "success": True,
             "code": 0,
@@ -99,11 +103,11 @@ class MEXCPerpetualPlugin(MEXCBasePlugin):
         :returns: Formatted message as expected from MEXC Perpetual's WebSocket API.
         """
         # INTERVAL_TO_PERPETUAL_FORMAT is now imported at the module level
-        
+
         # Format for MEXC Perpetual WebSocket API
         symbol = trading_pair.replace("-", "_")
         mexc_interval = INTERVAL_TO_PERPETUAL_FORMAT.get(interval, interval)
-        
+
         return {
             "channel": "push.kline",
             "data": {

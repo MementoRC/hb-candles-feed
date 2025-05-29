@@ -183,7 +183,7 @@ class SimpleWSAssistant(WSAssistant):
         """Return self as an async iterator.
 
         This method is required for the async iterator protocol.
-        
+
         :return: Async iterator for messages
         """
         return self.iter_messages()

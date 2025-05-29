@@ -2,13 +2,14 @@
 Kraken spot exchange adapter for the Candle Feed framework.
 """
 
+from candles_feed.core.exchange_registry import ExchangeRegistry
+
 from .base_adapter import KrakenBaseAdapter
 from .constants import (
-    SPOT_REST_URL,
     SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
     SPOT_WSS_URL,
 )
-from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
 @ExchangeRegistry.register("kraken_spot")

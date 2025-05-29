@@ -6,7 +6,9 @@ import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.exchange_server_plugins.gate_io.spot_plugin import GateIoSpotPlugin
+from candles_feed.mocking_resources.exchange_server_plugins.gate_io.spot_plugin import (
+    GateIoSpotPlugin,
+)
 
 
 class TestGateIoSpotPlugin:
@@ -37,16 +39,16 @@ class TestGateIoSpotPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/v4/spot/candlesticks?currency_pair=BTC_USDT&interval=1m&limit=100&from=1620000000&to=1620100000",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTC-USDT"
         assert params["interval"] == "1m"
@@ -71,10 +73,10 @@ class TestGateIoSpotPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, list)
         assert len(formatted) == 1
@@ -102,10 +104,10 @@ class TestGateIoSpotPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format
         assert message["time"] == 1620000000  # Timestamp in seconds
         assert message["channel"] == "spot.candlesticks"
@@ -131,10 +133,10 @@ class TestGateIoSpotPlugin:
             ],
             "id": 12345
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"
@@ -154,10 +156,10 @@ class TestGateIoSpotPlugin:
             ],
             "id": 12345
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert response["id"] == 12345
         assert response["result"]["status"] == "success"
@@ -167,6 +169,6 @@ class TestGateIoSpotPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format
         assert key == "BTC_USDT_1m"

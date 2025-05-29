@@ -1,4 +1,4 @@
-from typing import TypeVar, runtime_checkable, Protocol, Any
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 from candles_feed.core.candle_data import CandleData
 

@@ -2,16 +2,17 @@
 Unit tests for the OKXSpotPlugin class.
 """
 
-import pytest
-import aiohttp
-from aiohttp import web
 from typing import Any
 
-from candles_feed.mocking_resources.exchange_server_plugins.okx.spot_plugin import OKXSpotPlugin
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.core.candle_data import CandleData
+import aiohttp
+import pytest
+from aiohttp import web
+
 from candles_feed.adapters.okx.constants import INTERVAL_TO_EXCHANGE_FORMAT
+from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.exchange_server_plugins.okx.base_plugin import OKXBasePlugin
+from candles_feed.mocking_resources.exchange_server_plugins.okx.spot_plugin import OKXSpotPlugin
 
 
 class TestOKXSpotPlugin:
@@ -44,23 +45,23 @@ class TestOKXSpotPlugin:
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
-        
+
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/v5/market/candles?instId=BTC-USDT&bar=1m&limit=100&after=1620000000000&before=1620100000000",
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check parsed parameters
         assert params["symbol"] == "BTC-USDT"
         assert params["interval"] == "1m"
         assert params["limit"] == 100
         assert params["start_time"] == "1620000000000"
         assert params["end_time"] == "1620100000000"
-        
+
         # Check original parameters are preserved
         assert params["instId"] == "BTC-USDT"
         assert params["bar"] == "1m"
@@ -84,16 +85,16 @@ class TestOKXSpotPlugin:
                 taker_buy_quote_volume=262500.0,
             )
         ]
-        
+
         # Format candles
         formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
-        
+
         # Check formatted data
         assert isinstance(formatted, dict)
         assert formatted["code"] == "0"
         assert formatted["msg"] == ""
         assert len(formatted["data"]) == 1
-        
+
         # Check the first candle
         candle_data = formatted["data"][0]
         assert candle_data[0] == str(int(candles[0].timestamp_ms))  # Timestamp in ms as string
@@ -119,19 +120,19 @@ class TestOKXSpotPlugin:
             taker_buy_base_volume=5.25,
             taker_buy_quote_volume=262500.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check message format
         assert isinstance(message, dict)
         assert "arg" in message
         assert "data" in message
-        
+
         # Check arg field
         assert message["arg"]["channel"] == f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get('1m', '1m')}"
         assert message["arg"]["instId"] == self.trading_pair
-        
+
         # Check data field
         assert len(message["data"]) == 1
         candle_data = message["data"][0]
@@ -155,10 +156,10 @@ class TestOKXSpotPlugin:
                 }
             ]
         }
-        
+
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
-        
+
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"  # Trading pair
@@ -176,10 +177,10 @@ class TestOKXSpotPlugin:
                 }
             ]
         }
-        
+
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
-        
+
         # Check response format
         assert response["event"] == "subscribe"
         assert response["arg"] == message["args"][0]
@@ -190,7 +191,7 @@ class TestOKXSpotPlugin:
         """Test creating WebSocket subscription key."""
         # Create subscription key
         key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
-        
+
         # Check key format
         interval_code = INTERVAL_TO_EXCHANGE_FORMAT.get("1m", "1m")
         assert key == f"candle{interval_code}_BTC-USDT"
@@ -203,15 +204,15 @@ class TestOKXSpotPlugin:
         assert OKXBasePlugin._interval_to_seconds("1h") == 3600
         assert OKXBasePlugin._interval_to_seconds("1d") == 86400
         assert OKXBasePlugin._interval_to_seconds("1w") == 604800
-        
+
         # Test with different values
         assert OKXBasePlugin._interval_to_seconds("5m") == 300
         assert OKXBasePlugin._interval_to_seconds("4h") == 14400
-        
+
         # Test invalid interval
         with pytest.raises(ValueError):
             OKXBasePlugin._interval_to_seconds("1x")
-            
+
     def test_parse_ws_subscription_with_missing_fields(self):
         """Test parsing WebSocket subscription with missing fields."""
         # Test with missing op field
@@ -224,13 +225,13 @@ class TestOKXSpotPlugin:
             ]
         }
         assert len(self.plugin.parse_ws_subscription(message1)) == 0
-        
+
         # Test with missing args field
         message2 = {
             "op": "subscribe"
         }
         assert len(self.plugin.parse_ws_subscription(message2)) == 0
-        
+
         # Test with missing channel field
         message3 = {
             "op": "subscribe",
@@ -241,7 +242,7 @@ class TestOKXSpotPlugin:
             ]
         }
         assert len(self.plugin.parse_ws_subscription(message3)) == 0
-        
+
         # Test with missing instId field
         message4 = {
             "op": "subscribe",
@@ -252,28 +253,28 @@ class TestOKXSpotPlugin:
             ]
         }
         assert len(self.plugin.parse_ws_subscription(message4)) == 0
-    
+
     def test_parse_rest_candles_params_with_missing_fields(self):
         """Test parsing REST API parameters with missing fields."""
         from aiohttp.test_utils import make_mocked_request
-        
+
         # Create a request with missing parameters
         request = make_mocked_request(
-            "GET", 
+            "GET",
             "/api/v5/market/candles",  # No parameters
             headers={},
         )
-        
+
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
-        
+
         # Check that parameters are properly handled
         assert params["symbol"] is None
         assert params["interval"] is None
         assert params["limit"] == 500 or params["limit"] is None
         assert params["start_time"] is None
         assert params["end_time"] is None
-        
+
     def test_format_ws_candle_message_with_unusual_values(self):
         """Test formatting WebSocket message with unusual values."""
         # Create sample candle data with extreme values
@@ -289,10 +290,10 @@ class TestOKXSpotPlugin:
             taker_buy_base_volume=0.0,
             taker_buy_quote_volume=0.0,
         )
-        
+
         # Format WebSocket message
         message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval)
-        
+
         # Check that values are properly formatted
         assert message["data"][0][0] == "0"  # Timestamp
         assert message["data"][0][1] == "1e-07"  # Open (scientific notation is acceptable)

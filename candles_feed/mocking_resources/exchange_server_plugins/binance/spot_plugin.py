@@ -3,8 +3,10 @@ Binance Spot plugin implementation for the mock exchange server.
 """
 
 from aiohttp import web
+
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+
 from .base_plugin import BinanceBasePlugin
 
 
@@ -33,35 +35,35 @@ class BinanceSpotPlugin(BinanceBasePlugin):
         return {
             # Include handlers for candles functionality
             "/api/v3/klines": ("GET", "handle_klines"),
-            
+
             # Include general utility endpoints
             "/api/v3/ping": ("GET", "handle_ping"),
             "/api/v3/time": ("GET", "handle_time"),
             "/api/v3/exchangeInfo": ("GET", "handle_exchange_info"),
-            
+
             # Include market data endpoints that might be useful for candles context
             "/api/v3/ticker/price": ("GET", "handle_ticker_price"),
         }
-        
+
     async def handle_ui_klines(self, server, request):
         """
         Handle the Binance UI Klines endpoint.
-        
+
         UI Klines return modified kline data, optimized for presentation of candlestick charts.
         The endpoint works exactly like the regular klines endpoint, with the same parameters
         and response format.
-        
+
         :param server: The mock server instance.
         :param request: The web request.
         :returns: A JSON response with candle data.
         """
         # UI Klines has the same implementation as regular klines for the mock server
         return await self.handle_klines(server, request)
-    
+
     def parse_rest_candles_params(self, request: web.Request) -> dict:
         """
         Parse REST API parameters for Binance candle requests.
-        
+
         Extended to support all Binance klines parameters:
         - symbol: Trading pair (required)
         - interval: Candle interval (1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M)

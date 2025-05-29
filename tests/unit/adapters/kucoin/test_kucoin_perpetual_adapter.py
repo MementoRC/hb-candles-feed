@@ -2,8 +2,11 @@
 Unit tests for the KucoinPerpetualAdapter class.
 """
 
+import contextlib
 import time
-from unittest.mock import patch
+from datetime import datetime, timezone
+from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -17,63 +20,166 @@ from candles_feed.adapters.kucoin.constants import (
 )
 from candles_feed.adapters.kucoin.perpetual_adapter import KucoinPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
+from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
-class TestKuCoinPerpetualAdapter:
-    """Test suite for the KucoinPerpetualAdapter class."""
+class TestKucoinPerpetualAdapter(BaseAdapterTest):
+    """Test suite for the KucoinPerpetualAdapter class using the base adapter test class."""
 
-    def setup_method(self):
-        """Setup method called before each test."""
-        self.adapter = KucoinPerpetualAdapter()
-        self.trading_pair = "BTC-USDT"
-        self.interval = "1m"
+    def create_adapter(self):
+        """Create an instance of the adapter to test."""
+        return KucoinPerpetualAdapter()
 
-    def test_get_trading_pair_format(self):
-        """Test trading pair format conversion."""
+    def get_expected_trading_pair_format(self, trading_pair):
+        """Return the expected trading pair format for the adapter."""
         # KuCoin doesn't change the format
-        assert KucoinPerpetualAdapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT"
-        assert KucoinPerpetualAdapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC"
+        return trading_pair
 
-    def test_get_rest_url(self):
-        """Test REST URL retrieval."""
-        assert KucoinPerpetualAdapter.get_rest_url() == f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
+    def get_expected_rest_url(self):
+        """Return the expected REST URL for the adapter."""
+        return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
-    def test_get_ws_url(self):
-        """Test WebSocket URL retrieval."""
-        assert KucoinPerpetualAdapter.get_ws_url() == PERPETUAL_WSS_URL
+    def get_expected_ws_url(self):
+        """Return the expected WebSocket URL for the adapter."""
+        return PERPETUAL_WSS_URL
 
-    def test_get_rest_params_minimal(self):
-        """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+    def get_expected_rest_params_minimal(self, trading_pair, interval):
+        """Return the expected minimal REST params for the adapter."""
+        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "granularity": perp_interval,
+        }
 
-        assert params["symbol"] == self.trading_pair
-        assert params["granularity"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
-            self.interval, self.interval
-        )
-        assert "from" not in params
-        assert "to" not in params
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+        # KuCoin perpetual uses from/to instead of startAt/endAt for timestamps
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "granularity": perp_interval,
+            "from": start_time * 1000,  # KuCoin uses milliseconds
+            "to": end_time * 1000,      # KuCoin uses milliseconds
+        }
+        # Perpetual doesn't use limit parameter
+        return params
 
-    def test_get_rest_params_full(self):
-        """Test REST params with all parameters."""
-        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+        """Return the expected WebSocket subscription payload for the adapter."""
+        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+        # For KuCoin we need to check key presence rather than exact values since ID is dynamic
+        return {
+            "type": "subscribe",
+            "topic": f"/contractMarket/candle:{trading_pair}_{perp_interval}",
+            "privateChannel": False,
+            "response": True,
+        }
 
-        params = self.adapter.get_rest_params(
-            self.trading_pair, self.interval, start_time=start_time, end_time=end_time
-        )
+    # Override the BaseAdapterTest method for WebSocket subscription payload
+    # KuCoin has a dynamic ID field we need to handle specially
+    def test_get_ws_subscription_payload(self, adapter, trading_pair, interval):
+        """Test WebSocket subscription payload generation."""
+        payload = adapter.get_ws_subscription_payload(trading_pair, interval)
 
-        assert params["symbol"] == self.trading_pair
-        assert params["granularity"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
-            self.interval, self.interval
-        )
-        assert params["from"] == start_time * 1000  # Converted to milliseconds
-        assert params["to"] == end_time * 1000  # Converted to milliseconds
+        # Verify structure
+        assert isinstance(payload, dict)
+        assert "id" in payload
+        assert isinstance(payload["id"], int)
+        assert payload["type"] == "subscribe"
 
-    def test_parse_rest_response(self):
-        """Test parsing REST API response."""
-        # Create a sample perpetual response
-        timestamp = 1672531200  # 2023-01-01 00:00:00 UTC
+        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+        assert payload["topic"] == f"/contractMarket/candle:{trading_pair}_{perp_interval}"
+        assert payload["privateChannel"] is False
+        assert payload["response"] is True
+
+    # Additional tests specific to KuCoin perpetual adapter
+    def test_kucoin_perpetual_rest_response_parsing(self, adapter):
+        """Test KuCoin perpetual-specific REST response parsing."""
+        # Create a custom response in KuCoin perpetual format
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+
         response = {
+            "code": "200000",
+            "data": [
+                [
+                    base_time,  # KuCoin Perpetual uses numeric values
+                    50000.0,  # open
+                    50500.0,  # close
+                    51000.0,  # high
+                    49000.0,  # low
+                    100.0,    # volume
+                    5000000.0 # turnover
+                ],
+                [
+                    base_time + 60,
+                    50500.0,  # open
+                    51500.0,  # close
+                    52000.0,  # high
+                    50000.0,  # low
+                    150.0,    # volume
+                    7500000.0 # turnover
+                ]
+            ]
+        }
+
+        candles = adapter._parse_rest_response(response)
+
+        # Verify response parsing
+        assert len(candles) == 2
+
+        # Check first candle
+        assert candles[0].timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
+        assert candles[0].open == 50000.0
+        assert candles[0].high == 51000.0
+        assert candles[0].low == 49000.0
+        assert candles[0].close == 50500.0
+        assert candles[0].volume == 100.0
+        assert candles[0].quote_asset_volume == 5000000.0
+
+    def test_kucoin_perpetual_ws_message_parsing(self, adapter):
+        """Test KuCoin perpetual-specific WebSocket message parsing."""
+        # Create a custom WebSocket message in KuCoin perpetual format
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+
+        message = {
+            "type": "message",
+            "topic": f"/contractMarket/candle:BTC-USDT_{INTERVAL_TO_EXCHANGE_FORMAT.get('1m', '1m')}",
+            "subject": "candle.update",
+            "data": {
+                "symbol": "BTC-USDT",
+                "candles": [
+                    str(base_time),
+                    "50000.0",  # open
+                    "50500.0",  # close
+                    "51000.0",  # high
+                    "49000.0",  # low
+                    "100.0",    # volume
+                    "5000000.0" # turnover
+                ]
+            }
+        }
+
+        candles = adapter.parse_ws_message(message)
+
+        # Verify message parsing
+        assert candles is not None
+        assert len(candles) == 1
+
+        candle = candles[0]
+        assert candle.timestamp == 1672531200  # 2023-01-01 00:00:00 UTC in seconds
+        assert candle.open == 50000.0
+        assert candle.high == 51000.0
+        assert candle.low == 49000.0
+        assert candle.close == 50500.0
+        assert candle.volume == 100.0
+        assert candle.quote_asset_volume == 5000000.0
+
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        # For perpetual, KuCoin uses numeric values, not strings
+        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+
+        return {
             "code": "200000",
             "data": [
                 [
@@ -82,8 +188,8 @@ class TestKuCoinPerpetualAdapter:
                     50500.0,  # close
                     51000.0,  # high
                     49000.0,  # low
-                    100.0,  # volume
-                    5000000.0,  # turnover
+                    100.0,    # volume
+                    5000000.0 # turnover
                 ],
                 [
                     timestamp + 60,
@@ -91,129 +197,165 @@ class TestKuCoinPerpetualAdapter:
                     51500.0,  # close
                     52000.0,  # high
                     50000.0,  # low
-                    150.0,  # volume
-                    7500000.0,  # turnover
+                    150.0,    # volume
+                    7500000.0 # turnover
                 ],
-            ],
+            ]
         }
 
-        candles = self.adapter.parse_rest_response(response)
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
 
-        # Verify response parsing
-        assert len(candles) == 2
-
-        # Check first candle
-        assert candles[0].timestamp == timestamp
-        assert candles[0].open == 50000.0
-        assert candles[0].high == 51000.0
-        assert candles[0].low == 49000.0
-        assert candles[0].close == 50500.0
-        assert candles[0].volume == 100.0
-        assert candles[0].quote_asset_volume == 5000000.0
-
-        # Check second candle
-        assert candles[1].timestamp == timestamp + 60
-        assert candles[1].open == 50500.0
-        assert candles[1].high == 52000.0
-        assert candles[1].low == 50000.0
-        assert candles[1].close == 51500.0
-        assert candles[1].volume == 150.0
-        assert candles[1].quote_asset_volume == 7500000.0
-
-    def test_parse_rest_response_empty(self):
-        """Test parsing empty REST API response."""
-        response = {"code": "200000", "data": []}
-        candles = self.adapter.parse_rest_response(response)
-        assert candles == []
-
-    @patch("time.time")
-    def test_get_ws_subscription_payload(self, mock_time):
-        """Test WebSocket subscription payload generation."""
-        mock_time.return_value = 1672531200.0
-        payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
-
-        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
-        assert payload["id"] == 1672531200000  # Fixed timestamp from mock
-        assert payload["type"] == "subscribe"
-        assert payload["topic"] == f"/contractMarket/candle:{self.trading_pair}_{perp_interval}"
-        assert payload["privateChannel"] is False
-        assert payload["response"] is True
-
-    def test_parse_ws_message_valid(self):
-        """Test parsing valid WebSocket message."""
-        # Create a sample perpetual websocket message
-        timestamp = 1672531200  # 2023-01-01 00:00:00 UTC
-        message = {
+        return {
             "type": "message",
-            "topic": f"/contractMarket/candle:{self.trading_pair}_{INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)}",
+            "topic": f"/contractMarket/candle:BTC-USDT_{INTERVAL_TO_EXCHANGE_FORMAT.get('1m', '1m')}",
             "subject": "candle.update",
             "data": {
-                "symbol": self.trading_pair,
+                "symbol": "BTC-USDT",
                 "candles": [
                     str(timestamp),
                     "50000.0",  # open
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",  # volume
-                    "5000000.0",  # turnover
+                    "100.0",    # volume
+                    "5000000.0" # turnover
                 ],
-            },
+            }
         }
 
-        candles = self.adapter.parse_ws_message(message)
+    # Additional test cases specific to KucoinPerpetualAdapter
 
-        # Verify message parsing
-        assert candles is not None
+    def test_timestamp_in_milliseconds(self, adapter):
+        """Test that timestamps are correctly handled in milliseconds."""
+        assert adapter.TIMESTAMP_UNIT == "milliseconds"
+
+        # Test timestamp conversion methods
+        timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
+
+        # To exchange should convert to milliseconds
+        assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_seconds * 1000
+
+        # Ensure timestamp is in seconds regardless of input format
+        assert adapter.ensure_timestamp_in_seconds(timestamp_seconds * 1000) == timestamp_seconds
+        assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
+        assert adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+
+    @patch("time.time")
+    def test_websocket_subscription_id(self, mock_time, adapter):
+        """Test that WebSocket subscription ID is based on current time."""
+        fixed_time = 1622505600.0
+        mock_time.return_value = fixed_time
+
+        payload = adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        assert payload["id"] == int(fixed_time * 1000)  # Should be current time in milliseconds
+
+    def test_interval_mapping(self, adapter):
+        """Test interval mapping for KuCoin perpetual."""
+        # For REST requests, KuCoin perpetual uses different interval format
+        assert INTERVAL_TO_EXCHANGE_FORMAT["1m"] == "1min"
+        assert INTERVAL_TO_EXCHANGE_FORMAT["1h"] == "1hour"
+        assert INTERVAL_TO_EXCHANGE_FORMAT["1d"] == "1day"
+
+        # Verify we're using the mapping in the adapter
+        params = adapter._get_rest_params("BTC-USDT", "1m")
+        assert params["granularity"] == "1min"
+
+        params = adapter._get_rest_params("BTC-USDT", "1h")
+        assert params["granularity"] == "1hour"
+
+    def test_perpetual_rest_parameters(self, adapter):
+        """Test that the REST parameters are correctly formed for perpetual."""
+        # Perpetual uses from/to instead of startAt/endAt
+        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
+        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+
+        params = adapter._get_rest_params("BTC-USDT", "1m", start_time=start_time, end_time=end_time)
+
+        assert "from" in params
+        assert "to" in params
+        assert params["from"] == start_time * 1000
+        assert params["to"] == end_time * 1000
+        assert "limit" not in params  # Perpetual doesn't use limit parameter
+
+    # Override the BaseAdapterTest method for WebSocket supported intervals
+    # KuCoin is special because it only supports 1m interval for WebSocket
+    def test_get_ws_supported_intervals(self, adapter):
+        """Test getting WebSocket supported intervals."""
+        ws_intervals = adapter.get_ws_supported_intervals()
+
+        # Basic validation
+        assert isinstance(ws_intervals, list)
+
+        # For KuCoin, we only expect 1m interval
+        assert ws_intervals == ["1m"]
+
+    # Override the BaseAdapterTest method for async test
+    @pytest.mark.asyncio
+    async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
+        """Custom test for fetch_rest_candles_async for KuCoin perpetual."""
+        # Skip test for SyncOnlyAdapter adapters
+        with contextlib.suppress(ImportError):
+            from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+            if isinstance(adapter, SyncOnlyAdapter):
+                pytest.skip("Test only applicable for async adapters")
+
+        # Create a custom mock response
+        mock_response = self.get_mock_candlestick_response()
+
+        # Create a mock network client
+        mock_client = mock.MagicMock()
+        mock_client.get_rest_data = mock.AsyncMock(return_value=mock_response)
+
+        # Call the async method
+        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+
+        # Basic validation
+        assert isinstance(candles, list)
+        assert all(isinstance(candle, CandleData) for candle in candles)
+        assert len(candles) > 0
+
+        # Verify the network client was called correctly
+        mock_client.get_rest_data.assert_called_once()
+        args, kwargs = mock_client.get_rest_data.call_args
+        assert kwargs['url'] == adapter._get_rest_url()
+
+        # Verify that params were passed (without exact comparison)
+        assert "symbol" in kwargs['params']
+        assert kwargs['params']["symbol"] == trading_pair
+        assert "granularity" in kwargs['params']
+        assert kwargs['params']["granularity"] == INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+
+    def test_rest_response_field_mapping(self, adapter):
+        """Test specific field mapping for perpetual REST response."""
+        timestamp = 1672531200  # 2023-01-01 00:00:00 UTC
+
+        # Perpetual has a different field order from spot
+        response = {
+            "code": "200000",
+            "data": [
+                [
+                    timestamp,
+                    50000.0,   # open [1]
+                    50500.0,   # close [2]
+                    51000.0,   # high [3]
+                    49000.0,   # low [4]
+                    100.0,     # volume [5]
+                    5000000.0  # turnover [6]
+                ]
+            ]
+        }
+
+        candles = adapter._parse_rest_response(response)
         assert len(candles) == 1
 
+        # Verify correct field mapping
         candle = candles[0]
-        assert candle.timestamp == timestamp
+        assert candle.timestamp == timestamp  # In seconds
         assert candle.open == 50000.0
+        assert candle.close == 50500.0
         assert candle.high == 51000.0
         assert candle.low == 49000.0
-        assert candle.close == 50500.0
         assert candle.volume == 100.0
         assert candle.quote_asset_volume == 5000000.0
-
-    def test_parse_ws_message_invalid(self):
-        """Test parsing invalid WebSocket message."""
-        # Test with non-candle message
-        ws_message = {"type": "message", "topic": "/contractMarket/ticker"}
-        candles = self.adapter.parse_ws_message(ws_message)
-        assert candles is None
-
-        # Test with None
-        candles = self.adapter.parse_ws_message(None)
-        assert candles is None
-
-        # Test with missing candles field
-        ws_message = {
-            "type": "message",
-            "topic": f"/contractMarket/candle:{self.trading_pair}_1min",
-            "data": {"symbol": self.trading_pair},
-        }
-        candles = self.adapter.parse_ws_message(ws_message)
-        assert candles is None
-
-    def test_get_supported_intervals(self):
-        """Test getting supported intervals."""
-        intervals = KucoinPerpetualAdapter.get_supported_intervals()
-
-        # Verify intervals match the expected values
-        assert intervals == INTERVALS
-        assert "1m" in intervals
-        assert intervals["1m"] == 60
-        assert "1h" in intervals
-        assert intervals["1h"] == 3600
-        assert "1d" in intervals
-        assert intervals["1d"] == 86400
-
-    def test_get_ws_supported_intervals(self):
-        """Test getting WebSocket supported intervals."""
-        ws_intervals = KucoinPerpetualAdapter.get_ws_supported_intervals()
-
-        # Verify WS intervals match the expected values
-        assert ws_intervals == WS_INTERVALS
-        assert "1m" in ws_intervals
-        assert len(ws_intervals) == 1  # KuCoin only supports 1m in WebSocket

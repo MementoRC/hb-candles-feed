@@ -27,18 +27,26 @@ INTERVAL_TO_EXCHANGE_FORMAT = {k: k for k in INTERVALS}
 # Websocket supported intervals
 WS_INTERVALS = list(INTERVALS.keys())
 
-# API rate limits 
+# API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
 # API URLs and endpoints
-# Spot
+# Spot Production
 SPOT_REST_URL = "https://api.binance.com"
 SPOT_CANDLES_ENDPOINT = "/api/v3/klines"
 SPOT_WSS_URL = "wss://stream.binance.com:9443/ws"
 SPOT_HEALTH_CHECK_ENDPOINT = "/api/v3/ping"
 
-# Perpetual
+# Spot Testnet
+SPOT_TESTNET_REST_URL = "https://testnet.binance.vision"
+SPOT_TESTNET_WSS_URL = "wss://testnet.binance.vision/ws"
+
+# Perpetual Production
 PERPETUAL_REST_URL = "https://fapi.binance.com"
 PERPETUAL_CANDLES_ENDPOINT = "/fapi/v1/klines"
 PERPETUAL_WSS_URL = "wss://fstream.binance.com/ws"
 PERPETUAL_HEALTH_CHECK_ENDPOINT = "/fapi/v1/ping"
+
+# Perpetual Testnet
+PERPETUAL_TESTNET_REST_URL = "https://testnet.binancefuture.com"
+PERPETUAL_TESTNET_WSS_URL = "wss://stream.binancefuture.com/ws"

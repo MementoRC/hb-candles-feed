@@ -4,14 +4,15 @@ Base plugin for AscendEx exchange plugins.
 
 from abc import ABC
 from typing import Any
+
 from aiohttp import web
 
-from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.ascend_ex.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     SPOT_REST_URL,
-    SPOT_WSS_URL
+    SPOT_WSS_URL,
 )
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
@@ -88,10 +89,10 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
         #     }
         #   ]
         # }
-        
+
         exchange_symbol = trading_pair.replace("-", "/")
-        exchange_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
-        
+        INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+
         formatted_candles = []
         for c in candles:
             formatted_candles.append({
@@ -106,7 +107,7 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
                     "v": str(c.quote_asset_volume)
                 }
             })
-        
+
         return {
             "code": 0,
             "data": formatted_candles
@@ -137,9 +138,9 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
         #     "v": "525000"
         #   }
         # }
-        
+
         exchange_symbol = trading_pair.replace("-", "/")
-        
+
         return {
             "m": "bar",
             "s": exchange_symbol,
@@ -161,13 +162,13 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         subscriptions = []
-        
+
         # AscendEx uses an op and ch format:
         # {
         #   "op": "sub",
         #   "ch": "bar:1:BTC/USDT"
         # }
-        
+
         if message.get("op") == "sub" and "ch" in message:
             ch = message["ch"]
             if ch.startswith("bar:"):
@@ -175,18 +176,18 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
                 if len(parts) >= 3:
                     interval = parts[1]
                     symbol = parts[2]
-                    
+
                     # Convert exchange interval to standard interval
                     for std_interval, exchange_interval in INTERVAL_TO_EXCHANGE_FORMAT.items():
                         if exchange_interval == interval:
                             interval = std_interval
                             break
-                    
+
                     # Convert symbol to standardized format (e.g., BTC-USDT)
                     symbol = symbol.replace("/", "-")
-                    
+
                     subscriptions.append((symbol, interval))
-                    
+
         return subscriptions
 
     def create_ws_subscription_success(
@@ -227,24 +228,24 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names.
         """
         params = request.query
-        
+
         # Get all AscendEx parameters
         symbol = params.get("symbol")
         interval = params.get("interval")
         n = params.get("n")
         to = params.get("to")
-        
+
         if symbol:
             # Convert symbol from AscendEx format (BTC/USDT) to standard format (BTC-USDT)
             symbol = symbol.replace("/", "-")
-        
+
         if interval:
             # Convert interval from AscendEx format to standard format
             for std_interval, exchange_interval in INTERVAL_TO_EXCHANGE_FORMAT.items():
                 if exchange_interval == interval:
                     interval = std_interval
                     break
-        
+
         if n is not None:
             try:
                 n = int(n)
@@ -252,14 +253,14 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
                     n = 500
             except ValueError:
                 n = 500  # Default limit
-                    
+
         # Map AscendEx parameters to generic parameters expected by handle_klines
         return {
-            "symbol": symbol,            
-            "interval": interval,        
-            "end_time": to,         
-            "limit": n,              
-            
+            "symbol": symbol,
+            "interval": interval,
+            "end_time": to,
+            "limit": n,
+
             # Also keep the original parameter names for reference
             "to": to,
             "n": n,

@@ -1,6 +1,10 @@
 """
-Unit tests for the MEXCPerpetualAdapter class.
+Unit tests for the MEXCPerpetualAdapter class using the BaseAdapterTest class.
 """
+
+import contextlib
+from datetime import datetime, timezone
+from unittest import mock
 
 import pytest
 
@@ -11,84 +15,161 @@ from candles_feed.adapters.mexc.constants import (
     PERP_KLINE_TOPIC,
     PERP_REST_URL,
     PERP_WSS_URL,
+    SUB_ENDPOINT_NAME,
     WS_INTERVALS,
 )
 from candles_feed.adapters.mexc.perpetual_adapter import MEXCPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
+from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
-class TestMEXCPerpetualAdapter:
-    """Test suite for the MEXCPerpetualAdapter class."""
+class TestMEXCPerpetualAdapter(BaseAdapterTest):
+    """Test suite for the MEXCPerpetualAdapter class using the base adapter test class."""
 
-    def setup_method(self):
-        """Setup method called before each test."""
-        self.adapter = MEXCPerpetualAdapter()
-        self.trading_pair = "BTC-USDT"
-        self.interval = "1m"
+    def create_adapter(self):
+        """Create an instance of the adapter to test."""
+        return MEXCPerpetualAdapter()
 
-    def test_get_trading_pair_format(self):
-        """Test trading pair format conversion."""
-        # Test standard case
-        assert MEXCPerpetualAdapter.get_trading_pair_format("BTC-USDT") == "BTC_USDT"
+    def get_expected_trading_pair_format(self, trading_pair):
+        """Return the expected trading pair format for the adapter."""
+        return trading_pair.replace("-", "_")
 
+    def get_expected_rest_url(self):
+        """Return the expected REST URL for the adapter."""
+        return PERP_REST_URL
+
+    def get_expected_ws_url(self):
+        """Return the expected WebSocket URL for the adapter."""
+        return PERP_WSS_URL
+
+    def get_expected_rest_params_minimal(self, trading_pair, interval):
+        """Return the expected minimal REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
+            "size": limit,
+            "start": start_time,  # MEXC perpetual uses seconds
+            "end": end_time,      # MEXC perpetual uses seconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+        """Return the expected WebSocket subscription payload for the adapter."""
+        symbol = self.get_expected_trading_pair_format(trading_pair).replace("_", "").lower()
+        mexc_interval = INTERVAL_TO_PERPETUAL_FORMAT.get(interval, interval)
+
+        return {
+            "method": SUB_ENDPOINT_NAME,
+            "params": [f"{PERP_KLINE_TOPIC}{mexc_interval}_{symbol}"],
+        }
+
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())  # In seconds for perpetual
+
+        return {
+            "success": True,
+            "code": 0,
+            "data": [
+                {
+                    "time": base_time,
+                    "open": "50000.0",
+                    "close": "50500.0",
+                    "high": "51000.0",
+                    "low": "49000.0",
+                    "vol": "100.0",
+                    "amount": "5000000.0",
+                },
+                {
+                    "time": base_time + 60,
+                    "open": "50500.0",
+                    "close": "51500.0",
+                    "high": "52000.0",
+                    "low": "50000.0",
+                    "vol": "150.0",
+                    "amount": "7500000.0",
+                },
+            ],
+        }
+
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())  # In seconds for perpetual
+
+        return {
+            "channel": "push.kline",
+            "data": {
+                "a": "5000000.0",  # amount (quote volume)
+                "c": "50500.0",  # close
+                "h": "51000.0",  # high
+                "interval": "Min1",  # interval
+                "l": "49000.0",  # low
+                "o": "50000.0",  # open
+                "q": "0",  # ignore
+                "symbol": "BTC_USDT",  # symbol
+                "t": base_time,  # timestamp
+                "v": "100.0",  # volume
+            },
+            "symbol": "BTC_USDT",
+        }
+
+    # Additional test cases specific to MEXCPerpetualAdapter
+
+    def test_custom_trading_pair_format(self, adapter):
+        """Test trading pair format for various cases."""
         # Test with multiple hyphens
-        assert MEXCPerpetualAdapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
+        assert adapter.get_trading_pair_format("BTC-USDT-PERP") == "BTC_USDT_PERP"
 
         # Test with lowercase
-        assert MEXCPerpetualAdapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
+        assert adapter.get_trading_pair_format("btc-usdt") == "btc_usdt"
 
-    def test_get_rest_url(self):
-        """Test REST API URL retrieval."""
-        assert MEXCPerpetualAdapter.get_rest_url() == PERP_REST_URL
-
-    def test_get_ws_url(self):
-        """Test WebSocket URL retrieval."""
-        assert MEXCPerpetualAdapter.get_ws_url() == PERP_WSS_URL
-
-    def test_get_kline_topic(self):
+    def test_get_kline_topic(self, adapter):
         """Test kline topic retrieval."""
-        assert self.adapter.get_kline_topic() == PERP_KLINE_TOPIC
+        assert adapter.get_kline_topic() == PERP_KLINE_TOPIC
 
-    def test_get_interval_format(self):
+    def test_get_interval_format(self, adapter):
         """Test getting interval format."""
         # Test standard intervals
-        assert self.adapter.get_interval_format("1m") == "Min1"
-        assert self.adapter.get_interval_format("1h") == "Min60"
-        assert self.adapter.get_interval_format("1d") == "Day1"
+        assert adapter.get_interval_format("1m") == "Min1"
+        assert adapter.get_interval_format("1h") == "Min60"
+        assert adapter.get_interval_format("1d") == "Day1"
 
         # Test fallback
-        assert self.adapter.get_interval_format("unknown") == "unknown"
+        assert adapter.get_interval_format("unknown") == "unknown"
 
-    def test_get_rest_params_minimal(self):
-        """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+    def test_supported_intervals(self, adapter):
+        """Test getting supported intervals."""
+        intervals = adapter.get_supported_intervals()
 
-        assert params["symbol"] == "BTC_USDT"
-        assert params["interval"] == INTERVAL_TO_PERPETUAL_FORMAT.get(self.interval)
-        assert "start" not in params
-        assert "end" not in params
-        assert "size" not in params
+        # Verify intervals match the expected values
+        assert intervals == INTERVALS
+        assert "1m" in intervals
+        assert intervals["1m"] == 60
+        assert "1h" in intervals
+        assert intervals["1h"] == 3600
+        assert "1d" in intervals
+        assert intervals["1d"] == 86400
 
-    def test_get_rest_params_full(self):
-        """Test REST params with all parameters."""
-        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
-        limit = 500
+    def test_ws_supported_intervals(self, adapter):
+        """Test getting WebSocket supported intervals."""
+        ws_intervals = adapter.get_ws_supported_intervals()
 
-        params = self.adapter.get_rest_params(
-            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
-        )
+        # Verify WS intervals match the expected values
+        assert ws_intervals == WS_INTERVALS
+        assert "1m" in ws_intervals
+        assert "1h" in ws_intervals
 
-        assert params["symbol"] == "BTC_USDT"
-        assert params["interval"] == INTERVAL_TO_PERPETUAL_FORMAT.get(self.interval)
-        assert params["size"] == limit
-        assert params["start"] == start_time  # Already in seconds
-        assert params["end"] == end_time  # Already in seconds
+    def test_parse_rest_response_field_mapping(self, adapter):
+        """Test field mapping for REST API response parsing."""
+        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
 
-    def test_parse_rest_response(self):
-        """Test parsing REST API response."""
-        # Create a sample contract REST response
-        timestamp = 1672531200  # 2023-01-01 00:00:00 UTC
+        # Create a mock response data
         response = {
             "success": True,
             "code": 0,
@@ -101,70 +182,30 @@ class TestMEXCPerpetualAdapter:
                     "low": "49000.0",
                     "vol": "100.0",
                     "amount": "5000000.0",
-                },
-                {
-                    "time": timestamp + 60,
-                    "open": "50500.0",
-                    "close": "51500.0",
-                    "high": "52000.0",
-                    "low": "50000.0",
-                    "vol": "150.0",
-                    "amount": "7500000.0",
-                },
+                }
             ],
         }
 
-        candles = self.adapter.parse_rest_response(response)
+        candles = adapter._parse_rest_response(response)
 
-        # Verify response parsing
-        assert len(candles) == 2
+        # Verify correct parsing
+        assert len(candles) == 1
+        candle = candles[0]
 
-        # Check first candle
-        assert candles[0].timestamp == timestamp
-        assert candles[0].open == 50000.0
-        assert candles[0].high == 51000.0
-        assert candles[0].low == 49000.0
-        assert candles[0].close == 50500.0
-        assert candles[0].volume == 100.0
-        assert candles[0].quote_asset_volume == 5000000.0
+        # Verify field mapping
+        assert candle.timestamp == timestamp  # Should already be in seconds
+        assert candle.open == 50000.0
+        assert candle.high == 51000.0
+        assert candle.low == 49000.0
+        assert candle.close == 50500.0
+        assert candle.volume == 100.0
+        assert candle.quote_asset_volume == 5000000.0
 
-        # Check second candle
-        assert candles[1].timestamp == timestamp + 60
-        assert candles[1].open == 50500.0
-        assert candles[1].high == 52000.0
-        assert candles[1].low == 50000.0
-        assert candles[1].close == 51500.0
-        assert candles[1].volume == 150.0
-        assert candles[1].quote_asset_volume == 7500000.0
+    def test_parse_ws_message_field_mapping(self, adapter):
+        """Test field mapping for WebSocket message parsing."""
+        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
 
-    def test_parse_rest_response_none(self):
-        """Test parsing None REST API response."""
-        candles = self.adapter.parse_rest_response(None)
-        assert candles == []
-
-    def test_parse_rest_response_invalid(self):
-        """Test parsing invalid REST API response."""
-        # Test with missing data field
-        candles = self.adapter.parse_rest_response({"success": True})
-        assert candles == []
-
-        # Test with non-list data field
-        candles = self.adapter.parse_rest_response({"success": True, "data": "not a list"})
-        assert candles == []
-
-    def test_get_ws_subscription_payload(self):
-        """Test WebSocket subscription payload generation."""
-        payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
-
-        assert payload["method"] == "sub"
-        mexc_interval = INTERVAL_TO_PERPETUAL_FORMAT.get(self.interval, self.interval)
-        expected_topic = f"{PERP_KLINE_TOPIC}{mexc_interval}_btcusdt"
-        assert payload["params"][0] == expected_topic
-
-    def test_parse_ws_message_valid(self):
-        """Test parsing valid WebSocket message."""
-        # Create a sample contract WebSocket message
-        timestamp = 1672531200  # 2023-01-01 00:00:00 UTC
+        # Create a mock WebSocket message
         message = {
             "channel": "push.kline",
             "data": {
@@ -182,14 +223,15 @@ class TestMEXCPerpetualAdapter:
             "symbol": "BTC_USDT",
         }
 
-        candles = self.adapter.parse_ws_message(message)
+        candles = adapter.parse_ws_message(message)
 
-        # Verify message parsing
+        # Verify correct parsing
         assert candles is not None
         assert len(candles) == 1
-
         candle = candles[0]
-        assert candle.timestamp == timestamp
+
+        # Verify field mapping
+        assert candle.timestamp == timestamp  # Should already be in seconds
         assert candle.open == 50000.0
         assert candle.high == 51000.0
         assert candle.low == 49000.0
@@ -197,40 +239,70 @@ class TestMEXCPerpetualAdapter:
         assert candle.volume == 100.0
         assert candle.quote_asset_volume == 5000000.0
 
-    def test_parse_ws_message_invalid(self):
+    def test_parse_ws_message_invalid(self, adapter):
         """Test parsing invalid WebSocket message."""
         # Test with non-candle message
         ws_message = {"channel": "push.ticker", "data": "some_data"}
-        candles = self.adapter.parse_ws_message(ws_message)
+        candles = adapter.parse_ws_message(ws_message)
         assert candles is None
 
         # Test with None
-        candles = self.adapter.parse_ws_message(None)
+        candles = adapter.parse_ws_message(None)
         assert candles is None
 
         # Test with missing data
         ws_message = {"channel": "push.kline"}
-        candles = self.adapter.parse_ws_message(ws_message)
+        candles = adapter.parse_ws_message(ws_message)
         assert candles is None
 
-    def test_get_supported_intervals(self):
-        """Test getting supported intervals."""
-        intervals = MEXCPerpetualAdapter.get_supported_intervals()
+    def test_timestamp_conversion(self, adapter):
+        """Test timestamp conversion in MEXC format."""
+        # For perpetual adapter, MEXC already uses seconds
+        timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
 
-        # Verify intervals match the expected values
-        assert intervals == INTERVALS
-        assert "1m" in intervals
-        assert intervals["1m"] == 60
-        assert "1h" in intervals
-        assert intervals["1h"] == 3600
-        assert "1d" in intervals
-        assert intervals["1d"] == 86400
+        # To exchange should keep as seconds for perpetual
+        assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_seconds
 
-    def test_get_ws_supported_intervals(self):
-        """Test getting WebSocket supported intervals."""
-        ws_intervals = MEXCPerpetualAdapter.get_ws_supported_intervals()
+        # Ensure timestamp is in seconds regardless of input format
+        assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
+        assert adapter.ensure_timestamp_in_seconds(timestamp_seconds * 1000) == timestamp_seconds
 
-        # Verify WS intervals match the expected values
-        assert ws_intervals == WS_INTERVALS
-        assert "1m" in ws_intervals
-        assert "1h" in ws_intervals
+    @pytest.mark.asyncio
+    async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
+        """Test fetch_rest_candles async method for MEXCPerpetualAdapter."""
+        # Skip test for SyncOnlyAdapter adapters
+        with contextlib.suppress(ImportError):
+            from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+            if isinstance(adapter, SyncOnlyAdapter):
+                pytest.skip("Test only applicable for async adapters")
+
+        # Create a mock network client
+        mock_client = mock.MagicMock()
+        mock_client.get_rest_data = mock.AsyncMock(return_value=self.get_mock_candlestick_response())
+
+        # Call the async method
+        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+
+        # Basic validation
+        assert isinstance(candles, list)
+        assert all(isinstance(candle, CandleData) for candle in candles)
+        assert len(candles) > 0
+
+        # Verify the network client was called correctly
+        mock_client.get_rest_data.assert_called_once()
+        args, kwargs = mock_client.get_rest_data.call_args
+        assert kwargs['url'] == adapter._get_rest_url()
+
+        # Just verify that params were passed without checking the exact content
+        assert 'params' in kwargs
+        assert isinstance(kwargs['params'], dict)
+
+    def test_parse_rest_response_invalid(self, adapter):
+        """Test parsing invalid REST API response."""
+        # Test with missing data field
+        candles = adapter._parse_rest_response({"success": True})
+        assert candles == []
+
+        # Test with non-list data field
+        candles = adapter._parse_rest_response({"success": True, "data": "not a list"})
+        assert candles == []

@@ -161,7 +161,7 @@ class TestBinanceBaseAdapter:
         assert intervals["1h"] == 3600
         assert "1d" in intervals
         assert intervals["1d"] == 86400
-        
+
     def test_get_ws_url_calls_implementation(self):
         """Test that get_ws_url calls the _get_ws_url implementation."""
         # Verify that the public get_ws_url method correctly calls the private implementation

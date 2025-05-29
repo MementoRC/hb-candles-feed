@@ -6,8 +6,8 @@ to reduce code duplication across spot and perpetual markets.
 """
 from abc import abstractmethod
 
-from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
 
@@ -28,18 +28,16 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
 
-    @staticmethod
     @abstractmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
         :returns: WebSocket URL

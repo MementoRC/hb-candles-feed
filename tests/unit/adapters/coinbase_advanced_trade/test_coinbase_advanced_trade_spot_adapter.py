@@ -2,17 +2,20 @@
 Tests for the CoinbaseAdvancedTradeSpotAdapter using the base adapter test class.
 """
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import CoinbaseAdvancedTradeSpotAdapter
+import pytest
+
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
+)
+from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
+    CoinbaseAdvancedTradeSpotAdapter,
 )
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
@@ -63,7 +66,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
         base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
-        
+
         return {
             "candles": [
                 {
@@ -88,7 +91,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
         base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
-        
+
         return {
             "channel": "candles",
             "client_id": "test-client",
@@ -110,18 +113,18 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
                 }
             ],
         }
-    
+
     # Override test_parse_rest_response_none to handle None properly
     def test_parse_rest_response_none(self, adapter):
         """Test parsing None REST API response."""
         with patch.object(adapter, '_parse_rest_response', return_value=[]):
             candles = adapter._parse_rest_response(None)
             assert candles == []
-    
+
     # Override test_get_supported_intervals to handle Coinbase's specific intervals
     def test_get_supported_intervals(self, adapter):
         """Test getting supported intervals."""
-        # Patch the adapter's get_supported_intervals method to return intervals 
+        # Patch the adapter's get_supported_intervals method to return intervals
         # that include the required ones for the test
         extended_intervals = {
             "1m": 60,
@@ -133,47 +136,47 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
         }
         with patch.object(adapter, 'get_supported_intervals', return_value=extended_intervals):
             intervals = adapter.get_supported_intervals()
-            
+
             # Basic validation
             assert isinstance(intervals, dict)
             assert len(intervals) > 0
-            
+
             # Common intervals that should be supported by all exchanges
             common_intervals = ["1m", "5m", "15m", "1h", "4h", "1d"]
             for interval in common_intervals:
                 assert interval in intervals
                 assert isinstance(intervals[interval], int)
                 assert intervals[interval] > 0
-            
+
     # Additional test cases specific to CoinbaseAdvancedTradeSpotAdapter
-    
+
     def test_coinbase_advanced_trade_specific_timestamp_handling(self, adapter):
         """Test Coinbase Advanced Trade-specific timestamp handling."""
         # Coinbase uses seconds for timestamps
         assert adapter.TIMESTAMP_UNIT == "seconds"
-        
+
         # Test conversion (should be identity since Coinbase uses seconds)
         timestamp_seconds = 1622505600  # 2021-06-01 00:00:00 UTC
-        
+
         # Convert to exchange format (should remain in seconds)
         assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_seconds
-        
+
         # Convert from exchange format (should remain in seconds)
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
-        
+
     def test_coinbase_advanced_trade_iso_datetime_parsing(self, adapter):
         """Test Coinbase Advanced Trade-specific ISO datetime parsing."""
         # Test parsing ISO datetime strings
         iso_datetime = "2023-01-01T00:00:00Z"
         timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-        
+
         # Create a simple object with ISO datetime string
         test_data = {"timestamp": iso_datetime}
-        
+
         # Ensure the adapter can handle ISO datetime strings
         result = adapter.ensure_timestamp_in_seconds(test_data.get("timestamp"))
         assert result == timestamp
-    
+
     @pytest.mark.asyncio
     @patch.object(CoinbaseAdvancedTradeSpotAdapter, '_get_rest_url')
     async def test_fetch_rest_candles_custom(self, mock_get_rest_url, adapter, trading_pair, interval):
@@ -181,28 +184,28 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
         # Mock the URL to be pre-formatted with the trading pair
         formatted_url = f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}".format(product_id=trading_pair)
         mock_get_rest_url.return_value = formatted_url
-        
+
         # Create a mock network client
         mock_client = MagicMock()
         mock_client.get_rest_data = AsyncMock()
-        
+
         # Configure the mock to return a specific response when called
         response_data = self.get_mock_candlestick_response()
         mock_client.get_rest_data.return_value = response_data
-        
+
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
             trading_pair=trading_pair,
             interval=interval,
             network_client=mock_client
         )
-        
+
         # Verify the result
         assert len(candles) == 2
-        
+
         # Check that the mock was called with the correct parameters
         params = adapter._get_rest_params(trading_pair, interval)
-        
+
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
         assert kwargs['url'] == formatted_url

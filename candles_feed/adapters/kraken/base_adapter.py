@@ -3,8 +3,8 @@ Kraken spot exchange adapter for the Candle Feed framework.
 """
 from abc import abstractmethod
 
-from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
 
@@ -126,6 +126,11 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         # }
 
         candles = []
+
+        # Handle None data
+        if data is None:
+            return candles
+
         # Extract the actual data, which is under the pair name
         assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
 

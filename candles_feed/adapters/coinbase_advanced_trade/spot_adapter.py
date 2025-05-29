@@ -2,13 +2,14 @@
 Coinbase Advanced Trade adapter for the Candle Feed framework.
 """
 
+from candles_feed.core.exchange_registry import ExchangeRegistry
+
 from .base_adapter import CoinbaseAdvancedTradeBaseAdapter
 from .constants import (
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
-from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
 @ExchangeRegistry.register("coinbase_advanced_trade")

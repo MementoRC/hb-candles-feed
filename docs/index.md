@@ -66,6 +66,8 @@ This documentation is organized into the following sections:
 - [Installation](getting_started/installation.md): How to install and set up the framework
 - [Quick Start](getting_started/quick_start.md): Simple examples to get you started
 - [Architecture](getting_started/architecture.md): Understanding the framework design
+- [Hummingbot Integration](getting_started/hummingbot_integration.md): Using with Hummingbot
+- [Compatibility](getting_started/compatibility.md): Compatibility with original implementation
 
 ### Adapters
 - [Overview](adapters/overview.md): Introduction to exchange adapters
