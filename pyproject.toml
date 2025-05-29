@@ -69,6 +69,9 @@ platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 # Note: Version info is kept in the project section with dynamic = ["version"]
 # and managed via candles_feed/__about__.py
 
+[tool.hatch.version]
+path = "candles_feed/__about__.py"
+
 # Conda dependencies
 [tool.pixi.dependencies]
 cython = ">=3"
