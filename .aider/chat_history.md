@@ -6218,3 +6218,175 @@ from aiohttp import web as aiohttp_web # For WSMsgType
 >>>>>>> REPLACE
 ```
 
+
+# aider chat started at 2025-05-29 11:17:52
+
+
+#### Fix the MockedExchangeServer test that's failing. The test is trying to call `self.server._interval_to_seconds()` but this method doesn't exist on the server. Looking at the test, it should be calling the plugin method instead.  
+####   
+#### The test needs to:  
+#### 1. Use the plugin's method instead of the server's method  
+#### 2. Fix any other similar method calls that don't exist on the server  
+####   
+#### Fix the test to use the correct API.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I understand. The test `test_interval_to_seconds` in `tests/unit/mocking_resources/core/test_server.py` is incorrectly trying to call `_interval_to_seconds` on the `MockedExchangeServer` instance (`self.server`) instead of on its `plugin` attribute.
+
+The `_interval_to_seconds` method is part of the `MockedPlugin` (which is assigned to `self.server.plugin` in this test). I will correct these calls. I've reviewed the rest of the test file and this appears to be the only instance of this specific issue.
+
+Here's the proposed change:
+
+```python
+tests/unit/mocking_resources/core/test_server.py
+<<<<<<< SEARCH
+        # Act & Assert - delegate to plugin
+        plugin = MockedPlugin(ExchangeType.MOCK)
+        self.server.plugin = plugin
+
+        self.assertEqual(self.server._interval_to_seconds("1s"), 1)
+        self.assertEqual(self.server._interval_to_seconds("1m"), 60)
+        self.assertEqual(self.server._interval_to_seconds("5m"), 300)
+        self.assertEqual(self.server._interval_to_seconds("1h"), 3600)
+        self.assertEqual(self.server._interval_to_seconds("1d"), 86400)
+        self.assertEqual(self.server._interval_to_seconds("1w"), 604800)
+
+        # Default case - no need to test invalid intervals since that's delegated
+=======
+        # Act & Assert - delegate to plugin
+        plugin = MockedPlugin(ExchangeType.MOCK)
+        self.server.plugin = plugin
+
+        self.assertEqual(self.server.plugin._interval_to_seconds("1s"), 1)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1m"), 60)
+        self.assertEqual(self.server.plugin._interval_to_seconds("5m"), 300)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1h"), 3600)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1d"), 86400)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1w"), 604800)
+
+        # Default case - no need to test invalid intervals since that's delegated
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 11:18:41
+
+
+#### Fix the Binance spot plugin test. The test is using `await` on `parse_rest_candles_params` but this method is not async and returns a regular dict.   
+####   
+#### Remove the `await` and handle it as a synchronous method call. Also check if there are other similar issues in this test file.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will remove the `await` from the call to `parse_rest_candles_params` and the `pytest.mark.asyncio` decorator from the test method `test_parse_rest_candles_params` as it's a synchronous method.
+
+I've checked the rest of the file and `test_handle_instruments` correctly uses `async` and `await` as `handle_instruments` (which is not present in `BinanceSpotPlugin` but likely inherited or part of the test setup for a different handler that `BinanceSpotPlugin` might implement or inherit, like `handle_exchange_info`) is expected to be async. In this specific test, `self.plugin.handle_instruments` is mocked and called, and the mock setup itself uses `AsyncMock`, so the async nature of the test is appropriate there.
+
+Here's the proposed change:
+
+```python
+tests/unit/mocking_resources/exchange_server_plugins/binance/test_binance_spot_plugin.py
+<<<<<<< SEARCH
+        assert routes["/api/v3/klines"][1] == "handle_klines"
+        assert "/api/v3/exchangeInfo" in routes
+
+    @pytest.mark.asyncio
+    async def test_parse_rest_candles_params(self):
+        """Test parsing REST API parameters."""
+        # Create a mock request with query parameters
+        from aiohttp.test_utils import make_mocked_request
+
+        request = make_mocked_request(
+            "GET",
+            "/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=500&startTime=1620000000000&endTime=1620100000000",
+            headers={},
+        )
+
+        # Parse parameters
+        params = await self.plugin.parse_rest_candles_params(request)
+
+        # Check parsed parameters
+        assert params["symbol"] == "BTCUSDT"
+=======
+        assert routes["/api/v3/klines"][1] == "handle_klines"
+        assert "/api/v3/exchangeInfo" in routes
+
+    def test_parse_rest_candles_params(self):
+        """Test parsing REST API parameters."""
+        # Create a mock request with query parameters
+        from aiohttp.test_utils import make_mocked_request
+
+        request = make_mocked_request(
+            "GET",
+            "/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=500&startTime=1620000000000&endTime=1620100000000",
+            headers={},
+        )
+
+        # Parse parameters
+        params = self.plugin.parse_rest_candles_params(request)
+
+        # Check parsed parameters
+        assert params["symbol"] == "BTCUSDT"
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 14:09:51
+
+
+#### Add the missing `first_timestamp` and `last_timestamp` properties to the CandlesFeed class for compatibility. These properties should:  
+####   
+#### 1. `first_timestamp` - Return the timestamp of the oldest candle in the deque, or None if empty  
+#### 2. `last_timestamp` - Return the timestamp of the newest candle in the deque, or None if empty  
+####   
+#### These should be @property methods that access the internal `_candles` deque.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will add the `first_timestamp` and `last_timestamp` properties to the `CandlesFeed` class.
+
+These properties will access the `_candles` deque:
+- `first_timestamp` will return `self._candles[0].timestamp` if the deque is not empty, otherwise `None`.
+- `last_timestamp` will return `self._candles[-1].timestamp` if the deque is not empty, otherwise `None`.
+
+Here are the SEARCH/REPLACE blocks:
+
+```python
+candles_feed/core/candles_feed.py
+<<<<<<< SEARCH
+        return len(self._candles) == self._candles.maxlen
+
+    def _round_timestamp_to_interval_multiple(self, timestamp: int) -> int:
+        """Round timestamp to nearest interval boundary.
+=======
+        return len(self._candles) == self._candles.maxlen
+
+    @property
+    def first_timestamp(self) -> int | None:
+        """Return the timestamp of the oldest candle.
+
+        :return: Timestamp of the first candle, or None if empty
+        """
+        if not self._candles:
+            return None
+        return self._candles[0].timestamp
+
+    @property
+    def last_timestamp(self) -> int | None:
+        """Return the timestamp of the newest candle.
+
+        :return: Timestamp of the last candle, or None if empty
+        """
+        if not self._candles:
+            return None
+        return self._candles[-1].timestamp
+
+    def _round_timestamp_to_interval_multiple(self, timestamp: int) -> int:
+        """Round timestamp to nearest interval boundary.
+>>>>>>> REPLACE
+```
+

@@ -283,6 +283,26 @@ class CandlesFeed:
         """
         return len(self._candles) == self._candles.maxlen
 
+    @property
+    def first_timestamp(self) -> int | None:
+        """Return the timestamp of the oldest candle.
+
+        :return: Timestamp of the first candle, or None if empty
+        """
+        if not self._candles:
+            return None
+        return self._candles[0].timestamp
+
+    @property
+    def last_timestamp(self) -> int | None:
+        """Return the timestamp of the newest candle.
+
+        :return: Timestamp of the last candle, or None if empty
+        """
+        if not self._candles:
+            return None
+        return self._candles[-1].timestamp
+
     def _round_timestamp_to_interval_multiple(self, timestamp: int) -> int:
         """Round timestamp to nearest interval boundary.
 

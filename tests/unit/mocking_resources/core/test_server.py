@@ -243,12 +243,12 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         plugin = MockedPlugin(ExchangeType.MOCK)
         self.server.plugin = plugin
 
-        self.assertEqual(self.server._interval_to_seconds("1s"), 1)
-        self.assertEqual(self.server._interval_to_seconds("1m"), 60)
-        self.assertEqual(self.server._interval_to_seconds("5m"), 300)
-        self.assertEqual(self.server._interval_to_seconds("1h"), 3600)
-        self.assertEqual(self.server._interval_to_seconds("1d"), 86400)
-        self.assertEqual(self.server._interval_to_seconds("1w"), 604800)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1s"), 1)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1m"), 60)
+        self.assertEqual(self.server.plugin._interval_to_seconds("5m"), 300)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1h"), 3600)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1d"), 86400)
+        self.assertEqual(self.server.plugin._interval_to_seconds("1w"), 604800)
 
         # Default case - no need to test invalid intervals since that's delegated
 

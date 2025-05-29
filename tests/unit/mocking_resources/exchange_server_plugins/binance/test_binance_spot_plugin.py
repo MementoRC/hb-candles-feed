@@ -35,8 +35,7 @@ class TestBinanceSpotPlugin:
         assert routes["/api/v3/klines"][1] == "handle_klines"
         assert "/api/v3/exchangeInfo" in routes
 
-    @pytest.mark.asyncio
-    async def test_parse_rest_candles_params(self):
+    def test_parse_rest_candles_params(self):
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters
         from aiohttp.test_utils import make_mocked_request
@@ -48,7 +47,7 @@ class TestBinanceSpotPlugin:
         )
 
         # Parse parameters
-        params = await self.plugin.parse_rest_candles_params(request)
+        params = self.plugin.parse_rest_candles_params(request)
 
         # Check parsed parameters
         assert params["symbol"] == "BTCUSDT"
