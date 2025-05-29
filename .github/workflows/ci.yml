@@ -15,22 +15,13 @@ jobs:
         python-version: ["3.10"]
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          auto-update-conda: true
-          auto-activate-base: true
-      
       - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.6.0 # Using a recent version
-        with:
-          cache: true
+        uses: prefix-dev/setup-pixi@v0.8.1
       
       - name: Install project dependencies (using Pixi)
         run: |
@@ -51,22 +42,13 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: "3.10"
-          auto-update-conda: true
-          auto-activate-base: true
-      
       - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.6.0 # Using a recent version
-        with:
-          cache: true
+        uses: prefix-dev/setup-pixi@v0.8.1
 
       - name: Install project dependencies (using Pixi)
         run: |
