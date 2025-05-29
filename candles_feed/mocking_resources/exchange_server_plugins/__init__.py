@@ -18,16 +18,22 @@ from .mocked_plugin import MockedPlugin
 from .okx import OKXPerpetualPlugin, OKXSpotPlugin
 
 __all__ = [
+    "AscendExSpotPlugin",
+    "BinancePerpetualPlugin",
     "BinanceSpotPlugin",
-    "OKXSpotPlugin",
-    "OKXPerpetualPlugin",
-    "BybitSpotPlugin",
     "BybitPerpetualPlugin",
+    "BybitSpotPlugin",
     "CoinbaseAdvancedTradeSpotPlugin",
-    "KrakenSpotPlugin",
+    "GateIoPerpetualPlugin",
     "GateIoSpotPlugin",
+    "HyperliquidPerpetualPlugin",
     "HyperliquidSpotPlugin",
+    "KrakenSpotPlugin",
+    "KucoinPerpetualPlugin",
     "KucoinSpotPlugin",
+    "MEXCPerpetualPlugin",
     "MEXCSpotPlugin",
     "MockedPlugin",
+    "OKXPerpetualPlugin",
+    "OKXSpotPlugin",
 ]

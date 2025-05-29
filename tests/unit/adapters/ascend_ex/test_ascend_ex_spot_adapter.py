@@ -9,12 +9,10 @@ import pytest
 
 from candles_feed.adapters.ascend_ex.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
-    WS_INTERVALS,
 )
 from candles_feed.adapters.ascend_ex.spot_adapter import AscendExSpotAdapter
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest

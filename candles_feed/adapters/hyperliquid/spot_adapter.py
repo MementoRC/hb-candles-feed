@@ -6,7 +6,6 @@ from candles_feed.core.exchange_registry import ExchangeRegistry
 
 from .base_adapter import HyperliquidBaseAdapter
 from .constants import (
-    SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )

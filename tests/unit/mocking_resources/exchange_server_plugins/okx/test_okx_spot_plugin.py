@@ -2,11 +2,8 @@
 Unit tests for the OKXSpotPlugin class.
 """
 
-from typing import Any
 
-import aiohttp
 import pytest
-from aiohttp import web
 
 from candles_feed.adapters.okx.constants import INTERVAL_TO_EXCHANGE_FORMAT
 from candles_feed.core.candle_data import CandleData

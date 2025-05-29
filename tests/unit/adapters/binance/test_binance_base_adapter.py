@@ -2,7 +2,6 @@
 Unit tests for the BinanceBaseAdapter class.
 """
 
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -12,7 +11,6 @@ from candles_feed.adapters.binance.constants import (
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
 class ConcreteBinanceAdapter(BinanceBaseAdapter):

@@ -4,7 +4,6 @@ Base class for Coinbase Advanced Trade exchange plugins.
 This class provides shared functionality for Coinbase Advanced Trade plugins.
 """
 
-import json
 from abc import ABC
 from datetime import datetime, timezone
 from typing import Any
@@ -13,7 +12,6 @@ from aiohttp import web
 
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     SPOT_REST_URL,
     SPOT_WSS_URL,

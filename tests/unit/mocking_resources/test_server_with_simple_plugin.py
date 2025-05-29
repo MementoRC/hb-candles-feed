@@ -3,14 +3,11 @@ Tests for the MockedExchangeServer with MockedPlugin.
 """
 
 import asyncio
-import json
 
 import aiohttp
 import pytest
 
 from candles_feed.mocking_resources.core import MockedExchangeServer
-from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
 

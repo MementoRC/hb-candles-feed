@@ -17,7 +17,6 @@ from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.protocols import (
     CollectionStrategy,
     Logger,
-    NetworkClientProtocol,
     WSAssistant,
 )
 

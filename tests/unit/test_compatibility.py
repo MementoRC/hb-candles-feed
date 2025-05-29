@@ -9,7 +9,6 @@ import importlib
 import sys
 
 import pandas as pd
-import pytest  # noqa: F401
 
 
 class TestCompatibility:

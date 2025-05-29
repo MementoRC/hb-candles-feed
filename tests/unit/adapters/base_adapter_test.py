@@ -294,16 +294,25 @@ class BaseAdapterTest(abc.ABC):
 
     def test_error_handling_in_fetch_rest_candles(self, adapter, trading_pair, interval):
         """Test error handling in fetch_rest_candles_synchronous."""
-        # Mock requests.get to simulate errors
-        with mock.patch('requests.get') as mock_get:
-            # Test HTTP error
-            mock_response = mock.MagicMock()
-            mock_response.raise_for_status.side_effect = Exception("HTTP Error")
-            mock_get.return_value = mock_response
+        # Import here to avoid circular dependencies or issues if mixins are not always available
+        from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 
-            # Should raise the error since we're not handling it in the adapter
-            with pytest.raises(Exception, match="HTTP Error"):
+        if isinstance(adapter, AsyncOnlyAdapter):
+            # For AsyncOnlyAdapter, expect NotImplementedError
+            with pytest.raises(NotImplementedError):
                 adapter.fetch_rest_candles_synchronous(trading_pair, interval)
+        else:
+            # For other adapters, test the original HTTP error handling
+            # Mock requests.get to simulate errors
+            with mock.patch('requests.get') as mock_get:
+                # Test HTTP error
+                mock_response = mock.MagicMock()
+                mock_response.raise_for_status.side_effect = Exception("HTTP Error")
+                mock_get.return_value = mock_response
+
+                # Should raise the error since we're not handling it in the adapter
+                with pytest.raises(Exception, match="HTTP Error"):
+                    adapter.fetch_rest_candles_synchronous(trading_pair, interval)
 
     def test_timestamp_conversion(self, adapter):
         """Test timestamp conversion methods."""

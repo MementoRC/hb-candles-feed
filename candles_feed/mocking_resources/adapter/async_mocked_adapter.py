@@ -2,7 +2,6 @@
 Asynchronous mock adapter for testing the candles feed framework.
 """
 
-import json
 from typing import Any, Dict, List, Optional
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter

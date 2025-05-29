@@ -6,7 +6,7 @@ This module provides the main class for managing candle data feeds.
 
 import logging
 from collections import deque
-from typing import Deque, List, Optional
+from typing import Deque
 
 import numpy as np
 import pandas as pd
@@ -41,8 +41,8 @@ class CandlesFeed:
         interval: str = "1m",
         max_records: int = 150,
         logger: Logger | None = None,
-        hummingbot_components: Optional[dict] = None,
-        network_config: Optional[NetworkConfig] = None,
+        hummingbot_components: dict | None = None,
+        network_config: NetworkConfig | None = None,
     ):
         """Initialize the candles feed.
 

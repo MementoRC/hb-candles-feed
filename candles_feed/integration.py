@@ -5,7 +5,7 @@ This module provides functions and utilities to simplify the integration
 of CandlesFeed with Hummingbot or other frameworks.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.protocols import Logger

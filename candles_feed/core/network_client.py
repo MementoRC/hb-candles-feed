@@ -2,10 +2,9 @@
 Network communication client for the Candle Feed framework.
 """
 
-import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiohttp
 

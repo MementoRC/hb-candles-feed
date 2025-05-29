@@ -4,13 +4,12 @@ Unit tests for the MockedExchangeServer class in mocking_resources.
 import asyncio
 import unittest
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp import web
 
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
-from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
