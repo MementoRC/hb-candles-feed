@@ -1,6 +1,7 @@
 """
 Tests for the AscendExBaseAdapter using the base adapter test class.
 """
+
 from datetime import datetime, timezone
 
 from candles_feed.adapters.ascend_ex.base_adapter import AscendExBaseAdapter

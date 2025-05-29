@@ -475,8 +475,8 @@ class MockedExchangeServer:
         self.error_rate = min(max(error_rate, 0.0), 1.0)
         self.logger.info(
             f"Network conditions set: latency={latency_ms}ms, "
-            f"packet_loss={packet_loss_rate*100:.1f}%, "
-            f"error_rate={error_rate*100:.1f}%"
+            f"packet_loss={packet_loss_rate * 100:.1f}%, "
+            f"error_rate={error_rate * 100:.1f}%"
         )
 
     async def _simulate_network_conditions(self):

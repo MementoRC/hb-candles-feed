@@ -2,7 +2,6 @@
 Unit tests for the BinanceBaseAdapter class.
 """
 
-
 from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
 from candles_feed.adapters.binance.constants import (
     INTERVALS,

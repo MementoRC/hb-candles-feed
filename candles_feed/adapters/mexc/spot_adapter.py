@@ -1,6 +1,7 @@
 """
 MEXC spot exchange adapter for the Candle Feed framework.
 """
+
 import contextlib
 
 from candles_feed.core.candle_data import CandleData

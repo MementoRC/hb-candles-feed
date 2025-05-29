@@ -2,7 +2,6 @@
 Core components for the mock exchange server framework.
 """
 
-
 from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType

@@ -4,6 +4,7 @@ Base OKX adapter implementation for the Candle Feed framework.
 This module provides a base implementation for OKX-based exchange adapters
 to reduce code duplication across spot and perpetual markets.
 """
+
 from abc import abstractmethod
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter

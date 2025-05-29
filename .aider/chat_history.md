@@ -13890,3 +13890,277 @@ from candles_feed.adapters.mexc.base_adapter import MEXCBaseAdapter
 from candles_feed.adapters.mexc.constants import (
 >>>>>>> REPLACE
 ```
+
+# aider chat started at 2025-05-29 17:22:55
+
+
+#### Fix CI failures:
+####
+#### 1. Missing NetworkConfig export: The module `candles_feed.core.network_config` cannot be imported because NetworkConfig is not exported from `candles_feed/core/__init__.py`.
+####
+#### 2. F401 lint violations: There are unused import violations that need to be cleaned up.
+####
+#### Context:
+#### - The CI is failing because NetworkConfig is imported in `candles_feed/mocking_resources/adapter/mocked_adapter.py` line 10
+#### - The `candles_feed/core/__init__.py` file only has a docstring and no exports
+#### - Need to add proper exports to make NetworkConfig available
+#### - Need to run ruff to check for F401 violations and clean them up
+####
+#### Tasks:
+#### 1. Update `candles_feed/core/__init__.py` to export NetworkConfig and any other classes that should be publicly available from the core module
+#### 2. Check for and fix any F401 unused import violations across the codebase
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?
+
+To address the CI failures, we need to make the following changes:
+
+**1. Update `candles_feed/core/__init__.py` to export `NetworkConfig` and other core components:**
+
+This will make `NetworkConfig` and other essential classes and protocols directly importable from the `candles_feed.core` package, resolving the import issue mentioned for `mocked_adapter.py` if it expects to import `NetworkConfig` from `candles_feed.core`.
+
+```python
+"""
+Core components for the candles_feed_v2 package.
+"""
+
+from .candle_data import CandleData
+from .network_config import EndpointType, NetworkConfig, NetworkEnvironment
+from .protocols import (
+    AsyncThrottlerProtocol,
+    CollectionStrategy,
+    Logger,
+    NetworkClientProtocol,
+    WSAssistant,
+)
+
+__all__ = [
+    "CandleData",
+    "NetworkConfig",
+    "EndpointType",
+    "NetworkEnvironment",
+    "WSAssistant",
+    "CollectionStrategy",
+    "Logger",
+    "NetworkClientProtocol",
+    "AsyncThrottlerProtocol",
+]
+```
+
+**2. Check for and fix F401 unused import violations:**
+
+After reviewing the full contents of the files provided:
+*   `candles_feed/core/candle_data.py`
+*   `candles_feed/core/network_config.py`
+*   `candles_feed/mocking_resources/adapter/mocked_adapter.py`
+*   `candles_feed/core/protocols.py`
+*   `candles_feed/core/__init__.py` (with the changes above)
+
+No F401 (unused import) violations were identified within these specific files. All imports appear to be used.
+
+To address F401 violations across the entire codebase, please run your linter (e.g., `ruff check --select F401 .` or `flake8`) and remove any reported unused imports from other files not provided in full detail.
+
+
+#### To address the CI failures, we need to make the following changes:
+####
+#### **1. Update `candles_feed/core/__init__.py` to export `NetworkConfig` and other core components:**
+####
+#### This will make `NetworkConfig` and other essential classes and protocols directly importable from the `candles_feed.core` package, resolving the import issue mentioned for `mocked_adapter.py` if it expects to import `NetworkConfig` from `candles_feed.core`.
+####
+#### ```python
+#### """
+#### Core components for the candles_feed_v2 package.
+#### """
+####
+#### from .candle_data import CandleData
+#### from .network_config import EndpointType, NetworkConfig, NetworkEnvironment
+#### from .protocols import (
+####     AsyncThrottlerProtocol,
+####     CollectionStrategy,
+####     Logger,
+####     NetworkClientProtocol,
+####     WSAssistant,
+#### )
+####
+#### __all__ = [
+####     "CandleData",
+####     "NetworkConfig",
+####     "EndpointType",
+####     "NetworkEnvironment",
+####     "WSAssistant",
+####     "CollectionStrategy",
+####     "Logger",
+####     "NetworkClientProtocol",
+####     "AsyncThrottlerProtocol",
+#### ]
+#### ```
+####
+#### **2. Check for and fix F401 unused import violations:**
+####
+#### After reviewing the full contents of the files provided:
+#### *   `candles_feed/core/candle_data.py`
+#### *   `candles_feed/core/network_config.py`
+#### *   `candles_feed/mocking_resources/adapter/mocked_adapter.py`
+#### *   `candles_feed/core/protocols.py`
+#### *   `candles_feed/core/__init__.py` (with the changes above)
+####
+#### No F401 (unused import) violations were identified within these specific files. All imports appear to be used.
+####
+#### To address F401 violations across the entire codebase, please run your linter (e.g., `ruff check --select F401 .` or `flake8`) and remove any reported unused imports from other files not provided in full detail.
+
+Okay, I will update `candles_feed/core/__init__.py` to export the specified core components.
+
+Regarding F401 unused import violations: I have reviewed the content of the files you've added to the chat:
+*   `candles_feed/core/candle_data.py`
+*   `candles_feed/core/network_config.py`
+*   `candles_feed/mocking_resources/adapter/mocked_adapter.py`
+*   `candles_feed/core/protocols.py`
+*   `candles_feed/core/__init__.py` (as it will be after this change)
+
+I can confirm that there are no F401 (unused import) violations within these specific files once the `__init__.py` changes are applied.
+
+Here is the *SEARCH/REPLACE block* for `candles_feed/core/__init__.py`:
+
+```python
+candles_feed/core/__init__.py
+<<<<<<< SEARCH
+"""
+Core components for the candles_feed_v2 package.
+"""
+=======
+"""
+Core components for the candles_feed_v2 package.
+"""
+
+from .candle_data import CandleData
+from .network_config import EndpointType, NetworkConfig, NetworkEnvironment
+from .protocols import (
+    AsyncThrottlerProtocol,
+    CollectionStrategy,
+    Logger,
+    NetworkClientProtocol,
+    WSAssistant,
+)
+
+__all__ = [
+    "CandleData",
+    "NetworkConfig",
+    "EndpointType",
+    "NetworkEnvironment",
+    "WSAssistant",
+    "CollectionStrategy",
+    "Logger",
+    "NetworkClientProtocol",
+    "AsyncThrottlerProtocol",
+]
+>>>>>>> REPLACE
+```
+
+# aider chat started at 2025-05-29 17:25:15
+
+
+#### Fix the F811 ruff error: "Redefinition of unused `Any` from line 10" in candles_feed/core/hummingbot_network_client_adapter.py:30:24  
+####   
+#### The error shows that `Any` is imported twice - once on line 10 and again on line 30. Need to remove the duplicate import.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will remove the redundant import of `Any` from `candles_feed/core/hummingbot_network_client_adapter.py`.
+
+```python
+candles_feed/core/hummingbot_network_client_adapter.py
+<<<<<<< SEARCH
+    HUMMINGBOT_AVAILABLE = True
+except ImportError:
+    # Define placeholder types for type checking
+    from typing import Any
+
+    WebAssistantsFactory = Any
+    RESTAssistant = Any
+=======
+    HUMMINGBOT_AVAILABLE = True
+except ImportError:
+    # Define placeholder types for type checking
+
+    WebAssistantsFactory = Any
+    RESTAssistant = Any
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 17:25:25
+
+
+#### Fix the N803 ruff error: "Argument name `MockWebSocketResponse` should be lowercase" in tests/unit/mocking_resources/test_simple_mock_plugin.py:148:43  
+####   
+#### The error indicates that a function parameter named `MockWebSocketResponse` should follow Python naming conventions and be lowercase. Need to rename it to `mock_websocket_response`.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will rename the argument `MockWebSocketResponse` to `mock_websocket_response` in the `test_handle_websocket` method.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+    @patch(
+        "candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.web.WebSocketResponse"
+    )
+    async def test_handle_websocket(self, MockWebSocketResponse):
+        """Test handling WebSocket connections and subscriptions."""
+        # Configure the mock WebSocket instance that MockWebSocketResponse will return
+        mock_ws_instance = AsyncMock()
+=======
+    @patch(
+        "candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.web.WebSocketResponse"
+    )
+    async def test_handle_websocket(self, mock_websocket_response):
+        """Test handling WebSocket connections and subscriptions."""
+        # Configure the mock WebSocket instance that mock_websocket_response will return
+        mock_ws_instance = AsyncMock()
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+        mock_ws_instance.__aiter__ = Mock(return_value=mock_receive_messages())
+
+        # Configure the patched class to return our mock instance
+        MockWebSocketResponse.return_value = mock_ws_instance
+
+        # Setup mock_server
+=======
+        mock_ws_instance.__aiter__ = Mock(return_value=mock_receive_messages())
+
+        # Configure the patched class to return our mock instance
+        mock_websocket_response.return_value = mock_ws_instance
+
+        # Setup mock_server
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+        # --- Assertions ---
+
+        # 1. WebSocketResponse was instantiated and prepared
+        MockWebSocketResponse.assert_called_once()
+        mock_ws_instance.prepare.assert_called_once_with(mock_request)
+
+        # 2. Subscription success message
+=======
+        # --- Assertions ---
+
+        # 1. WebSocketResponse was instantiated and prepared
+        mock_websocket_response.assert_called_once()
+        mock_ws_instance.prepare.assert_called_once_with(mock_request)
+
+        # 2. Subscription success message
+>>>>>>> REPLACE
+```
+

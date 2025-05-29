@@ -1,6 +1,7 @@
 """
 AscendEx spot exchange adapter for the Candle Feed framework.
 """
+
 from abc import abstractmethod
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter

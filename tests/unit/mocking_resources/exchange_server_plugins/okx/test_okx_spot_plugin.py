@@ -2,7 +2,6 @@
 Unit tests for the OKXSpotPlugin class.
 """
 
-
 import pytest
 
 from candles_feed.adapters.okx.constants import INTERVAL_TO_EXCHANGE_FORMAT

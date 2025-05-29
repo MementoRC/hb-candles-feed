@@ -1,6 +1,7 @@
 """
 Common constants for Binance adapters.
 """
+
 # Intervals mapping: interval name -> seconds
 INTERVALS: dict[str, int] = {
     "1s": 1,

@@ -1,6 +1,7 @@
 """
 Unit tests for the MockedExchangeServer class in mocking_resources.
 """
+
 import asyncio
 import unittest
 from unittest import IsolatedAsyncioTestCase

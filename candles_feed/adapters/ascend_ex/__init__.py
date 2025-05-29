@@ -1,6 +1,7 @@
 """
 AscendEx spot exchange adapter.
 """
+
 from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,

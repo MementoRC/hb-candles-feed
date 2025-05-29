@@ -145,9 +145,9 @@ class TestKrakenSpotPlugin:
         assert "." in timestamp_str, "Timestamp should include decimal for microseconds"
         timestamp_parts = timestamp_str.split(".")
         assert len(timestamp_parts) == 2, "Timestamp should have seconds and microseconds parts"
-        assert timestamp_parts[0] == str(
-            int(candle.timestamp)
-        ), "Seconds part should match timestamp"
+        assert timestamp_parts[0] == str(int(candle.timestamp)), (
+            "Seconds part should match timestamp"
+        )
         assert len(timestamp_parts[1]) > 0, "Microseconds part should not be empty"
 
         # Check end time format

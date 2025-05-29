@@ -5,7 +5,6 @@ This module provides a base test class that can be used to test any adapter
 implementation in a consistent way.
 """
 
-
 import abc
 import contextlib
 from unittest import mock
