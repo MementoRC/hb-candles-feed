@@ -2,10 +2,13 @@
 Unit tests for MockedPlugin.
 """
 
-from unittest.mock import AsyncMock
+import json
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from aiohttp import web as aiohttp_web # For WSMsgType
 
+from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
@@ -46,31 +49,60 @@ class TestMockedPlugin:
         assert self.plugin.get_interval_seconds("unknown") == 60
 
     @pytest.mark.asyncio
-    async def test_handle_rest_candles_request(self):
-        """Test handling REST API candles requests."""
-        # Test with minimal parameters
-        params = {"symbol": "BTC-USDT"}
-        response = await self.plugin.handle_rest_candles_request(params)
+    async def test_handle_klines(self):
+        """Test handling klines (candles) REST API requests."""
+        mock_server = Mock()
+        mock_server._simulate_network_conditions = AsyncMock()
+        mock_server._check_rate_limit = Mock(return_value=True)
+
+        # Populate server.candles with some data
+        btc_candles = [
+            CandleData(timestamp_raw=1678886400 + i * 60, open=50000 + i, high=50100 + i, low=49900 + i, close=50050 + i, volume=10.0 + i, quote_asset_volume=500000.0 + i*100)
+            for i in range(600)  # Create 600 candles for BTC-USDT
+        ]
+        eth_candles = [
+            CandleData(timestamp_raw=1678886400 + i * 300, open=3000 + i, high=3010 + i, low=2990 + i, close=3005 + i, volume=100.0 + i, quote_asset_volume=300000.0 + i*100)
+            for i in range(20) # Create 20 candles for ETH-USDT
+        ]
+        mock_server.candles = {
+            "BTC-USDT": {"1m": btc_candles},
+            "ETH-USDT": {"5m": eth_candles},
+        }
+
+        # Test with minimal parameters (symbol and interval, limit defaults to 1000)
+        mock_request_1 = Mock()
+        mock_request_1.query = {"symbol": "BTCUSDT", "interval": "1m"} # Use "BTCUSDT" to test symbol normalization
+        mock_request_1.remote = "127.0.0.1"
+
+        web_response_1 = await self.plugin.handle_klines(mock_server, mock_request_1)
+        assert web_response_1.status == 200
+        response_1_json = json.loads(web_response_1.text)
 
         # Verify response structure
-        assert response["status"] == "ok"
-        assert response["symbol"] == "BTC-USDT"
-        assert response["interval"] == "1m"  # Default interval
-        assert isinstance(response["data"], list)
-        assert len(response["data"]) == 500  # Default limit
+        assert response_1_json["status"] == "ok"
+        assert response_1_json["symbol"] == "BTC-USDT"  # Symbol in response is the key from server.candles
+        assert response_1_json["interval"] == "1m"
+        assert isinstance(response_1_json["data"], list)
+        assert len(response_1_json["data"]) == 600  # Default limit is 1000, but only 600 available
 
         # Test with all parameters
-        params = {"symbol": "ETH-USDT", "interval": "5m", "limit": "10"}
-        response = await self.plugin.handle_rest_candles_request(params)
+        mock_request_2 = Mock()
+        mock_request_2.query = {"symbol": "ETH-USDT", "interval": "5m", "limit": "10"}
+        mock_request_2.remote = "127.0.0.1"
+
+        web_response_2 = await self.plugin.handle_klines(mock_server, mock_request_2)
+        assert web_response_2.status == 200
+        response_2_json = json.loads(web_response_2.text)
 
         # Verify response
-        assert response["status"] == "ok"
-        assert response["symbol"] == "ETH-USDT"
-        assert response["interval"] == "5m"
-        assert len(response["data"]) == 10
+        assert response_2_json["status"] == "ok"
+        assert response_2_json["symbol"] == "ETH-USDT"
+        assert response_2_json["interval"] == "5m"
+        assert len(response_2_json["data"]) == 10 # 20 available, limit is 10
 
-        # Verify candle data structure
-        first_candle = response["data"][0]
+        # Verify candle data structure from the second response
+        assert len(response_2_json["data"]) > 0
+        first_candle = response_2_json["data"][0]
         assert "timestamp" in first_candle
         assert "open" in first_candle
         assert "high" in first_candle
@@ -78,53 +110,114 @@ class TestMockedPlugin:
         assert "close" in first_candle
         assert "volume" in first_candle
         assert "quote_volume" in first_candle
+        assert "close_time" in first_candle # Added by format_rest_candles
+        assert "trades" in first_candle
+        assert "taker_base_volume" in first_candle
+        assert "taker_quote_volume" in first_candle
+
 
         # Verify timestamps are in ascending order (oldest first)
-        timestamps = [int(candle["timestamp"]) for candle in response["data"]]
+        # Data is taken from the end of the list by mock server, so it's already sorted if source is sorted.
+        timestamps = [int(candle["timestamp"]) for candle in response_2_json["data"]]
         assert timestamps == sorted(timestamps)
 
     @pytest.mark.asyncio
-    async def test_handle_ws_connection(self):
-        """Test handling WebSocket connections."""
-        # Create mock websocket
-        mock_ws = AsyncMock()
-        mock_ws.receive_json.return_value = {
-            "type": "subscribe",
-            "subscriptions": [
-                {"symbol": "BTC-USDT", "interval": "1m"}
-            ]
+    @patch('candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.web.WebSocketResponse')
+    async def test_handle_websocket(self, MockWebSocketResponse):
+        """Test handling WebSocket connections and subscriptions."""
+        # Configure the mock WebSocket instance that MockWebSocketResponse will return
+        mock_ws_instance = AsyncMock()
+        mock_ws_instance.prepare = AsyncMock()
+        mock_ws_instance.send_json = AsyncMock()
+        mock_ws_instance.closed = False
+        mock_ws_instance.exception = Mock(return_value=None)
+
+        # Simulate receiving one subscription message
+        async def mock_receive_messages():
+            yield Mock(type=aiohttp_web.WSMsgType.TEXT, data=json.dumps({
+                "type": "subscribe",
+                "subscriptions": [
+                    # Use "BTCUSDT" to test if plugin handles unnormalized symbols in request
+                    # but normalizes for internal use and candle messages.
+                    {"symbol": "BTCUSDT", "interval": "1m"}
+                ]
+            }))
+            # The async for loop in the handler will terminate after this message.
+
+        mock_ws_instance.__aiter__ = Mock(return_value=mock_receive_messages())
+        
+        # Configure the patched class to return our mock instance
+        MockWebSocketResponse.return_value = mock_ws_instance
+
+        # Setup mock_server
+        mock_server = Mock()
+        mock_server.latency_ms = 0
+        mock_server._check_rate_limit = Mock(return_value=True)
+        mock_server.ws_connections = set()
+        mock_server.subscriptions = {}  # Will be populated by the handler
+        mock_server.logger = Mock()
+
+        # Populate server.candles with data for the subscription
+        candle_obj = CandleData(
+            timestamp_raw=1678886400, open=50000, high=50100, low=49900, close=50050, 
+            volume=10.0, quote_asset_volume=500000.0
+        )
+        mock_server.candles = {
+            "BTC-USDT": {"1m": [candle_obj]}  # Plugin uses normalized "BTC-USDT" as key
+        }
+        
+        # Setup mock_request
+        mock_request = Mock()
+        mock_request.remote = "127.0.0.1"
+
+        # Call the method under test
+        await self.plugin.handle_websocket(mock_server, mock_request)
+
+        # --- Assertions ---
+
+        # 1. WebSocketResponse was instantiated and prepared
+        MockWebSocketResponse.assert_called_once()
+        mock_ws_instance.prepare.assert_called_once_with(mock_request)
+
+        # 2. Subscription success message
+        # Plugin uses the symbol from the request ("BTCUSDT") in the success message for "our format"
+        expected_subscription_success = {
+            "type": "subscribe_result",
+            "status": "success",
+            "subscriptions": [{"symbol": "BTCUSDT", "interval": "1m"}] 
         }
 
-        # Test handling connection
-        await self.plugin.handle_ws_connection(mock_ws)
+        # 3. Candle update message
+        # Plugin uses the normalized symbol ("BTC-USDT") from server.candles for the candle data message
+        expected_candle_data_payload = {
+            "timestamp": int(candle_obj.timestamp_ms),
+            "open": str(candle_obj.open),
+            "high": str(candle_obj.high),
+            "low": str(candle_obj.low),
+            "close": str(candle_obj.close),
+            "volume": str(candle_obj.volume),
+            "quote_volume": str(candle_obj.quote_asset_volume)
+        }
+        expected_candle_update = {
+            "type": "candle_update",
+            "symbol": "BTC-USDT",  # Normalized symbol
+            "interval": "1m",
+            "is_final": True,  # Initial candle is marked as final
+            "data": expected_candle_data_payload
+        }
 
-        # Verify subscription confirmation was sent
-        mock_ws.send_json.assert_any_call({
-            "status": "subscribed",
-            "subscriptions": [
-                {"symbol": "BTC-USDT", "interval": "1m"}
-            ]
-        })
+        # Check the calls to send_json
+        calls = mock_ws_instance.send_json.call_args_list
+        assert len(calls) == 2, "Expected two messages: subscription confirmation and one candle update."
+        
+        # First call: subscription success
+        assert calls[0][0][0] == expected_subscription_success
+        # Second call: candle update (after a small delay in the handler)
+        assert calls[1][0][0] == expected_candle_update
 
-        # Verify candle update was sent
-        assert mock_ws.send_json.call_count == 2
-
-        # Get the second call arguments (candle update)
-        candle_update_call = mock_ws.send_json.call_args_list[1]
-        candle_update = candle_update_call[0][0]
-
-        # Verify candle update structure
-        assert candle_update["type"] == "candle_update"
-        assert candle_update["symbol"] == "BTC-USDT"
-        assert candle_update["interval"] == "1m"
-        assert "data" in candle_update
-
-        # Verify candle data structure
-        candle_data = candle_update["data"]
-        assert "timestamp" in candle_data
-        assert "open" in candle_data
-        assert "high" in candle_data
-        assert "low" in candle_data
-        assert "close" in candle_data
-        assert "volume" in candle_data
-        assert "quote_volume" in candle_data
+        # 4. Verify server state (connection and subscription tracking)
+        assert mock_ws_instance in mock_server.ws_connections
+        # Subscription key uses the normalized pair ("BTC-USDT")
+        subscription_key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
+        assert subscription_key in mock_server.subscriptions
+        assert mock_ws_instance in mock_server.subscriptions[subscription_key]

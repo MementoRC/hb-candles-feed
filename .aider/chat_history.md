@@ -4535,3 +4535,1686 @@ from candles_feed.mocking_resources.core.server import MockedExchangeServer
 >>>>>>> REPLACE
 ```
 
+
+# aider chat started at 2025-05-29 10:00:02
+
+
+#### Fix all F401 lint violations (unused imports) across the codebase. For each file, either:  
+#### 1. Remove the unused import entirely if it's not needed  
+#### 2. Add it to __all__ if it should be publicly exported  
+#### 3. Keep it if it's used for re-export purposes  
+####   
+#### Focus on the most critical ones first:  
+#### - candles_feed/adapters/binance/__init__.py - all the constants imports  
+#### - candles_feed/adapters/hyperliquid/ files   
+#### - test files with unused imports  
+####   
+#### Be systematic and fix all 176 F401 violations reported.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will start by addressing the F401 violations in the files you've added to the chat.
+
+For `candles_feed/adapters/binance/__init__.py`, the imported constants are not used directly within the `__init__.py` file but are likely intended to be re-exported for use by other modules. I will add them to the `__all__` list.
+
+For the `candles_feed/adapters/hyperliquid/` files, I will remove the unused specific endpoint constants.
+
+Here are the changes:
+
+```python
+candles_feed/adapters/binance/__init__.py
+<<<<<<< SEARCH
+    "BinanceSpotAdapter",
+    "BinancePerpetualAdapter",
+]
+=======
+    "BinanceSpotAdapter",
+    "BinancePerpetualAdapter",
+    "INTERVAL_TO_EXCHANGE_FORMAT",
+    "INTERVALS",
+    "MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST",
+    "PERPETUAL_CANDLES_ENDPOINT",
+    "PERPETUAL_REST_URL",
+    "PERPETUAL_WSS_URL",
+    "SPOT_CANDLES_ENDPOINT",
+    "SPOT_REST_URL",
+    "SPOT_WSS_URL",
+    "WS_INTERVALS",
+]
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/adapters/hyperliquid/perpetual_adapter.py
+<<<<<<< SEARCH
+from .base_adapter import HyperliquidBaseAdapter
+from .constants import (
+    PERPETUAL_CANDLES_ENDPOINT,
+    PERPETUAL_REST_URL,
+    PERPETUAL_WSS_URL,
+)
+=======
+from .base_adapter import HyperliquidBaseAdapter
+from .constants import (
+    PERPETUAL_REST_URL,
+    PERPETUAL_WSS_URL,
+)
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/adapters/hyperliquid/spot_adapter.py
+<<<<<<< SEARCH
+from .base_adapter import HyperliquidBaseAdapter
+from .constants import (
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
+=======
+from .base_adapter import HyperliquidBaseAdapter
+from .constants import (
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
+>>>>>>> REPLACE
+```
+To address the other F401 violations, including those in test files, I will need you to add the relevant files to the chat. Please provide the next set of files you'd like me to process.
+
+
+# aider chat started at 2025-05-29 10:01:05
+
+
+#### Fix all F401 unused import violations in the core module files. Replace legacy typing imports with modern Python 3.12 syntax where appropriate:  
+####   
+#### 1. candles_feed/core/candle_data.py - remove unused typing.List, typing.Union  
+#### 2. candles_feed/core/candles_feed.py - remove unused typing.List    
+#### 3. candles_feed/core/collection_strategies.py - remove unused NetworkClientProtocol import  
+#### 4. candles_feed/core/data_processor.py - remove unused collections.deque, typing.List, typing.Optional  
+#### 5. candles_feed/core/exchange_registry.py - remove unused typing.Dict, typing.List, typing.Optional, typing.Type  
+#### 6. candles_feed/core/network_client.py - remove unused asyncio, typing.Dict, typing.List, typing.Optional  
+####   
+#### Use modern typing syntax (list[], dict[], etc.) and only keep imports that are actually used in the code.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will make the following changes to remove unused imports and update to modern typing syntax:
+
+1.  **candles_feed/core/candle_data.py**: Remove `List` and `Union` from `typing` imports as they are unused or superseded by modern syntax.
+2.  **candles_feed/core/candles_feed.py**:
+    *   Remove `List` and `Optional` from `typing` imports.
+    *   Update `Optional[dict]` to `dict | None`.
+    *   Update `Optional[NetworkConfig]` to `NetworkConfig | None`.
+3.  **candles_feed/core/collection_strategies.py**: Remove the unused `NetworkClientProtocol` import from `candles_feed.core.protocols`.
+4.  **candles_feed/core/data_processor.py**:
+    *   Remove unused `collections.deque` import.
+    *   Remove `List` and `Optional` from `typing` imports.
+5.  **candles_feed/core/exchange_registry.py**: Remove the entire `from typing import Dict, List, Optional, Type` line as all specific imports are unused or superseded by modern syntax.
+6.  **candles_feed/core/network_client.py**:
+    *   Remove unused `import asyncio`.
+    *   Remove `Dict`, `List`, and `Optional` from `typing` imports, keeping `Any`.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+candles_feed/core/candle_data.py
+<<<<<<< SEARCH
+from dataclasses import InitVar, dataclass, field
+from datetime import datetime, timezone
+from typing import ClassVar, List, Union
+
+
+@dataclass
+=======
+from dataclasses import InitVar, dataclass, field
+from datetime import datetime, timezone
+from typing import ClassVar
+
+
+@dataclass
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/core/candles_feed.py
+<<<<<<< SEARCH
+import logging
+from collections import deque
+from typing import Deque, List, Optional
+
+import numpy as np
+=======
+import logging
+from collections import deque
+from typing import Deque
+
+import numpy as np
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/core/candles_feed.py
+<<<<<<< SEARCH
+        interval: str = "1m",
+        max_records: int = 150,
+        logger: Logger | None = None,
+        hummingbot_components: Optional[dict] = None,
+        network_config: Optional[NetworkConfig] = None,
+    ):
+        """Initialize the candles feed.
+=======
+        interval: str = "1m",
+        max_records: int = 150,
+        logger: Logger | None = None,
+        hummingbot_components: dict | None = None,
+        network_config: NetworkConfig | None = None,
+    ):
+        """Initialize the candles feed.
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/core/collection_strategies.py
+<<<<<<< SEARCH
+from candles_feed.core.protocols import (
+    CollectionStrategy,
+    Logger,
+    NetworkClientProtocol,
+    WSAssistant,
+)
+=======
+from candles_feed.core.protocols import (
+    CollectionStrategy,
+    Logger,
+    WSAssistant,
+)
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/core/data_processor.py
+<<<<<<< SEARCH
+"""
+
+import logging
+from collections import deque
+from collections.abc import Sequence
+from typing import Deque, List, Optional
+
+from candles_feed.core.candle_data import CandleData
+=======
+"""
+
+import logging
+from collections.abc import Sequence
+from typing import Deque
+
+from candles_feed.core.candle_data import CandleData
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/core/exchange_registry.py
+<<<<<<< SEARCH
+import logging
+import os
+import pkgutil
+from typing import Dict, List, Optional, Type
+
+from candles_feed.adapters.protocols import AdapterProtocol
+from candles_feed.core.protocols import Logger
+=======
+import importlib
+import logging
+import os
+import pkgutil
+
+from candles_feed.adapters.protocols import AdapterProtocol
+from candles_feed.core.protocols import Logger
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/core/network_client.py
+<<<<<<< SEARCH
+"""
+Network communication client for the Candle Feed framework.
+"""
+
+import asyncio
+import json
+import logging
+from typing import Any, Dict, List, Optional
+
+import aiohttp
+=======
+"""
+Network communication client for the Candle Feed framework.
+"""
+
+import json
+import logging
+from typing import Any
+
+import aiohttp
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:02:01
+
+
+#### Fix the duplicate import in candles_feed/core/exchange_registry.py and also fix the remaining F401 violations in these files:  
+####   
+#### 1. Fix duplicate importlib import in exchange_registry.py  
+#### 2. candles_feed/adapters/kucoin/constants.py - remove unused typing.Dict  
+#### 3. candles_feed/integration.py - remove unused typing.Dict  
+####   
+#### Be careful to only remove truly unused imports and modernize typing where appropriate.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will make the following changes:
+
+1.  In `candles_feed/core/exchange_registry.py`, I'll remove the redundant `import importlib`.
+2.  In `candles_feed/adapters/kucoin/constants.py`, I'll remove the unused `from typing import Dict`. The type hint `dict[str, int]` is already using the built-in `dict`.
+3.  In `candles_feed/integration.py`, I'll remove the unused `from typing import Dict`.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+candles_feed/core/exchange_registry.py
+<<<<<<< SEARCH
+"""
+
+import importlib
+import importlib
+import logging
+=======
+"""
+
+import importlib
+import logging
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/adapters/kucoin/constants.py
+<<<<<<< SEARCH
+Common constants for KuCoin adapters.
+"""
+
+from typing import Dict
+
+# API URLs
+=======
+Common constants for KuCoin adapters.
+"""
+
+# API URLs
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/integration.py
+<<<<<<< SEARCH
+of CandlesFeed with Hummingbot or other frameworks.
+"""
+
+from typing import Any, Dict, Optional
+
+from candles_feed.core.candles_feed import CandlesFeed
+=======
+of CandlesFeed with Hummingbot or other frameworks.
+"""
+
+from typing import Any, Optional
+
+from candles_feed.core.candles_feed import CandlesFeed
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:02:23
+
+
+#### Fix F401 violations in mocking resources and some critical test files:  
+####   
+#### 1. Add __all__ export list in candles_feed/mocking_resources/exchange_server_plugins/__init__.py for all the imported plugins  
+#### 2. Remove unused json import from candles_feed/mocking_resources/adapter/async_mocked_adapter.py  
+#### 3. Fix a few critical test files by removing unused imports:  
+####    - tests/unit/adapters/binance/test_binance_spot_adapter.py (remove unused datetime, Optional)  
+####    - tests/unit/adapters/binance/test_binance_perpetual_adapter.py (remove unused datetime, Optional)    
+####    - tests/unit/test_compatibility.py (remove unused imports)  
+####   
+#### Focus on the most impactful fixes to reduce the F401 count significantly.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will proceed with the requested changes to address the F401 violations.
+
+Here's the plan:
+
+1.  **`candles_feed/mocking_resources/exchange_server_plugins/__init__.py`**: Update the `__all__` list to include all imported plugin classes, sorted alphabetically.
+2.  **`candles_feed/mocking_resources/adapter/async_mocked_adapter.py`**: Remove the unused `import json`.
+3.  **`tests/unit/adapters/binance/test_binance_spot_adapter.py`**: Remove the `from datetime import datetime, timezone` import line as requested.
+4.  **`tests/unit/adapters/binance/test_binance_perpetual_adapter.py`**: Remove the `from datetime import datetime, timezone` import line as requested.
+5.  **`tests/unit/test_compatibility.py`**: Remove the `import pytest # noqa: F401` line as it's flagged by linters and not directly used within the file's code, and the request is to fix F401 violations.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+candles_feed/mocking_resources/exchange_server_plugins/__init__.py
+<<<<<<< SEARCH
+from .okx import OKXPerpetualPlugin, OKXSpotPlugin
+
+__all__ = [
+    "BinanceSpotPlugin",
+    "OKXSpotPlugin",
+    "OKXPerpetualPlugin",
+    "BybitSpotPlugin",
+    "BybitPerpetualPlugin",
+    "CoinbaseAdvancedTradeSpotPlugin",
+    "KrakenSpotPlugin",
+    "GateIoSpotPlugin",
+    "HyperliquidSpotPlugin",
+    "KucoinSpotPlugin",
+    "MEXCSpotPlugin",
+    "MockedPlugin",
+]
+=======
+from .okx import OKXPerpetualPlugin, OKXSpotPlugin
+
+__all__ = [
+    "AscendExSpotPlugin",
+    "BinancePerpetualPlugin",
+    "BinanceSpotPlugin",
+    "BybitPerpetualPlugin",
+    "BybitSpotPlugin",
+    "CoinbaseAdvancedTradeSpotPlugin",
+    "GateIoPerpetualPlugin",
+    "GateIoSpotPlugin",
+    "HyperliquidPerpetualPlugin",
+    "HyperliquidSpotPlugin",
+    "KrakenSpotPlugin",
+    "KucoinPerpetualPlugin",
+    "KucoinSpotPlugin",
+    "MEXCPerpetualPlugin",
+    "MEXCSpotPlugin",
+    "MockedPlugin",
+    "OKXPerpetualPlugin",
+    "OKXSpotPlugin",
+]
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/mocking_resources/adapter/async_mocked_adapter.py
+<<<<<<< SEARCH
+"""
+Asynchronous mock adapter for testing the candles feed framework.
+"""
+
+import json
+from typing import Any, Dict, List, Optional
+=======
+"""
+Asynchronous mock adapter for testing the candles feed framework.
+"""
+
+from typing import Any, Dict, List, Optional
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/binance/test_binance_spot_adapter.py
+<<<<<<< SEARCH
+Tests for the BinanceSpotAdapter using the base adapter test class.
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+=======
+Tests for the BinanceSpotAdapter using the base adapter test class.
+"""
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/binance/test_binance_perpetual_adapter.py
+<<<<<<< SEARCH
+Tests for the BinancePerpetualAdapter using the base adapter test class.
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+=======
+Tests for the BinancePerpetualAdapter using the base adapter test class.
+"""
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/test_compatibility.py
+<<<<<<< SEARCH
+import sys
+
+import pandas as pd
+import pytest  # noqa: F401
+
+
+class TestCompatibility:
+=======
+import sys
+
+import pandas as pd
+
+
+class TestCompatibility:
+>>>>>>> REPLACE
+```
+
+>  
+> # Fix any errors below, if possible.  
+>  
+> ## Running: /home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/bin/python3 -m flake8 --select=E9,F821,F823,F831,F406,F407,F701,F702,F704,F706 --show-source --isolated tests/unit/adapters/binance/test_binance_perpetual_adapter.py  
+>  
+> tests/unit/adapters/binance/test_binance_perpetual_adapter.py:69:25: F821 undefined name 'datetime'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+> tests/unit/adapters/binance/test_binance_perpetual_adapter.py:69:53: F821 undefined name 'timezone'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+> tests/unit/adapters/binance/test_binance_perpetual_adapter.py:104:25: F821 undefined name 'datetime'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+> tests/unit/adapters/binance/test_binance_perpetual_adapter.py:104:53: F821 undefined name 'timezone'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+>  
+> ## See relevant lines below marked with █.  
+>  
+> tests/unit/adapters/binance/test_binance_perpetual_adapter.py:  
+> ...⋮...  
+> 22│class TestBinancePerpetualAdapter(BaseAdapterTest):  
+> 23│    """Test suite for the BinancePerpetualAdapter using the base adapter test class."""  
+> 24│  
+> ...⋮...  
+> 66│  
+> 67│    def get_mock_candlestick_response(self):  
+> 68│        """Return a mock candlestick response for the adapter."""  
+> 69█        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> 70│  
+> 71│        return [  
+> 72│            [  
+> ...⋮...  
+> 101│  
+> 102│    def get_mock_websocket_message(self):  
+> 103│        """Return a mock WebSocket message for the adapter."""  
+> 104█        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> 105│  
+> 106│        return {  
+> 107│            "e": "kline",                # Event type  
+> ...⋮...  
+>  
+>  
+> # Fix any errors below, if possible.  
+>  
+> ## Running: /home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/bin/python3 -m flake8 --select=E9,F821,F823,F831,F406,F407,F701,F702,F704,F706 --show-source --isolated tests/unit/adapters/binance/test_binance_spot_adapter.py  
+>  
+> tests/unit/adapters/binance/test_binance_spot_adapter.py:69:25: F821 undefined name 'datetime'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+> tests/unit/adapters/binance/test_binance_spot_adapter.py:69:53: F821 undefined name 'timezone'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+> tests/unit/adapters/binance/test_binance_spot_adapter.py:104:25: F821 undefined name 'datetime'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+> tests/unit/adapters/binance/test_binance_spot_adapter.py:104:53: F821 undefined name 'timezone'  
+> base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> ^  
+>  
+> ## See relevant lines below marked with █.  
+>  
+> tests/unit/adapters/binance/test_binance_spot_adapter.py:  
+> ...⋮...  
+> 22│class TestBinanceSpotAdapter(BaseAdapterTest):  
+> 23│    """Test suite for the BinanceSpotAdapter using the base adapter test class."""  
+> 24│  
+> ...⋮...  
+> 66│  
+> 67│    def get_mock_candlestick_response(self):  
+> 68│        """Return a mock candlestick response for the adapter."""  
+> 69█        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> 70│  
+> 71│        return [  
+> 72│            [  
+> ...⋮...  
+> 101│  
+> 102│    def get_mock_websocket_message(self):  
+> 103│        """Return a mock WebSocket message for the adapter."""  
+> 104█        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000  
+> 105│  
+> 106│        return {  
+> 107│            "e": "kline",                # Event type  
+> ...⋮...  
+>  
+> Attempt to fix lint errors? (Y)es/(N)o [Yes]: y  
+
+Okay, I can fix these `F821 undefined name` errors. It seems the `datetime` and `timezone` objects are used in `get_mock_candlestick_response` and `get_mock_websocket_message` methods, but their import was removed. I'll add the import back.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+tests/unit/adapters/binance/test_binance_perpetual_adapter.py
+<<<<<<< SEARCH
+"""
+Tests for the BinancePerpetualAdapter using the base adapter test class.
+"""
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+=======
+"""
+Tests for the BinancePerpetualAdapter using the base adapter test class.
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/binance/test_binance_spot_adapter.py
+<<<<<<< SEARCH
+"""
+Tests for the BinanceSpotAdapter using the base adapter test class.
+"""
+
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+=======
+"""
+Tests for the BinanceSpotAdapter using the base adapter test class.
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:04:12
+
+
+#### Fix F401 violations in multiple test files by removing unused imports. Focus on the most common patterns:  
+####   
+#### 1. Remove unused datetime imports (datetime.datetime, datetime.timezone)   
+#### 2. Remove unused typing imports (typing.Optional, typing.Dict, typing.List)  
+#### 3. Remove unused asyncio imports  
+#### 4. Remove unused json imports    
+#### 5. Remove unused unittest.mock imports (patch, MagicMock, AsyncMock)  
+#### 6. Remove unused aiohttp imports  
+####   
+#### Fix these files systematically:  
+#### - tests/unit/mocking_resources/test_simple_mock_plugin.py (remove asyncio, json, datetime, timezone, MagicMock, patch)  
+#### - tests/unit/mocking_resources/test_server_with_simple_plugin.py (remove json, ExchangePlugin, ExchangeType)  
+#### - tests/unit/mocking_resources/exchange_server_plugins/okx/test_okx_spot_plugin.py (remove aiohttp, aiohttp.web)  
+####   
+#### Be systematic and remove all truly unused imports.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will remove the specified unused imports from the files.
+
+Here are the changes:
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+"""
+Unit tests for MockedPlugin.
+"""
+
+import asyncio
+import json
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+=======
+"""
+Unit tests for MockedPlugin.
+"""
+
+from unittest.mock import AsyncMock
+
+import pytest
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/mocking_resources/test_server_with_simple_plugin.py
+<<<<<<< SEARCH
+"""
+Tests for the MockedExchangeServer with MockedPlugin.
+"""
+
+import asyncio
+import json
+
+import aiohttp
+import pytest
+
+from candles_feed.mocking_resources.core import MockedExchangeServer
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+=======
+"""
+Tests for the MockedExchangeServer with MockedPlugin.
+"""
+
+import asyncio
+
+import aiohttp
+import pytest
+
+from candles_feed.mocking_resources.core import MockedExchangeServer
+from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/mocking_resources/exchange_server_plugins/okx/test_okx_spot_plugin.py
+<<<<<<< SEARCH
+"""
+Unit tests for the OKXSpotPlugin class.
+"""
+
+from typing import Any
+
+import aiohttp
+import pytest
+from aiohttp import web
+
+from candles_feed.adapters.okx.constants import INTERVAL_TO_EXCHANGE_FORMAT
+from candles_feed.core.candle_data import CandleData
+=======
+"""
+Unit tests for the OKXSpotPlugin class.
+"""
+
+
+import pytest
+
+from candles_feed.adapters.okx.constants import INTERVAL_TO_EXCHANGE_FORMAT
+from candles_feed.core.candle_data import CandleData
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:04:38
+
+
+#### Continue fixing F401 violations systematically. Fix these files to remove unused imports:  
+####   
+#### 1. candles_feed/mocking_resources/exchange_server_plugins/coinbase_advanced_trade/base_plugin.py - remove unused json import and unused constants  
+#### 2. Fix several adapter test files by removing unused datetime and typing imports:  
+####    - tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py  
+####    - tests/unit/adapters/binance/test_binance_base_adapter.py    
+####    - tests/unit/mocking_resources/core/test_server.py  
+####   
+#### Be systematic about removing only truly unused imports while preserving functionality.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will proceed with removing the unused imports from the specified files.
+
+Here are the changes:
+
+**1. `candles_feed/mocking_resources/exchange_server_plugins/coinbase_advanced_trade/base_plugin.py`**
+   - Remove unused `json` import.
+   - Remove unused `INTERVAL_TO_EXCHANGE_FORMAT` from `candles_feed.adapters.coinbase_advanced_trade.constants` import.
+
+```python
+candles_feed/mocking_resources/exchange_server_plugins/coinbase_advanced_trade/base_plugin.py
+<<<<<<< SEARCH
+This class provides shared functionality for Coinbase Advanced Trade plugins.
+"""
+
+import json
+from abc import ABC
+from datetime import datetime, timezone
+from typing import Any
+
+from aiohttp import web
+
+from candles_feed.adapters.base_adapter import BaseAdapter
+from candles_feed.adapters.coinbase_advanced_trade.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
+from candles_feed.core.candle_data import CandleData
+=======
+This class provides shared functionality for Coinbase Advanced Trade plugins.
+"""
+
+from abc import ABC
+from datetime import datetime, timezone
+from typing import Any
+
+from aiohttp import web
+
+from candles_feed.adapters.base_adapter import BaseAdapter
+from candles_feed.adapters.coinbase_advanced_trade.constants import (
+    INTERVALS,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
+from candles_feed.core.candle_data import CandleData
+>>>>>>> REPLACE
+```
+
+**2. `tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py`**
+   - Remove `timezone` from `datetime` import (use `datetime.timezone.utc`).
+   - Remove unused `INTERVALS` and `WS_INTERVALS` from `candles_feed.adapters.ascend_ex.constants` import.
+
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+"""
+Tests for the AscendExSpotAdapter using the base adapter test class.
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from candles_feed.adapters.ascend_ex.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    INTERVALS,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+    WS_INTERVALS,
+)
+from candles_feed.adapters.ascend_ex.spot_adapter import AscendExSpotAdapter
+=======
+"""
+Tests for the AscendExSpotAdapter using the base adapter test class.
+"""
+
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from candles_feed.adapters.ascend_ex.constants import (
+    INTERVAL_TO_EXCHANGE_FORMAT,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
+    SPOT_WSS_URL,
+)
+from candles_feed.adapters.ascend_ex.spot_adapter import AscendExSpotAdapter
+>>>>>>> REPLACE
+```
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+
+        return {
+            "status": "ok",
+=======
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1000
+
+        return {
+            "status": "ok",
+>>>>>>> REPLACE
+```
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+
+        return {
+            "m": "bar",
+=======
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1000
+
+        return {
+            "m": "bar",
+>>>>>>> REPLACE
+```
+
+**3. `tests/unit/adapters/binance/test_binance_base_adapter.py`**
+   - Remove unused `MagicMock` import.
+   - Remove unused `CandleData` import.
+
+```python
+tests/unit/adapters/binance/test_binance_base_adapter.py
+<<<<<<< SEARCH
+"""
+Unit tests for the BinanceBaseAdapter class.
+"""
+
+from unittest.mock import MagicMock
+
+import pytest
+
+from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
+from candles_feed.adapters.binance.constants import (
+    INTERVALS,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    WS_INTERVALS,
+)
+from candles_feed.core.candle_data import CandleData
+
+
+class ConcreteBinanceAdapter(BinanceBaseAdapter):
+=======
+"""
+Unit tests for the BinanceBaseAdapter class.
+"""
+
+
+import pytest
+
+from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
+from candles_feed.adapters.binance.constants import (
+    INTERVALS,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    WS_INTERVALS,
+)
+
+
+class ConcreteBinanceAdapter(BinanceBaseAdapter):
+>>>>>>> REPLACE
+```
+
+**4. `tests/unit/mocking_resources/core/test_server.py`**
+   - Remove unused `MagicMock` from `unittest.mock` import.
+   - Remove unused `CandleData` import.
+
+```python
+tests/unit/mocking_resources/core/test_server.py
+<<<<<<< SEARCH
+import asyncio
+import unittest
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from aiohttp import web
+
+from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+=======
+import asyncio
+import unittest
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from aiohttp import web
+
+from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:05:25
+
+
+#### Fix the test_error_handling_in_fetch_rest_candles method in the base adapter test class to handle both async-only and sync adapters properly.   
+####   
+#### The test should:  
+#### 1. Check if the adapter supports synchronous operations  
+#### 2. If it's async-only (raises NotImplementedError), expect that exception instead  
+#### 3. If it supports sync operations, then test the HTTP error handling as originally intended  
+####   
+#### This will fix the failing test for Binance and other async-only adapters.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will update the `test_error_handling_in_fetch_rest_candles` method to correctly handle both synchronous and asynchronous-only adapters.
+
+Here's how I'll modify the test:
+1.  Import `AsyncOnlyAdapter` from `candles_feed.adapters.adapter_mixins`.
+2.  In `test_error_handling_in_fetch_rest_candles`, first check if the adapter instance is of type `AsyncOnlyAdapter`.
+3.  If it is, the test will assert that calling `fetch_rest_candles_synchronous` raises a `NotImplementedError`.
+4.  Otherwise (if the adapter supports synchronous calls), the existing logic to mock `requests.get` and test for HTTP error handling will be executed.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+tests/unit/adapters/base_adapter_test.py
+<<<<<<< SEARCH
+    def test_error_handling_in_fetch_rest_candles(self, adapter, trading_pair, interval):
+        """Test error handling in fetch_rest_candles_synchronous."""
+        # Mock requests.get to simulate errors
+        with mock.patch('requests.get') as mock_get:
+            # Test HTTP error
+            mock_response = mock.MagicMock()
+            mock_response.raise_for_status.side_effect = Exception("HTTP Error")
+            mock_get.return_value = mock_response
+
+            # Should raise the error since we're not handling it in the adapter
+            with pytest.raises(Exception, match="HTTP Error"):
+                adapter.fetch_rest_candles_synchronous(trading_pair, interval)
+
+    def test_timestamp_conversion(self, adapter):
+=======
+    def test_error_handling_in_fetch_rest_candles(self, adapter, trading_pair, interval):
+        """Test error handling in fetch_rest_candles_synchronous."""
+        # Import here to avoid circular dependencies or issues if mixins are not always available
+        from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+
+        if isinstance(adapter, AsyncOnlyAdapter):
+            # For AsyncOnlyAdapter, expect NotImplementedError
+            with pytest.raises(NotImplementedError):
+                adapter.fetch_rest_candles_synchronous(trading_pair, interval)
+        else:
+            # For other adapters, test the original HTTP error handling
+            # Mock requests.get to simulate errors
+            with mock.patch('requests.get') as mock_get:
+                # Test HTTP error
+                mock_response = mock.MagicMock()
+                mock_response.raise_for_status.side_effect = Exception("HTTP Error")
+                mock_get.return_value = mock_response
+
+                # Should raise the error since we're not handling it in the adapter
+                with pytest.raises(Exception, match="HTTP Error"):
+                    adapter.fetch_rest_candles_synchronous(trading_pair, interval)
+
+    def test_timestamp_conversion(self, adapter):
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:06:05
+
+
+#### Fix the datetime.timezone import issue in the AscendEx test file. The issue is that I incorrectly changed imports and now `datetime.timezone.utc` is being referenced as `datetime.datetime.timezone.utc`.   
+####   
+#### Need to:  
+#### 1. Import timezone from datetime module  
+#### 2. Fix the timezone references to use timezone.utc correctly  
+####   
+#### The error shows: "type object 'datetime.datetime' has no attribute 'timezone'"  
+####   
+#### This is because timezone needs to be imported separately from datetime.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I understand. The `datetime.timezone` attribute is being incorrectly accessed. I'll fix the import and the references.
+
+Here are the changes:
+
+1.  Modify the import statement to include `timezone` from the `datetime` module.
+2.  Update the two instances where `datetime.timezone.utc` is used to `timezone.utc`.
+
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+"""
+Tests for the AscendExSpotAdapter using the base adapter test class.
+"""
+
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+=======
+"""
+Tests for the AscendExSpotAdapter using the base adapter test class.
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1000
+
+        return {
+            "status": "ok",
+=======
+    def get_mock_candlestick_response(self):
+        """Return a mock candlestick response for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+
+        return {
+            "status": "ok",
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1000
+
+        return {
+            "m": "bar",
+=======
+    def get_mock_websocket_message(self):
+        """Return a mock WebSocket message for the adapter."""
+        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+
+        return {
+            "m": "bar",
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:07:07
+
+
+#### Continue systematically fixing F401 violations across the codebase. Focus on the most common patterns:  
+####   
+#### 1. Remove unused typing imports (typing.Dict, typing.List, typing.Optional, typing.Union) from adapter files  
+#### 2. Remove unused datetime imports from test files    
+#### 3. Remove unused json, asyncio, aiohttp imports from various files  
+#### 4. Remove unused mock imports (MagicMock, patch, AsyncMock) from test files  
+####   
+#### Fix these files to reduce the F401 count significantly:  
+#### - More adapter constant files  
+#### - More test files with common unused import patterns  
+#### - Mocking resource files  
+####   
+#### Be systematic and remove only truly unused imports.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+I've carefully reviewed the three files you've added to the chat:
+- `candles_feed/mocking_resources/adapter/sync_mocked_adapter.py`
+- `candles_feed/mocking_resources/adapter/mocked_adapter.py`
+- `candles_feed/mocking_resources/adapter/hybrid_mocked_adapter.py`
+
+My goal was to identify and propose fixes for F401 violations (unused imports), focusing on the common patterns you described (unused `typing` imports like `Dict`, `List`, `Optional`, `Union`; unused `datetime`, `json`, `asyncio`, `aiohttp`; and unused `mock` objects).
+
+Based on the content of these three files as provided:
+1.  **Typing Imports**: All members imported from the `typing` module (specifically `Any`, `Dict`, `List`, `Optional`) appear to be actively used in type annotations within each of the three files. For example, `List` is used as `List[str]`, `Dict` as `Dict[str, int]`, `Optional` as `Optional[NetworkConfig]`, and `Any` as `Dict[str, Any]`. Therefore, these do not seem to be F401 violations.
+2.  **Other Common Unused Imports**: There are no imports for `datetime`, `json`, `asyncio`, `aiohttp`, or common `unittest.mock` objects (like `MagicMock`, `patch`, `AsyncMock`) in these specific three files.
+3.  **Other Imports**: All other modules, classes, and constants imported (e.g., `BaseAdapter`, `CandleData`, `NetworkConfig`, constants from `.constants`) also appear to be referenced and used within the code of these files.
+
+For instance, in `candles_feed/mocking_resources/adapter/sync_mocked_adapter.py`:
+- The line `from typing import Any, Dict, List, Optional` provides names that are subsequently used (e.g., `Optional[NetworkConfig]`, `Dict[str, int]`, `List[str]`, `Dict[str, Any]`).
+- Imports such as `SyncOnlyAdapter`, `BaseAdapter`, `CandleData`, `ExchangeRegistry`, `NetworkConfig` are all referenced.
+- All constants imported from `.constants` (e.g., `DEFAULT_CANDLES_LIMIT`, `INTERVALS`) are used in method bodies.
+
+Similar checks for `candles_feed/mocking_resources/adapter/mocked_adapter.py` and `candles_feed/mocking_resources/adapter/hybrid_mocked_adapter.py` yield the same results: all imported names appear to be used.
+
+Given this, I'm currently unable to identify any F401 violations in the provided contents of these three files.
+
+Could you please confirm if these are the exact files and versions that are reporting F401 errors in your linting environment? It's possible that:
+- The versions of the files I'm analyzing are different from what your linter is seeing (perhaps already cleaned).
+- The F401 errors are being reported for reasons not immediately apparent from a standard F401 check (e.g., a specific linter configuration or a more complex scenario).
+- The F401s might be in other related files that haven't been added to the chat yet.
+
+If your linter is flagging specific import lines in these files as F401, could you please point them out? That would help me understand the issue better.
+
+
+# aider chat started at 2025-05-29 10:30:34
+
+
+#### Fix the MockedPlugin test file. The test is calling `handle_rest_candles_request` but the actual method is `handle_klines`.   
+####   
+#### Need to:  
+#### 1. Update the test to use the correct method name `handle_klines`  
+#### 2. Set up proper request object since the method expects a server and request parameter  
+#### 3. Fix the test expectations to match the actual response format from the method  
+#### 4. Check the actual plugin implementation to understand the response format  
+####   
+#### The test should call the plugin methods correctly and verify the expected response structure.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will fix the test method for `handle_klines` in `tests/unit/mocking_resources/test_simple_mock_plugin.py`.
+
+Here's the plan:
+1.  Add necessary imports: `json` for parsing the JSON response, `CandleData` for creating test data, and `Mock` from `unittest.mock`.
+2.  Rename the test method from `test_handle_rest_candles_request` to `test_handle_klines`.
+3.  Inside the `test_handle_klines` method:
+    *   Create a `mock_server` object. This mock will need:
+        *   An async method `_simulate_network_conditions`.
+        *   A method `_check_rate_limit` that returns `True`.
+        *   A `candles` attribute, which will be a dictionary holding test candle data (lists of `CandleData` objects). I'll populate this with data for "BTC-USDT" and "ETH-USDT".
+    *   For each test case (minimal params, all params):
+        *   Create a `mock_request` object. This mock will need:
+            *   A `query` attribute (a dictionary representing URL query parameters like `symbol`, `interval`, `limit`).
+            *   A `remote` attribute (e.g., "127.0.0.1" for IP checks).
+        *   Call `await self.plugin.handle_klines(mock_server, mock_request)`.
+        *   The method returns an `aiohttp.web.json_response`. Assert that `response.status == 200`.
+        *   Parse `response.text` using `json.loads()` to get the JSON dictionary.
+        *   Update assertions to match the actual response structure provided by `MockedPlugin.format_rest_candles`:
+            *   Check `status`, `symbol`, `interval`.
+            *   Check `len(data)`. For the "minimal params" case, the limit defaults to 1000 as per `parse_rest_candles_params`. The number of returned candles will be the minimum of available candles and this limit.
+            *   Check the structure of individual candle objects within the `data` list.
+            *   Verify that timestamps are in ascending order.
+
+I will not modify the `test_handle_ws_connection` method as the request was specific to the REST candles handler.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+"""
+Unit tests for MockedPlugin.
+"""
+
+from unittest.mock import AsyncMock
+
+import pytest
+
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+=======
+"""
+Unit tests for MockedPlugin.
+"""
+
+import json
+from unittest.mock import AsyncMock, Mock
+
+import pytest
+
+from candles_feed.core.candle_data import CandleData
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_handle_rest_candles_request(self):
+        """Test handling REST API candles requests."""
+        # Test with minimal parameters
+        params = {"symbol": "BTC-USDT"}
+        response = await self.plugin.handle_rest_candles_request(params)
+
+        # Verify response structure
+        assert response["status"] == "ok"
+        assert response["symbol"] == "BTC-USDT"
+        assert response["interval"] == "1m"  # Default interval
+        assert isinstance(response["data"], list)
+        assert len(response["data"]) == 500  # Default limit
+
+        # Test with all parameters
+        params = {"symbol": "ETH-USDT", "interval": "5m", "limit": "10"}
+        response = await self.plugin.handle_rest_candles_request(params)
+
+        # Verify response
+        assert response["status"] == "ok"
+        assert response["symbol"] == "ETH-USDT"
+        assert response["interval"] == "5m"
+        assert len(response["data"]) == 10
+
+        # Verify candle data structure
+        first_candle = response["data"][0]
+        assert "timestamp" in first_candle
+        assert "open" in first_candle
+        assert "high" in first_candle
+        assert "low" in first_candle
+        assert "close" in first_candle
+        assert "volume" in first_candle
+        assert "quote_volume" in first_candle
+
+        # Verify timestamps are in ascending order (oldest first)
+        timestamps = [int(candle["timestamp"]) for candle in response["data"]]
+        assert timestamps == sorted(timestamps)
+
+    @pytest.mark.asyncio
+    async def test_handle_ws_connection(self):
+=======
+    @pytest.mark.asyncio
+    async def test_handle_klines(self):
+        """Test handling klines (candles) REST API requests."""
+        mock_server = Mock()
+        mock_server._simulate_network_conditions = AsyncMock()
+        mock_server._check_rate_limit = Mock(return_value=True)
+
+        # Populate server.candles with some data
+        btc_candles = [
+            CandleData(timestamp=1678886400 + i * 60, open=50000 + i, high=50100 + i, low=49900 + i, close=50050 + i, volume=10.0 + i, quote_asset_volume=500000.0 + i*100)
+            for i in range(600)  # Create 600 candles for BTC-USDT
+        ]
+        eth_candles = [
+            CandleData(timestamp=1678886400 + i * 300, open=3000 + i, high=3010 + i, low=2990 + i, close=3005 + i, volume=100.0 + i, quote_asset_volume=300000.0 + i*100)
+            for i in range(20) # Create 20 candles for ETH-USDT
+        ]
+        mock_server.candles = {
+            "BTC-USDT": {"1m": btc_candles},
+            "ETH-USDT": {"5m": eth_candles},
+        }
+
+        # Test with minimal parameters (symbol and interval, limit defaults to 1000)
+        mock_request_1 = Mock()
+        mock_request_1.query = {"symbol": "BTCUSDT", "interval": "1m"} # Use "BTCUSDT" to test symbol normalization
+        mock_request_1.remote = "127.0.0.1"
+
+        web_response_1 = await self.plugin.handle_klines(mock_server, mock_request_1)
+        assert web_response_1.status == 200
+        response_1_json = json.loads(web_response_1.text)
+
+        # Verify response structure
+        assert response_1_json["status"] == "ok"
+        assert response_1_json["symbol"] == "BTC-USDT"  # Symbol in response is the key from server.candles
+        assert response_1_json["interval"] == "1m"
+        assert isinstance(response_1_json["data"], list)
+        assert len(response_1_json["data"]) == 600  # Default limit is 1000, but only 600 available
+
+        # Test with all parameters
+        mock_request_2 = Mock()
+        mock_request_2.query = {"symbol": "ETH-USDT", "interval": "5m", "limit": "10"}
+        mock_request_2.remote = "127.0.0.1"
+
+        web_response_2 = await self.plugin.handle_klines(mock_server, mock_request_2)
+        assert web_response_2.status == 200
+        response_2_json = json.loads(web_response_2.text)
+
+        # Verify response
+        assert response_2_json["status"] == "ok"
+        assert response_2_json["symbol"] == "ETH-USDT"
+        assert response_2_json["interval"] == "5m"
+        assert len(response_2_json["data"]) == 10 # 20 available, limit is 10
+
+        # Verify candle data structure from the second response
+        assert len(response_2_json["data"]) > 0
+        first_candle = response_2_json["data"][0]
+        assert "timestamp" in first_candle
+        assert "open" in first_candle
+        assert "high" in first_candle
+        assert "low" in first_candle
+        assert "close" in first_candle
+        assert "volume" in first_candle
+        assert "quote_volume" in first_candle
+        assert "close_time" in first_candle # Added by format_rest_candles
+        assert "trades" in first_candle
+        assert "taker_base_volume" in first_candle
+        assert "taker_quote_volume" in first_candle
+
+
+        # Verify timestamps are in ascending order (oldest first)
+        # Data is taken from the end of the list by mock server, so it's already sorted if source is sorted.
+        timestamps = [int(candle["timestamp"]) for candle in response_2_json["data"]]
+        assert timestamps == sorted(timestamps)
+
+    @pytest.mark.asyncio
+    async def test_handle_ws_connection(self):
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:32:43
+
+
+#### Fix the CandleData constructor calls in the MockedPlugin test. The CandleData constructor uses `timestamp_raw` parameter, not `timestamp`. Also need to check what other parameters are expected vs what I'm passing.  
+####   
+#### Fix the CandleData instantiation to use the correct parameter names based on the dataclass definition.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will update the `CandleData` constructor calls in `tests/unit/mocking_resources/test_simple_mock_plugin.py` to use `timestamp_raw` instead of `timestamp`. The other parameters being passed (`open`, `high`, `low`, `close`, `volume`, `quote_asset_volume`) are correct according to the `CandleData` definition.
+
+Here are the changes:
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+        # Populate server.candles with some data
+        btc_candles = [
+            CandleData(timestamp=1678886400 + i * 60, open=50000 + i, high=50100 + i, low=49900 + i, close=50050 + i, volume=10.0 + i, quote_asset_volume=500000.0 + i*100)
+            for i in range(600)  # Create 600 candles for BTC-USDT
+        ]
+        eth_candles = [
+            CandleData(timestamp=1678886400 + i * 300, open=3000 + i, high=3010 + i, low=2990 + i, close=3005 + i, volume=100.0 + i, quote_asset_volume=300000.0 + i*100)
+            for i in range(20) # Create 20 candles for ETH-USDT
+        ]
+        mock_server.candles = {
+=======
+        # Populate server.candles with some data
+        btc_candles = [
+            CandleData(timestamp_raw=1678886400 + i * 60, open=50000 + i, high=50100 + i, low=49900 + i, close=50050 + i, volume=10.0 + i, quote_asset_volume=500000.0 + i*100)
+            for i in range(600)  # Create 600 candles for BTC-USDT
+        ]
+        eth_candles = [
+            CandleData(timestamp_raw=1678886400 + i * 300, open=3000 + i, high=3010 + i, low=2990 + i, close=3005 + i, volume=100.0 + i, quote_asset_volume=300000.0 + i*100)
+            for i in range(20) # Create 20 candles for ETH-USDT
+        ]
+        mock_server.candles = {
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 10:33:32
+
+
+#### Fix the WebSocket test in the MockedPlugin test file. The test is calling `handle_ws_connection` but the actual method is `handle_websocket`.   
+####   
+#### Need to:  
+#### 1. Update the test to use the correct method name `handle_websocket`  
+#### 2. Set up proper server and request parameters since the method expects server and request parameters  
+#### 3. Check the actual plugin implementation to understand the expected behavior and response format  
+#### 4. Fix the test expectations to match the actual method behavior  
+####   
+#### The method signature is: handle_websocket(self, server, request)  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will fix the WebSocket test in `tests/unit/mocking_resources/test_simple_mock_plugin.py`.
+
+Here's the plan:
+1.  Rename the test method from `test_handle_ws_connection` to `test_handle_websocket` for accuracy.
+2.  Update the test to call `self.plugin.handle_websocket(mock_server, mock_request)`.
+3.  Set up `mock_server` and `mock_request` objects with the necessary attributes and methods required by `handle_websocket`.
+4.  Mock `aiohttp.web.WebSocketResponse` to control the behavior of the WebSocket object created within `handle_websocket`. This mock will simulate receiving a subscription message.
+5.  Adjust the assertions to match the actual response format for subscription success (which uses the symbol as provided in the request, e.g., "BTCUSDT") and the candle data message (which uses the normalized symbol, e.g., "BTC-USDT").
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_handle_ws_connection(self):
+        """Test handling WebSocket connections."""
+        # Create mock websocket
+        mock_ws = AsyncMock()
+        mock_ws.receive_json.return_value = {
+            "type": "subscribe",
+            "subscriptions": [
+                {"symbol": "BTC-USDT", "interval": "1m"}
+            ]
+        }
+
+        # Test handling connection
+        await self.plugin.handle_ws_connection(mock_ws)
+
+        # Verify subscription confirmation was sent
+        mock_ws.send_json.assert_any_call({
+            "status": "subscribed",
+            "subscriptions": [
+                {"symbol": "BTC-USDT", "interval": "1m"}
+            ]
+        })
+
+        # Verify candle update was sent
+        assert mock_ws.send_json.call_count == 2
+
+        # Get the second call arguments (candle update)
+        candle_update_call = mock_ws.send_json.call_args_list[1]
+        candle_update = candle_update_call[0][0]
+
+        # Verify candle update structure
+        assert candle_update["type"] == "candle_update"
+        assert candle_update["symbol"] == "BTC-USDT"
+        assert candle_update["interval"] == "1m"
+        assert "data" in candle_update
+
+        # Verify candle data structure
+        candle_data = candle_update["data"]
+        assert "timestamp" in candle_data
+        assert "open" in candle_data
+        assert "high" in candle_data
+        assert "low" in candle_data
+        assert "close" in candle_data
+        assert "volume" in candle_data
+        assert "quote_volume" in candle_data
+=======
+from unittest.mock import patch
+from aiohttp import web as aiohttp_web # For WSMsgType
+
+    @pytest.mark.asyncio
+    @patch('candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.web.WebSocketResponse')
+    async def test_handle_websocket(self, MockWebSocketResponse):
+        """Test handling WebSocket connections and subscriptions."""
+        # Configure the mock WebSocket instance that MockWebSocketResponse will return
+        mock_ws_instance = AsyncMock()
+        mock_ws_instance.prepare = AsyncMock()
+        mock_ws_instance.send_json = AsyncMock()
+        mock_ws_instance.closed = False
+        mock_ws_instance.exception = Mock(return_value=None)
+
+        # Simulate receiving one subscription message
+        async def mock_receive_messages():
+            yield Mock(type=aiohttp_web.WSMsgType.TEXT, data=json.dumps({
+                "type": "subscribe",
+                "subscriptions": [
+                    # Use "BTCUSDT" to test if plugin handles unnormalized symbols in request
+                    # but normalizes for internal use and candle messages.
+                    {"symbol": "BTCUSDT", "interval": "1m"}
+                ]
+            }))
+            # The async for loop in the handler will terminate after this message.
+
+        mock_ws_instance.__aiter__ = Mock(return_value=mock_receive_messages())
+        
+        # Configure the patched class to return our mock instance
+        MockWebSocketResponse.return_value = mock_ws_instance
+
+        # Setup mock_server
+        mock_server = Mock()
+        mock_server.latency_ms = 0
+        mock_server._check_rate_limit = Mock(return_value=True)
+        mock_server.ws_connections = set()
+        mock_server.subscriptions = {}  # Will be populated by the handler
+        mock_server.logger = Mock()
+
+        # Populate server.candles with data for the subscription
+        candle_obj = CandleData(
+            timestamp_raw=1678886400, open=50000, high=50100, low=49900, close=50050, 
+            volume=10.0, quote_asset_volume=500000.0
+        )
+        mock_server.candles = {
+            "BTC-USDT": {"1m": [candle_obj]}  # Plugin uses normalized "BTC-USDT" as key
+        }
+        
+        # Setup mock_request
+        mock_request = Mock()
+        mock_request.remote = "127.0.0.1"
+
+        # Call the method under test
+        await self.plugin.handle_websocket(mock_server, mock_request)
+
+        # --- Assertions ---
+
+        # 1. WebSocketResponse was instantiated and prepared
+        MockWebSocketResponse.assert_called_once()
+        mock_ws_instance.prepare.assert_called_once_with(mock_request)
+
+        # 2. Subscription success message
+        # Plugin uses the symbol from the request ("BTCUSDT") in the success message for "our format"
+        expected_subscription_success = {
+            "type": "subscribe_result",
+            "status": "success",
+            "subscriptions": [{"symbol": "BTCUSDT", "interval": "1m"}] 
+        }
+
+        # 3. Candle update message
+        # Plugin uses the normalized symbol ("BTC-USDT") from server.candles for the candle data message
+        expected_candle_data_payload = {
+            "timestamp": int(candle_obj.timestamp_ms),
+            "open": str(candle_obj.open),
+            "high": str(candle_obj.high),
+            "low": str(candle_obj.low),
+            "close": str(candle_obj.close),
+            "volume": str(candle_obj.volume),
+            "quote_volume": str(candle_obj.quote_asset_volume)
+        }
+        expected_candle_update = {
+            "type": "candle_update",
+            "symbol": "BTC-USDT",  # Normalized symbol
+            "interval": "1m",
+            "is_final": True,  # Initial candle is marked as final
+            "data": expected_candle_data_payload
+        }
+
+        # Check the calls to send_json
+        calls = mock_ws_instance.send_json.call_args_list
+        assert len(calls) == 2, "Expected two messages: subscription confirmation and one candle update."
+        
+        # First call: subscription success
+        assert calls[0][0][0] == expected_subscription_success
+        # Second call: candle update (after a small delay in the handler)
+        assert calls[1][0][0] == expected_candle_update
+
+        # 4. Verify server state (connection and subscription tracking)
+        assert mock_ws_instance in mock_server.ws_connections
+        # Subscription key uses the normalized pair ("BTC-USDT")
+        subscription_key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
+        assert subscription_key in mock_server.subscriptions
+        assert mock_ws_instance in mock_server.subscriptions[subscription_key]
+>>>>>>> REPLACE
+```
+
+>  
+> # Fix any errors below, if possible.  
+>  
+> Traceback (most recent call last):  
+> File "/home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/tests/unit/mocking_resources/test_simple_mock_plugin.py", line 126  
+> @pytest.mark.asyncio  
+> IndentationError: unexpected indent  
+>  
+> ## Running: /home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/bin/python3 -m flake8 --select=E9,F821,F823,F831,F406,F407,F701,F702,F704,F706 --show-source --isolated tests/unit/mocking_resources/test_simple_mock_plugin.py  
+>  
+> tests/unit/mocking_resources/test_simple_mock_plugin.py:126:5: E999 IndentationError: unexpected indent  
+> @pytest.mark.asyncio  
+> ^  
+>  
+> ## See relevant line below marked with █.  
+>  
+> tests/unit/mocking_resources/test_simple_mock_plugin.py:  
+> ...⋮...  
+> 123│from unittest.mock import patch  
+> 124│from aiohttp import web as aiohttp_web # For WSMsgType  
+> 125│  
+> 126█    @pytest.mark.asyncio  
+> 127│    @patch('candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.web.WebSocketResponse')  
+> 128│    async def test_handle_websocket(self, MockWebSocketResponse):  
+> 129│        """Test handling WebSocket connections and subscriptions."""  
+> ...⋮...  
+>  
+> Attempt to fix lint errors? (Y)es/(N)o [Yes]: y  
+
+The `IndentationError` is caused by the `import` statements being placed inside the class definition but not within a method, and then followed by a method definition at an indentation level that becomes unexpected due to the preceding misplaced imports.
+
+To fix this, I will:
+1.  Move the `from unittest.mock import patch` import to the existing `unittest.mock` import line at the top of the file.
+2.  Move the `from aiohttp import web as aiohttp_web` import to the top of the file, near other standard library or third-party imports.
+3.  Remove these import lines from their current incorrect position within the `TestMockedPlugin` class body.
+
+This will ensure all imports are at the module level, and the `test_handle_websocket` method definition will follow correctly within the class structure.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+"""
+Unit tests for MockedPlugin.
+"""
+
+import json
+from unittest.mock import AsyncMock, Mock
+=======
+"""
+Unit tests for MockedPlugin.
+"""
+
+import json
+from unittest.mock import AsyncMock, Mock, patch
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+import pytest
+
+from candles_feed.core.candle_data import CandleData
+=======
+import pytest
+from aiohttp import web as aiohttp_web # For WSMsgType
+
+from candles_feed.core.candle_data import CandleData
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/mocking_resources/test_simple_mock_plugin.py
+<<<<<<< SEARCH
+        assert timestamps == sorted(timestamps)
+
+from unittest.mock import patch
+from aiohttp import web as aiohttp_web # For WSMsgType
+
+    @pytest.mark.asyncio
+=======
+        assert timestamps == sorted(timestamps)
+
+    @pytest.mark.asyncio
+>>>>>>> REPLACE
+```
+
