@@ -3,7 +3,7 @@ Tests for the GateIoBaseAdapter using the base adapter test class.
 """
 
 from datetime import datetime, timezone
-from unittest import mock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

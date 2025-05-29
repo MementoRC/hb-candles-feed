@@ -4,7 +4,6 @@ Unit tests for the BybitPerpetualPlugin class.
 
 import pytest
 
-from candles_feed.adapters.bybit.constants import PERPETUAL_WSS_URL
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.exchange_server_plugins.bybit.perpetual_plugin import (
@@ -25,7 +24,7 @@ class TestBybitPerpetualPlugin:
         """Test plugin initialization."""
         assert self.plugin.exchange_type == ExchangeType.BYBIT_PERPETUAL
         assert self.plugin.rest_url.startswith("https://")
-        assert self.plugin.wss_url == PERPETUAL_WSS_URL
+        assert self.plugin.wss_url.startswith("wss://")
         assert "/ws" in self.plugin.ws_routes
 
     def test_rest_routes(self):

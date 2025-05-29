@@ -7,7 +7,6 @@ with the refactored plugin framework that provides exchange-specific settings.
 
 import pytest
 import pytest_asyncio
-from aiohttp.test_utils import TestClient
 
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer

@@ -9,12 +9,10 @@ import pytest
 
 from candles_feed.adapters.okx.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
-    WS_INTERVALS,
 )
 from candles_feed.adapters.okx.perpetual_adapter import OKXPerpetualAdapter
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
