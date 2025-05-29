@@ -2,8 +2,6 @@
 Unit tests for the CoinbaseAdvancedTradeSpotAdapter class.
 """
 
-from unittest.mock import MagicMock
-
 import pytest
 
 from candles_feed.adapters.coinbase_advanced_trade.constants import (

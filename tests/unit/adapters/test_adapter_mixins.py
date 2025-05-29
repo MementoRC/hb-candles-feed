@@ -2,8 +2,6 @@
 Tests for the adapter mixins using the base adapter test class.
 """
 
-import asyncio
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest

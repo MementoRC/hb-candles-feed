@@ -3,8 +3,7 @@ Time-related utility functions for the Candle Feed framework.
 """
 
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Tuple
+from datetime import datetime, timezone
 
 
 def round_timestamp_to_interval(timestamp: int, interval_seconds: int) -> int:

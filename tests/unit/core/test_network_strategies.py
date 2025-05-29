@@ -1,12 +1,10 @@
 import asyncio
 import logging
-import time
 from collections import deque
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pytest import mark
 
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData

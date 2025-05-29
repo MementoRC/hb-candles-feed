@@ -2,10 +2,6 @@
 Coinbase Advanced Trade Spot plugin implementation for the mock exchange server.
 """
 
-from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    SPOT_CANDLES_ENDPOINT,
-    SPOT_REST_URL,
-)
 from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
     CoinbaseAdvancedTradeSpotAdapter,
 )

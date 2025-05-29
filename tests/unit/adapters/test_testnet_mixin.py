@@ -4,13 +4,12 @@ Unit tests for TestnetSupportMixin.
 This module tests the functionality provided by the TestnetSupportMixin class.
 """
 
-import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from candles_feed.adapters.adapter_mixins import TestnetSupportMixin
-from candles_feed.core.network_config import EndpointType, NetworkConfig, NetworkEnvironment
+from candles_feed.core.network_config import NetworkConfig, NetworkEnvironment
 
 
 class MockAdapter:

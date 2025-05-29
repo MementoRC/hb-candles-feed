@@ -6,9 +6,6 @@ from aiohttp import web
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.mexc.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVAL_TO_PERPETUAL_FORMAT,
-    PERP_REST_URL,
-    PERP_WSS_URL,
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )

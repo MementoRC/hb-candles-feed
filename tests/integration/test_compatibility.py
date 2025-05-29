@@ -19,13 +19,9 @@ This ensures that the new implementation can be used as a drop-in replacement
 for the original, while providing a more modular architecture.
 """
 
-import asyncio
 import logging
-import os
-from typing import Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import numpy as np
 import pandas as pd
 import pytest
 

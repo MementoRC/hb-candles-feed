@@ -5,9 +5,6 @@ These tests verify the complete workflow from adapter to candles feed.
 """
 
 import asyncio
-from collections import deque
-from unittest.mock import AsyncMock, Mock, patch
-
 import pytest
 
 from candles_feed.core.candle_data import CandleData

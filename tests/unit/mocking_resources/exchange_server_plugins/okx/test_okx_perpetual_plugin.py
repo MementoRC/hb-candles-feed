@@ -2,14 +2,9 @@
 Unit tests for the OKXPerpetualPlugin class.
 """
 
-from typing import Any
-
-import aiohttp
 import pytest
-from aiohttp import web
 
 from candles_feed.adapters.okx.constants import INTERVAL_TO_EXCHANGE_FORMAT
-from candles_feed.adapters.okx.perpetual_adapter import OKXPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.exchange_server_plugins.okx.base_plugin import OKXBasePlugin

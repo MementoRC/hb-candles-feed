@@ -2,11 +2,7 @@
 Unit tests for the KrakenSpotPlugin class.
 """
 
-from typing import Any, Union
-
-import aiohttp
 import pytest
-from aiohttp import web
 
 from candles_feed.adapters.kraken.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,

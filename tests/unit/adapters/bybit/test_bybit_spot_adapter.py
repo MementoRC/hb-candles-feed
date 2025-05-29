@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from candles_feed import CandleData
 from candles_feed.adapters.bybit.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,

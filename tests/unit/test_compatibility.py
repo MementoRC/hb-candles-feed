@@ -94,7 +94,6 @@ class TestCompatibility:
         This test verifies that the new CandlesFeed class has the same basic interface
         as the original CandlesBase class.
         """
-        import asyncio
         from unittest.mock import AsyncMock, MagicMock, patch
 
         from candles_feed.core.candle_data import CandleData
