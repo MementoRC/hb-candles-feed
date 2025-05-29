@@ -16,6 +16,7 @@ from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.protocols import WSAssistant
 from candles_feed.mocking_resources import ExchangeType
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
 
 # Configure logging for tests
@@ -74,8 +75,6 @@ def mock_candles():
 @pytest.fixture
 async def binance_mock_server(unused_tcp_port):
     """Create and start a Binance mock server for testing."""
-    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-    from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
     port = unused_tcp_port
@@ -84,7 +83,7 @@ async def binance_mock_server(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port)
+    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -106,8 +105,6 @@ async def binance_mock_server(unused_tcp_port):
 @pytest.fixture
 async def mocked_server_fixture(unused_tcp_port):
     """Create and start a simple mock server for testing."""
-    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-    from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
     port = unused_tcp_port
@@ -116,7 +113,7 @@ async def mocked_server_fixture(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port)
+    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTC-USDT", "1m", 50000.0)
@@ -144,8 +141,6 @@ def mock_server_url_simple(mocked_server_fixture):
 @pytest.fixture
 async def bybit_mock_server(unused_tcp_port):
     """Create and start a Bybit mock server for testing."""
-    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-    from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
     port = unused_tcp_port
@@ -154,7 +149,7 @@ async def bybit_mock_server(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port)
+    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -175,8 +170,6 @@ async def bybit_mock_server(unused_tcp_port):
 @pytest.fixture
 async def coinbase_mock_server(unused_tcp_port):
     """Create and start a Coinbase Advanced Trade mock server for testing."""
-    from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-    from candles_feed.mocking_resources.core.server import MockedExchangeServer
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
     port = unused_tcp_port
@@ -185,7 +178,7 @@ async def coinbase_mock_server(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port)
+    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -632,31 +625,6 @@ def websocket_message_kucoin():
 
 @pytest.fixture
 def candlestick_response_okx():
-    """Create a sample OKX REST API response."""
-    base_time = (
-        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
-    )  # OKX uses milliseconds
-
-    return {
-        "code": "0",
-        "msg": "",
-        "data": [
-            [str(base_time), "50000.0", "50500.0", "51000.0", "49000.0", "100.0", "5000000.0"],
-            [
-                str(base_time + 60000),
-                "51500.0",
-                "50500.0",
-                "52000.0",
-                "50000.0",
-                "150.0",
-                "7500000.0",
-            ],
-        ],
-    }
-
-
-@pytest.fixture
-def websocket_response_okx():
     """Create a sample OKX REST API response."""
     base_time = (
         int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000

@@ -302,7 +302,7 @@ class BaseAdapterTest(abc.ABC):
             mock_get.return_value = mock_response
 
             # Should raise the error since we're not handling it in the adapter
-            with pytest.raises(Exception):
+            with pytest.raises(Exception, match="HTTP Error"):
                 adapter.fetch_rest_candles_synchronous(trading_pair, interval)
 
     def test_timestamp_conversion(self, adapter):

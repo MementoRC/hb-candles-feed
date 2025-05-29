@@ -117,7 +117,7 @@ class TestHyperliquidPerpetualAdapter(BaseAdapterTest):
         mock_client.get_rest_data = AsyncMock(side_effect=Exception("API Error"))
 
         # Test error handling during fetch
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="API Error"):
             await adapter.fetch_rest_candles(
                 trading_pair="BTC-USDT",
                 interval="1m",

@@ -1,3 +1,4 @@
+import json  # Add this import
 from abc import ABC
 from typing import Any
 
@@ -201,7 +202,7 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
         # HyperLiquid uses POST with JSON body
         try:
             data = await request.json()
-        except:
+        except json.JSONDecodeError: # Changed from bare except
             data = {}
 
         # Extract parameters from the request body

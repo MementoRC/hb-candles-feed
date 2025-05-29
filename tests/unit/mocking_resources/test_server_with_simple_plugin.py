@@ -52,13 +52,11 @@ class TestServerWithSimplePlugin:
         url = await server.start()
 
         # Create client session
-        async with aiohttp.ClientSession() as session:
-            # Make request to candles endpoint
-            async with session.get(
+        async with aiohttp.ClientSession() as session, \
+                     session.get(
                 f"{url}/api/candles",
                 params={"symbol": "BTC-USDT", "interval": "1m", "limit": 10}
-            ) as response:
-                # Check response
+            ) as response:            # Check response
                 assert response.status == 200
                 data = await response.json()
 
@@ -213,10 +211,9 @@ class TestServerWithSimplePlugin:
         url = await server.start()
 
         # Create client session
-        async with aiohttp.ClientSession() as session:
-            # Make request to time endpoint
-            async with session.get(f"{url}/api/time") as response:
-                # Check response
+        async with aiohttp.ClientSession() as session, \
+                     session.get(f"{url}/api/time") as response:
+            # Check response
                 assert response.status == 200
                 data = await response.json()
 
@@ -251,10 +248,9 @@ class TestServerWithSimplePlugin:
         url = await server.start()
 
         # Create client session
-        async with aiohttp.ClientSession() as session:
-            # Make request to instruments endpoint
-            async with session.get(f"{url}/api/instruments") as response:
-                # Check response
+        async with aiohttp.ClientSession() as session, \
+                     session.get(f"{url}/api/instruments") as response:
+            # Check response
                 assert response.status == 200
                 data = await response.json()
 

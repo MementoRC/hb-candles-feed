@@ -40,13 +40,7 @@ class TestMockServer:
     @pytest.fixture
     async def standalone_mock_server(self):
         """Create a standalone mock server for testing."""
-        if HAS_BINANCE_PLUGIN:
-            # Use BinanceSpotPlugin
-            plugin = BinanceSpotPlugin()
-        else:
-            # Fall back to MockedPlugin
-            plugin = MockedPlugin(ExchangeType.MOCK)
-
+        plugin = BinanceSpotPlugin() if HAS_BINANCE_PLUGIN else MockedPlugin(ExchangeType.MOCK)
         server = MockedExchangeServer(plugin, "127.0.0.1", 8790)
 
         # Add trading pairs

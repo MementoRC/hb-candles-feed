@@ -220,7 +220,9 @@ class TestCandlesFeedIntegration:
 
             # 2. Modify a candle in the mock server to simulate a price update
             # This ensures we'll see changes even if no new candle is generated
-            if initial_candles:
+            if initial_candles and \
+               feed._adapter.get_trading_pair_format(feed.trading_pair) in mock_server.candles and \
+               feed.interval in mock_server.candles[feed._adapter.get_trading_pair_format(feed.trading_pair)]:
                 # Get the most recent candle timestamp
                 latest_candle = initial_candles[-1]
                 # Find this candle in the mock server - use server's expected format
@@ -228,32 +230,27 @@ class TestCandlesFeedIntegration:
 
                 logging.info(f"Looking for trading pair: {trading_pair} in mock server")
                 logging.info(f"Available pairs: {list(mock_server.candles.keys())}")
+                logging.info("Found trading pair and interval in mock server")
+                # Update the latest candle's close price
+                for i, candle in enumerate(mock_server.candles[trading_pair][feed.interval]):
+                    if candle.timestamp == latest_candle.timestamp:
+                        logging.info(f"Updating candle at timestamp {candle.timestamp}")
+                        # Import the correct path
+                        from candles_feed.mocking_resources.core.candle_data_factory import (
+                            CandleDataFactory,
+                        )
 
-                if (
-                    trading_pair in mock_server.candles
-                    and feed.interval in mock_server.candles[trading_pair]
-                ):
-                    logging.info("Found trading pair and interval in mock server")
-                    # Update the latest candle's close price
-                    for i, candle in enumerate(mock_server.candles[trading_pair][feed.interval]):
-                        if candle.timestamp == latest_candle.timestamp:
-                            logging.info(f"Updating candle at timestamp {candle.timestamp}")
-                            # Import the correct path
-                            from candles_feed.mocking_resources.core.candle_data_factory import (
-                                CandleDataFactory,
-                            )
-
-                            # Create a modified candle with a different close price
-                            new_price = candle.close * 1.05  # 5% change - make it significant
-                            logging.info(f"Changing price from {candle.close} to {new_price}")
-                            new_candle = CandleDataFactory.create_random(
-                                timestamp=candle.timestamp,
-                                base_price=new_price,
-                                volatility=0.002,
-                            )
-                            # Replace the candle in the mock server
-                            mock_server.candles[trading_pair][feed.interval][i] = new_candle
-                            break
+                        # Create a modified candle with a different close price
+                        new_price = candle.close * 1.05  # 5% change - make it significant
+                        logging.info(f"Changing price from {candle.close} to {new_price}")
+                        new_candle = CandleDataFactory.create_random(
+                            timestamp=candle.timestamp,
+                            base_price=new_price,
+                            volatility=0.002,
+                        )
+                        # Replace the candle in the mock server
+                        mock_server.candles[trading_pair][feed.interval][i] = new_candle
+                        break
 
             # 3. Start the feed with WebSocket strategy
             await feed.start(strategy="websocket")
@@ -394,9 +391,12 @@ class TestCandlesFeedIntegration:
                 sol_candles = sol_feed.get_candles()
 
                 feeds_with_data = 0
-                if len(btc_candles) > 0: feeds_with_data += 1
-                if len(eth_candles) > 0: feeds_with_data += 1
-                if len(sol_candles) > 0: feeds_with_data += 1
+                if len(btc_candles) > 0:
+                    feeds_with_data += 1
+                if len(eth_candles) > 0:
+                    feeds_with_data += 1
+                if len(sol_candles) > 0:
+                    feeds_with_data += 1
 
                 logging.info(f"Feeds with data: {feeds_with_data}/3")
 

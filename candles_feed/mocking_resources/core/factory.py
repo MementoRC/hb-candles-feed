@@ -4,9 +4,13 @@ Server factory for creating mock exchange servers.
 
 import importlib
 import logging
-from typing import List, Optional, Tuple, TypeVar
+from typing import TYPE_CHECKING, List, Optional, Tuple, TypeVar
 
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+
+if TYPE_CHECKING:
+    from candles_feed.mocking_resources.core.server import MockedExchangeServer
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +52,7 @@ def _get_plugin_from_registry(exchange_type: ExchangeType):
     :returns: A plugin instance or None if no plugin is registered
     """
     # Plugin registry mapping
-    PLUGIN_REGISTRY = {
+    plugin_registry = {  # Renamed from PLUGIN_REGISTRY to follow N806 for local var if it were one, though it's a constant here.
         ExchangeType.BINANCE_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin.BinanceSpotPlugin",
         ExchangeType.BINANCE_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.binance.perpetual_plugin.BinancePerpetualPlugin",
         ExchangeType.OKX_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.okx.spot_plugin.OKXSpotPlugin",
@@ -69,7 +73,7 @@ def _get_plugin_from_registry(exchange_type: ExchangeType):
     }
 
     # Check if we have a mapping for this exchange type
-    plugin_path = PLUGIN_REGISTRY.get(exchange_type)
+    plugin_path = plugin_registry.get(exchange_type)
     if not plugin_path:
         # Try to dynamically generate a path
         try:
@@ -113,14 +117,14 @@ def _get_plugin_from_registry(exchange_type: ExchangeType):
         return None
 
 
-MockExchangeServerT = TypeVar("MockExchangeServerT", bound="MockedExchangeServer")
+MockExchangeServerType = TypeVar("MockExchangeServerType", bound="MockedExchangeServer")
 
 def create_mock_server(
     exchange_type: ExchangeType,
     host: str = "127.0.0.1",
     port: int = 8080,
     trading_pairs: Optional[List[Tuple[str, str, float]]] = None
-) -> Optional[MockExchangeServerT]:
+) -> Optional[MockExchangeServerType]:
     """Create a mock exchange server.
 
     :param exchange_type: The type of exchange to mock

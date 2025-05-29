@@ -236,4 +236,4 @@ class TestTestnetSupportMixin:
         # The mixin's __init__ won't have been called, so network_config might be missing
         # This test verifies this behavior to warn users of the correct inheritance order
         with pytest.raises(AttributeError):
-            adapter.network_config
+            _ = adapter.network_config

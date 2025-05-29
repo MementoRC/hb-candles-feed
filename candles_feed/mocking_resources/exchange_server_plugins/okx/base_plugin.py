@@ -245,8 +245,8 @@ class OKXBasePlugin(ExchangePlugin, ABC):
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
 
-        instType = request.query.get("instType")
-        if not instType:
+        inst_type_query = request.query.get("instType")
+        if not inst_type_query:
             return web.json_response({"error": "instType is required"}, status=400)
 
         instruments = []
@@ -254,7 +254,7 @@ class OKXBasePlugin(ExchangePlugin, ABC):
             base, quote = trading_pair.split("-", 1)
             instruments.append(
                 {
-                    "instType": instType,
+                    "instType": inst_type_query,
                     "instId": trading_pair.replace("-", "/"),
                     "uly": trading_pair,
                     "baseCcy": base,

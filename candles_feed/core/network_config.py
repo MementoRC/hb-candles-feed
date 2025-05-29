@@ -104,12 +104,12 @@ class NetworkConfig:
                 try:
                     key = EndpointType(key)
                 except ValueError:
-                    raise ValueError(f"Invalid endpoint type: {key}")
+                    raise ValueError(f"Invalid endpoint type: {key}") from None
             if isinstance(value, str):
                 try:
                     value = NetworkEnvironment(value)
                 except ValueError:
-                    raise ValueError(f"Invalid network environment: {value}")
+                    raise ValueError(f"Invalid network environment: {value}") from None
             processed_overrides[key] = value
 
         return cls(

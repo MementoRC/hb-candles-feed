@@ -864,8 +864,8 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
 
-        instType = request.query.get("instType")
-        if not instType:
+        inst_type_query = request.query.get("instType")
+        if not inst_type_query:
             return web.json_response({"error": "instType is required"}, status=400)
 
         instruments = []
@@ -873,7 +873,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             base, quote = trading_pair.split("-", 1)
             instruments.append(
                 {
-                    "instType": instType,
+                    "instType": inst_type_query,
                     "instId": trading_pair.replace("-", "/"),
                     "uly": trading_pair,
                     "baseCcy": base,
@@ -1028,74 +1028,6 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         }
 
         return web.json_response(response)
-
-    async def handle_ticker_price(self, server, request):
-        """
-        Handle Binance ticker price request.
-
-        :param server: The mock server instance.
-        :param request: The web request.
-        :returns: JSON response with ticker price information.
-        """
-        await server._simulate_network_conditions()
-
-        # Check rate limits
-        client_ip = request.remote
-        if not server._check_rate_limit(client_ip, "rest"):
-            return web.json_response({"code": -1003, "msg": "Too many requests"}, status=429)
-
-        # Get symbol from request query
-        params = request.query
-        symbol = params.get("symbol")
-
-        # If symbol is provided, return data for just that symbol
-        if symbol:
-            # Find matching trading pair
-            trading_pair = None
-            for pair in server.candles:
-                if pair.replace("-", "") == symbol:
-                    trading_pair = pair
-                    break
-
-            if not trading_pair:
-                return web.json_response(
-                    {"code": -1121, "msg": f"Invalid symbol: {symbol}"},
-                    status=400
-                )
-
-            # Get latest price from candles
-            price = 50000.0  # Default price
-            for interval in server.candles.get(trading_pair, {}):
-                candles = server.candles[trading_pair][interval]
-                if candles:
-                    price = candles[-1].close
-                    break
-
-            return web.json_response({
-                "symbol": symbol,
-                "price": f"{price:.8f}"
-            })
-
-        # If no symbol is provided, return data for all symbols
-        else:
-            prices = []
-            for pair in server.candles:
-                symbol = pair.replace("-", "")
-                price = 50000.0  # Default price
-
-                # Find latest price
-                for interval in server.candles[pair]:
-                    candles = server.candles[pair][interval]
-                    if candles:
-                        price = candles[-1].close
-                        break
-
-                prices.append({
-                    "symbol": symbol,
-                    "price": f"{price:.8f}"
-                })
-
-            return web.json_response(prices)
 
     async def handle_klines(self, server, request):
         """
