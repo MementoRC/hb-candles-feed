@@ -26,7 +26,8 @@ jobs:
       - name: Install project dependencies (using Pixi)
         run: |
           pixi install # This will install dependencies based on pyproject.toml and create/use pixi.lock
-      
+          pixi run pip install -e .
+
       - name: Run tests with coverage
         run: |
           # Ensure pytest is run from the pixi environment and generates coverage.xml
@@ -53,6 +54,7 @@ jobs:
       - name: Install project dependencies (using Pixi)
         run: |
           pixi install # This will install dependencies based on pyproject.toml
+          pixi run pip install -e .
 
       - name: Format and lint with ruff
         run: |
