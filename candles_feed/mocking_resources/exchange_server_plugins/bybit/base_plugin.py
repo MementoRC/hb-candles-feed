@@ -78,12 +78,12 @@ class BybitBasePlugin(ExchangePlugin, ABC):
         candle_data = [
             [
                 str(int(c.timestamp_ms)),  # Timestamp in milliseconds
-                str(c.open),              # Open price
-                str(c.high),              # High price
-                str(c.low),               # Low price
-                str(c.close),             # Close price
-                str(c.volume),            # Volume
-                str(c.quote_asset_volume)  # Turnover
+                str(c.open),  # Open price
+                str(c.high),  # High price
+                str(c.low),  # Low price
+                str(c.close),  # Close price
+                str(c.volume),  # Volume
+                str(c.quote_asset_volume),  # Turnover
             ]
             for c in candles
         ]
@@ -94,9 +94,9 @@ class BybitBasePlugin(ExchangePlugin, ABC):
             "result": {
                 "category": "spot",  # This will be overridden in child classes
                 "symbol": trading_pair.replace("-", ""),
-                "list": candle_data
+                "list": candle_data,
             },
-            "time": int(candles[0].timestamp_ms if candles else 0)
+            "time": int(candles[0].timestamp_ms if candles else 0),
         }
 
     def format_ws_candle_message(
@@ -120,9 +120,14 @@ class BybitBasePlugin(ExchangePlugin, ABC):
             "data": [
                 {
                     "start": int(candle.timestamp_ms),
-                    "end": int(candle.timestamp_ms) + (int(interval[:-1]) * 60 * 1000 if interval.endswith("m") else
-                                                     int(interval[:-1]) * 60 * 60 * 1000 if interval.endswith("h") else
-                                                     int(interval[:-1]) * 24 * 60 * 60 * 1000),
+                    "end": int(candle.timestamp_ms)
+                    + (
+                        int(interval[:-1]) * 60 * 1000
+                        if interval.endswith("m")
+                        else int(interval[:-1]) * 60 * 60 * 1000
+                        if interval.endswith("h")
+                        else int(interval[:-1]) * 24 * 60 * 60 * 1000
+                    ),
                     "interval": interval_code,
                     "open": str(candle.open),
                     "close": str(candle.close),
@@ -131,11 +136,11 @@ class BybitBasePlugin(ExchangePlugin, ABC):
                     "volume": str(candle.volume),
                     "turnover": str(candle.quote_asset_volume),
                     "confirm": is_final,
-                    "timestamp": int(candle.timestamp_ms)
+                    "timestamp": int(candle.timestamp_ms),
                 }
             ],
             "ts": int(candle.timestamp_ms),
-            "type": "snapshot"
+            "type": "snapshot",
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -156,7 +161,14 @@ class BybitBasePlugin(ExchangePlugin, ABC):
                         trading_pair = parts[2]
 
                         # Convert interval code back to standard format
-                        interval = next((k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval_code), interval_code)
+                        interval = next(
+                            (
+                                k
+                                for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items()
+                                if v == interval_code
+                            ),
+                            interval_code,
+                        )
 
                         # Convert trading pair to standard format with hyphen
                         if len(trading_pair) >= 6:  # Minimum length for a valid pair like BTCUSDT
@@ -188,7 +200,7 @@ class BybitBasePlugin(ExchangePlugin, ABC):
             "ret_msg": "subscribe success",
             "conn_id": "mock-conn-id",
             "op": "subscribe",
-            "args": message.get("args", [])
+            "args": message.get("args", []),
         }
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
@@ -227,12 +239,11 @@ class BybitBasePlugin(ExchangePlugin, ABC):
 
         # Map Bybit parameters to generic parameters expected by handle_klines
         return {
-            "symbol": symbol,            # 'symbol' is the same in both
-            "interval": interval,        # 'interval' is the same in both
-            "start_time": start,         # 'start' in Bybit maps to 'start_time' in generic handler
-            "end_time": end,             # 'end' in Bybit maps to 'end_time' in generic handler
-            "limit": limit,              # 'limit' has the same name
-
+            "symbol": symbol,  # 'symbol' is the same in both
+            "interval": interval,  # 'interval' is the same in both
+            "start_time": start,  # 'start' in Bybit maps to 'start_time' in generic handler
+            "end_time": end,  # 'end' in Bybit maps to 'end_time' in generic handler
+            "limit": limit,  # 'limit' has the same name
             # Also keep the original Bybit parameter names for reference
             "category": params.get("category"),
         }
@@ -251,13 +262,15 @@ class BybitBasePlugin(ExchangePlugin, ABC):
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
 
-        return web.json_response({
-            "retCode": 0,
-            "retMsg": "OK",
-            "result": {
-                "timeSecond": str(int(server._time())),
-                "timeNano": str(int(server._time() * 1e9))
-            },
-            "retExtInfo": {},
-            "time": int(server._time() * 1000)
-        })
+        return web.json_response(
+            {
+                "retCode": 0,
+                "retMsg": "OK",
+                "result": {
+                    "timeSecond": str(int(server._time())),
+                    "timeNano": str(int(server._time() * 1e9)),
+                },
+                "retExtInfo": {},
+                "time": int(server._time() * 1000),
+            }
+        )

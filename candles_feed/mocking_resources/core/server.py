@@ -92,12 +92,12 @@ class MockedExchangeServer:
 
         # Authentication simulation with exchange-specific settings
         # Get API keys from the plugin
-        exchange_name = self.exchange_type.value.split("_")[0]  # Extract exchange name (e.g., "binance" from "binance_spot")
+        exchange_name = self.exchange_type.value.split("_")[
+            0
+        ]  # Extract exchange name (e.g., "binance" from "binance_spot")
 
         # Initialize the API keys structure
-        self.api_keys = {
-            exchange_name: plugin.api_keys
-        }
+        self.api_keys = {exchange_name: plugin.api_keys}
 
         # Exchange-specific settings from the plugin's network_settings
         self.exchange_settings = plugin.network_settings
@@ -187,7 +187,9 @@ class MockedExchangeServer:
         if candles:
             # Convert timestamp to milliseconds if needed
             timestamp = candles[-1].timestamp
-            self.last_candle_time[trading_pair][interval] = int(timestamp * 1000) if timestamp < 10000000000 else timestamp
+            self.last_candle_time[trading_pair][interval] = (
+                int(timestamp * 1000) if timestamp < 10000000000 else timestamp
+            )
 
     def _setup_routes(self):
         """Set up the routes for the server."""
@@ -383,7 +385,7 @@ class MockedExchangeServer:
                                 previous_candle=last_candle,
                                 volatility=0.001,  # Reduced volatility (0.1%)
                                 max_deviation=0.01,  # Maximum 1% deviation from initial
-                                initial_price=initial_price
+                                initial_price=initial_price,
                             )
 
                             # Add to the list
@@ -513,10 +515,7 @@ class MockedExchangeServer:
         if limit_type == "rest":
             # Initialize tracking for this IP if not exists
             if ip not in self.request_counts["rest"]:
-                self.request_counts["rest"][ip] = {
-                    "timestamps": deque(),
-                    "weights": deque()
-                }
+                self.request_counts["rest"][ip] = {"timestamps": deque(), "weights": deque()}
 
             # Get timestamps and weights for this IP
             timestamps = self.request_counts["rest"][ip]["timestamps"]
@@ -550,10 +549,7 @@ class MockedExchangeServer:
         elif limit_type == "ws":
             # Initialize tracking for this IP if not exists
             if ip not in self.request_counts["ws"]:
-                self.request_counts["ws"][ip] = {
-                    "timestamps": deque(),
-                    "subscriptions": set()
-                }
+                self.request_counts["ws"][ip] = {"timestamps": deque(), "subscriptions": set()}
 
             # Get timestamps for this IP
             timestamps = self.request_counts["ws"][ip]["timestamps"]
@@ -565,7 +561,9 @@ class MockedExchangeServer:
             # Check if adding this message would exceed the limit
             limit = self.rate_limits["ws"]["limit"]
             if len(timestamps) >= limit:
-                self.logger.warning(f"WebSocket rate limit exceeded for IP {ip}: {len(timestamps)}/{limit}")
+                self.logger.warning(
+                    f"WebSocket rate limit exceeded for IP {ip}: {len(timestamps)}/{limit}"
+                )
                 return False
 
             # Add this message to the tracking
@@ -587,7 +585,7 @@ class MockedExchangeServer:
         if not api_key:
             return {
                 "authenticated": False,
-                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."}
+                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."},
             }
 
         # Get exchange name
@@ -597,7 +595,7 @@ class MockedExchangeServer:
         if exchange_name not in self.api_keys or api_key not in self.api_keys[exchange_name]:
             return {
                 "authenticated": False,
-                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."}
+                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."},
             }
 
         api_key_data = self.api_keys[exchange_name][api_key]
@@ -606,7 +604,7 @@ class MockedExchangeServer:
         if not api_key_data.get("enabled", True):
             return {
                 "authenticated": False,
-                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."}
+                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."},
             }
 
         # Check IP whitelist
@@ -615,7 +613,7 @@ class MockedExchangeServer:
         if "*" not in ip_whitelist and ip not in ip_whitelist:
             return {
                 "authenticated": False,
-                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."}
+                "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."},
             }
 
         # Check permissions
@@ -624,14 +622,11 @@ class MockedExchangeServer:
             if not all(perm in permissions for perm in required_permissions):
                 return {
                     "authenticated": False,
-                    "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."}
+                    "error": {"code": -2015, "msg": "Invalid API-key, IP, or permissions."},
                 }
 
         # Authentication successful
-        return {
-            "authenticated": True,
-            "error": None
-        }
+        return {"authenticated": True, "error": None}
 
     async def handle_klines(self, request: web.Request):
         """
@@ -784,8 +779,13 @@ class MockedExchangeServer:
                 "quotePrecision": 8,
                 "quoteAssetPrecision": 8,
                 "orderTypes": [
-                    "LIMIT", "LIMIT_MAKER", "MARKET", "STOP_LOSS", "STOP_LOSS_LIMIT",
-                    "TAKE_PROFIT", "TAKE_PROFIT_LIMIT"
+                    "LIMIT",
+                    "LIMIT_MAKER",
+                    "MARKET",
+                    "STOP_LOSS",
+                    "STOP_LOSS_LIMIT",
+                    "TAKE_PROFIT",
+                    "TAKE_PROFIT_LIMIT",
                 ],
                 "icebergAllowed": True,
                 "ocoAllowed": True,
@@ -796,33 +796,24 @@ class MockedExchangeServer:
                         "filterType": "PRICE_FILTER",
                         "minPrice": "0.00000100",
                         "maxPrice": "100000.00000000",
-                        "tickSize": "0.00000100"
+                        "tickSize": "0.00000100",
                     },
                     {
                         "filterType": "LOT_SIZE",
                         "minQty": "0.00100000",
                         "maxQty": "100000.00000000",
-                        "stepSize": "0.00100000"
+                        "stepSize": "0.00100000",
                     },
-                    {
-                        "filterType": "MIN_NOTIONAL",
-                        "minNotional": "0.00100000"
-                    }
+                    {"filterType": "MIN_NOTIONAL", "minNotional": "0.00100000"},
                 ],
-                "permissions": ["SPOT"]
+                "permissions": ["SPOT"],
             }
             symbols.append(symbol_info)
 
         # Common exchange filters
         exchange_filters = [
-            {
-                "filterType": "EXCHANGE_MAX_NUM_ORDERS",
-                "maxNumOrders": 1000
-            },
-            {
-                "filterType": "EXCHANGE_MAX_NUM_ALGO_ORDERS",
-                "maxNumAlgoOrders": 200
-            }
+            {"filterType": "EXCHANGE_MAX_NUM_ORDERS", "maxNumOrders": 1000},
+            {"filterType": "EXCHANGE_MAX_NUM_ALGO_ORDERS", "maxNumAlgoOrders": 200},
         ]
 
         # Build the response
@@ -834,23 +825,13 @@ class MockedExchangeServer:
                     "rateLimitType": "REQUEST_WEIGHT",
                     "interval": "MINUTE",
                     "intervalNum": 1,
-                    "limit": self.rate_limits["rest"]["limit"]
+                    "limit": self.rate_limits["rest"]["limit"],
                 },
-                {
-                    "rateLimitType": "ORDERS",
-                    "interval": "SECOND",
-                    "intervalNum": 10,
-                    "limit": 50
-                },
-                {
-                    "rateLimitType": "ORDERS",
-                    "interval": "DAY",
-                    "intervalNum": 1,
-                    "limit": 160000
-                }
+                {"rateLimitType": "ORDERS", "interval": "SECOND", "intervalNum": 10, "limit": 50},
+                {"rateLimitType": "ORDERS", "interval": "DAY", "intervalNum": 1, "limit": 160000},
             ],
             "exchangeFilters": exchange_filters,
-            "symbols": symbols
+            "symbols": symbols,
         }
 
         return web.json_response(response)
@@ -880,10 +861,7 @@ class MockedExchangeServer:
 
         # Track this IP's connection count
         if client_ip not in self.request_counts["ws"]:
-            self.request_counts["ws"][client_ip] = {
-                "timestamps": deque(),
-                "subscriptions": set()
-            }
+            self.request_counts["ws"][client_ip] = {"timestamps": deque(), "subscriptions": set()}
 
         # Handle WebSocket messages
         try:
@@ -904,16 +882,12 @@ class MockedExchangeServer:
                         elif method == "LIST_SUBSCRIPTIONS":
                             # List current subscriptions
                             subs = self._get_subscriptions_for_connection(ws)
-                            await ws.send_json({
-                                "result": subs,
-                                "id": data.get("id")
-                            })
+                            await ws.send_json({"result": subs, "id": data.get("id")})
                         else:
                             # Unknown method
-                            await ws.send_json({
-                                "error": f"Unknown method: {method}",
-                                "id": data.get("id")
-                            })
+                            await ws.send_json(
+                                {"error": f"Unknown method: {method}", "id": data.get("id")}
+                            )
 
                     except json.JSONDecodeError:
                         await ws.send_json({"error": "Invalid JSON"})
@@ -947,17 +921,16 @@ class MockedExchangeServer:
         # Check subscription limit
         current_subs = self.request_counts["ws"][client_ip]["subscriptions"]
         if len(current_subs) + len(subscriptions) > self.rate_limits["ws"]["subscription_limit"]:
-            await ws.send_json({
-                "error": "Subscription limit exceeded",
-                "id": data.get("id")
-            })
+            await ws.send_json({"error": "Subscription limit exceeded", "id": data.get("id")})
             return
 
         # Subscribe to each topic
         for trading_pair, interval in subscriptions:
             # Normalize trading pair for our internal tracking
             for pair in self.candles:
-                if self.plugin.normalize_trading_pair(pair).replace("-", "") == trading_pair.replace("-", ""):
+                if self.plugin.normalize_trading_pair(pair).replace(
+                    "-", ""
+                ) == trading_pair.replace("-", ""):
                     trading_pair = pair
                     break
 
@@ -981,7 +954,7 @@ class MockedExchangeServer:
                     candle=current_candle,
                     trading_pair=trading_pair,
                     interval=interval,
-                    is_final=True
+                    is_final=True,
                 )
                 await ws.send_json(message)
 
@@ -1003,7 +976,9 @@ class MockedExchangeServer:
         for trading_pair, interval in subscriptions:
             # Normalize trading pair for our internal tracking
             for pair in self.candles:
-                if self.plugin.normalize_trading_pair(pair).replace("-", "") == trading_pair.replace("-", ""):
+                if self.plugin.normalize_trading_pair(pair).replace(
+                    "-", ""
+                ) == trading_pair.replace("-", ""):
                     trading_pair = pair
                     break
 
@@ -1054,14 +1029,12 @@ class MockedExchangeServer:
             subscribers.discard(ws)
 
         # Clean up empty subscription lists
-        empty_keys = [
-            key for key, subscribers in self.subscriptions.items() if not subscribers
-        ]
+        empty_keys = [key for key, subscribers in self.subscriptions.items() if not subscribers]
         for key in empty_keys:
             del self.subscriptions[key]
 
         # Remove from client tracking
-        if hasattr(ws, 'request'):
+        if hasattr(ws, "request"):
             client_ip = ws.request.remote
             if client_ip in self.request_counts["ws"]:
                 self.request_counts["ws"][client_ip]["subscriptions"] = set()

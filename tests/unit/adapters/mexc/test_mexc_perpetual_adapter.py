@@ -8,10 +8,9 @@ from unittest import mock
 
 import pytest
 
-from candles_feed.adapters.mexc.constants import (
-    INTERVAL_TO_PERPETUAL_FORMAT,
-    INTERVALS,
-    PERP_CANDLES_ENDPOINT,
+from candles_feed.adapters.mexc.constants import (  # noqa: F401, used in BaseAdapterTest
+    INTERVAL_TO_PERPETUAL_FORMAT,  # noqa: F401, used in BaseAdapterTest
+    INTERVALS,  # noqa: F401, used in BaseAdapterTest
     PERP_KLINE_TOPIC,
     PERP_REST_URL,
     PERP_WSS_URL,
@@ -56,7 +55,7 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
             "size": limit,
             "start": start_time,  # MEXC perpetual uses seconds
-            "end": end_time,      # MEXC perpetual uses seconds
+            "end": end_time,  # MEXC perpetual uses seconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -71,7 +70,9 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())  # In seconds for perpetual
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()
+        )  # In seconds for perpetual
 
         return {
             "success": True,
@@ -100,7 +101,9 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())  # In seconds for perpetual
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()
+        )  # In seconds for perpetual
 
         return {
             "channel": "push.kline",
@@ -273,15 +276,20 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
         # Skip test for SyncOnlyAdapter adapters
         with contextlib.suppress(ImportError):
             from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+
             if isinstance(adapter, SyncOnlyAdapter):
                 pytest.skip("Test only applicable for async adapters")
 
         # Create a mock network client
         mock_client = mock.MagicMock()
-        mock_client.get_rest_data = mock.AsyncMock(return_value=self.get_mock_candlestick_response())
+        mock_client.get_rest_data = mock.AsyncMock(
+            return_value=self.get_mock_candlestick_response()
+        )
 
         # Call the async method
-        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        candles = await adapter.fetch_rest_candles(
+            trading_pair, interval, network_client=mock_client
+        )
 
         # Basic validation
         assert isinstance(candles, list)
@@ -291,11 +299,11 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
+        assert kwargs["url"] == adapter._get_rest_url()
 
         # Just verify that params were passed without checking the exact content
-        assert 'params' in kwargs
-        assert isinstance(kwargs['params'], dict)
+        assert "params" in kwargs
+        assert isinstance(kwargs["params"], dict)
 
     def test_parse_rest_response_invalid(self, adapter):
         """Test parsing invalid REST API response."""

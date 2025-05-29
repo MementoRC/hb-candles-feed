@@ -67,24 +67,20 @@ class KucoinPerpetualPlugin(KucoinBasePlugin):
         # Format candles for perpetual futures API
         candle_data = [
             [
-                int(c.timestamp_ms),              # Timestamp in milliseconds
-                str(c.open),                      # Open price
-                str(c.high),                      # High price
-                str(c.low),                       # Low price
-                str(c.close),                     # Close price
-                str(c.volume),                    # Volume
-                str(c.quote_asset_volume)         # Quote volume
+                int(c.timestamp_ms),  # Timestamp in milliseconds
+                str(c.open),  # Open price
+                str(c.high),  # High price
+                str(c.low),  # Low price
+                str(c.close),  # Close price
+                str(c.volume),  # Volume
+                str(c.quote_asset_volume),  # Quote volume
             ]
             for c in candles
         ]
 
         return {
             "code": "200000",
-            "data": {
-                "dataList": candle_data,
-                "symbol": trading_pair,
-                "granularity": interval
-            }
+            "data": {"dataList": candle_data, "symbol": trading_pair, "granularity": interval},
         }
 
     def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
@@ -108,7 +104,9 @@ class KucoinPerpetualPlugin(KucoinBasePlugin):
         # Map KuCoin parameters to generic parameters expected by handle_klines
         return {
             "symbol": symbol,
-            "interval": next((k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval), interval),
+            "interval": next(
+                (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval), interval
+            ),
             "start_time": start_time,
             "end_time": end_time,
             "limit": limit,

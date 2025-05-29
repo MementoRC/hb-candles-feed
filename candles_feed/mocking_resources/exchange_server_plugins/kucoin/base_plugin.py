@@ -77,21 +77,18 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
         # Format similar to KuCoin's REST API response
         candle_data = [
             [
-                int(c.timestamp_ms),              # Timestamp in milliseconds
-                str(c.open),                      # Open price
-                str(c.close),                     # Close price
-                str(c.high),                      # High price
-                str(c.low),                       # Low price
-                str(c.volume),                    # Volume
-                str(c.quote_asset_volume)         # Quote volume
+                int(c.timestamp_ms),  # Timestamp in milliseconds
+                str(c.open),  # Open price
+                str(c.close),  # Close price
+                str(c.high),  # High price
+                str(c.low),  # Low price
+                str(c.volume),  # Volume
+                str(c.quote_asset_volume),  # Quote volume
             ]
             for c in candles
         ]
 
-        return {
-            "code": "200000",
-            "data": candle_data
-        }
+        return {"code": "200000", "data": candle_data}
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -115,16 +112,16 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
             "data": {
                 "symbol": trading_pair,
                 "candles": [
-                    str(int(candle.timestamp_ms)),   # Timestamp in milliseconds
-                    str(candle.open),                # Open price
-                    str(candle.close),               # Close price
-                    str(candle.high),                # High price
-                    str(candle.low),                 # Low price
-                    str(candle.volume),              # Volume
-                    str(candle.quote_asset_volume)   # Quote volume
+                    str(int(candle.timestamp_ms)),  # Timestamp in milliseconds
+                    str(candle.open),  # Open price
+                    str(candle.close),  # Close price
+                    str(candle.high),  # High price
+                    str(candle.low),  # Low price
+                    str(candle.volume),  # Volume
+                    str(candle.quote_asset_volume),  # Quote volume
                 ],
-                "time": int(candle.timestamp_ms)
-            }
+                "time": int(candle.timestamp_ms),
+            },
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -146,7 +143,14 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
                         interval_code = parts[1]
 
                         # Convert interval code back to standard format
-                        interval = next((k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval_code), interval_code)
+                        interval = next(
+                            (
+                                k
+                                for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items()
+                                if v == interval_code
+                            ),
+                            interval_code,
+                        )
 
                         subscriptions.append((trading_pair, interval))
 
@@ -162,10 +166,7 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
         :param subscriptions: List of (trading_pair, interval) tuples that were subscribed to.
         :returns: A subscription success response message.
         """
-        return {
-            "id": message.get("id", "mock-id"),
-            "type": "ack"
-        }
+        return {"id": message.get("id", "mock-id"), "type": "ack"}
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
         """
@@ -204,7 +205,9 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
         # Map KuCoin parameters to generic parameters expected by handle_klines
         return {
             "symbol": symbol,
-            "interval": next((k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval), interval),
+            "interval": next(
+                (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval), interval
+            ),
             "start_time": start_time,
             "end_time": end_time,
             "limit": limit,
@@ -224,7 +227,4 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"code": "429000", "msg": "Rate limit exceeded"}, status=429)
 
-        return web.json_response({
-            "code": "200000",
-            "data": int(server._time() * 1000)
-        })
+        return web.json_response({"code": "200000", "data": int(server._time() * 1000)})

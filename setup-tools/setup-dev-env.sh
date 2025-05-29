@@ -38,38 +38,38 @@ activate_conda_env() {
 # Check if conda is available
 if command -v conda &> /dev/null; then
     echo "Setting up development environment with Hatch..."
-    
+
     # Make sure conda is available first
     echo "Ensuring conda is available..."
-    
+
     # No need to activate base - we'll directly create our environment with hatch
-    
+
     # Change to the package root directory to ensure hatch finds pyproject.toml
     cd "$PACKAGE_ROOT"
-    
+
     echo "Setting up environment from pyproject.toml..."
-    
+
     # Extract the project name from pyproject.toml to use as conda env name
     PROJECT_NAME=$(grep -m 1 "name" $PACKAGE_ROOT/pyproject.toml | sed 's/.*"\(.*\)".*/\1/' | sed 's/hb-//')
     CONDA_ENV="hb-$PROJECT_NAME"
-    
+
     echo "Project name: $PROJECT_NAME"
     echo "Conda environment name: $CONDA_ENV"
-    
+
     # Check if conda environment already exists
     if conda env list | grep -q "^$CONDA_ENV "; then
         echo "Using existing conda environment: $CONDA_ENV"
         activate_conda_env "$CONDA_ENV"
-        
+
         # Update environment if needed
         echo "Updating environment dependencies..."
         # Manually install dependencies by using conda and pip
         echo "Installing dependencies from pyproject.toml..."
-        
+
         # Core dependencies (use conda)
         # Extract dependencies from pyproject.toml
         DEPENDENCIES=$(grep -A 20 "\[tool.hatch.envs.default.dependencies\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
-        
+
         # Install them into the conda environment
         if [ ! -z "$DEPENDENCIES" ]; then
             echo "Installing conda dependencies..."
@@ -78,10 +78,10 @@ if command -v conda &> /dev/null; then
                 conda install -n "$CONDA_ENV" -c conda-forge $dep -y || true
             done
         fi
-        
+
         # Install pip dependencies using --no-deps
         PIP_DEPS=$(grep -A 10 "\[tool.hatch.envs.default.pip-no-deps\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
-        
+
         if [ ! -z "$PIP_DEPS" ]; then
             echo "Installing pip dependencies with --no-deps..."
             for dep in $PIP_DEPS; do
@@ -92,20 +92,20 @@ if command -v conda &> /dev/null; then
     else
         # Create a new conda environment directly
         echo "Creating new conda environment: $CONDA_ENV"
-        
+
         # First create a minimal conda environment
         conda create -n "$CONDA_ENV" python=3.10 hatch -y
-        
+
         # Activate it
         activate_conda_env "$CONDA_ENV"
-        
+
         # Manually install dependencies by using conda and pip (same as the update case)
         echo "Installing dependencies from pyproject.toml..."
-        
+
         # Core dependencies (use conda)
         # Extract dependencies from pyproject.toml
         DEPENDENCIES=$(grep -A 20 "\[tool.hatch.envs.default.dependencies\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
-        
+
         # Install them into the conda environment
         if [ ! -z "$DEPENDENCIES" ]; then
             echo "Installing conda dependencies..."
@@ -114,10 +114,10 @@ if command -v conda &> /dev/null; then
                 conda install -n "$CONDA_ENV" -c conda-forge $dep -y || true
             done
         fi
-        
+
         # Install pip dependencies using --no-deps
         PIP_DEPS=$(grep -A 10 "\[tool.hatch.envs.default.pip-no-deps\]" "$PACKAGE_ROOT/pyproject.toml" | grep -E '^\s+"[^"]+"' | sed 's/^[[:space:]]*"\(.*\)",*/\1/g')
-        
+
         if [ ! -z "$PIP_DEPS" ]; then
             echo "Installing pip dependencies with --no-deps..."
             for dep in $PIP_DEPS; do
@@ -126,11 +126,11 @@ if command -v conda &> /dev/null; then
             done
         fi
     fi
-    
+
     # Get package name from directory name
     PACKAGE_NAME=$(basename "$PACKAGE_ROOT" | tr '-' '_')
     PACKAGE_DIR="$PACKAGE_ROOT/$PACKAGE_NAME"
-    
+
     # Check if the package has an adequate structure
     STRUCTURE_READY=false
     if [ -d "$PACKAGE_DIR" ] && [ -f "$PACKAGE_DIR/__init__.py" ]; then
@@ -139,7 +139,7 @@ if command -v conda &> /dev/null; then
             STRUCTURE_READY=true
         fi
     fi
-    
+
     # Display message about Hatch
     echo ""
     echo "==================================================================="
@@ -156,7 +156,7 @@ if command -v conda &> /dev/null; then
     echo "For more commands, see the 'scripts' section in pyproject.toml"
     echo "==================================================================="
     echo ""
-   
+
     # Only install the package if explicitly requested
     if [ "$1" == "--install" ]; then
         if $STRUCTURE_READY; then
@@ -164,7 +164,7 @@ if command -v conda &> /dev/null; then
             echo "Package structure detected. Installing in development mode..."
             cd "$PACKAGE_ROOT"
             pip install -e .
-            
+
             # Verify installation
             echo ""
             echo "Verifying installation..."
@@ -177,7 +177,7 @@ if command -v conda &> /dev/null; then
         echo "Package not installed. Using Hatch for development."
         echo "If you need to install the package, run: $0 --install"
     fi
-    
+
     # Show active environment
     echo ""
     echo "Active conda environment: $(conda info --envs | grep '*' | awk '{print $1}')"

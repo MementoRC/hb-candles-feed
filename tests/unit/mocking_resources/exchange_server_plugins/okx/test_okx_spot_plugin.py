@@ -95,11 +95,11 @@ class TestOKXSpotPlugin:
         # Check the first candle
         candle_data = formatted["data"][0]
         assert candle_data[0] == str(int(candles[0].timestamp_ms))  # Timestamp in ms as string
-        assert candle_data[1] == str(candles[0].open)              # Open
-        assert candle_data[2] == str(candles[0].high)              # High
-        assert candle_data[3] == str(candles[0].low)               # Low
-        assert candle_data[4] == str(candles[0].close)             # Close
-        assert candle_data[5] == str(candles[0].volume)            # Volume
+        assert candle_data[1] == str(candles[0].open)  # Open
+        assert candle_data[2] == str(candles[0].high)  # High
+        assert candle_data[3] == str(candles[0].low)  # Low
+        assert candle_data[4] == str(candles[0].close)  # Close
+        assert candle_data[5] == str(candles[0].volume)  # Volume
         assert candle_data[6] == str(candles[0].quote_asset_volume)  # Quote volume
 
     def test_format_ws_candle_message(self):
@@ -134,25 +134,17 @@ class TestOKXSpotPlugin:
         assert len(message["data"]) == 1
         candle_data = message["data"][0]
         assert candle_data[0] == str(int(candle.timestamp_ms))  # Timestamp
-        assert candle_data[1] == str(candle.open)               # Open
-        assert candle_data[2] == str(candle.high)               # High
-        assert candle_data[3] == str(candle.low)                # Low
-        assert candle_data[4] == str(candle.close)              # Close
-        assert candle_data[5] == str(candle.volume)             # Volume
-        assert candle_data[6] == str(candle.quote_asset_volume) # Quote volume
+        assert candle_data[1] == str(candle.open)  # Open
+        assert candle_data[2] == str(candle.high)  # High
+        assert candle_data[3] == str(candle.low)  # Low
+        assert candle_data[4] == str(candle.close)  # Close
+        assert candle_data[5] == str(candle.volume)  # Volume
+        assert candle_data[6] == str(candle.quote_asset_volume)  # Quote volume
 
     def test_parse_ws_subscription(self):
         """Test parsing WebSocket subscription message."""
         # Create subscription message in OKX format
-        message = {
-            "op": "subscribe",
-            "args": [
-                {
-                    "channel": "candle1m",
-                    "instId": "BTC-USDT"
-                }
-            ]
-        }
+        message = {"op": "subscribe", "args": [{"channel": "candle1m", "instId": "BTC-USDT"}]}
 
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
@@ -160,20 +152,12 @@ class TestOKXSpotPlugin:
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"  # Trading pair
-        assert subscriptions[0][1] == "1m"        # Interval
+        assert subscriptions[0][1] == "1m"  # Interval
 
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
         # Create subscription message
-        message = {
-            "op": "subscribe",
-            "args": [
-                {
-                    "channel": "candle1m",
-                    "instId": "BTC-USDT"
-                }
-            ]
-        }
+        message = {"op": "subscribe", "args": [{"channel": "candle1m", "instId": "BTC-USDT"}]}
 
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
@@ -213,42 +197,19 @@ class TestOKXSpotPlugin:
     def test_parse_ws_subscription_with_missing_fields(self):
         """Test parsing WebSocket subscription with missing fields."""
         # Test with missing op field
-        message1 = {
-            "args": [
-                {
-                    "channel": "candle1m",
-                    "instId": "BTC-USDT"
-                }
-            ]
-        }
+        message1 = {"args": [{"channel": "candle1m", "instId": "BTC-USDT"}]}
         assert len(self.plugin.parse_ws_subscription(message1)) == 0
 
         # Test with missing args field
-        message2 = {
-            "op": "subscribe"
-        }
+        message2 = {"op": "subscribe"}
         assert len(self.plugin.parse_ws_subscription(message2)) == 0
 
         # Test with missing channel field
-        message3 = {
-            "op": "subscribe",
-            "args": [
-                {
-                    "instId": "BTC-USDT"
-                }
-            ]
-        }
+        message3 = {"op": "subscribe", "args": [{"instId": "BTC-USDT"}]}
         assert len(self.plugin.parse_ws_subscription(message3)) == 0
 
         # Test with missing instId field
-        message4 = {
-            "op": "subscribe",
-            "args": [
-                {
-                    "channel": "candle1m"
-                }
-            ]
-        }
+        message4 = {"op": "subscribe", "args": [{"channel": "candle1m"}]}
         assert len(self.plugin.parse_ws_subscription(message4)) == 0
 
     def test_parse_rest_candles_params_with_missing_fields(self):
@@ -277,11 +238,11 @@ class TestOKXSpotPlugin:
         # Create sample candle data with extreme values
         candle = CandleData(
             timestamp_raw=0,  # Unix epoch start
-            open=0.0000001,   # Very low price
-            high=1000000.0,   # Very high price
-            low=0.0,          # Zero price
+            open=0.0000001,  # Very low price
+            high=1000000.0,  # Very high price
+            low=0.0,  # Zero price
             close=0.0000001,  # Very low price
-            volume=0.0,       # Zero volume
+            volume=0.0,  # Zero volume
             quote_asset_volume=0.0,
             n_trades=0,
             taker_buy_base_volume=0.0,

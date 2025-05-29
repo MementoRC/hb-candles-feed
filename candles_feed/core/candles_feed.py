@@ -135,7 +135,9 @@ class CandlesFeed:
         elif strategy == "websocket":
             use_websocket = True
         elif strategy not in ["auto", "websocket", "rest", "polling"]:
-            raise ValueError(f"Invalid strategy: {strategy}. Must be one of 'auto', 'websocket', 'rest', 'polling'")
+            raise ValueError(
+                f"Invalid strategy: {strategy}. Must be one of 'auto', 'websocket', 'rest', 'polling'"
+            )
 
         # Create and start appropriate strategy
         if use_websocket:
@@ -322,8 +324,7 @@ class CandlesFeed:
             if len(self._candles) <= 1:
                 return True
             candles_data = [
-                [c.timestamp, c.open, c.high, c.low, c.close, c.volume]
-                for c in self._candles
+                [c.timestamp, c.open, c.high, c.low, c.close, c.volume] for c in self._candles
             ]
 
         candles = np.array(candles_data)

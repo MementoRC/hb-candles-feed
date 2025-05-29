@@ -47,7 +47,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
-       :returns: WebSocket URL.
+        :returns: WebSocket URL.
         """
         return self._get_ws_url()
 

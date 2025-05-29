@@ -132,8 +132,10 @@ class CandleDataFactory:
 
     @staticmethod
     def create_price_event(
-        candles: list[CandleData], event_index: int, event_magnitude: float = 0.03,
-        max_deviation: float = 0.05
+        candles: list[CandleData],
+        event_index: int,
+        event_magnitude: float = 0.03,
+        max_deviation: float = 0.05,
     ) -> list[CandleData]:
         """
         Create a significant price event (spike or drop) at a specific index.
@@ -149,7 +151,9 @@ class CandleDataFactory:
 
         # Determine if it's a price spike (positive) or drop (negative)
         is_spike = random.random() > 0.5
-        magnitude = min(event_magnitude, max_deviation/2)  # Limit magnitude to half of max_deviation
+        magnitude = min(
+            event_magnitude, max_deviation / 2
+        )  # Limit magnitude to half of max_deviation
         magnitude = magnitude if is_spike else -magnitude
 
         # Get the candle to modify
@@ -242,7 +246,7 @@ class CandleDataFactory:
                 candles=candles,
                 event_index=event_index,
                 event_magnitude=event_magnitude,
-                max_deviation=0.05  # 5% maximum deviation
+                max_deviation=0.05,  # 5% maximum deviation
             )
 
         return candles

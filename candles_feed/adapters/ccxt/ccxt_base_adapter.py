@@ -59,10 +59,12 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
 
     def __init__(self):
         """Initialize CCXT exchange instance."""
-        self.exchange = getattr(ccxt, self.exchange_name)({
-            'enableRateLimit': True,
-            'options': self._get_ccxt_options(),
-        })
+        self.exchange = getattr(ccxt, self.exchange_name)(
+            {
+                "enableRateLimit": True,
+                "options": self._get_ccxt_options(),
+            }
+        )
 
     @property
     def exchange_name(self) -> str:
@@ -158,7 +160,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
             symbol=params["symbol"],
             timeframe=params["timeframe"],
             since=params["since"],
-            limit=params["limit"]
+            limit=params["limit"],
         )
         return self._parse_rest_response(ohlcv)
 
@@ -173,21 +175,21 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
 
         # Basic conversion of common timeframes
         timeframe_to_seconds = {
-            '1m': 60,
-            '3m': 180,
-            '5m': 300,
-            '15m': 900,
-            '30m': 1800,
-            '1h': 3600,
-            '2h': 7200,
-            '4h': 14400,
-            '6h': 21600,
-            '8h': 28800,
-            '12h': 43200,
-            '1d': 86400,
-            '3d': 259200,
-            '1w': 604800,
-            '1M': 2592000,
+            "1m": 60,
+            "3m": 180,
+            "5m": 300,
+            "15m": 900,
+            "30m": 1800,
+            "1h": 3600,
+            "2h": 7200,
+            "4h": 14400,
+            "6h": 21600,
+            "8h": 28800,
+            "12h": 43200,
+            "1d": 86400,
+            "3d": 259200,
+            "1w": 604800,
+            "1M": 2592000,
         }
 
         for tf in timeframes:

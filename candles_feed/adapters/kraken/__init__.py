@@ -16,7 +16,6 @@ from .spot_adapter import KrakenSpotAdapter
 __all__ = [
     # Adapters
     "KrakenSpotAdapter",
-
     # Constants
     "SPOT_CANDLES_ENDPOINT",
     "SPOT_REST_URL",

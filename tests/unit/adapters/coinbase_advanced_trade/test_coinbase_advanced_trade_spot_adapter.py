@@ -9,7 +9,6 @@ import pytest
 
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
     INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
@@ -51,7 +50,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
         return {
             "granularity": INTERVALS[interval],
             "start": start_time,  # Coinbase uses seconds, not milliseconds
-            "end": end_time,      # Coinbase uses seconds, not milliseconds
+            "end": end_time,  # Coinbase uses seconds, not milliseconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -117,7 +116,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
     # Override test_parse_rest_response_none to handle None properly
     def test_parse_rest_response_none(self, adapter):
         """Test parsing None REST API response."""
-        with patch.object(adapter, '_parse_rest_response', return_value=[]):
+        with patch.object(adapter, "_parse_rest_response", return_value=[]):
             candles = adapter._parse_rest_response(None)
             assert candles == []
 
@@ -134,7 +133,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
             "4h": 14400,
             "1d": 86400,
         }
-        with patch.object(adapter, 'get_supported_intervals', return_value=extended_intervals):
+        with patch.object(adapter, "get_supported_intervals", return_value=extended_intervals):
             intervals = adapter.get_supported_intervals()
 
             # Basic validation
@@ -178,8 +177,10 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
         assert result == timestamp
 
     @pytest.mark.asyncio
-    @patch.object(CoinbaseAdvancedTradeSpotAdapter, '_get_rest_url')
-    async def test_fetch_rest_candles_custom(self, mock_get_rest_url, adapter, trading_pair, interval):
+    @patch.object(CoinbaseAdvancedTradeSpotAdapter, "_get_rest_url")
+    async def test_fetch_rest_candles_custom(
+        self, mock_get_rest_url, adapter, trading_pair, interval
+    ):
         """Custom async test for fetch_rest_candles."""
         # Mock the URL to be pre-formatted with the trading pair
         formatted_url = f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}".format(product_id=trading_pair)
@@ -195,9 +196,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
 
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
-            trading_pair=trading_pair,
-            interval=interval,
-            network_client=mock_client
+            trading_pair=trading_pair, interval=interval, network_client=mock_client
         )
 
         # Verify the result
@@ -208,5 +207,5 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
 
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == formatted_url
-        assert kwargs['params'] == params
+        assert kwargs["url"] == formatted_url
+        assert kwargs["params"] == params

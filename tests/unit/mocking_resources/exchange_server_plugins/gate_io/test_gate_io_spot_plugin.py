@@ -124,14 +124,8 @@ class TestGateIoSpotPlugin:
         # Create subscription message
         message = {
             "method": "subscribe",
-            "params": [
-                "spot.candlesticks",
-                {
-                    "currency_pair": "BTC_USDT",
-                    "interval": "1m"
-                }
-            ],
-            "id": 12345
+            "params": ["spot.candlesticks", {"currency_pair": "BTC_USDT", "interval": "1m"}],
+            "id": 12345,
         }
 
         # Parse subscription
@@ -147,14 +141,8 @@ class TestGateIoSpotPlugin:
         # Create subscription message
         message = {
             "method": "subscribe",
-            "params": [
-                "spot.candlesticks",
-                {
-                    "currency_pair": "BTC_USDT",
-                    "interval": "1m"
-                }
-            ],
-            "id": 12345
+            "params": ["spot.candlesticks", {"currency_pair": "BTC_USDT", "interval": "1m"}],
+            "id": 12345,
         }
 
         # Create success response

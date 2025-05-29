@@ -3,9 +3,6 @@ Tests for the GateIoBaseAdapter using the base adapter test class.
 """
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
 
 from candles_feed.adapters.gate_io.base_adapter import GateIoBaseAdapter
 from candles_feed.adapters.gate_io.constants import (
@@ -17,7 +14,6 @@ from candles_feed.adapters.gate_io.constants import (
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
-from candles_feed.core.candle_data import CandleData
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
@@ -73,7 +69,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "from": start_time,  # Gate.io uses seconds
-            "to": end_time,      # Gate.io uses seconds
+            "to": end_time,  # Gate.io uses seconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -96,24 +92,24 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
 
         return [
             [
-                str(base_time),      # timestamp
-                "50000.0",           # open
-                "50500.0",           # close
-                "49000.0",           # low
-                "51000.0",           # high
-                "100.0",             # volume
-                "5000000.0",         # quote currency volume
-                "BTC_USDT",          # currency pair
+                str(base_time),  # timestamp
+                "50000.0",  # open
+                "50500.0",  # close
+                "49000.0",  # low
+                "51000.0",  # high
+                "100.0",  # volume
+                "5000000.0",  # quote currency volume
+                "BTC_USDT",  # currency pair
             ],
             [
-                str(base_time + 60), # timestamp
-                "50500.0",           # open
-                "51500.0",           # close
-                "50000.0",           # low
-                "52000.0",           # high
-                "150.0",             # volume
-                "7500000.0",         # quote currency volume
-                "BTC_USDT",          # currency pair
+                str(base_time + 60),  # timestamp
+                "50500.0",  # open
+                "51500.0",  # close
+                "50000.0",  # low
+                "52000.0",  # high
+                "150.0",  # volume
+                "7500000.0",  # quote currency volume
+                "BTC_USDT",  # currency pair
             ],
         ]
 
@@ -128,13 +124,13 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
                 {"currency_pair": "BTC_USDT", "interval": "1m", "status": "open"},
                 [
                     str(base_time),  # timestamp
-                    "50000.0",       # open
-                    "50500.0",       # close
-                    "49000.0",       # low
-                    "51000.0",       # high
-                    "100.0",         # volume
-                    "5000000.0",     # quote currency volume
-                    "BTC_USDT",      # currency pair
+                    "50000.0",  # open
+                    "50500.0",  # close
+                    "49000.0",  # low
+                    "51000.0",  # high
+                    "100.0",  # volume
+                    "5000000.0",  # quote currency volume
+                    "BTC_USDT",  # currency pair
                 ],
             ],
         }
@@ -182,13 +178,13 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
         timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
         candle_data = [
             str(timestamp),  # timestamp
-            "50000.0",       # open
-            "50500.0",       # close
-            "49000.0",       # low
-            "51000.0",       # high
-            "100.0",         # volume
-            "5000000.0",     # quote currency volume
-            "BTC_USDT",      # currency pair
+            "50000.0",  # open
+            "50500.0",  # close
+            "49000.0",  # low
+            "51000.0",  # high
+            "100.0",  # volume
+            "5000000.0",  # quote currency volume
+            "BTC_USDT",  # currency pair
         ]
 
         # Parse a mocked rest response with a single candle

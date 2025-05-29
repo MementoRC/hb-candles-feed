@@ -3,20 +3,17 @@ Unit tests for the KucoinPerpetualAdapter class.
 """
 
 import contextlib
-import time
 from datetime import datetime, timezone
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from candles_feed.adapters.kucoin.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
+from candles_feed.adapters.kucoin.constants import (  # noqa: F401, used in BaseAdapterTest
+    INTERVAL_TO_EXCHANGE_FORMAT,  # noqa: F401, used in BaseAdapterTest
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
-    WS_INTERVALS,
 )
 from candles_feed.adapters.kucoin.perpetual_adapter import KucoinPerpetualAdapter
 from candles_feed.core.candle_data import CandleData
@@ -59,7 +56,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
             "symbol": self.get_expected_trading_pair_format(trading_pair),
             "granularity": perp_interval,
             "from": start_time * 1000,  # KuCoin uses milliseconds
-            "to": end_time * 1000,      # KuCoin uses milliseconds
+            "to": end_time * 1000,  # KuCoin uses milliseconds
         }
         # Perpetual doesn't use limit parameter
         return params
@@ -107,8 +104,8 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
                     50500.0,  # close
                     51000.0,  # high
                     49000.0,  # low
-                    100.0,    # volume
-                    5000000.0 # turnover
+                    100.0,  # volume
+                    5000000.0,  # turnover
                 ],
                 [
                     base_time + 60,
@@ -116,10 +113,10 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
                     51500.0,  # close
                     52000.0,  # high
                     50000.0,  # low
-                    150.0,    # volume
-                    7500000.0 # turnover
-                ]
-            ]
+                    150.0,  # volume
+                    7500000.0,  # turnover
+                ],
+            ],
         }
 
         candles = adapter._parse_rest_response(response)
@@ -153,10 +150,10 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # turnover
-                ]
-            }
+                    "100.0",  # volume
+                    "5000000.0",  # turnover
+                ],
+            },
         }
 
         candles = adapter.parse_ws_message(message)
@@ -188,8 +185,8 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
                     50500.0,  # close
                     51000.0,  # high
                     49000.0,  # low
-                    100.0,    # volume
-                    5000000.0 # turnover
+                    100.0,  # volume
+                    5000000.0,  # turnover
                 ],
                 [
                     timestamp + 60,
@@ -197,10 +194,10 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
                     51500.0,  # close
                     52000.0,  # high
                     50000.0,  # low
-                    150.0,    # volume
-                    7500000.0 # turnover
+                    150.0,  # volume
+                    7500000.0,  # turnover
                 ],
-            ]
+            ],
         }
 
     def get_mock_websocket_message(self):
@@ -219,10 +216,10 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # turnover
+                    "100.0",  # volume
+                    "5000000.0",  # turnover
                 ],
-            }
+            },
         }
 
     # Additional test cases specific to KucoinPerpetualAdapter
@@ -240,7 +237,9 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
         # Ensure timestamp is in seconds regardless of input format
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds * 1000) == timestamp_seconds
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
-        assert adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        assert (
+            adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        )
 
     @patch("time.time")
     def test_websocket_subscription_id(self, mock_time, adapter):
@@ -269,9 +268,11 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
         """Test that the REST parameters are correctly formed for perpetual."""
         # Perpetual uses from/to instead of startAt/endAt
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
 
-        params = adapter._get_rest_params("BTC-USDT", "1m", start_time=start_time, end_time=end_time)
+        params = adapter._get_rest_params(
+            "BTC-USDT", "1m", start_time=start_time, end_time=end_time
+        )
 
         assert "from" in params
         assert "to" in params
@@ -298,6 +299,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
         # Skip test for SyncOnlyAdapter adapters
         with contextlib.suppress(ImportError):
             from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+
             if isinstance(adapter, SyncOnlyAdapter):
                 pytest.skip("Test only applicable for async adapters")
 
@@ -309,7 +311,9 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
         mock_client.get_rest_data = mock.AsyncMock(return_value=mock_response)
 
         # Call the async method
-        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        candles = await adapter.fetch_rest_candles(
+            trading_pair, interval, network_client=mock_client
+        )
 
         # Basic validation
         assert isinstance(candles, list)
@@ -319,13 +323,15 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
+        assert kwargs["url"] == adapter._get_rest_url()
 
         # Verify that params were passed (without exact comparison)
-        assert "symbol" in kwargs['params']
-        assert kwargs['params']["symbol"] == trading_pair
-        assert "granularity" in kwargs['params']
-        assert kwargs['params']["granularity"] == INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+        assert "symbol" in kwargs["params"]
+        assert kwargs["params"]["symbol"] == trading_pair
+        assert "granularity" in kwargs["params"]
+        assert kwargs["params"]["granularity"] == INTERVAL_TO_EXCHANGE_FORMAT.get(
+            interval, interval
+        )
 
     def test_rest_response_field_mapping(self, adapter):
         """Test specific field mapping for perpetual REST response."""
@@ -337,14 +343,14 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
             "data": [
                 [
                     timestamp,
-                    50000.0,   # open [1]
-                    50500.0,   # close [2]
-                    51000.0,   # high [3]
-                    49000.0,   # low [4]
-                    100.0,     # volume [5]
-                    5000000.0  # turnover [6]
+                    50000.0,  # open [1]
+                    50500.0,  # close [2]
+                    51000.0,  # high [3]
+                    49000.0,  # low [4]
+                    100.0,  # volume [5]
+                    5000000.0,  # turnover [6]
                 ]
-            ]
+            ],
         }
 
         candles = adapter._parse_rest_response(response)

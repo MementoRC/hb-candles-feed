@@ -7,6 +7,7 @@ and ensure that the correct dependencies are available.
 
 import importlib
 import sys
+import unittest.mock
 
 import pandas as pd
 
@@ -51,7 +52,7 @@ class TestCompatibility:
         # We need to manually register adapters for testing
         # This is necessary because in a test environment, the automatic registration
         # might not work as expected
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
 
         from candles_feed.core.exchange_registry import ExchangeRegistry
 
@@ -94,7 +95,7 @@ class TestCompatibility:
         This test verifies that the new CandlesFeed class has the same basic interface
         as the original CandlesBase class.
         """
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock, MagicMock
 
         from candles_feed.core.candle_data import CandleData
         from candles_feed.core.candles_feed import CandlesFeed
@@ -103,25 +104,33 @@ class TestCompatibility:
         mock_adapter = MagicMock()
         mock_adapter.get_trading_pair_format.return_value = "BTCUSDT"
         mock_adapter.get_ws_supported_intervals.return_value = ["1m", "5m", "15m"]
-        mock_adapter.get_supported_intervals.return_value = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "1d": 86400}
+        mock_adapter.get_supported_intervals.return_value = {
+            "1m": 60,
+            "5m": 300,
+            "15m": 900,
+            "1h": 3600,
+            "1d": 86400,
+        }
         mock_adapter.ensure_timestamp_in_seconds = MagicMock(side_effect=lambda x: float(x))
 
         # Method to simulate the original function
         def parse_rest_candles_mock(data, end_time=None):
             candles = []
             for item in data:
-                candles.append([
-                    item["timestamp"],
-                    item["open"],
-                    item["high"],
-                    item["low"],
-                    item["close"],
-                    item["volume"],
-                    item["quote_asset_volume"],
-                    item["n_trades"],
-                    item["taker_buy_base_volume"],
-                    item["taker_buy_quote_volume"],
-                ])
+                candles.append(
+                    [
+                        item["timestamp"],
+                        item["open"],
+                        item["high"],
+                        item["low"],
+                        item["close"],
+                        item["volume"],
+                        item["quote_asset_volume"],
+                        item["n_trades"],
+                        item["taker_buy_base_volume"],
+                        item["taker_buy_quote_volume"],
+                    ]
+                )
             return candles
 
         mock_adapter._parse_rest_candles = MagicMock(side_effect=parse_rest_candles_mock)
@@ -155,7 +164,7 @@ class TestCompatibility:
                 n_trades=1100,
                 taker_buy_base_volume=60.0,
                 taker_buy_quote_volume=2400000.0,
-            )
+            ),
         ]
         mock_adapter.fetch_rest_candles = AsyncMock(return_value=mock_sample_candles)
 
@@ -170,15 +179,17 @@ class TestCompatibility:
         mock_rest_strategy.poll_once = AsyncMock(return_value=mock_sample_candles)
 
         # Patch ExchangeRegistry to return our mock
-        with patch(
+        with unittest.mock.patch(
             "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
             return_value=mock_adapter,
-        ), patch(
+        ), unittest.mock.patch(
             "candles_feed.core.network_client.NetworkClient", return_value=mock_network_client
-        ), patch(
-            "candles_feed.core.collection_strategies.WebSocketStrategy", return_value=mock_ws_strategy
-        ), patch(
-            "candles_feed.core.collection_strategies.RESTPollingStrategy", return_value=mock_rest_strategy
+        ), unittest.mock.patch(
+            "candles_feed.core.collection_strategies.WebSocketStrategy",
+            return_value=mock_ws_strategy,
+        ), unittest.mock.patch(
+            "candles_feed.core.collection_strategies.RESTPollingStrategy",
+            return_value=mock_rest_strategy,
         ):
             # Create a candles feed instance
             feed = CandlesFeed(
@@ -247,6 +258,7 @@ class TestCompatibility:
 
             # 6. Test async methods
             from inspect import iscoroutinefunction
+
             assert iscoroutinefunction(feed.start)
             assert iscoroutinefunction(feed.stop)
             assert iscoroutinefunction(feed.fetch_candles)
@@ -364,15 +376,13 @@ class TestCompatibility:
 
         # Additional methods used by CandlesFeed/strategies
         mock_adapter._get_rest_url = MagicMock(return_value="https://api.example.com")
-        mock_adapter._get_rest_params = MagicMock(return_value={"symbol": "BTCUSDT", "interval": "1m"})
+        mock_adapter._get_rest_params = MagicMock(
+            return_value={"symbol": "BTCUSDT", "interval": "1m"}
+        )
         mock_adapter.fetch_rest_candles = MagicMock()
 
         # Patch ExchangeRegistry.get_adapter_instance to return our mock
-        with patch.object(
-            ExchangeRegistry,
-            "get_adapter_instance",
-            return_value=mock_adapter
-        ):
+        with patch.object(ExchangeRegistry, "get_adapter_instance", return_value=mock_adapter):
             # Now test instantiation for each exchange
             for exchange in exchanges:
                 feed = CandlesFeed(

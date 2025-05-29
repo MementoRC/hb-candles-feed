@@ -19,14 +19,14 @@ Welcome to the Candles Feed documentation! This framework provides a modular, pl
 graph LR
     Client[Client Application] --> CandlesFeed
     CandlesFeed --> ExchangeAdapter
-    
+
     subgraph "Core Components"
         CandlesFeed
         NetworkStrategy
         DataProcessor
         ExchangeRegistry
     end
-    
+
     subgraph "Exchange Adapters"
         ExchangeAdapter
         BinanceAdapter
@@ -37,11 +37,11 @@ graph LR
         BybitAdapter
         NewExchangeAdapter[New Exchange...]
     end
-    
+
     ExchangeRegistry --> ExchangeAdapter
     CandlesFeed --> NetworkStrategy
     CandlesFeed --> DataProcessor
-    
+
     class NewExchangeAdapter fill:#f96;
 ```
 

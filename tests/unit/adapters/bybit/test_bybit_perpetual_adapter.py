@@ -7,14 +7,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from candles_feed.adapters.bybit.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
+from candles_feed.adapters.bybit.constants import (  # noqa: F401, used in BaseAdapterTest
+    INTERVAL_TO_EXCHANGE_FORMAT,  # noqa: F401, used in BaseAdapterTest
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
-    WS_INTERVALS,
 )
 from candles_feed.adapters.bybit.perpetual_adapter import BybitPerpetualAdapter
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
@@ -55,8 +53,8 @@ class TestBybitPerpetualAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "start": start_time * 1000,  # Convert to milliseconds
-            "end": end_time * 1000,      # Convert to milliseconds
-            "category": "linear",        # Bybit specific
+            "end": end_time * 1000,  # Convert to milliseconds
+            "category": "linear",  # Bybit specific
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -77,7 +75,15 @@ class TestBybitPerpetualAdapter(BaseAdapterTest):
             "retMsg": "OK",
             "result": {
                 "list": [
-                    [str(base_time), "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
+                    [
+                        str(base_time),
+                        "50000.0",
+                        "51000.0",
+                        "49000.0",
+                        "50500.0",
+                        "100.0",
+                        "5000000.0",
+                    ],
                     [
                         str(base_time + 60000),
                         "50500.0",
@@ -151,9 +157,7 @@ class TestBybitPerpetualAdapter(BaseAdapterTest):
 
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
-            trading_pair=trading_pair,
-            interval=interval,
-            network_client=mock_client
+            trading_pair=trading_pair, interval=interval, network_client=mock_client
         )
 
         # Verify the result
@@ -165,5 +169,5 @@ class TestBybitPerpetualAdapter(BaseAdapterTest):
 
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == url
-        assert kwargs['params'] == params
+        assert kwargs["url"] == url
+        assert kwargs["params"] == params

@@ -49,38 +49,36 @@ class TestServerWithSimplePlugin:
         url = await server.start()
 
         # Create client session
-        async with aiohttp.ClientSession() as session, \
-                     session.get(
-                f"{url}/api/candles",
-                params={"symbol": "BTC-USDT", "interval": "1m", "limit": 10}
-            ) as response:            # Check response
-                assert response.status == 200
-                data = await response.json()
+        async with aiohttp.ClientSession() as session, session.get(
+            f"{url}/api/candles", params={"symbol": "BTC-USDT", "interval": "1m", "limit": 10}
+        ) as response:  # Check response
+            assert response.status == 200
+            data = await response.json()
 
-                # Verify response format
-                assert "status" in data
-                assert data["status"] == "ok"
-                assert "symbol" in data
-                assert data["symbol"] == "BTC-USDT"
-                assert "interval" in data
-                assert data["interval"] == "1m"
-                assert "data" in data
-                assert isinstance(data["data"], list)
+            # Verify response format
+            assert "status" in data
+            assert data["status"] == "ok"
+            assert "symbol" in data
+            assert data["symbol"] == "BTC-USDT"
+            assert "interval" in data
+            assert data["interval"] == "1m"
+            assert "data" in data
+            assert isinstance(data["data"], list)
 
-                # Verify candles are generated
-                assert len(data["data"]) > 0
+            # Verify candles are generated
+            assert len(data["data"]) > 0
 
-                # Check a candle
-                candle = data["data"][0]
-                assert "timestamp" in candle
-                assert "open" in candle
-                assert "high" in candle
-                assert "low" in candle
-                assert "close" in candle
-                assert "volume" in candle
+            # Check a candle
+            candle = data["data"][0]
+            assert "timestamp" in candle
+            assert "open" in candle
+            assert "high" in candle
+            assert "low" in candle
+            assert "close" in candle
+            assert "volume" in candle
 
-                # Verify the price is around the initial price
-                assert abs(float(candle["close"]) - 50000.0) < 5000.0  # Allow some variation
+            # Verify the price is around the initial price
+            assert abs(float(candle["close"]) - 50000.0) < 5000.0  # Allow some variation
 
         # Clean up
         await server.stop()
@@ -104,15 +102,9 @@ class TestServerWithSimplePlugin:
         # Create WebSocket connection
         async with aiohttp.ClientSession() as session, session.ws_connect(ws_url) as ws:
             # Send subscription message
-            await ws.send_json({
-                "type": "subscribe",
-                "subscriptions": [
-                    {
-                        "symbol": "BTC-USDT",
-                        "interval": "1m"
-                    }
-                ]
-            })
+            await ws.send_json(
+                {"type": "subscribe", "subscriptions": [{"symbol": "BTC-USDT", "interval": "1m"}]}
+            )
 
             # Wait for subscription response
             response = await ws.receive_json(timeout=5)
@@ -166,8 +158,7 @@ class TestServerWithSimplePlugin:
         async with aiohttp.ClientSession() as session:
             # Check BTC-USDT candles
             async with session.get(
-                f"{url}/api/candles",
-                params={"symbol": "BTC-USDT", "interval": "1m", "limit": 5}
+                f"{url}/api/candles", params={"symbol": "BTC-USDT", "interval": "1m", "limit": 5}
             ) as response:
                 data = await response.json()
                 assert data["symbol"] == "BTC-USDT"
@@ -176,8 +167,7 @@ class TestServerWithSimplePlugin:
 
             # Check ETH-USDT candles
             async with session.get(
-                f"{url}/api/candles",
-                params={"symbol": "ETH-USDT", "interval": "1m", "limit": 5}
+                f"{url}/api/candles", params={"symbol": "ETH-USDT", "interval": "1m", "limit": 5}
             ) as response:
                 data = await response.json()
                 assert data["symbol"] == "ETH-USDT"
@@ -186,8 +176,7 @@ class TestServerWithSimplePlugin:
 
             # Check SOL-USDT candles
             async with session.get(
-                f"{url}/api/candles",
-                params={"symbol": "SOL-USDT", "interval": "1m", "limit": 5}
+                f"{url}/api/candles", params={"symbol": "SOL-USDT", "interval": "1m", "limit": 5}
             ) as response:
                 data = await response.json()
                 assert data["symbol"] == "SOL-USDT"
@@ -208,24 +197,23 @@ class TestServerWithSimplePlugin:
         url = await server.start()
 
         # Create client session
-        async with aiohttp.ClientSession() as session, \
-                     session.get(f"{url}/api/time") as response:
+        async with aiohttp.ClientSession() as session, session.get(f"{url}/api/time") as response:
             # Check response
-                assert response.status == 200
-                data = await response.json()
+            assert response.status == 200
+            data = await response.json()
 
-                # Verify response format
-                assert "status" in data
-                assert data["status"] == "ok"
-                assert "timestamp" in data
-                assert "server_time" in data
+            # Verify response format
+            assert "status" in data
+            assert data["status"] == "ok"
+            assert "timestamp" in data
+            assert "server_time" in data
 
-                # Verify time is current
-                current_time = server._time()
-                server_time = data["timestamp"] / 1000  # Convert from ms to seconds
+            # Verify time is current
+            current_time = server._time()
+            server_time = data["timestamp"] / 1000  # Convert from ms to seconds
 
-                # Allow a small time difference
-                assert abs(current_time - server_time) < 60
+            # Allow a small time difference
+            assert abs(current_time - server_time) < 60
 
         # Clean up
         await server.stop()
@@ -245,33 +233,34 @@ class TestServerWithSimplePlugin:
         url = await server.start()
 
         # Create client session
-        async with aiohttp.ClientSession() as session, \
-                     session.get(f"{url}/api/instruments") as response:
+        async with aiohttp.ClientSession() as session, session.get(
+            f"{url}/api/instruments"
+        ) as response:
             # Check response
-                assert response.status == 200
-                data = await response.json()
+            assert response.status == 200
+            data = await response.json()
 
-                # Verify response format
-                assert "status" in data
-                assert data["status"] == "ok"
-                assert "instruments" in data
-                assert isinstance(data["instruments"], list)
+            # Verify response format
+            assert "status" in data
+            assert data["status"] == "ok"
+            assert "instruments" in data
+            assert isinstance(data["instruments"], list)
 
-                # Verify instruments
-                assert len(data["instruments"]) == 2
+            # Verify instruments
+            assert len(data["instruments"]) == 2
 
-                # Check if both trading pairs are in the response
-                instrument_symbols = [instr["symbol"] for instr in data["instruments"]]
-                assert "BTC-USDT" in instrument_symbols
-                assert "ETH-USDT" in instrument_symbols
+            # Check if both trading pairs are in the response
+            instrument_symbols = [instr["symbol"] for instr in data["instruments"]]
+            assert "BTC-USDT" in instrument_symbols
+            assert "ETH-USDT" in instrument_symbols
 
-                # Check instrument structure
-                for instrument in data["instruments"]:
-                    assert "symbol" in instrument
-                    assert "base_asset" in instrument
-                    assert "quote_asset" in instrument
-                    assert "status" in instrument
-                    assert instrument["status"] == "TRADING"
+            # Check instrument structure
+            for instrument in data["instruments"]:
+                assert "symbol" in instrument
+                assert "base_asset" in instrument
+                assert "quote_asset" in instrument
+                assert "status" in instrument
+                assert instrument["status"] == "TRADING"
 
         # Clean up
         await server.stop()

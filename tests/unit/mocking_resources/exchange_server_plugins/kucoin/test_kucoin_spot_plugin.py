@@ -131,7 +131,7 @@ class TestKucoinSpotPlugin:
             "type": "subscribe",
             "topic": "/market/candles:BTC-USDT_1min",
             "privateChannel": False,
-            "response": True
+            "response": True,
         }
 
         # Parse subscription
@@ -150,7 +150,7 @@ class TestKucoinSpotPlugin:
             "type": "subscribe",
             "topic": "/market/candles:BTC-USDT_1min",
             "privateChannel": False,
-            "response": True
+            "response": True,
         }
 
         # Create success response

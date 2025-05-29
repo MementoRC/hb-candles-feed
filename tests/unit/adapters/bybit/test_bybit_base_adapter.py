@@ -2,10 +2,6 @@
 Unit tests for the BybitBaseAdapter class.
 """
 
-from unittest.mock import MagicMock
-
-import pytest
-
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
@@ -15,7 +11,6 @@ from candles_feed.adapters.bybit.constants import (
     SPOT_REST_URL,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
 class ConcreteBybitAdapter(BybitBaseAdapter):

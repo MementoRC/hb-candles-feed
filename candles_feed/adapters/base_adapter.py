@@ -154,6 +154,4 @@ class BaseAdapter(ABC):
         elif timestamp >= 1e9:  # Seconds
             return timestamp
         else:
-            raise ValueError(
-                f"Timestamp must be in iso, milli, micro, nano or seconds:{timestamp}"
-            )
+            raise ValueError(f"Timestamp must be in iso, milli, micro, nano or seconds:{timestamp}")

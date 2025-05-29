@@ -91,7 +91,9 @@ class TestBinanceSpotPlugin:
         assert formatted[0][8] == 100  # Number of trades
         # In the implementation, these are calculated as 70% of the volume
         assert formatted[0][9] == str(candles[0].volume * 0.7)  # Taker buy base asset volume
-        assert formatted[0][10] == str(candles[0].quote_asset_volume * 0.7)  # Taker buy quote asset volume
+        assert formatted[0][10] == str(
+            candles[0].quote_asset_volume * 0.7
+        )  # Taker buy quote asset volume
         assert formatted[0][11] == "0"  # Unused field
 
     def test_format_ws_candle_message(self):
@@ -111,7 +113,9 @@ class TestBinanceSpotPlugin:
         )
 
         # Format WebSocket message
-        message = self.plugin.format_ws_candle_message(candle, self.trading_pair, self.interval, is_final=True)
+        message = self.plugin.format_ws_candle_message(
+            candle, self.trading_pair, self.interval, is_final=True
+        )
 
         # Check message format
         assert message["e"] == "kline"
@@ -142,7 +146,7 @@ class TestBinanceSpotPlugin:
         message = {
             "method": "SUBSCRIBE",
             "params": ["btcusdt@kline_1m", "ethusdt@kline_5m"],
-            "id": 12345
+            "id": 12345,
         }
 
         # Parse subscription
@@ -158,11 +162,7 @@ class TestBinanceSpotPlugin:
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
         # Create subscription message
-        message = {
-            "method": "SUBSCRIBE",
-            "params": ["btcusdt@kline_1m"],
-            "id": 12345
-        }
+        message = {"method": "SUBSCRIBE", "params": ["btcusdt@kline_1m"], "id": 12345}
 
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])

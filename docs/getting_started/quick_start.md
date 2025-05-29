@@ -20,7 +20,7 @@ from candles_feed.core.exchange_registry import ExchangeRegistry
 async def main():
     # Discover available adapters
     ExchangeRegistry.discover_adapters()
-    
+
     # Create a candles feed for Binance BTC-USDT pair with 1-minute candles
     adapter = ExchangeRegistry.get_adapter("binance_spot")
     candles_feed = CandlesFeed(
@@ -29,31 +29,31 @@ async def main():
         interval="1m",
         max_records=100
     )
-    
+
     # Start the feed
     await candles_feed.start()
-    
+
     # Wait for the feed to be ready
     print("Waiting for candles data...")
     while not candles_feed.ready:
         await asyncio.sleep(1)
-        
+
     # Get the candles as a pandas DataFrame
     df = candles_feed.get_candles_df()
-    
+
     # Display the data
     print("\nCandle Data:")
     print(df.tail())
-    
+
     # Keep receiving real-time updates for a while
     print("\nReceiving real-time updates for 30 seconds...")
     await asyncio.sleep(30)
-    
+
     # Get the updated candles
     updated_df = candles_feed.get_candles_df()
     print("\nUpdated Candle Data:")
     print(updated_df.tail())
-    
+
     # Stop the feed
     await candles_feed.stop()
 
@@ -146,37 +146,37 @@ You can create multiple feeds for different trading pairs or exchanges:
 async def main():
     # Discover available adapters
     ExchangeRegistry.discover_adapters()
-    
+
     # Create feeds for different trading pairs
     btc_feed = CandlesFeed(
         adapter=ExchangeRegistry.get_adapter("binance_spot"),
         trading_pair="BTC-USDT",
         interval="1m"
     )
-    
+
     eth_feed = CandlesFeed(
         adapter=ExchangeRegistry.get_adapter("binance_spot"),
         trading_pair="ETH-USDT",
         interval="1m"
     )
-    
+
     # Start both feeds
     await asyncio.gather(
         btc_feed.start(),
         eth_feed.start()
     )
-    
+
     # Wait for data
     while not (btc_feed.ready and eth_feed.ready):
         await asyncio.sleep(1)
-        
+
     # Compare data
     btc_df = btc_feed.get_candles_df()
     eth_df = eth_feed.get_candles_df()
-    
+
     print("BTC-USDT latest price:", btc_df.iloc[-1]["close"])
     print("ETH-USDT latest price:", eth_df.iloc[-1]["close"])
-    
+
     # Stop feeds
     await asyncio.gather(
         btc_feed.stop(),
@@ -201,24 +201,24 @@ async def analyze_data():
         interval="1h",
         max_records=168  # Last 7 days of hourly data
     )
-    
+
     await feed.start()
-    
+
     # Wait for data
     while not feed.ready:
         await asyncio.sleep(1)
-        
+
     # Get the data
     df = feed.get_candles_df()
-    
+
     # Convert timestamp to datetime
     df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
     df.set_index('datetime', inplace=True)
-    
+
     # Calculate some indicators
     df['sma_20'] = df['close'].rolling(window=20).mean()
     df['ema_50'] = df['close'].ewm(span=50, adjust=False).mean()
-    
+
     # Plot the data
     plt.figure(figsize=(12, 6))
     plt.plot(df.index, df['close'], label='Close Price')
@@ -227,7 +227,7 @@ async def analyze_data():
     plt.legend()
     plt.title('BTC-USDT Price with Moving Averages')
     plt.savefig('btc_analysis.png')
-    
+
     # Stop the feed
     await feed.stop()
 ```
@@ -266,7 +266,7 @@ try:
     start_time = time.time()
     while not feed.ready and time.time() - start_time < 30:
         await asyncio.sleep(1)
-        
+
     if not feed.ready:
         print("Timed out waiting for data")
 except Exception as e:

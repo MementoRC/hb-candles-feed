@@ -5,7 +5,7 @@ Tests for the HyperliquidPerpetualAdapter using the base adapter test class.
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
+import pytest  # noqa: F401, used in BaseAdapterTest
 
 from candles_feed.adapters.hyperliquid.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
@@ -51,11 +51,13 @@ class TestHyperliquidPerpetualAdapter(BaseAdapterTest):
     def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
         """Return the expected full REST params for the adapter."""
         params = self.get_expected_rest_params_minimal(trading_pair, interval)
-        params.update({
-            "limit": limit,
-            "startTime": start_time,
-            "endTime": end_time,
-        })
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                "endTime": end_time,
+            }
+        )
         return params
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -119,7 +121,5 @@ class TestHyperliquidPerpetualAdapter(BaseAdapterTest):
         # Test error handling during fetch
         with pytest.raises(Exception, match="API Error"):
             await adapter.fetch_rest_candles(
-                trading_pair="BTC-USDT",
-                interval="1m",
-                network_client=mock_client
+                trading_pair="BTC-USDT", interval="1m", network_client=mock_client
             )

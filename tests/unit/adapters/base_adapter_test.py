@@ -144,7 +144,7 @@ class BaseAdapterTest(abc.ABC):
     def test_get_rest_params_full(self, adapter, trading_pair, interval):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000    # 2021-06-02 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
         expected_params = self.get_expected_rest_params_full(
@@ -244,10 +244,11 @@ class BaseAdapterTest(abc.ABC):
         # Skip test for AsyncOnlyAdapter adapters
         with contextlib.suppress(ImportError):
             from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+
             if isinstance(adapter, AsyncOnlyAdapter):
                 pytest.skip("Test only applicable for synchronous adapters")
         # Mock requests.get to avoid actual API calls
-        with mock.patch('requests.get') as mock_get:
+        with mock.patch("requests.get") as mock_get:
             mock_response = mock.MagicMock()
             mock_response.json.return_value = self.get_mock_candlestick_response()
             mock_get.return_value = mock_response
@@ -270,14 +271,19 @@ class BaseAdapterTest(abc.ABC):
         # Skip test for SyncOnlyAdapter adapters
         with contextlib.suppress(ImportError):
             from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+
             if isinstance(adapter, SyncOnlyAdapter):
                 pytest.skip("Test only applicable for async adapters")
         # Create a mock network client
         mock_client = mock.MagicMock()
-        mock_client.get_rest_data = mock.AsyncMock(return_value=self.get_mock_candlestick_response())
+        mock_client.get_rest_data = mock.AsyncMock(
+            return_value=self.get_mock_candlestick_response()
+        )
 
         # Call the async method
-        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        candles = await adapter.fetch_rest_candles(
+            trading_pair, interval, network_client=mock_client
+        )
 
         # Basic validation
         assert isinstance(candles, list)
@@ -287,10 +293,10 @@ class BaseAdapterTest(abc.ABC):
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
+        assert kwargs["url"] == adapter._get_rest_url()
         # Verify params match expected values
         expected_params = adapter._get_rest_params(trading_pair, interval)
-        assert kwargs['params'] == expected_params
+        assert kwargs["params"] == expected_params
 
     def test_error_handling_in_fetch_rest_candles(self, adapter, trading_pair, interval):
         """Test error handling in fetch_rest_candles_synchronous."""
@@ -304,7 +310,7 @@ class BaseAdapterTest(abc.ABC):
         else:
             # For other adapters, test the original HTTP error handling
             # Mock requests.get to simulate errors
-            with mock.patch('requests.get') as mock_get:
+            with mock.patch("requests.get") as mock_get:
                 # Test HTTP error
                 mock_response = mock.MagicMock()
                 mock_response.raise_for_status.side_effect = Exception("HTTP Error")

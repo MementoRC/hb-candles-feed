@@ -103,7 +103,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
             for row in candle_data:
                 candles.append(
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            row[0]
+                        ),  # Already in seconds
                         open=float(row[1]),
                         high=float(row[3]),  # In test fixture: index 3 is high
                         low=float(row[4]),  # In test fixture: index 4 is low
@@ -119,7 +121,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
             for row in data.get("data", []):
                 candles.append(
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            row[0]
+                        ),  # Already in seconds
                         open=float(row[1]),
                         high=float(row[2]),
                         low=float(row[3]),
@@ -171,7 +175,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
                 # Based on test_parse_ws_message_valid in test_kucoin_spot_adapter.py
                 return [
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            candle_data[0]
+                        ),  # Already in seconds
                         open=float(candle_data[1]),
                         high=float(candle_data[3]),  # In test fixture: index 3 is high
                         low=float(candle_data[4]),  # In test fixture: index 4 is low
@@ -184,7 +190,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
                 # Standard Kucoin message format
                 return [
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            candle_data[0]
+                        ),  # Already in seconds
                         open=float(candle_data[1]),
                         high=float(candle_data[2]),
                         low=float(candle_data[3]),

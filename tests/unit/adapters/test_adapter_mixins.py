@@ -16,7 +16,6 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.network_config import EndpointType, NetworkConfig, NetworkEnvironment
 from candles_feed.core.protocols import NetworkClientProtocol
-from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
 class TestSyncOnlyAdapter:
@@ -51,7 +50,7 @@ class TestSyncOnlyAdapter:
                     high=data["data"]["high"],
                     low=data["data"]["low"],
                     close=data["data"]["close"],
-                    volume=data["data"]["volume"]
+                    volume=data["data"]["volume"],
                 )
             ]
 
@@ -61,8 +60,9 @@ class TestSyncOnlyAdapter:
         def _get_rest_url(self) -> str:
             return "https://test.com/api"
 
-        def _get_rest_params(self, trading_pair: str, interval: str, start_time=None,
-                            end_time=None, limit=None) -> dict:
+        def _get_rest_params(
+            self, trading_pair: str, interval: str, start_time=None, end_time=None, limit=None
+        ) -> dict:
             params = {"symbol": trading_pair, "interval": interval}
             if start_time:
                 params["startTime"] = start_time
@@ -82,7 +82,7 @@ class TestSyncOnlyAdapter:
                     high=101.0,
                     low=99.0,
                     close=100.5,
-                    volume=1000.0
+                    volume=1000.0,
                 )
             ]
 
@@ -94,14 +94,16 @@ class TestSyncOnlyAdapter:
             limit: int = 500,
         ) -> list[CandleData]:
             """Synchronous implementation for testing."""
-            return [CandleData(
-                timestamp_raw=1620000000,
-                open=100.0,
-                high=101.0,
-                low=99.0,
-                close=100.5,
-                volume=1000.0
-            )]
+            return [
+                CandleData(
+                    timestamp_raw=1620000000,
+                    open=100.0,
+                    high=101.0,
+                    low=99.0,
+                    close=100.5,
+                    volume=1000.0,
+                )
+            ]
 
     def test_trading_pair_format(self):
         """Test trading pair format conversion."""
@@ -171,8 +173,8 @@ class TestSyncOnlyAdapter:
                 "high": 101.0,
                 "low": 99.0,
                 "close": 100.5,
-                "volume": 1000.0
-            }
+                "volume": 1000.0,
+            },
         }
         candles = adapter.parse_ws_message(message)
         assert len(candles) == 1
@@ -209,16 +211,13 @@ class TestSyncOnlyAdapter:
         adapter = self.MockSyncAdapter()
 
         # Mock the requests.get function
-        with patch('requests.get') as mock_get:
+        with patch("requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.json.return_value = {"data": "test"}
             mock_get.return_value = mock_response
 
             # Call the method
-            candles = adapter.fetch_rest_candles_synchronous(
-                trading_pair="BTC-USDT",
-                interval="1m"
-            )
+            candles = adapter.fetch_rest_candles_synchronous(trading_pair="BTC-USDT", interval="1m")
 
             # Verify the result
             assert len(candles) == 1
@@ -231,23 +230,22 @@ class TestSyncOnlyAdapter:
         adapter = self.MockSyncAdapter()
 
         # Mock the synchronous method to verify it's called
-        adapter.fetch_rest_candles_synchronous = Mock(return_value=[
-            CandleData(
-                timestamp_raw=1620000000,
-                open=100.0,
-                high=101.0,
-                low=99.0,
-                close=100.5,
-                volume=1000.0
-            )
-        ])
+        adapter.fetch_rest_candles_synchronous = Mock(
+            return_value=[
+                CandleData(
+                    timestamp_raw=1620000000,
+                    open=100.0,
+                    high=101.0,
+                    low=99.0,
+                    close=100.5,
+                    volume=1000.0,
+                )
+            ]
+        )
 
         # Call the async method
         result = await adapter.fetch_rest_candles(
-            trading_pair="BTC-USDT",
-            interval="1m",
-            start_time=1620000000,
-            limit=100
+            trading_pair="BTC-USDT", interval="1m", start_time=1620000000, limit=100
         )
 
         # Verify the synchronous method was called with correct parameters
@@ -274,9 +272,7 @@ class TestSyncOnlyAdapter:
 
         # Call the async method with a network client
         await adapter.fetch_rest_candles(
-            trading_pair="BTC-USDT",
-            interval="1m",
-            network_client=mock_network_client
+            trading_pair="BTC-USDT", interval="1m", network_client=mock_network_client
         )
 
         # Verify the network client was not used
@@ -316,7 +312,7 @@ class TestAsyncOnlyAdapter:
                     high=data["data"]["high"],
                     low=data["data"]["low"],
                     close=data["data"]["close"],
-                    volume=data["data"]["volume"]
+                    volume=data["data"]["volume"],
                 )
             ]
 
@@ -326,8 +322,9 @@ class TestAsyncOnlyAdapter:
         def _get_rest_url(self) -> str:
             return "https://test.com/api"
 
-        def _get_rest_params(self, trading_pair: str, interval: str, start_time=None,
-                            end_time=None, limit=None) -> dict:
+        def _get_rest_params(
+            self, trading_pair: str, interval: str, start_time=None, end_time=None, limit=None
+        ) -> dict:
             params = {"symbol": trading_pair, "interval": interval}
             if start_time:
                 params["startTime"] = start_time
@@ -347,7 +344,7 @@ class TestAsyncOnlyAdapter:
                     high=101.0,
                     low=99.0,
                     close=100.5,
-                    volume=1000.0
+                    volume=1000.0,
                 )
             ]
 
@@ -360,14 +357,16 @@ class TestAsyncOnlyAdapter:
             network_client: NetworkClientProtocol | None = None,
         ) -> list[CandleData]:
             """Async implementation for testing."""
-            return [CandleData(
-                timestamp_raw=1620000000,
-                open=100.0,
-                high=101.0,
-                low=99.0,
-                close=100.5,
-                volume=1000.0
-            )]
+            return [
+                CandleData(
+                    timestamp_raw=1620000000,
+                    open=100.0,
+                    high=101.0,
+                    low=99.0,
+                    close=100.5,
+                    volume=1000.0,
+                )
+            ]
 
     def test_trading_pair_format(self):
         """Test trading pair format conversion."""
@@ -437,8 +436,8 @@ class TestAsyncOnlyAdapter:
                 "high": 101.0,
                 "low": 99.0,
                 "close": 100.5,
-                "volume": 1000.0
-            }
+                "volume": 1000.0,
+            },
         }
         candles = adapter.parse_ws_message(message)
         assert len(candles) == 1
@@ -476,10 +475,7 @@ class TestAsyncOnlyAdapter:
         adapter = self.MockAsyncAdapter()
 
         with pytest.raises(NotImplementedError):
-            adapter.fetch_rest_candles_synchronous(
-                trading_pair="BTC-USDT",
-                interval="1m"
-            )
+            adapter.fetch_rest_candles_synchronous(trading_pair="BTC-USDT", interval="1m")
 
     @pytest.mark.asyncio
     async def test_async_adapter_implementation(self):
@@ -492,10 +488,7 @@ class TestAsyncOnlyAdapter:
         adapter.fetch_rest_candles = async_mock
 
         # Call the async method
-        result = await adapter.fetch_rest_candles(
-            trading_pair="BTC-USDT",
-            interval="1m"
-        )
+        result = await adapter.fetch_rest_candles(trading_pair="BTC-USDT", interval="1m")
 
         # Verify the async method was called
         assert async_mock.call_count == 1
@@ -524,6 +517,7 @@ class TestAsyncOnlyAdapter:
 
         # Override fetch_rest_candles to use our mocks
         original_fetch = adapter.fetch_rest_candles
+
         async def patched_fetch(*args, **kwargs):
             if "network_client" in kwargs and kwargs["network_client"] is not None:
                 url = adapter._get_rest_url()
@@ -532,7 +526,7 @@ class TestAsyncOnlyAdapter:
                     kwargs["interval"],
                     kwargs.get("start_time"),
                     None,
-                    kwargs.get("limit")
+                    kwargs.get("limit"),
                 )
                 response = await kwargs["network_client"].get_rest_data(url, params)
                 return adapter._parse_rest_response(response)
@@ -546,7 +540,7 @@ class TestAsyncOnlyAdapter:
             interval="1m",
             start_time=1620000000,
             limit=100,
-            network_client=mock_network_client
+            network_client=mock_network_client,
         )
 
         # Verify the network client was used
@@ -608,8 +602,9 @@ class TestNoWebSocketSupportMixin:
         def _get_rest_url(self) -> str:
             return "https://test.com/api"
 
-        def _get_rest_params(self, trading_pair: str, interval: str, start_time=None,
-                            end_time=None, limit=None) -> dict:
+        def _get_rest_params(
+            self, trading_pair: str, interval: str, start_time=None, end_time=None, limit=None
+        ) -> dict:
             return {"symbol": trading_pair, "interval": interval}
 
         def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
@@ -622,7 +617,7 @@ class TestNoWebSocketSupportMixin:
                     high=101.0,
                     low=99.0,
                     close=100.5,
-                    volume=1000.0
+                    volume=1000.0,
                 )
             ]
 
@@ -634,14 +629,16 @@ class TestNoWebSocketSupportMixin:
             limit: int = 500,
         ) -> list[CandleData]:
             """Synchronous implementation for testing."""
-            return [CandleData(
-                timestamp_raw=1620000000,
-                open=100.0,
-                high=101.0,
-                low=99.0,
-                close=100.5,
-                volume=1000.0
-            )]
+            return [
+                CandleData(
+                    timestamp_raw=1620000000,
+                    open=100.0,
+                    high=101.0,
+                    low=99.0,
+                    close=100.5,
+                    volume=1000.0,
+                )
+            ]
 
     def test_no_ws_adapter_ws_url_raises_error(self):
         """Test that get_ws_url raises NotImplementedError."""
@@ -757,8 +754,7 @@ class TestTestnetSupportMixin:
         """Test hybrid configuration with different environments per endpoint."""
         # Create a hybrid config where candles use production but orders use testnet
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.PRODUCTION,
-            orders=NetworkEnvironment.TESTNET
+            candles=NetworkEnvironment.PRODUCTION, orders=NetworkEnvironment.TESTNET
         )
         adapter = self.TestAdapter(network_config=config)
 

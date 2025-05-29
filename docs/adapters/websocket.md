@@ -10,17 +10,17 @@ Before diving into implementation, understand the benefits of WebSocket:
 graph TD
     A[Data Collection Methods] --> B[WebSocket]
     A --> C[REST Polling]
-    
+
     B --> B1[Real-time updates]
     B --> B2[Lower latency]
     B --> B3[Reduced API calls]
     B --> B4[Less bandwidth]
-    
+
     C --> C1[Simpler implementation]
     C --> C2[More reliable]
     C --> C3[Works for all intervals]
     C --> C4[Better for historical data]
-    
+
     style B fill:#d4f4dd
     style C fill:#f4d4d4
 ```
@@ -41,12 +41,12 @@ Let's explore each method in detail:
 ```python
 def get_ws_url(self) -> str:
     """Get WebSocket URL.
-    
+
     Returns:
         WebSocket URL
     """
     return WSS_URL  # Defined in constants.py
-    
+
     # Some exchanges might have environment-specific URLs
     # Example: return f"wss://{self.domain}/ws"
 ```
@@ -58,17 +58,17 @@ This method creates the payload for subscribing to candle updates:
 ```python
 def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
     """Get WebSocket subscription payload.
-    
+
     Args:
         trading_pair: Trading pair
         interval: Candle interval
-        
+
     Returns:
         WebSocket subscription payload
     """
     # Format varies significantly between exchanges
     formatted_pair = self.get_trading_pair_format(trading_pair)
-    
+
     # Example for a simple JSON-based subscription
     return {
         "method": "subscribe",
@@ -77,7 +77,7 @@ def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         ],
         "id": 1  # Some exchanges require an ID
     }
-    
+
     # Alternative example for an exchange with different format
     # return {
     #     "op": "subscribe",
@@ -96,22 +96,22 @@ This method parses WebSocket messages into CandleData objects:
 ```python
 def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
     """Parse WebSocket message into CandleData objects.
-    
+
     Args:
         data: WebSocket message
-        
+
     Returns:
         List of CandleData objects or None if message is not a candle update
     """
     # Check if this is a candle update message
     if not self._is_candle_message(data):
         return None
-    
+
     candles = []
-    
+
     # Extract candle data from the message
     # This will vary significantly between exchanges
-    
+
     # Example for an exchange with a simple format
     if "data" in data and isinstance(data["data"], dict):
         candle = data["data"]
@@ -127,15 +127,15 @@ def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
             taker_buy_base_volume=float(candle.get("V", 0)),
             taker_buy_quote_volume=float(candle.get("Q", 0))
         ))
-    
+
     return candles if candles else None
-    
+
 def _is_candle_message(self, data: dict) -> bool:
     """Check if the WebSocket message is a candle update.
-    
+
     Args:
         data: WebSocket message
-        
+
     Returns:
         True if the message is a candle update, False otherwise
     """
@@ -155,7 +155,7 @@ Not all exchanges support all intervals via WebSocket. This method returns the s
 ```python
 def get_ws_supported_intervals(self) -> List[str]:
     """Get intervals supported by WebSocket API.
-    
+
     Returns:
         List of interval strings supported by WebSocket API
     """
@@ -174,9 +174,9 @@ Some exchanges require special steps to establish a WebSocket connection:
 sequenceDiagram
     participant Client
     participant Exchange
-    
+
     Client->>Exchange: Connect to WebSocket URL
-    
+
     alt Simple Connection
         Exchange-->>Client: Connection established
     else Authentication Required
@@ -189,7 +189,7 @@ sequenceDiagram
         Client->>Exchange: Connect with token
         Exchange-->>Client: Connection established
     end
-    
+
     Client->>Exchange: Send subscription payload
     Exchange-->>Client: Subscription confirmed
     Exchange-->>Client: Begin sending candle updates
@@ -228,9 +228,9 @@ def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
         # Log successful subscription
         logger.info(f"Successfully subscribed to candle updates: {data}")
         return None
-        
+
     # Continue with normal parsing...
-    
+
 def _is_subscription_confirmation(self, data: dict) -> bool:
     """Check if the message is a subscription confirmation."""
     # Example implementation
@@ -252,14 +252,14 @@ def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
     if self._is_ping_message(data):
         # Return a pong message that the WebSocketStrategy will send
         return WSJSONRequest(payload=self._get_pong_payload(data))
-        
+
     # Continue with normal parsing...
-    
+
 def _is_ping_message(self, data: dict) -> bool:
     """Check if the message is a ping request."""
     # Example implementation
     return data.get("op") == "ping"
-    
+
 def _get_pong_payload(self, ping_data: dict) -> dict:
     """Create pong response from ping data."""
     # Example implementation
@@ -360,23 +360,23 @@ async def _listen_for_updates(self):
             # Establish connection
             ws_url = self.adapter.get_ws_url()
             self._ws_assistant = await self.network_client.establish_ws_connection(ws_url)
-            
+
             # Subscribe to updates
             payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
             await self.network_client.send_ws_message(self._ws_assistant, payload)
-            
+
             # Process messages
             async for message in self._ws_assistant.iter_messages():
                 # Process message...
-                
+
         except ConnectionError as e:
             logger.warning(f"WebSocket connection error: {e}, reconnecting...")
             await asyncio.sleep(1.0)
-            
+
         except Exception as e:
             logger.error(f"Unexpected WebSocket error: {e}, reconnecting...")
             await asyncio.sleep(5.0)
-            
+
         finally:
             # Clean up connection
             if self._ws_assistant:
@@ -396,7 +396,7 @@ def get_ws_supported_intervals(self) -> List[str]:
     """Get intervals supported by WebSocket API."""
     # If WebSocket doesn't support candles at all
     return []  # Empty list means no WebSocket support
-    
+
     # Or for partial support
     return ["1m", "5m"]  # Only these intervals are supported
 ```
@@ -419,7 +419,7 @@ Example test:
 def test_parse_ws_message():
     """Test parsing WebSocket messages."""
     adapter = YourExchangeAdapter()
-    
+
     # Sample WebSocket message
     message = {
         "e": "kline",
@@ -434,9 +434,9 @@ def test_parse_ws_message():
             "v": "5.123"
         }
     }
-    
+
     candles = adapter.parse_ws_message(message)
-    
+
     assert candles is not None
     assert len(candles) == 1
     assert candles[0].timestamp == 1672515780

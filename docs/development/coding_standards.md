@@ -71,7 +71,7 @@ All classes, methods, and functions should have docstrings in reStructuredText f
 def get_trading_pair_format(self, trading_pair: str) -> str:
     """
     Format a trading pair according to exchange requirements.
-    
+
     :param trading_pair: The trading pair in standard format (e.g., "BTC-USDT")
     :return: The exchange-specific trading pair format (e.g., "BTCUSDT")
     :raises ValueError: If the trading pair is invalid
@@ -137,7 +137,7 @@ class ExchangeAdapter:
         "5m": 300,
         "1h": 3600
     }
-    
+
     # Instance attributes
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -220,22 +220,22 @@ class CandleDataProcessor:
     """
     Process and validate candle data.
     """
-    
+
     MAX_CANDLES: ClassVar[int] = 1000
-    
+
     def __init__(self, logger: Logger | None = None):
         """
         Initialize the processor.
-        
+
         :param logger: Logger instance for logging events
         """
         self._logger = logger
         self._candles: dict[str, list[CandleData]] = {}
-    
+
     def process_candle(self, candle: CandleData, symbol: str) -> bool:
         """
         Process a new candle.
-        
+
         :param candle: The candle data to process
         :param symbol: The trading pair symbol
         :return: True if the candle was processed, False otherwise
@@ -256,7 +256,7 @@ class CandleDataProcessor:
 async def fetch_data(self, url: str, params: dict[str, str]) -> dict[str, any]:
     """
     Fetch data from an API endpoint.
-    
+
     :param url: The URL to fetch from
     :param params: Query parameters
     :return: The parsed JSON response

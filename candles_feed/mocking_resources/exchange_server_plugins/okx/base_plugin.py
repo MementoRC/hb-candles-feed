@@ -90,17 +90,16 @@ class OKXBasePlugin(ExchangePlugin, ABC):
             "data": [
                 [
                     str(int(c.timestamp_ms)),  # Timestamp in milliseconds as string
-                    str(c.open),               # Open price
-                    str(c.high),               # High price
-                    str(c.low),                # Low price
-                    str(c.close),              # Close price
-                    str(c.volume),             # Volume
-                    str(c.quote_asset_volume), # Quote asset volume
+                    str(c.open),  # Open price
+                    str(c.high),  # High price
+                    str(c.low),  # Low price
+                    str(c.close),  # Close price
+                    str(c.volume),  # Volume
+                    str(c.quote_asset_volume),  # Quote asset volume
                 ]
                 for c in candles
             ],
         }
-
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -137,19 +136,16 @@ class OKXBasePlugin(ExchangePlugin, ABC):
         interval_code = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
 
         return {
-            "arg": {
-                "channel": f"candle{interval_code}",
-                "instId": trading_pair
-            },
+            "arg": {"channel": f"candle{interval_code}", "instId": trading_pair},
             "data": [
                 [
                     str(int(candle.timestamp_ms)),  # Timestamp in milliseconds as string
-                    str(candle.open),               # Open price
-                    str(candle.high),               # High price
-                    str(candle.low),                # Low price
-                    str(candle.close),              # Close price
-                    str(candle.volume),             # Volume
-                    str(candle.quote_asset_volume), # Quote asset volume
+                    str(candle.open),  # Open price
+                    str(candle.high),  # High price
+                    str(candle.low),  # Low price
+                    str(candle.close),  # Close price
+                    str(candle.volume),  # Volume
+                    str(candle.quote_asset_volume),  # Quote asset volume
                 ]
             ],
         }
@@ -218,12 +214,11 @@ class OKXBasePlugin(ExchangePlugin, ABC):
 
         # Map OKX parameters to generic parameters expected by handle_klines
         return {
-            "symbol": inst_id,            # 'instId' in OKX maps to 'symbol' in generic handler
-            "interval": bar,              # 'bar' in OKX maps to 'interval' in generic handler
-            "start_time": after,          # 'after' in OKX maps to 'start_time' in generic handler
-            "end_time": before,           # 'before' in OKX maps to 'end_time' in generic handler
-            "limit": limit,               # 'limit' has the same name
-
+            "symbol": inst_id,  # 'instId' in OKX maps to 'symbol' in generic handler
+            "interval": bar,  # 'bar' in OKX maps to 'interval' in generic handler
+            "start_time": after,  # 'after' in OKX maps to 'start_time' in generic handler
+            "end_time": before,  # 'before' in OKX maps to 'end_time' in generic handler
+            "limit": limit,  # 'limit' has the same name
             # Also keep the original OKX parameter names for reference
             "instId": inst_id,
             "bar": bar,
@@ -261,10 +256,11 @@ class OKXBasePlugin(ExchangePlugin, ABC):
                     "quoteCcy": quote,
                     "settleCcy": quote,
                     "ctValCcy": quote,
-                    "optType": "C", # or "P" for put options
+                    "optType": "C",  # or "P" for put options
                     "stk": trading_pair,
                     "listTime": int(server._time() * 1000),
-                    "expTime": int(server._time() * 1000) + 3600 * 24 * 30 * 1000, # 30 days from now
+                    "expTime": int(server._time() * 1000)
+                    + 3600 * 24 * 30 * 1000,  # 30 days from now
                     "lever": "10",
                     "tickSz": "0.01",
                     "lotSz": "1",
@@ -276,7 +272,6 @@ class OKXBasePlugin(ExchangePlugin, ABC):
 
         response = {"code": "0", "msg": "", "data": instruments}
         return web.json_response(response)
-
 
     @staticmethod
     def _interval_to_seconds(interval: str) -> int:
@@ -301,4 +296,3 @@ class OKXBasePlugin(ExchangePlugin, ABC):
             return value * 7 * 24 * 60 * 60
         else:
             raise ValueError(f"Unknown interval unit: {unit}")
-

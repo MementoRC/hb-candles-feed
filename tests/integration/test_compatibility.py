@@ -52,9 +52,16 @@ class TestCompatibilityWithOriginal:
 
         # Set up the candles_df property to return a DataFrame
         columns = [
-            "timestamp", "open", "high", "low", "close", "volume",
-            "quote_asset_volume", "n_trades", "taker_buy_base_volume",
-            "taker_buy_quote_volume"
+            "timestamp",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "quote_asset_volume",
+            "n_trades",
+            "taker_buy_base_volume",
+            "taker_buy_quote_volume",
         ]
         mock_candles_base.candles_df = pd.DataFrame(columns=columns)
         mock_candles_base.ready = False
@@ -70,8 +77,30 @@ class TestCompatibilityWithOriginal:
         """Create sample candles data for testing."""
         # Create sample candles data in both formats (original and new)
         original_format = [
-            [1609459200, 40000.0, 41000.0, 39000.0, 40500.0, 100.0, 4000000.0, 1000, 50.0, 2000000.0],
-            [1609459260, 40500.0, 42000.0, 40000.0, 41000.0, 120.0, 4500000.0, 1100, 60.0, 2400000.0],
+            [
+                1609459200,
+                40000.0,
+                41000.0,
+                39000.0,
+                40500.0,
+                100.0,
+                4000000.0,
+                1000,
+                50.0,
+                2000000.0,
+            ],
+            [
+                1609459260,
+                40500.0,
+                42000.0,
+                40000.0,
+                41000.0,
+                120.0,
+                4500000.0,
+                1100,
+                60.0,
+                2400000.0,
+            ],
         ]
 
         new_format = [
@@ -115,9 +144,16 @@ class TestCompatibilityWithOriginal:
 
         # Create original DataFrame
         columns = [
-            "timestamp", "open", "high", "low", "close", "volume",
-            "quote_asset_volume", "n_trades", "taker_buy_base_volume",
-            "taker_buy_quote_volume"
+            "timestamp",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "quote_asset_volume",
+            "n_trades",
+            "taker_buy_base_volume",
+            "taker_buy_quote_volume",
         ]
         original_df = pd.DataFrame(sample_candles_data["original"], columns=columns)
 
@@ -144,7 +180,9 @@ class TestCompatibilityWithOriginal:
             new_df = feed.get_candles_df()
 
             # Compare DataFrames
-            assert list(new_df.columns) == list(original_df.columns), "DataFrame columns should match"
+            assert list(new_df.columns) == list(
+                original_df.columns
+            ), "DataFrame columns should match"
             assert len(new_df) == len(original_df), "DataFrame lengths should match"
 
             # Convert timestamps to integers for easier comparison
@@ -154,7 +192,9 @@ class TestCompatibilityWithOriginal:
             # Compare values
             for i in range(len(original_df)):
                 for col in columns:
-                    assert new_df.iloc[i][col] == original_df.iloc[i][col], f"Value mismatch for {col} at index {i}"
+                    assert (
+                        new_df.iloc[i][col] == original_df.iloc[i][col]
+                    ), f"Value mismatch for {col} at index {i}"
 
     @pytest.mark.asyncio
     async def test_historical_data_fetch_compatibility(self, sample_candles_data):
@@ -163,7 +203,13 @@ class TestCompatibilityWithOriginal:
         mock_adapter = MagicMock()
         mock_adapter.get_trading_pair_format.return_value = "BTCUSDT"
         mock_adapter.get_ws_supported_intervals.return_value = ["1m", "5m", "15m"]
-        mock_adapter.get_supported_intervals.return_value = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "1d": 86400}
+        mock_adapter.get_supported_intervals.return_value = {
+            "1m": 60,
+            "5m": 300,
+            "15m": 900,
+            "1h": 3600,
+            "1d": 86400,
+        }
         mock_adapter.fetch_rest_candles = AsyncMock(return_value=sample_candles_data["new"])
 
         # Mock strategies
@@ -214,7 +260,13 @@ class TestCompatibilityWithOriginal:
         mock_adapter = MagicMock()
         mock_adapter.get_trading_pair_format.return_value = "BTCUSDT"
         mock_adapter.get_ws_supported_intervals.return_value = ["1m", "5m", "15m"]
-        mock_adapter.get_supported_intervals.return_value = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600, "1d": 86400}
+        mock_adapter.get_supported_intervals.return_value = {
+            "1m": 60,
+            "5m": 300,
+            "15m": 900,
+            "1h": 3600,
+            "1d": 86400,
+        }
         mock_adapter.fetch_rest_candles = AsyncMock(return_value=sample_candles_data["new"])
 
         # Mock strategies
@@ -263,8 +315,12 @@ class TestCompatibilityWithOriginal:
             assert "volume" in historical_df.columns, "DataFrame should have volume column"
 
             # Verify the data is correct
-            assert historical_df.iloc[0]["timestamp"] == 1609459200, "First candle timestamp should match"
-            assert historical_df.iloc[1]["timestamp"] == 1609459260, "Second candle timestamp should match"
+            assert (
+                historical_df.iloc[0]["timestamp"] == 1609459200
+            ), "First candle timestamp should match"
+            assert (
+                historical_df.iloc[1]["timestamp"] == 1609459260
+            ), "Second candle timestamp should match"
 
     @pytest.mark.asyncio
     async def test_timestamp_rounding_compatibility(self):
@@ -419,7 +475,9 @@ class TestCompatibilityWithOriginal:
             )
 
             # Test with empty candles
-            assert feed.check_candles_sorted_and_equidistant(), "Should return True with empty candles"
+            assert (
+                feed.check_candles_sorted_and_equidistant()
+            ), "Should return True with empty candles"
 
             # Test with a single candle
             feed.add_candle(
@@ -436,7 +494,9 @@ class TestCompatibilityWithOriginal:
                     taker_buy_quote_volume=2000000.0,
                 )
             )
-            assert feed.check_candles_sorted_and_equidistant(), "Should return True with a single candle"
+            assert (
+                feed.check_candles_sorted_and_equidistant()
+            ), "Should return True with a single candle"
 
             # Test with properly sorted and equidistant candles
             # Add candles with 60-second intervals (matching the 1m interval)
@@ -456,7 +516,9 @@ class TestCompatibilityWithOriginal:
                     )
                 )
 
-            assert feed.check_candles_sorted_and_equidistant(), "Should return True with sorted and equidistant candles"
+            assert (
+                feed.check_candles_sorted_and_equidistant()
+            ), "Should return True with sorted and equidistant candles"
 
             # Create a new feed for testing unsorted candles
             unsorted_feed = CandlesFeed(
@@ -498,7 +560,9 @@ class TestCompatibilityWithOriginal:
             )
 
             # This should detect the unsorted timestamps
-            assert not unsorted_feed.check_candles_sorted_and_equidistant(), "Should return False with unsorted candles"
+            assert (
+                not unsorted_feed.check_candles_sorted_and_equidistant()
+            ), "Should return False with unsorted candles"
 
             # Create a new feed for testing non-equidistant candles
             non_equidistant_feed = CandlesFeed(
@@ -540,7 +604,9 @@ class TestCompatibilityWithOriginal:
             )
 
             # This should detect the non-equidistant intervals
-            assert not non_equidistant_feed.check_candles_sorted_and_equidistant(), "Should return False with non-equidistant candles"
+            assert (
+                not non_equidistant_feed.check_candles_sorted_and_equidistant()
+            ), "Should return False with non-equidistant candles"
 
     @pytest.mark.asyncio
     async def test_start_stop_compatibility(self):
@@ -654,4 +720,6 @@ class TestCandlesFeedWithHummingbotComponents:
             # Verify components are passed correctly
             assert feed._hummingbot_components is not None
             assert feed._hummingbot_components["throttler"] == mock_throttler
-            assert feed._hummingbot_components["web_assistants_factory"] == mock_web_assistants_factory
+            assert (
+                feed._hummingbot_components["web_assistants_factory"] == mock_web_assistants_factory
+            )

@@ -49,7 +49,7 @@ classDiagram
         +testnet()
         +hybrid()
     }
-    
+
     class EndpointType {
         CANDLES
         TICKER
@@ -57,12 +57,12 @@ classDiagram
         ORDERS
         ACCOUNT
     }
-    
+
     class NetworkEnvironment {
         PRODUCTION
         TESTNET
     }
-    
+
     class TestnetSupportMixin {
         +network_config: NetworkConfig
         +_get_rest_url()
@@ -70,21 +70,21 @@ classDiagram
         +_get_testnet_rest_url()
         +_get_testnet_ws_url()
     }
-    
+
     class BaseAdapter {
         +_get_rest_url()
         +_get_ws_url()
     }
-    
+
     class ExchangeAdapter {
         +_get_testnet_rest_url()
         +_get_testnet_ws_url()
     }
-    
+
     class CandlesFeed {
         +network_config: NetworkConfig
     }
-    
+
     NetworkConfig -- EndpointType
     NetworkConfig -- NetworkEnvironment
     TestnetSupportMixin -- NetworkConfig

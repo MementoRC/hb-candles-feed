@@ -13,18 +13,19 @@ import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
 try:
     from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin import (
         BinanceSpotPlugin,
     )
+
     HAS_BINANCE_PLUGIN = True
 except ImportError:
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import (
         MockedPlugin as BinanceSpotPlugin,
     )
+
     HAS_BINANCE_PLUGIN = False
 
 # Set up logging
@@ -72,13 +73,13 @@ class TestCandlesFeedIntegration:
 
         # Save original methods and properties for restoration later
         original_methods = {
-            'rest_url': adapter_class._get_rest_url,
-            'ws_url': adapter_class._get_ws_url if hasattr(adapter_class, '_get_ws_url') else None,
-            'bypass_network_selection': getattr(feed._adapter, '_bypass_network_selection', False)
+            "rest_url": adapter_class._get_rest_url,
+            "ws_url": adapter_class._get_ws_url if hasattr(adapter_class, "_get_ws_url") else None,
+            "bypass_network_selection": getattr(feed._adapter, "_bypass_network_selection", False),
         }
 
         # Check if adapter has TestnetSupportMixin
-        has_testnet_mixin = hasattr(feed._adapter, '_bypass_network_selection')
+        has_testnet_mixin = hasattr(feed._adapter, "_bypass_network_selection")
 
         if has_testnet_mixin:
             # For TestnetSupportMixin adapters, enable the bypass flag
@@ -87,7 +88,7 @@ class TestCandlesFeedIntegration:
 
         # For Binance adapters, modify class methods as they are defined as @staticmethod
         adapter_class._get_rest_url = lambda cls=None: mock_server.rest_url_override
-        if hasattr(adapter_class, '_get_ws_url'):
+        if hasattr(adapter_class, "_get_ws_url"):
             adapter_class._get_ws_url = lambda cls=None: mock_server.ws_url_override
 
         return original_methods
@@ -97,13 +98,15 @@ class TestCandlesFeedIntegration:
         # For Binance adapters, we need to restore the static methods on the class
         adapter_class = feed._adapter.__class__
 
-        adapter_class._get_rest_url = original_methods['rest_url']
-        if original_methods['ws_url'] and hasattr(adapter_class, '_get_ws_url'):
-            adapter_class._get_ws_url = original_methods['ws_url']
+        adapter_class._get_rest_url = original_methods["rest_url"]
+        if original_methods["ws_url"] and hasattr(adapter_class, "_get_ws_url"):
+            adapter_class._get_ws_url = original_methods["ws_url"]
 
         # Restore the bypass flag if it was changed
-        if hasattr(feed._adapter, '_bypass_network_selection'):
-            feed._adapter._bypass_network_selection = original_methods.get('bypass_network_selection', False)
+        if hasattr(feed._adapter, "_bypass_network_selection"):
+            feed._adapter._bypass_network_selection = original_methods.get(
+                "bypass_network_selection", False
+            )
 
     @pytest.mark.asyncio
     async def test_rest_strategy_integration(self, standalone_mock_server):
@@ -112,12 +115,13 @@ class TestCandlesFeedIntegration:
 
         # Create feed with network_config set for testing
         from candles_feed.core.network_config import NetworkConfig
+
         feed = CandlesFeed(
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
             max_records=100,
-            network_config=NetworkConfig.for_testing()
+            network_config=NetworkConfig.for_testing(),
         )
 
         # Patch URLs
@@ -163,9 +167,9 @@ class TestCandlesFeedIntegration:
             # Verify timestamps are sequential
             timestamps = [c.timestamp for c in candles]
             if len(timestamps) > 1:
-                assert all(timestamps[i] < timestamps[i + 1] for i in range(len(timestamps) - 1)), (
-                    "Timestamps should be in order"
-                )
+                assert all(
+                    timestamps[i] < timestamps[i + 1] for i in range(len(timestamps) - 1)
+                ), "Timestamps should be in order"
 
         finally:
             # Restore original methods
@@ -181,12 +185,13 @@ class TestCandlesFeedIntegration:
 
         # Create feed with network_config set for testing
         from candles_feed.core.network_config import NetworkConfig
+
         feed = CandlesFeed(
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
             max_records=100,
-            network_config=NetworkConfig.for_testing()
+            network_config=NetworkConfig.for_testing(),
         )
 
         # Patch URLs
@@ -220,9 +225,12 @@ class TestCandlesFeedIntegration:
 
             # 2. Modify a candle in the mock server to simulate a price update
             # This ensures we'll see changes even if no new candle is generated
-            if initial_candles and \
-               feed._adapter.get_trading_pair_format(feed.trading_pair) in mock_server.candles and \
-               feed.interval in mock_server.candles[feed._adapter.get_trading_pair_format(feed.trading_pair)]:
+            if (
+                initial_candles
+                and feed._adapter.get_trading_pair_format(feed.trading_pair) in mock_server.candles
+                and feed.interval
+                in mock_server.candles[feed._adapter.get_trading_pair_format(feed.trading_pair)]
+            ):
                 # Get the most recent candle timestamp
                 latest_candle = initial_candles[-1]
                 # Find this candle in the mock server - use server's expected format
@@ -270,7 +278,9 @@ class TestCandlesFeedIntegration:
 
                 # Log the current state
                 if current_candles:
-                    logging.info(f"Current candles: {len(current_candles)}, last close: {current_candles[-1].close}")
+                    logging.info(
+                        f"Current candles: {len(current_candles)}, last close: {current_candles[-1].close}"
+                    )
 
                 # If we don't have candles, continue waiting
                 if not current_candles:
@@ -293,7 +303,10 @@ class TestCandlesFeedIntegration:
                     logging.info(f"New timestamp detected: {latest_timestamp} > {last_timestamp}")
                     update_detected = True
                     break
-                elif (initial_close_price is not None and abs(latest_price - initial_close_price) > 0.001):
+                elif (
+                    initial_close_price is not None
+                    and abs(latest_price - initial_close_price) > 0.001
+                ):
                     logging.info(f"Price change detected: {latest_price} vs {initial_close_price}")
                     update_detected = True
                     break
@@ -303,7 +316,9 @@ class TestCandlesFeedIntegration:
                     if i < len(last_check_candles):
                         prev_candle = last_check_candles[i]
                         if abs(current_candle.close - prev_candle.close) > 0.001:
-                            logging.info(f"Candle at index {i} changed: {prev_candle.close} -> {current_candle.close}")
+                            logging.info(
+                                f"Candle at index {i} changed: {prev_candle.close} -> {current_candle.close}"
+                            )
                             update_detected = True
                             break
 
@@ -340,6 +355,7 @@ class TestCandlesFeedIntegration:
 
         # Create multiple feeds with network_config set for testing
         from candles_feed.core.network_config import NetworkConfig
+
         test_config = NetworkConfig.for_testing()
 
         btc_feed = CandlesFeed(
@@ -347,7 +363,7 @@ class TestCandlesFeedIntegration:
             trading_pair="BTC-USDT",
             interval="1m",
             max_records=100,
-            network_config=test_config
+            network_config=test_config,
         )
 
         eth_feed = CandlesFeed(
@@ -355,7 +371,7 @@ class TestCandlesFeedIntegration:
             trading_pair="ETH-USDT",
             interval="1m",
             max_records=100,
-            network_config=test_config
+            network_config=test_config,
         )
 
         sol_feed = CandlesFeed(
@@ -363,7 +379,7 @@ class TestCandlesFeedIntegration:
             trading_pair="SOL-USDT",
             interval="1m",
             max_records=100,
-            network_config=test_config
+            network_config=test_config,
         )
 
         # Patch URLs
@@ -415,15 +431,15 @@ class TestCandlesFeedIntegration:
 
             # Verify prices are reasonable (mock server can generate different price ranges)
             # Just check they are positive numbers
-            assert btc_candles[-1].close > 0, (
-                f"BTC price {btc_candles[-1].close} should be positive"
-            )
-            assert eth_candles[-1].close > 0, (
-                f"ETH price {eth_candles[-1].close} should be positive"
-            )
-            assert sol_candles[-1].close > 0, (
-                f"SOL price {sol_candles[-1].close} should be positive"
-            )
+            assert (
+                btc_candles[-1].close > 0
+            ), f"BTC price {btc_candles[-1].close} should be positive"
+            assert (
+                eth_candles[-1].close > 0
+            ), f"ETH price {eth_candles[-1].close} should be positive"
+            assert (
+                sol_candles[-1].close > 0
+            ), f"SOL price {sol_candles[-1].close} should be positive"
 
             # Verify trading pairs have different prices - use abs diff with tolerance
             # Sometimes the mock server might generate close values
@@ -439,15 +455,15 @@ class TestCandlesFeedIntegration:
             # The mock server should be configured to use distinct base prices
             # If this fails, it means the server configuration needs adjustment
             tolerance = 0.001  # Very small tolerance
-            assert btc_price != eth_price or abs(btc_price - eth_price) > tolerance, (
-                "BTC and ETH prices should be different"
-            )
-            assert btc_price != sol_price or abs(btc_price - sol_price) > tolerance, (
-                "BTC and SOL prices should be different"
-            )
-            assert eth_price != sol_price or abs(eth_price - sol_price) > tolerance, (
-                "ETH and SOL prices should be different"
-            )
+            assert (
+                btc_price != eth_price or abs(btc_price - eth_price) > tolerance
+            ), "BTC and ETH prices should be different"
+            assert (
+                btc_price != sol_price or abs(btc_price - sol_price) > tolerance
+            ), "BTC and SOL prices should be different"
+            assert (
+                eth_price != sol_price or abs(eth_price - sol_price) > tolerance
+            ), "ETH and SOL prices should be different"
 
         finally:
             # Restore original methods and stop feeds
@@ -464,6 +480,7 @@ class TestCandlesFeedIntegration:
 
         # Create feeds for different intervals with network_config set for testing
         from candles_feed.core.network_config import NetworkConfig
+
         test_config = NetworkConfig.for_testing()
 
         interval_feeds = []
@@ -475,7 +492,7 @@ class TestCandlesFeedIntegration:
                 trading_pair="BTC-USDT",
                 interval=interval,
                 max_records=100,
-                network_config=test_config
+                network_config=test_config,
             )
 
             # Patch URLs
@@ -503,24 +520,24 @@ class TestCandlesFeedIntegration:
 
                 # Mock server might not follow exact intervals, let's check something
                 # more reasonable - just that we got something
-                assert all(c.timestamp > 0 for c in candles), (
-                    f"Timestamps should be positive for {interval}"
-                )
-                assert all(c.open > 0 for c in candles), (
-                    f"Open prices should be positive for {interval}"
-                )
-                assert all(c.high > 0 for c in candles), (
-                    f"High prices should be positive for {interval}"
-                )
-                assert all(c.low > 0 for c in candles), (
-                    f"Low prices should be positive for {interval}"
-                )
-                assert all(c.close > 0 for c in candles), (
-                    f"Close prices should be positive for {interval}"
-                )
-                assert all(c.volume >= 0 for c in candles), (
-                    f"Volume should be non-negative for {interval}"
-                )
+                assert all(
+                    c.timestamp > 0 for c in candles
+                ), f"Timestamps should be positive for {interval}"
+                assert all(
+                    c.open > 0 for c in candles
+                ), f"Open prices should be positive for {interval}"
+                assert all(
+                    c.high > 0 for c in candles
+                ), f"High prices should be positive for {interval}"
+                assert all(
+                    c.low > 0 for c in candles
+                ), f"Low prices should be positive for {interval}"
+                assert all(
+                    c.close > 0 for c in candles
+                ), f"Close prices should be positive for {interval}"
+                assert all(
+                    c.volume >= 0 for c in candles
+                ), f"Volume should be non-negative for {interval}"
 
         finally:
             # Restore original methods and stop feeds
@@ -543,12 +560,13 @@ class TestCandlesFeedIntegration:
 
         # Create feed with network_config set for testing
         from candles_feed.core.network_config import NetworkConfig
+
         feed = CandlesFeed(
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
             max_records=100,
-            network_config=NetworkConfig.for_testing()
+            network_config=NetworkConfig.for_testing(),
         )
 
         # Patch URLs
@@ -614,7 +632,9 @@ class TestCandlesFeedIntegration:
             if success_count > 0:
                 logging.info(f"Successfully retrieved data in {success_count} attempts")
             else:
-                logging.warning("No successful retrievals with retry - might need to reduce error rates")
+                logging.warning(
+                    "No successful retrievals with retry - might need to reduce error rates"
+                )
 
             # 4. Reset trading pair for WebSocket test and reduce error conditions
             feed.trading_pair = "BTC-USDT"
@@ -657,7 +677,7 @@ class TestCandlesFeedIntegration:
             mock_server.set_network_conditions(
                 latency_ms=original_latency,
                 packet_loss_rate=original_packet_loss,
-                error_rate=original_error_rate
+                error_rate=original_error_rate,
             )
 
             # Restore original methods
@@ -673,12 +693,13 @@ class TestCandlesFeedIntegration:
 
         # Create feed with network_config set for testing
         from candles_feed.core.network_config import NetworkConfig
+
         feed = CandlesFeed(
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
             max_records=100,
-            network_config=NetworkConfig.for_testing()
+            network_config=NetworkConfig.for_testing(),
         )
 
         # Patch URLs
@@ -729,17 +750,24 @@ class TestCandlesFeedIntegration:
             # In case of no data, log what's available in the mock server
             if not range_candles:
                 trading_pair = feed._adapter.get_trading_pair_format(feed.trading_pair)
-                if trading_pair in mock_server.candles and feed.interval in mock_server.candles[trading_pair]:
+                if (
+                    trading_pair in mock_server.candles
+                    and feed.interval in mock_server.candles[trading_pair]
+                ):
                     server_candles = mock_server.candles[trading_pair][feed.interval]
                     server_timestamps = [c.timestamp for c in server_candles]
-                    logging.info(f"Server has {len(server_timestamps)} candles with timestamps: {server_timestamps}")
+                    logging.info(
+                        f"Server has {len(server_timestamps)} candles with timestamps: {server_timestamps}"
+                    )
                 else:
                     logging.warning(f"No candles for {trading_pair}/{feed.interval} in mock server")
 
             # Log what we got
             if range_candles:
                 range_timestamps = [c.timestamp for c in range_candles]
-                logging.info(f"Range query returned {len(range_candles)} candles with timestamps: {range_timestamps}")
+                logging.info(
+                    f"Range query returned {len(range_candles)} candles with timestamps: {range_timestamps}"
+                )
 
             # Make test less strict - we should get some data, but not necessarily within exact range
             # Mock server timestamps might not align perfectly with our requested range

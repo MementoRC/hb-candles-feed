@@ -71,17 +71,17 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         # MEXC Spot API returns an array of candles similar to Binance
         return [
             [
-                int(c.timestamp_ms),                          # Open time
-                str(c.open),                                  # Open
-                str(c.high),                                  # High
-                str(c.low),                                   # Low
-                str(c.close),                                 # Close
-                str(c.volume),                                # Volume
-                int(c.timestamp_ms) + self._interval_to_milliseconds(interval), # Close time
-                str(c.quote_asset_volume),                    # Quote asset volume
-                100,                                          # Number of trades (placeholder)
-                str(c.volume * 0.7),                          # Taker buy base asset volume (placeholder)
-                str(c.quote_asset_volume * 0.7),              # Taker buy quote asset volume (placeholder)
+                int(c.timestamp_ms),  # Open time
+                str(c.open),  # Open
+                str(c.high),  # High
+                str(c.low),  # Low
+                str(c.close),  # Close
+                str(c.volume),  # Volume
+                int(c.timestamp_ms) + self._interval_to_milliseconds(interval),  # Close time
+                str(c.quote_asset_volume),  # Quote asset volume
+                100,  # Number of trades (placeholder)
+                str(c.volume * 0.7),  # Taker buy base asset volume (placeholder)
+                str(c.quote_asset_volume * 0.7),  # Taker buy quote asset volume (placeholder)
             ]
             for c in candles
         ]
@@ -109,7 +109,6 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         else:
             return 60 * 1000  # Default to 1m
 
-
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
     ) -> dict:
@@ -129,18 +128,18 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         return {
             "e": "push.kline",
             "d": {
-                "s": symbol,                         # Symbol
-                "c": str(candle.close),              # Close price
-                "h": str(candle.high),               # High price
-                "l": str(candle.low),                # Low price
-                "o": str(candle.open),               # Open price
-                "v": str(candle.volume),             # Base asset volume
-                "qv": str(candle.quote_asset_volume), # Quote asset volume
-                "t": int(candle.timestamp_ms),        # Kline start time
-                "i": mexc_interval,                  # Interval
-                "n": 100,                            # Number of trades (placeholder)
-                "x": is_final                        # Is this kline closed?
-            }
+                "s": symbol,  # Symbol
+                "c": str(candle.close),  # Close price
+                "h": str(candle.high),  # High price
+                "l": str(candle.low),  # Low price
+                "o": str(candle.open),  # Open price
+                "v": str(candle.volume),  # Base asset volume
+                "qv": str(candle.quote_asset_volume),  # Quote asset volume
+                "t": int(candle.timestamp_ms),  # Kline start time
+                "i": mexc_interval,  # Interval
+                "n": 100,  # Number of trades (placeholder)
+                "x": is_final,  # Is this kline closed?
+            },
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -168,7 +167,10 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
                                 symbol = interval_symbol[1].upper()
 
                                 # Convert MEXC interval format to standard format
-                                for std_interval, mexc_interval in INTERVAL_TO_EXCHANGE_FORMAT.items():
+                                for (
+                                    std_interval,
+                                    mexc_interval,
+                                ) in INTERVAL_TO_EXCHANGE_FORMAT.items():
                                     if mexc_interval == interval:
                                         interval = std_interval
                                         break
@@ -203,13 +205,13 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
             return {
                 "channel": "sub.response",
                 "data": {"success": True},
-                "ts": 1620000000000  # Fixed timestamp for testing
+                "ts": 1620000000000,  # Fixed timestamp for testing
             }
 
         return {
             "channel": "sub.response",
             "data": {"success": False, "message": "No valid subscriptions"},
-            "ts": 1620000000000  # Fixed timestamp for testing
+            "ts": 1620000000000,  # Fixed timestamp for testing
         }
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
@@ -254,7 +256,6 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
             "start_time": start_time,
             "end_time": end_time,
             "limit": limit,
-
             # Also keep the original MEXC parameter names for reference
             "startTime": start_time,
             "endTime": end_time,

@@ -30,11 +30,10 @@ class TestNetworkConfigExtended:
         # Test with custom overrides
         overrides = {
             EndpointType.CANDLES: NetworkEnvironment.PRODUCTION,
-            EndpointType.ORDERS: NetworkEnvironment.TESTNET
+            EndpointType.ORDERS: NetworkEnvironment.TESTNET,
         }
         config = NetworkConfig(
-            default_environment=NetworkEnvironment.PRODUCTION,
-            endpoint_overrides=overrides
+            default_environment=NetworkEnvironment.PRODUCTION, endpoint_overrides=overrides
         )
 
         assert config.default_environment == NetworkEnvironment.PRODUCTION
@@ -52,7 +51,7 @@ class TestNetworkConfigExtended:
             ticker=NetworkEnvironment.TESTNET,
             trades=NetworkEnvironment.PRODUCTION,
             orders=NetworkEnvironment.TESTNET,
-            account=NetworkEnvironment.TESTNET
+            account=NetworkEnvironment.TESTNET,
         )
 
         # Verify each endpoint has the correct environment
@@ -76,7 +75,7 @@ class TestNetworkConfigExtended:
             ticker=NetworkEnvironment.TESTNET,  # Enum value
             trades="production",
             orders="testnet",
-            account=NetworkEnvironment.TESTNET
+            account=NetworkEnvironment.TESTNET,
         )
 
         # Verify each endpoint has the correct environment
@@ -91,7 +90,7 @@ class TestNetworkConfigExtended:
         config = NetworkConfig.hybrid(
             **{
                 "candles": NetworkEnvironment.PRODUCTION,  # Dictionary key as string
-                "orders": NetworkEnvironment.TESTNET
+                "orders": NetworkEnvironment.TESTNET,
             }
         )
 
@@ -116,13 +115,11 @@ class TestNetworkConfigExtended:
     def test_equality(self):
         """Test that identical configurations are equal."""
         config1 = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.PRODUCTION,
-            orders=NetworkEnvironment.TESTNET
+            candles=NetworkEnvironment.PRODUCTION, orders=NetworkEnvironment.TESTNET
         )
 
         config2 = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.PRODUCTION,
-            orders=NetworkEnvironment.TESTNET
+            candles=NetworkEnvironment.PRODUCTION, orders=NetworkEnvironment.TESTNET
         )
 
         # Configurations with the same values should be equal in behavior
@@ -133,40 +130,36 @@ class TestNetworkConfigExtended:
     def test_different_configs(self):
         """Test that different configurations behave differently."""
         config1 = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.PRODUCTION,
-            orders=NetworkEnvironment.TESTNET
+            candles=NetworkEnvironment.PRODUCTION, orders=NetworkEnvironment.TESTNET
         )
 
         config2 = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
 
         # These should have opposite behaviors
-        assert config1.is_testnet_for(EndpointType.CANDLES) != config2.is_testnet_for(EndpointType.CANDLES)
-        assert config1.is_testnet_for(EndpointType.ORDERS) != config2.is_testnet_for(EndpointType.ORDERS)
+        assert config1.is_testnet_for(EndpointType.CANDLES) != config2.is_testnet_for(
+            EndpointType.CANDLES
+        )
+        assert config1.is_testnet_for(EndpointType.ORDERS) != config2.is_testnet_for(
+            EndpointType.ORDERS
+        )
 
     def test_error_handling(self):
         """Test error handling with invalid inputs."""
         # Test with invalid endpoint type and valid environment
         with pytest.raises(ValueError, match="Invalid endpoint type"):
-            NetworkConfig.hybrid(
-                invalid_endpoint=NetworkEnvironment.PRODUCTION
-            )
+            NetworkConfig.hybrid(invalid_endpoint=NetworkEnvironment.PRODUCTION)
 
         # Test with valid endpoint type and invalid environment string
         with pytest.raises(ValueError, match="Invalid network environment"):
-            NetworkConfig.hybrid(
-                candles="invalid_environment"
-            )
+            NetworkConfig.hybrid(candles="invalid_environment")
 
         # Test with endpoint type as enum (not possible directly with **kwargs)
         # Using string endpoint types is the supported way
         with pytest.raises(ValueError, match="Invalid network environment"):
             # Convert to string to enable the endpoint type handling code to run
-            NetworkConfig.hybrid(
-                **{EndpointType.CANDLES.value: "invalid_environment"}
-            )
+            NetworkConfig.hybrid(**{EndpointType.CANDLES.value: "invalid_environment"})
 
     def test_for_testing_mode(self):
         """Test the for_testing configuration that bypasses network selection."""
@@ -174,7 +167,7 @@ class TestNetworkConfigExtended:
         config = NetworkConfig.for_testing()
 
         # Should have bypass flag
-        assert hasattr(config, '_bypass_for_testing')
+        assert hasattr(config, "_bypass_for_testing")
         assert config._bypass_for_testing is True
 
         # Should behave like production config regardless of settings
@@ -191,8 +184,7 @@ class TestNetworkConfigExtended:
         """Test the string representation of a NetworkConfig."""
         # Create a hybrid config
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
 
         # Get string representation
@@ -209,8 +201,7 @@ class TestNetworkConfigExtended:
         """Test that repr() of a NetworkConfig is informative."""
         # Create a hybrid config
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
 
         # Get repr string
@@ -230,19 +221,18 @@ class TestNetworkConfigExtended:
 
         # Create a hybrid config
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
 
         # Convert to dictionary representation
         # This is a hypothetical method that could be implemented
         # to support serialization
-        if hasattr(config, 'to_dict'):
+        if hasattr(config, "to_dict"):
             config_dict = config.to_dict()
 
             # Should include all necessary configuration
-            assert 'default_environment' in config_dict
-            assert 'endpoint_overrides' in config_dict
+            assert "default_environment" in config_dict
+            assert "endpoint_overrides" in config_dict
 
             # Should be JSON serializable
             json_str = json.dumps(config_dict)
@@ -263,6 +253,8 @@ class TestNetworkConfigExtended:
 
         # Verify each endpoint has the correct environment
         for i, endpoint in enumerate(EndpointType):
-            expected_env = NetworkEnvironment.PRODUCTION if i % 2 == 0 else NetworkEnvironment.TESTNET
+            expected_env = (
+                NetworkEnvironment.PRODUCTION if i % 2 == 0 else NetworkEnvironment.TESTNET
+            )
             assert config.get_environment(endpoint) == expected_env
             assert config.is_testnet_for(endpoint) == (expected_env == NetworkEnvironment.TESTNET)

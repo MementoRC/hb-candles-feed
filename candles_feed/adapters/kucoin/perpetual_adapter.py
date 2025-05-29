@@ -173,7 +173,9 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
             if len(candle_data) >= 7:
                 return [
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            candle_data[0]
+                        ),  # Already in seconds
                         open=float(candle_data[1]),
                         high=float(candle_data[3]),  # Different order in perpetual
                         low=float(candle_data[4]),

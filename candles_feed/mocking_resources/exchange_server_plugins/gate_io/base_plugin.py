@@ -85,16 +85,18 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
 
         formatted_candles = []
         for c in candles:
-            formatted_candles.append([
-                str(int(c.timestamp_ms / 1000)),  # Timestamp in seconds as string
-                str(c.open),                     # Open price
-                str(c.close),                    # Close price
-                str(c.low),                      # Low price
-                str(c.high),                     # High price
-                str(c.volume),                   # Volume
-                str(c.quote_asset_volume),       # Quote asset volume
-                trading_pair.replace("-", "_"),  # Trading pair in Gate.io format
-            ])
+            formatted_candles.append(
+                [
+                    str(int(c.timestamp_ms / 1000)),  # Timestamp in seconds as string
+                    str(c.open),  # Open price
+                    str(c.close),  # Close price
+                    str(c.low),  # Low price
+                    str(c.high),  # High price
+                    str(c.volume),  # Volume
+                    str(c.quote_asset_volume),  # Quote asset volume
+                    trading_pair.replace("-", "_"),  # Trading pair in Gate.io format
+                ]
+            )
 
         return formatted_candles
 
@@ -141,15 +143,15 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
             "event": "update",
             "result": {
                 "t": str(int(candle.timestamp_ms / 1000)),  # Timestamp in seconds
-                "o": str(candle.open),                     # Open price
-                "c": str(candle.close),                    # Close price
-                "l": str(candle.low),                      # Low price
-                "h": str(candle.high),                     # High price
-                "v": str(candle.volume),                   # Volume
-                "a": str(candle.quote_asset_volume),       # Quote asset volume
-                "n": formatted_pair,                       # Currency pair
-                "i": interval_code                         # Interval
-            }
+                "o": str(candle.open),  # Open price
+                "c": str(candle.close),  # Close price
+                "l": str(candle.low),  # Low price
+                "h": str(candle.high),  # High price
+                "v": str(candle.volume),  # Volume
+                "a": str(candle.quote_asset_volume),  # Quote asset volume
+                "n": formatted_pair,  # Currency pair
+                "i": interval_code,  # Interval
+            },
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -180,11 +182,7 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         :param subscriptions: List of (trading_pair, interval) tuples that were subscribed to.
         :returns: A subscription success response message.
         """
-        return {
-            "id": message.get("id"),
-            "result": {"status": "success"},
-            "error": None
-        }
+        return {"id": message.get("id"), "result": {"status": "success"}, "error": None}
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
         """
@@ -221,12 +219,11 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
 
         # Map Gate.io parameters to generic parameters expected by handle_klines
         return {
-            "symbol": currency_pair,        # 'currency_pair' in Gate.io maps to 'symbol' in generic handler
-            "interval": interval,           # Same parameter name
-            "start_time": from_time,        # 'from' in Gate.io maps to 'start_time' in generic handler
-            "end_time": to_time,            # 'to' in Gate.io maps to 'end_time' in generic handler
-            "limit": limit,                 # Same parameter name
-
+            "symbol": currency_pair,  # 'currency_pair' in Gate.io maps to 'symbol' in generic handler
+            "interval": interval,  # Same parameter name
+            "start_time": from_time,  # 'from' in Gate.io maps to 'start_time' in generic handler
+            "end_time": to_time,  # 'to' in Gate.io maps to 'end_time' in generic handler
+            "limit": limit,  # Same parameter name
             # Also keep the original Gate.io parameter names for reference
             "currency_pair": params.get("currency_pair"),
             "from": from_time,

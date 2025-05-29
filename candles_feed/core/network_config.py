@@ -11,15 +11,17 @@ from typing import Dict, Optional
 
 class EndpointType(Enum):
     """Types of endpoints that can be configured with different network environments."""
-    CANDLES = "candles"      # Candle data endpoints
-    TICKER = "ticker"        # Ticker data endpoints
-    TRADES = "trades"        # Trade data endpoints
-    ORDERS = "orders"        # Order management endpoints
-    ACCOUNT = "account"      # Account information endpoints
+
+    CANDLES = "candles"  # Candle data endpoints
+    TICKER = "ticker"  # Ticker data endpoints
+    TRADES = "trades"  # Trade data endpoints
+    ORDERS = "orders"  # Order management endpoints
+    ACCOUNT = "account"  # Account information endpoints
 
 
 class NetworkEnvironment(Enum):
     """Available network environments."""
+
     PRODUCTION = "production"
     TESTNET = "testnet"
 
@@ -34,7 +36,7 @@ class NetworkConfig:
     def __init__(
         self,
         default_environment: NetworkEnvironment = NetworkEnvironment.PRODUCTION,
-        endpoint_overrides: Optional[Dict[EndpointType, NetworkEnvironment]] = None
+        endpoint_overrides: Optional[Dict[EndpointType, NetworkEnvironment]] = None,
     ):
         """Initialize network configuration.
 
@@ -53,7 +55,7 @@ class NetworkConfig:
         :param endpoint_type: The type of endpoint
         :return: The environment to use for this endpoint type
         """
-        if getattr(self, '_bypass_for_testing', False):
+        if getattr(self, "_bypass_for_testing", False):
             return NetworkEnvironment.PRODUCTION
         return self.endpoint_overrides.get(endpoint_type, self.default_environment)
 
@@ -63,12 +65,12 @@ class NetworkConfig:
         :param endpoint_type: The type of endpoint
         :return: True if testnet should be used, False for production
         """
-        if getattr(self, '_bypass_for_testing', False):
+        if getattr(self, "_bypass_for_testing", False):
             return False
         return self.get_environment(endpoint_type) == NetworkEnvironment.TESTNET
 
     @classmethod
-    def production(cls) -> 'NetworkConfig':
+    def production(cls) -> "NetworkConfig":
         """Create a production-only configuration.
 
         :return: NetworkConfig configured to use production for all endpoints
@@ -76,7 +78,7 @@ class NetworkConfig:
         return cls(default_environment=NetworkEnvironment.PRODUCTION)
 
     @classmethod
-    def testnet(cls) -> 'NetworkConfig':
+    def testnet(cls) -> "NetworkConfig":
         """Create a testnet-only configuration.
 
         :return: NetworkConfig configured to use testnet for all endpoints
@@ -84,7 +86,7 @@ class NetworkConfig:
         return cls(default_environment=NetworkEnvironment.TESTNET)
 
     @classmethod
-    def hybrid(cls, **endpoint_overrides) -> 'NetworkConfig':
+    def hybrid(cls, **endpoint_overrides) -> "NetworkConfig":
         """Create a hybrid configuration with specific overrides.
 
         Example:
@@ -114,11 +116,11 @@ class NetworkConfig:
 
         return cls(
             default_environment=NetworkEnvironment.PRODUCTION,
-            endpoint_overrides=processed_overrides
+            endpoint_overrides=processed_overrides,
         )
 
     @classmethod
-    def for_testing(cls) -> 'NetworkConfig':
+    def for_testing(cls) -> "NetworkConfig":
         """Create a configuration suitable for testing with mock servers.
 
         This configuration will always return production URLs regardless of settings,

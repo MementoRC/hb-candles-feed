@@ -74,21 +74,19 @@ class MEXCPerpetualPlugin(MEXCBasePlugin):
         # MEXC Contract API returns a different format than spot
         formatted_candles = []
         for c in candles:
-            formatted_candles.append({
-                "time": int(c.timestamp_ms / 1000),  # Contract API uses seconds
-                "open": str(c.open),
-                "close": str(c.close),
-                "high": str(c.high),
-                "low": str(c.low),
-                "vol": str(c.volume),
-                "amount": str(c.quote_asset_volume)
-            })
+            formatted_candles.append(
+                {
+                    "time": int(c.timestamp_ms / 1000),  # Contract API uses seconds
+                    "open": str(c.open),
+                    "close": str(c.close),
+                    "high": str(c.high),
+                    "low": str(c.low),
+                    "vol": str(c.volume),
+                    "amount": str(c.quote_asset_volume),
+                }
+            )
 
-        return {
-            "success": True,
-            "code": 0,
-            "data": formatted_candles
-        }
+        return {"success": True, "code": 0, "data": formatted_candles}
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -120,7 +118,7 @@ class MEXCPerpetualPlugin(MEXCBasePlugin):
                 "c": str(candle.close),
                 "v": str(candle.volume),
                 "a": str(candle.quote_asset_volume),
-                "q": "0"  # Ignore
+                "q": "0",  # Ignore
             },
-            "symbol": symbol
+            "symbol": symbol,
         }

@@ -17,20 +17,20 @@ graph TD
     A --> E[Usage Examples]
 
     B --> F[MockedCandleFeedServer]
-    
+
     D --> G[Exchange Plugins]
     D --> H[Network Conditions]
     D --> I[Data Generation]
-    
+
     G --> J[Binance Spot Plugin]
     G --> K[Other Exchange Plugins]
-    
+
     C --> L[Random Data Generation]
     C --> M[Realistic Price Movement]
-    
+
     E --> N[Example Scripts]
     E --> O[Test Cases]
-    
+
     style K fill:#f96
 ```
 

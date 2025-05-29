@@ -59,7 +59,9 @@ async def test_server_uses_plugin_rate_limits(client, binance_server):
 
     # Test the rate limiting by making multiple requests
     for _ in range(5):
-        response = await client.get("/api/v3/klines", params={"symbol": "BTCUSDT", "interval": "1m"})
+        response = await client.get(
+            "/api/v3/klines", params={"symbol": "BTCUSDT", "interval": "1m"}
+        )
         assert response.status == 200
 
     # The requests should not exceed the rate limit
@@ -82,7 +84,9 @@ async def test_server_uses_plugin_api_keys(client, binance_server):
     # Test authentication with a valid API key
     response = await client.get(
         "/api/v3/account",
-        headers={"X-MBX-APIKEY": "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"}
+        headers={
+            "X-MBX-APIKEY": "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"
+        },
     )
     # Since we don't have the authentication logic implemented in this test,
     # just check that the server processed the request

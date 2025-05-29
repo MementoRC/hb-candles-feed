@@ -127,10 +127,7 @@ class TestAscendExSpotPlugin:
     def test_parse_ws_subscription(self):
         """Test parsing WebSocket subscription message."""
         # Create subscription message
-        message = {
-            "op": "sub",
-            "ch": "bar:1:BTC/USDT"
-        }
+        message = {"op": "sub", "ch": "bar:1:BTC/USDT"}
 
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
@@ -143,11 +140,7 @@ class TestAscendExSpotPlugin:
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
         # Create subscription message
-        message = {
-            "op": "sub",
-            "ch": "bar:1:BTC/USDT",
-            "id": "12345"
-        }
+        message = {"op": "sub", "ch": "bar:1:BTC/USDT", "id": "12345"}
 
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])

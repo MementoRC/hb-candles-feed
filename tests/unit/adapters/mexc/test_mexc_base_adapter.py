@@ -3,9 +3,6 @@ Tests for the MEXCBaseAdapter using the base adapter test class.
 """
 
 from datetime import datetime, timezone
-from unittest import mock
-
-import pytest
 
 from candles_feed.adapters.mexc.base_adapter import MEXCBaseAdapter
 from candles_feed.adapters.mexc.constants import (
@@ -148,7 +145,9 @@ class ConcreteMEXCAdapter(MEXCBaseAdapter):
         if isinstance(data, dict) and "d" in data:
             candle_data = data["d"]
 
-            if isinstance(candle_data, dict) and all(k in candle_data for k in ["t", "o", "h", "l", "c", "v"]):
+            if isinstance(candle_data, dict) and all(
+                k in candle_data for k in ["t", "o", "h", "l", "c", "v"]
+            ):
                 timestamp = self.ensure_timestamp_in_seconds(candle_data["t"])
                 open_price = float(candle_data["o"])
                 high = float(candle_data["h"])
@@ -208,7 +207,7 @@ class TestMEXCBaseAdapter(BaseAdapterTest):
             "interval": interval,
             "limit": limit,
             "startTime": start_time * 1000,  # MEXC uses milliseconds
-            "endTime": end_time * 1000,      # MEXC uses milliseconds
+            "endTime": end_time * 1000,  # MEXC uses milliseconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -223,42 +222,46 @@ class TestMEXCBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)  # In milliseconds
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+        )  # In milliseconds
 
         return [
             [
                 base_time,
-                "50000.0",       # open
-                "51000.0",       # high
-                "49000.0",       # low
-                "50500.0",       # close
-                "100.0",         # volume
-                base_time + 59999, # close time
-                "5000000.0",     # quote volume
-                1000,            # number of trades
-                "60.0",          # taker buy base volume
-                "3000000.0",     # taker buy quote volume
-                "0",             # ignore
+                "50000.0",  # open
+                "51000.0",  # high
+                "49000.0",  # low
+                "50500.0",  # close
+                "100.0",  # volume
+                base_time + 59999,  # close time
+                "5000000.0",  # quote volume
+                1000,  # number of trades
+                "60.0",  # taker buy base volume
+                "3000000.0",  # taker buy quote volume
+                "0",  # ignore
             ],
             [
                 base_time + 60000,
-                "50500.0",       # open
-                "52000.0",       # high
-                "50000.0",       # low
-                "51500.0",       # close
-                "150.0",         # volume
-                base_time + 119999, # close time
-                "7500000.0",     # quote volume
-                1500,            # number of trades
-                "90.0",          # taker buy base volume
-                "4500000.0",     # taker buy quote volume
-                "0",             # ignore
+                "50500.0",  # open
+                "52000.0",  # high
+                "50000.0",  # low
+                "51500.0",  # close
+                "150.0",  # volume
+                base_time + 119999,  # close time
+                "7500000.0",  # quote volume
+                1500,  # number of trades
+                "90.0",  # taker buy base volume
+                "4500000.0",  # taker buy quote volume
+                "0",  # ignore
             ],
         ]
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)  # In milliseconds
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+        )  # In milliseconds
 
         return {
             "d": {
@@ -269,7 +272,7 @@ class TestMEXCBaseAdapter(BaseAdapterTest):
                 "c": "50500.0",
                 "v": "100.0",
                 "qv": "5000000.0",
-                "n": 1000
+                "n": 1000,
             }
         }
 
@@ -288,7 +291,9 @@ class TestMEXCBaseAdapter(BaseAdapterTest):
         # Ensure timestamp is in seconds regardless of input format
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds * 1000) == timestamp_seconds
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
-        assert adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        assert (
+            adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        )
 
     def test_trading_pair_format_conversion(self, adapter):
         """Test trading pair format conversion for MEXC."""
@@ -325,18 +330,18 @@ class TestMEXCBaseAdapter(BaseAdapterTest):
 
         # Create a mock response row
         row = [
-            timestamp,         # Open time
-            "50000.0",         # Open
-            "51000.0",         # High
-            "49000.0",         # Low
-            "50500.0",         # Close
-            "100.0",           # Volume
-            timestamp + 59999, # Close time
-            "5000000.0",       # Quote asset volume
-            1000,              # Number of trades
-            "60.0",            # Taker buy base asset volume
-            "3000000.0",       # Taker buy quote asset volume
-            "0",               # Ignore
+            timestamp,  # Open time
+            "50000.0",  # Open
+            "51000.0",  # High
+            "49000.0",  # Low
+            "50500.0",  # Close
+            "100.0",  # Volume
+            timestamp + 59999,  # Close time
+            "5000000.0",  # Quote asset volume
+            1000,  # Number of trades
+            "60.0",  # Taker buy base asset volume
+            "3000000.0",  # Taker buy quote asset volume
+            "0",  # Ignore
         ]
 
         candles = adapter._parse_rest_response([row])
@@ -371,7 +376,7 @@ class TestMEXCBaseAdapter(BaseAdapterTest):
                 "c": "50500.0",
                 "v": "100.0",
                 "qv": "5000000.0",
-                "n": 1000
+                "n": 1000,
             }
         }
 

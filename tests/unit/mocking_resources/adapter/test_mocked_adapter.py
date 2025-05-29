@@ -70,7 +70,7 @@ class TestMockedAdapter:
             self.interval,
             limit=100,
             start_time=1620000000000,
-            end_time=1620100000000
+            end_time=1620100000000,
         )
         assert params["symbol"] == self.trading_pair
         assert params["interval"] == self.interval
@@ -93,7 +93,7 @@ class TestMockedAdapter:
                     "low": "49000.0",
                     "close": "50500.0",
                     "volume": "10.5",
-                    "quote_volume": "525000.0"
+                    "quote_volume": "525000.0",
                 },
                 {
                     "timestamp": 1620060000000,
@@ -102,9 +102,9 @@ class TestMockedAdapter:
                     "low": "50000.0",
                     "close": "51500.0",
                     "volume": "15.5",
-                    "quote_volume": "775000.0"
-                }
-            ]
+                    "quote_volume": "775000.0",
+                },
+            ],
         }
 
         # Process the response
@@ -145,8 +145,8 @@ class TestMockedAdapter:
                 "low": "49000.0",
                 "close": "50500.0",
                 "volume": "10.5",
-                "quote_volume": "525000.0"
-            }
+                "quote_volume": "525000.0",
+            },
         }
 
         # Process the message

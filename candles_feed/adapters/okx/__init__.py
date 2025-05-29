@@ -21,7 +21,6 @@ __all__ = [
     # Adapters
     "OKXPerpetualAdapter",
     "OKXSpotAdapter",
-
     # Constants
     "SPOT_CANDLES_ENDPOINT",
     "SPOT_REST_URL",

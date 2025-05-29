@@ -39,8 +39,8 @@ class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
         :return: REST API URL
         """
         # Use TestnetSupportMixin's implementation which checks network_config
-        if hasattr(self, 'network_config') and hasattr(self, '_bypass_network_selection'):
-            if getattr(self, '_bypass_network_selection', False):
+        if hasattr(self, "network_config") and hasattr(self, "_bypass_network_selection"):
+            if getattr(self, "_bypass_network_selection", False):
                 return self._get_production_rest_url()
             elif self.network_config.is_testnet_for(EndpointType.CANDLES):
                 return self._get_testnet_rest_url()
@@ -57,8 +57,8 @@ class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
         :return: WebSocket URL
         """
         # Use TestnetSupportMixin's implementation which checks network_config
-        if hasattr(self, 'network_config') and hasattr(self, '_bypass_network_selection'):
-            if getattr(self, '_bypass_network_selection', False):
+        if hasattr(self, "network_config") and hasattr(self, "_bypass_network_selection"):
+            if getattr(self, "_bypass_network_selection", False):
                 return self._get_production_ws_url()
             elif self.network_config.is_testnet_for(EndpointType.CANDLES):
                 return self._get_testnet_ws_url()

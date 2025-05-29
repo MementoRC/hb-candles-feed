@@ -47,8 +47,7 @@ class TestNetworkConfig:
         """Test creating a hybrid configuration with specific overrides."""
         # Create a hybrid config with candles in production but orders in testnet
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.PRODUCTION,
-            orders=NetworkEnvironment.TESTNET
+            candles=NetworkEnvironment.PRODUCTION, orders=NetworkEnvironment.TESTNET
         )
 
         # Check default environment
@@ -66,10 +65,7 @@ class TestNetworkConfig:
 
     def test_hybrid_configuration_with_string_values(self):
         """Test hybrid configuration with string values instead of enums."""
-        config = NetworkConfig.hybrid(
-            candles="production",
-            orders="testnet"
-        )
+        config = NetworkConfig.hybrid(candles="production", orders="testnet")
 
         # Check endpoints have correct environment
         assert config.get_environment(EndpointType.CANDLES) == NetworkEnvironment.PRODUCTION
@@ -90,7 +86,7 @@ class TestNetworkConfig:
         config = NetworkConfig.for_testing()
 
         # Verify the bypass flag is set
-        assert getattr(config, '_bypass_for_testing', False) is True
+        assert getattr(config, "_bypass_for_testing", False) is True
 
         # Even if we set it as a testnet config, it should return production values
         config.default_environment = NetworkEnvironment.TESTNET

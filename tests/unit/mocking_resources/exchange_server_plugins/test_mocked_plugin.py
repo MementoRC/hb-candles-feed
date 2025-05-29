@@ -133,15 +133,7 @@ class TestMockedPlugin:
     def test_parse_ws_subscription(self):
         """Test parsing WebSocket subscription message."""
         # Create subscription message
-        message = {
-            "type": "subscribe",
-            "subscriptions": [
-                {
-                    "symbol": "BTC-USDT",
-                    "interval": "1m"
-                }
-            ]
-        }
+        message = {"type": "subscribe", "subscriptions": [{"symbol": "BTC-USDT", "interval": "1m"}]}
 
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
@@ -154,15 +146,7 @@ class TestMockedPlugin:
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
         # Create subscription message
-        message = {
-            "type": "subscribe",
-            "subscriptions": [
-                {
-                    "symbol": "BTC-USDT",
-                    "interval": "1m"
-                }
-            ]
-        }
+        message = {"type": "subscribe", "subscriptions": [{"symbol": "BTC-USDT", "interval": "1m"}]}
 
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])

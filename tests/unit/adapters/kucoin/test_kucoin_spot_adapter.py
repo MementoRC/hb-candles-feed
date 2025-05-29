@@ -3,19 +3,16 @@ Unit tests for the KucoinSpotAdapter class.
 """
 
 import contextlib
-import time
 from datetime import datetime, timezone
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from candles_feed.adapters.kucoin.constants import (
-    INTERVALS,
+from candles_feed.adapters.kucoin.constants import (  # noqa: F401, used in BaseAdapterTest
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
-    WS_INTERVALS,
 )
 from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
 from candles_feed.core.candle_data import CandleData
@@ -56,7 +53,7 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
             "type": interval,
             "limit": limit,
             "startAt": start_time * 1000,  # KuCoin uses milliseconds
-            "endAt": end_time * 1000,      # KuCoin uses milliseconds
+            "endAt": end_time * 1000,  # KuCoin uses milliseconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -99,8 +96,8 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
                     "51000.0",  # high
                     "49000.0",  # low
                     "50500.0",  # close
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ],
                 [
                     str((base_time + 60) * 1000),
@@ -108,10 +105,10 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
                     "52000.0",  # high
                     "50000.0",  # low
                     "51500.0",  # close
-                    "150.0",    # volume
-                    "7500000.0" # quote volume
-                ]
-            ]
+                    "150.0",  # volume
+                    "7500000.0",  # quote volume
+                ],
+            ],
         }
 
         candles = adapter._parse_rest_response(response)
@@ -145,11 +142,11 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ],
-                "time": base_time * 1000
-            }
+                "time": base_time * 1000,
+            },
         }
 
         candles = adapter.parse_ws_message(message)
@@ -181,8 +178,8 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
                     "51000.0",  # high
                     "49000.0",  # low
                     "50500.0",  # close
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ],
                 [
                     str((base_time + 60) * 1000),  # Next candle 60 seconds later
@@ -190,10 +187,10 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
                     "52000.0",  # high
                     "50000.0",  # low
                     "51500.0",  # close
-                    "150.0",    # volume
-                    "7500000.0" # quote volume
+                    "150.0",  # volume
+                    "7500000.0",  # quote volume
                 ],
-            ]
+            ],
         }
 
     def get_mock_websocket_message(self):
@@ -213,11 +210,11 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ],
-                "time": base_time * 1000
-            }
+                "time": base_time * 1000,
+            },
         }
 
     # Additional test cases specific to KucoinSpotAdapter
@@ -235,7 +232,9 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
         # Ensure timestamp is in seconds regardless of input format
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds * 1000) == timestamp_seconds
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
-        assert adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        assert (
+            adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        )
 
     @patch("time.time")
     def test_websocket_subscription_id(self, mock_time, adapter):
@@ -265,6 +264,7 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
         # Skip test for SyncOnlyAdapter adapters
         with contextlib.suppress(ImportError):
             from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+
             if isinstance(adapter, SyncOnlyAdapter):
                 pytest.skip("Test only applicable for async adapters")
 
@@ -276,7 +276,9 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
         mock_client.get_rest_data = mock.AsyncMock(return_value=mock_response)
 
         # Call the async method
-        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        candles = await adapter.fetch_rest_candles(
+            trading_pair, interval, network_client=mock_client
+        )
 
         # Basic validation
         assert isinstance(candles, list)
@@ -286,8 +288,8 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
+        assert kwargs["url"] == adapter._get_rest_url()
 
         # Verify that params were passed (without exact comparison)
-        assert "symbol" in kwargs['params']
-        assert kwargs['params']["symbol"] == trading_pair
+        assert "symbol" in kwargs["params"]
+        assert kwargs["params"]["symbol"] == trading_pair

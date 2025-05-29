@@ -83,7 +83,9 @@ async def binance_mock_server(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
+    server = MockedExchangeServer(
+        plugin, "127.0.0.1", port
+    )  # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -113,7 +115,9 @@ async def mocked_server_fixture(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
+    server = MockedExchangeServer(
+        plugin, "127.0.0.1", port
+    )  # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTC-USDT", "1m", 50000.0)
@@ -149,7 +153,9 @@ async def bybit_mock_server(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
+    server = MockedExchangeServer(
+        plugin, "127.0.0.1", port
+    )  # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -178,7 +184,9 @@ async def coinbase_mock_server(unused_tcp_port):
     plugin = MockedPlugin(ExchangeType.MOCK)
 
     # Create server
-    server = MockedExchangeServer(plugin, "127.0.0.1", port) # MockedExchangeServer import might be needed if not already global
+    server = MockedExchangeServer(
+        plugin, "127.0.0.1", port
+    )  # MockedExchangeServer import might be needed if not already global
 
     # Add trading pairs
     server.add_trading_pair("BTCUSDT", "1m", 50000.0)

@@ -73,24 +73,24 @@ class TestAscendExSpotAdapter(BaseAdapterTest):
                 {
                     "data": {
                         "ts": base_time,  # Open time in milliseconds
-                        "o": "50000.0",   # Open
-                        "h": "51000.0",   # High
-                        "l": "49000.0",   # Low
-                        "c": "50500.0",   # Close
-                        "v": "5000000.0"  # Quote asset volume
+                        "o": "50000.0",  # Open
+                        "h": "51000.0",  # High
+                        "l": "49000.0",  # Low
+                        "c": "50500.0",  # Close
+                        "v": "5000000.0",  # Quote asset volume
                     }
                 },
                 {
                     "data": {
                         "ts": base_time + 60000,  # Open time in milliseconds
-                        "o": "50500.0",   # Open
-                        "h": "52000.0",   # High
-                        "l": "50000.0",   # Low
-                        "c": "51500.0",   # Close
-                        "v": "7500000.0"  # Quote asset volume
+                        "o": "50500.0",  # Open
+                        "h": "52000.0",  # High
+                        "l": "50000.0",  # Low
+                        "c": "51500.0",  # Close
+                        "v": "7500000.0",  # Quote asset volume
                     }
-                }
-            ]
+                },
+            ],
         }
 
     def get_mock_websocket_message(self):
@@ -100,13 +100,13 @@ class TestAscendExSpotAdapter(BaseAdapterTest):
         return {
             "m": "bar",
             "data": {
-                "ts": base_time,       # Timestamp in milliseconds
-                "o": "50000.0",        # Open
-                "h": "51000.0",        # High
-                "l": "49000.0",        # Low
-                "c": "50500.0",        # Close
-                "v": "5000000.0"       # Quote asset volume
-            }
+                "ts": base_time,  # Timestamp in milliseconds
+                "o": "50000.0",  # Open
+                "h": "51000.0",  # High
+                "l": "49000.0",  # Low
+                "c": "50500.0",  # Close
+                "v": "5000000.0",  # Quote asset volume
+            },
         }
 
     # Additional test cases specific to AscendExSpotAdapter
@@ -149,9 +149,7 @@ class TestAscendExSpotAdapter(BaseAdapterTest):
 
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
-            trading_pair=trading_pair,
-            interval=interval,
-            network_client=mock_client
+            trading_pair=trading_pair, interval=interval, network_client=mock_client
         )
 
         # Verify the result
@@ -163,8 +161,8 @@ class TestAscendExSpotAdapter(BaseAdapterTest):
 
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == url
-        assert kwargs['params'] == params
+        assert kwargs["url"] == url
+        assert kwargs["params"] == params
 
     def test_ws_subscription_payload_format(self, adapter):
         """Test the format of WebSocket subscription payload."""
@@ -188,7 +186,7 @@ class TestAscendExSpotAdapter(BaseAdapterTest):
             "m": "ping",
             "data": {
                 "ts": 1672531200000  # 2023-01-01 00:00:00 UTC in milliseconds
-            }
+            },
         }
 
         candles = adapter.parse_ws_message(ws_message)

@@ -91,8 +91,9 @@ class WebSocketStrategy:
         """
         try:
             # Check if adapter implements async or sync method
-            if (hasattr(self.adapter, 'fetch_rest_candles') and
-                    callable(self.adapter.fetch_rest_candles)):
+            if hasattr(self.adapter, "fetch_rest_candles") and callable(
+                self.adapter.fetch_rest_candles
+            ):
                 candles = await self.adapter.fetch_rest_candles(
                     trading_pair=self.trading_pair,
                     interval=self.interval,
@@ -100,8 +101,9 @@ class WebSocketStrategy:
                     limit=limit,
                     network_client=self.network_client,
                 )
-            elif (hasattr(self.adapter, 'fetch_rest_candles_synchronous') and
-                    callable(self.adapter.fetch_rest_candles_synchronous)):
+            elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
+                self.adapter.fetch_rest_candles_synchronous
+            ):
                 candles = await asyncio.to_thread(
                     self.adapter.fetch_rest_candles_synchronous,
                     trading_pair=self.trading_pair,
@@ -280,9 +282,8 @@ class RESTPollingStrategy:
         candles: list[CandleData] = []
         try:
             # Check if adapter implements async or sync method
-            if (
-                    hasattr(self.adapter, 'fetch_rest_candles') and
-                    callable(self.adapter.fetch_rest_candles)
+            if hasattr(self.adapter, "fetch_rest_candles") and callable(
+                self.adapter.fetch_rest_candles
             ):
                 candles = await self.adapter.fetch_rest_candles(
                     trading_pair=self.trading_pair,
@@ -291,9 +292,8 @@ class RESTPollingStrategy:
                     limit=limit,
                     network_client=self.network_client,
                 )
-            elif (
-                    hasattr(self.adapter, 'fetch_rest_candles_synchronous') and
-                    callable(self.adapter.fetch_rest_candles_synchronous)
+            elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
+                self.adapter.fetch_rest_candles_synchronous
             ):
                 candles = await asyncio.to_thread(
                     self.adapter.fetch_rest_candles_synchronous,
@@ -303,7 +303,9 @@ class RESTPollingStrategy:
                     limit=limit,
                 )
             else:
-                raise NotImplementedError("Adapter must implement fetch_rest_candles or fetch_rest_candles_synchronous")
+                raise NotImplementedError(
+                    "Adapter must implement fetch_rest_candles or fetch_rest_candles_synchronous"
+                )
         except Exception as e:
             self.logger.exception(f"Failed fetching candles: {e}")
 

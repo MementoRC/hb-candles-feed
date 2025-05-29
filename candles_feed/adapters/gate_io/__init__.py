@@ -21,7 +21,6 @@ __all__ = [
     # Adapters
     "GateIoPerpetualAdapter",
     "GateIoSpotAdapter",
-
     # Constants
     "SPOT_CANDLES_ENDPOINT",
     "SPOT_REST_URL",

@@ -2,12 +2,8 @@
 Unit tests for the CoinbaseAdvancedTradeSpotAdapter class.
 """
 
-import pytest
-
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
@@ -16,7 +12,6 @@ from candles_feed.adapters.coinbase_advanced_trade.constants import (
 from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
     CoinbaseAdvancedTradeSpotAdapter,
 )
-from candles_feed.core.candle_data import CandleData
 
 
 class TestCoinbaseAdvancedTradeSpotAdapter:
@@ -36,7 +31,10 @@ class TestCoinbaseAdvancedTradeSpotAdapter:
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert CoinbaseAdvancedTradeSpotAdapter._get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+        assert (
+            CoinbaseAdvancedTradeSpotAdapter._get_rest_url()
+            == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+        )
 
     def test_get_ws_url(self):
         """Test WebSocket URL retrieval."""

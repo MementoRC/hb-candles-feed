@@ -346,6 +346,7 @@ async def test_update_candles_ws_strategy(
     # Assert
     assert mock_data_processor.process_candle.call_count == expected_calls
 
+
 # These fixtures are already defined above, so we don't need to redefine them
 
 
@@ -604,7 +605,9 @@ async def test_poll_for_updates(
         # 2. First poll should use start_time of initial candle in incremental updates
         # The loop will call poll_once at least once after initialization
         if len(strategy.poll_once_calls) > 1:
-            assert strategy.poll_once_calls[1][0] == 1, "Incremental poll should start from timestamp 1"
+            assert (
+                strategy.poll_once_calls[1][0] == 1
+            ), "Incremental poll should start from timestamp 1"
 
 
 @pytest.mark.asyncio
@@ -629,8 +632,14 @@ async def test_poll_for_updates(
     ids=["no_new_candles_rest", "single_new_candle_rest", "multiple_new_candles_rest"],
 )
 async def test_update_candles_rest_strategy(
-    mock_network_client, mock_adapter, mock_data_processor, candles_store, mock_logger,
-    test_id, new_candles, expected_calls
+    mock_network_client,
+    mock_adapter,
+    mock_data_processor,
+    candles_store,
+    mock_logger,
+    test_id,
+    new_candles,
+    expected_calls,
 ):
     # Act
     strategy = RESTPollingStrategy(
@@ -646,4 +655,3 @@ async def test_update_candles_rest_strategy(
 
     # Assert
     assert mock_data_processor.process_candle.call_count == expected_calls
-

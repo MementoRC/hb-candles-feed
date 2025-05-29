@@ -76,13 +76,13 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
         # ]
         return [
             [
-                int(c.timestamp),       # Timestamp (in seconds)
-                float(c.open),              # Open
-                float(c.high),              # High
-                float(c.low),               # Low
-                float(c.close),             # Close
-                float(c.volume),            # Volume
-                float(c.quote_asset_volume) # Quote asset volume
+                int(c.timestamp),  # Timestamp (in seconds)
+                float(c.open),  # Open
+                float(c.high),  # High
+                float(c.low),  # Low
+                float(c.close),  # Close
+                float(c.volume),  # Volume
+                float(c.quote_asset_volume),  # Quote asset volume
             ]
             for c in candles
         ]
@@ -114,14 +114,14 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
             "coin": coin,
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "data": [
-                int(candle.timestamp),       # Timestamp (in seconds)
-                float(candle.open),              # Open
-                float(candle.high),              # High
-                float(candle.low),               # Low
-                float(candle.close),             # Close
-                float(candle.volume),            # Volume
-                float(candle.quote_asset_volume) # Quote asset volume
-            ]
+                int(candle.timestamp),  # Timestamp (in seconds)
+                float(candle.open),  # Open
+                float(candle.high),  # High
+                float(candle.low),  # Low
+                float(candle.close),  # Close
+                float(candle.volume),  # Volume
+                float(candle.quote_asset_volume),  # Quote asset volume
+            ],
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -148,8 +148,7 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
             if coin and interval:
                 # Convert exchange interval format to standardized format
                 standardized_interval = next(
-                    (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval),
-                    interval
+                    (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval), interval
                 )
 
                 # Convert coin to standardized trading pair format (adding -USDT)
@@ -174,10 +173,7 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
         #   "success": True,
         #   "message": "Subscription successful"
         # }
-        return {
-            "success": True,
-            "message": "Subscription successful"
-        }
+        return {"success": True, "message": "Subscription successful"}
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
         """
@@ -202,7 +198,7 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
         # HyperLiquid uses POST with JSON body
         try:
             data = await request.json()
-        except json.JSONDecodeError: # Changed from bare except
+        except json.JSONDecodeError:  # Changed from bare except
             data = {}
 
         # Extract parameters from the request body
@@ -218,8 +214,7 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
 
             # Convert exchange interval format to standardized format
             interval = next(
-                (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == resolution),
-                resolution
+                (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == resolution), resolution
             )
 
             # Map HyperLiquid parameters to generic parameters expected by handle_klines
@@ -250,17 +245,19 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
         instruments = []
         for trading_pair in server.trading_pairs:
             base, quote = trading_pair.split("-", 1)
-            instruments.append({
-                "coin": base,
-                "baseCurrency": base,
-                "quoteCurrency": quote,
-                "type": "spot" if self.exchange_type.name.endswith("SPOT") else "perpetual",
-                "status": "ONLINE",
-                "tickSize": "0.01",
-                "stepSize": "0.001",
-                "minQty": "0.001",
-                "maxQty": "10000.0"
-            })
+            instruments.append(
+                {
+                    "coin": base,
+                    "baseCurrency": base,
+                    "quoteCurrency": quote,
+                    "type": "spot" if self.exchange_type.name.endswith("SPOT") else "perpetual",
+                    "status": "ONLINE",
+                    "tickSize": "0.01",
+                    "stepSize": "0.001",
+                    "minQty": "0.001",
+                    "maxQty": "10000.0",
+                }
+            )
 
         return web.json_response(instruments)
 

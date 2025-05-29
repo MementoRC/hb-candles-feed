@@ -47,7 +47,7 @@ class MyStrategy:
             throttler=self._throttler,
             connections_factory=self._connections_factory
         )
-        
+
         # Create a CandlesFeed instance that uses Hummingbot's components
         self._candles_feed = create_candles_feed_with_hummingbot(
             exchange="binance_spot",
@@ -56,15 +56,15 @@ class MyStrategy:
             throttler=self._throttler,
             web_assistants_factory=self._web_assistants_factory
         )
-    
+
     async def start(self, ...):
         # Start the feed
         await self._candles_feed.start()
-        
+
     async def stop(self, ...):
         # Stop the feed
         await self._candles_feed.stop()
-        
+
     def process_candles(self):
         # Get candles as DataFrame
         df = self._candles_feed.get_candles_df()

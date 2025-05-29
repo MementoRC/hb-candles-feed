@@ -48,33 +48,34 @@ class TestMockPluginIntegration:
         url = mocked_server_fixture.mocked_exchange_url
 
         # Create client session
-        async with aiohttp.ClientSession() as session, \
-                     session.get(f"{url}/api/candles?symbol=BTC-USDT&interval=1m&limit=10") as response:
+        async with aiohttp.ClientSession() as session, session.get(
+            f"{url}/api/candles?symbol=BTC-USDT&interval=1m&limit=10"
+        ) as response:
             # Check response
-                assert response.status == 200
-                data = await response.json()
+            assert response.status == 200
+            data = await response.json()
 
-                # Verify response format
-                assert "status" in data
-                assert data["status"] == "ok"
-                assert "symbol" in data
-                assert data["symbol"] == "BTC-USDT"
-                assert "interval" in data
-                assert data["interval"] == "1m"
-                assert "data" in data
-                assert isinstance(data["data"], list)
+            # Verify response format
+            assert "status" in data
+            assert data["status"] == "ok"
+            assert "symbol" in data
+            assert data["symbol"] == "BTC-USDT"
+            assert "interval" in data
+            assert data["interval"] == "1m"
+            assert "data" in data
+            assert isinstance(data["data"], list)
 
-                # Verify at least one candle is returned
-                assert len(data["data"]) > 0
+            # Verify at least one candle is returned
+            assert len(data["data"]) > 0
 
-                # Verify candle structure
-                candle = data["data"][0]
-                assert "timestamp" in candle
-                assert "open" in candle
-                assert "high" in candle
-                assert "low" in candle
-                assert "close" in candle
-                assert "volume" in candle
+            # Verify candle structure
+            candle = data["data"][0]
+            assert "timestamp" in candle
+            assert "open" in candle
+            assert "high" in candle
+            assert "low" in candle
+            assert "close" in candle
+            assert "volume" in candle
 
     @pytest.mark.asyncio
     async def test_websocket_connection(self, mocked_server_fixture):
@@ -87,12 +88,7 @@ class TestMockPluginIntegration:
             # Send subscription message
             subscription_message = {
                 "type": "subscribe",
-                "subscriptions": [
-                    {
-                        "symbol": "BTC-USDT",
-                        "interval": "1m"
-                    }
-                ]
+                "subscriptions": [{"symbol": "BTC-USDT", "interval": "1m"}],
             }
             await ws.send_json(subscription_message)
 

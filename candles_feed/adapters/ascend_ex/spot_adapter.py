@@ -28,6 +28,6 @@ class AscendExSpotAdapter(AscendExBaseAdapter):
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 
-       :returns: WebSocket URL.
+        :returns: WebSocket URL.
         """
         return SPOT_WSS_URL

@@ -33,10 +33,10 @@ from candles_feed.adapters.adapter_mixins import TestnetSupportMixin
 
 class YourExchangeAdapter(YourExchangeBaseAdapter, TestnetSupportMixin):
     """Your exchange adapter with testnet support."""
-    
+
     def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
         """Initialize the adapter.
-        
+
         :param network_config: Network configuration for testnet/production
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments
@@ -51,14 +51,14 @@ Implement the required testnet URL methods:
 ```python
 def _get_testnet_rest_url(self) -> str:
     """Get testnet REST URL for candles.
-    
+
     :return: Testnet REST URL for candles endpoint
     """
     return f"{TESTNET_REST_URL}{CANDLES_ENDPOINT}"
 
 def _get_testnet_ws_url(self) -> str:
     """Get testnet WebSocket URL.
-    
+
     :return: Testnet WebSocket URL
     """
     return TESTNET_WSS_URL
@@ -96,11 +96,11 @@ async def test_your_exchange_testnet():
         interval="1m",
         network_config=NetworkConfig.testnet()
     )
-    
+
     try:
         await feed.start()
         await asyncio.sleep(5)  # Wait for data
-        
+
         # Check that we got candles
         candles = feed.get_candles()
         assert len(candles) > 0
@@ -124,26 +124,26 @@ SPOT_TESTNET_WSS_URL = "wss://testnet.binance.vision/ws"
 # In adapters/binance/spot_adapter.py
 class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
     """Binance spot adapter with testnet support."""
-    
+
     def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
         """Initialize the adapter.
-        
+
         :param network_config: Network configuration for testnet/production
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments
         """
         super().__init__(*args, network_config=network_config, **kwargs)
-    
+
     def _get_testnet_rest_url(self) -> str:
         """Get Binance testnet REST URL for candles.
-        
+
         :return: Testnet REST URL for candles endpoint
         """
         return f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
-    
+
     def _get_testnet_ws_url(self) -> str:
         """Get Binance testnet WebSocket URL.
-        
+
         :return: Testnet WebSocket URL
         """
         return SPOT_TESTNET_WSS_URL

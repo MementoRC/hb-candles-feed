@@ -36,11 +36,11 @@ async def main():
     try:
         # Start the server
         await server.start()
-        
+
         # Add custom trading pairs
         for symbol, interval, price in custom_pairs:
             server.add_trading_pair(symbol, interval, price)
-            
+
         logger.info(f"Mock exchange server started at http://{server.host}:{server.port}")
 
         # Now you can use the server for testing
@@ -88,16 +88,16 @@ async def main():
     # Start the server with default trading pairs
     await server.start()
     server.add_trading_pair("BTC-USDT", "1m", 50000.0)
-    
+
     logger.info(f"Mock server started at http://{server.host}:{server.port}")
 
     # Get the URL patching configuration from the plugin
     patched_urls = server.plugin.get_patched_urls(server.host, server.port)
-    
+
     # Patch adapter URLs to point to our mock server
     with patch('candles_feed.adapters.binance.constants.SPOT_REST_URL', patched_urls["rest"]), \
          patch('candles_feed.adapters.binance.constants.SPOT_WSS_URL', patched_urls["ws"]):
-         
+
         # Create a CandlesFeed instance
         feed = CandlesFeed(
             exchange="binance_spot",
@@ -179,11 +179,11 @@ async def main():
 
     # Get the URL patching configuration from the plugin
     patched_urls = server.plugin.get_patched_urls(server.host, server.port)
-    
+
     # Patch adapter URLs to point to our mock server
     with patch('candles_feed.adapters.binance.constants.SPOT_REST_URL', patched_urls["rest"]), \
          patch('candles_feed.adapters.binance.constants.SPOT_WSS_URL', patched_urls["ws"]):
-        
+
         # Create a CandlesFeed instance
         feed = CandlesFeed(
             exchange="binance_spot",
@@ -280,9 +280,9 @@ async def main():
     await server.start()
     logger.info(f"Mock server started at http://{server.host}:{server.port}")
 
-    # Access the rate limits from the plugin 
+    # Access the rate limits from the plugin
     rate_limits = server.plugin.rate_limits
-    
+
     # Override rate limits for testing
     rate_limits["rest"]["limit"] = 5  # Only 5 requests
     rate_limits["rest"]["period_ms"] = 5000  # Per 5 seconds
@@ -372,10 +372,10 @@ async def binance_app():
     """Create a test application with the Binance plugin routes."""
     # Create the plugin
     plugin = BinanceSpotPlugin()
-    
+
     # Create the aiohttp application
     app = web.Application()
-    
+
     # Mock data for the server
     mock_data = {
         "candles": {
@@ -385,7 +385,7 @@ async def binance_app():
         },
         "trading_pairs": {"BTC-USDT": 50000.0}
     }
-    
+
     # Generate some test candles
     from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
     factory = CandleDataFactory()
@@ -395,12 +395,12 @@ async def binance_app():
         num_candles=100,
         initial_price=50000.0
     )
-    
+
     # Add plugin routes to app
     for route_path, (method, handler_name) in plugin.rest_routes.items():
         if hasattr(plugin, handler_name):
             handler = getattr(plugin, handler_name)
-            
+
             # Create a wrapper that simulates the server object
             async def create_wrapper(handler):
                 async def wrapper(request):
@@ -414,16 +414,16 @@ async def binance_app():
                         '_time': lambda: 1613677200,  # Fixed time for tests
                         'verify_authentication': lambda request, required_permissions=None: {"authenticated": True, "error": None}
                     })()
-                    
+
                     return await handler(mock_server, request)
                 return wrapper
-            
+
             # Add route
             if method == "GET":
                 app.router.add_get(route_path, await create_wrapper(handler))
             elif method == "POST":
                 app.router.add_post(route_path, await create_wrapper(handler))
-    
+
     return app
 
 
@@ -438,10 +438,10 @@ async def client(binance_app):
 async def adapter(client):
     """Create an adapter with URLs pointing to the test client."""
     adapter = BinanceSpotAdapter()
-    
+
     # Get the server URL
     server_url = str(client.server.make_url(''))
-    
+
     # Patch the adapter's URLs to point to our test server
     with patch('candles_feed.adapters.binance.constants.SPOT_REST_URL', server_url):
         yield adapter
@@ -456,20 +456,20 @@ async def test_fetch_candles(client, adapter):
         "interval": "1m",
         "limit": 10
     })
-    
+
     # Verify the response
     assert response.status == 200
     data = await response.json()
     assert isinstance(data, list)
     assert len(data) == 10
-    
+
     # Test through the adapter
     candles = await adapter.fetch_rest_candles(
         trading_pair="BTC-USDT",
         interval="1m",
         limit=10
     )
-    
+
     # Verify results
     assert len(candles) == 10
     for candle in candles:

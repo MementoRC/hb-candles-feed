@@ -51,11 +51,13 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
     def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
         """Return the expected full REST params for the adapter."""
         params = self.get_expected_rest_params_minimal(trading_pair, interval)
-        params.update({
-            "limit": limit,
-            "startTime": start_time,
-            "endTime": end_time,
-        })
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                "endTime": end_time,
+            }
+        )
         return params
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -107,9 +109,7 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
 
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
-            trading_pair=trading_pair,
-            interval=interval,
-            network_client=mock_client
+            trading_pair=trading_pair, interval=interval, network_client=mock_client
         )
 
         # Verify the result
@@ -118,8 +118,8 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
         # Check that the mock was called with the correct parameters
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
-        assert kwargs['params'] == adapter._get_rest_params(trading_pair, interval)
+        assert kwargs["url"] == adapter._get_rest_url()
+        assert kwargs["params"] == adapter._get_rest_params(trading_pair, interval)
 
     def test_hyperliquid_intervals_mapping(self, adapter):
         """Test HyperLiquid-specific interval mapping."""
@@ -131,7 +131,9 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
         """Test HyperLiquid-specific response parsing details."""
         # Test with a minimal valid response
         timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
-        minimal_response = [[timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]]
+        minimal_response = [
+            [timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]
+        ]
 
         candles = adapter._parse_rest_response(minimal_response)
         assert len(candles) == 1

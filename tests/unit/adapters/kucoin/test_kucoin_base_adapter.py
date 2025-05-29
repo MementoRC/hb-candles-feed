@@ -2,15 +2,11 @@
 Tests for the KucoinBaseAdapter using the base adapter test class.
 """
 
-import time
 from datetime import datetime, timezone
 from unittest import mock
 
-import pytest
-
 from candles_feed.adapters.kucoin.base_adapter import KucoinBaseAdapter
 from candles_feed.adapters.kucoin.constants import (
-    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
@@ -171,7 +167,7 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
             "type": interval,
             "limit": limit,
             "startAt": start_time * 1000,  # KuCoin uses milliseconds
-            "endAt": end_time * 1000,      # KuCoin uses milliseconds
+            "endAt": end_time * 1000,  # KuCoin uses milliseconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -201,7 +197,9 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)  # In milliseconds
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+        )  # In milliseconds
 
         return {
             "code": "200000",
@@ -212,8 +210,8 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ],
                 [
                     str(base_time + 60000),
@@ -221,15 +219,17 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
                     "51500.0",  # close
                     "52000.0",  # high
                     "50000.0",  # low
-                    "150.0",    # volume
-                    "7500000.0" # quote volume
+                    "150.0",  # volume
+                    "7500000.0",  # quote volume
                 ],
-            ]
+            ],
         }
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)  # In milliseconds
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+        )  # In milliseconds
 
         return {
             "type": "message",
@@ -243,11 +243,11 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ],
-                "time": base_time
-            }
+                "time": base_time,
+            },
         }
 
     # Additional test cases specific to KucoinBaseAdapter
@@ -265,7 +265,9 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
         # Ensure timestamp is in seconds regardless of input format
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds * 1000) == timestamp_seconds
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
-        assert adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        assert (
+            adapter.ensure_timestamp_in_seconds(str(timestamp_seconds * 1000)) == timestamp_seconds
+        )
 
     def test_trading_pair_format_unchanged(self, adapter):
         """Test that trading pair format is unchanged for KuCoin."""
@@ -297,10 +299,10 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ]
-            ]
+            ],
         }
 
         candles = adapter._parse_rest_response(mock_response)
@@ -333,10 +335,10 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
                     "50500.0",  # close
                     "51000.0",  # high
                     "49000.0",  # low
-                    "100.0",    # volume
-                    "5000000.0" # quote volume
+                    "100.0",  # volume
+                    "5000000.0",  # quote volume
                 ]
-            }
+            },
         }
 
         candles = adapter.parse_ws_message(message)

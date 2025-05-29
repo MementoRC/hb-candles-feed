@@ -134,7 +134,7 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         initial_price = 50000.0
 
         # Patch the _generate_initial_candles method to simplify the test
-        with patch.object(self.server, '_generate_initial_candles') as mock_generate:
+        with patch.object(self.server, "_generate_initial_candles") as mock_generate:
             self.server.add_trading_pair(trading_pair, interval, initial_price)
 
             # Verify trading pair was added to the right collections
@@ -161,7 +161,7 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         # Make sure the rate_limits dictionary exists with required structure
         self.server.rate_limits = {
             "rest": {"limit": 1200, "period_ms": 60000, "ip_limits": {}},
-            "ws": {"limit": 100, "burst": 10}
+            "ws": {"limit": 100, "burst": 10},
         }
 
         # Update rate limits directly
@@ -217,7 +217,7 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         self.server.ws_connections = {mock_ws}
 
         # Add a subscription
-        self.server.subscriptions = {'test_sub': {mock_ws}}
+        self.server.subscriptions = {"test_sub": {mock_ws}}
 
         await self.server.stop()
 
@@ -259,17 +259,11 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
             "rest": {
                 "limit": 1200,
                 "period_ms": 60000,
-                "ip_limits": {"default": 1200, "strict": 600}
+                "ip_limits": {"default": 1200, "strict": 600},
             },
-            "ws": {
-                "limit": 100,
-                "burst": 10
-            }
+            "ws": {"limit": 100, "burst": 10},
         }
-        self.server.request_counts = {
-            "rest": {},
-            "ws": {}
-        }
+        self.server.request_counts = {"rest": {}, "ws": {}}
 
         ip = "127.0.0.1"
 
@@ -292,7 +286,9 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
             # Verify request counts
             self.assertIn(ip, self.server.request_counts["ws"])
             if "timestamps" in self.server.request_counts["ws"][ip]:
-                self.assertEqual(len(self.server.request_counts["ws"][ip]["timestamps"]), burst_limit - 1)
+                self.assertEqual(
+                    len(self.server.request_counts["ws"][ip]["timestamps"]), burst_limit - 1
+                )
 
     @pytest.mark.asyncio
     @patch("candles_feed.mocking_resources.core.server.asyncio.sleep")

@@ -52,12 +52,10 @@ class BinancePerpetualPlugin(BinanceBasePlugin):
         return {
             # Include handlers for candles functionality
             "/fapi/v1/klines": ("GET", "handle_klines"),
-
             # Include general utility endpoints
             "/fapi/v1/ping": ("GET", "handle_ping"),
             "/fapi/v1/time": ("GET", "handle_time"),
             "/fapi/v1/exchangeInfo": ("GET", "handle_exchange_info"),
-
             # Include market data endpoints that might be useful for candles context
             "/fapi/v1/ticker/price": ("GET", "handle_ticker_price"),
         }

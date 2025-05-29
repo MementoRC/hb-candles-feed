@@ -3,9 +3,6 @@ Tests for the HyperliquidBaseAdapter using the base adapter test class.
 """
 
 from datetime import datetime, timezone
-from unittest import mock
-
-import pytest
 
 from candles_feed.adapters.hyperliquid.base_adapter import HyperliquidBaseAdapter
 from candles_feed.adapters.hyperliquid.constants import (
@@ -16,7 +13,6 @@ from candles_feed.adapters.hyperliquid.constants import (
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
-from candles_feed.core.candle_data import CandleData
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
 
@@ -71,7 +67,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
             "resolution": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "startTime": start_time,  # Hyperliquid uses seconds
-            "endTime": end_time,      # Hyperliquid uses seconds
+            "endTime": end_time,  # Hyperliquid uses seconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -157,10 +153,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
         candle_data = [timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]
 
         # Parse a mocked WebSocket message
-        message = {
-            "channel": CHANNEL_NAME,
-            "data": candle_data
-        }
+        message = {"channel": CHANNEL_NAME, "data": candle_data}
 
         candles = adapter.parse_ws_message(message)
 
@@ -183,7 +176,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
         # Test with invalid channel
         invalid_channel = {
             "channel": "trades",
-            "data": [timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]
+            "data": [timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
         }
         assert adapter.parse_ws_message(invalid_channel) is None
 

@@ -91,11 +91,11 @@ class TestBybitPerpetualPlugin:
         assert len(formatted["result"]["list"]) == 1
         candle_data = formatted["result"]["list"][0]
         assert candle_data[0] == str(int(candles[0].timestamp_ms))  # Timestamp in ms
-        assert candle_data[1] == str(candles[0].open)              # Open
-        assert candle_data[2] == str(candles[0].high)              # High
-        assert candle_data[3] == str(candles[0].low)               # Low
-        assert candle_data[4] == str(candles[0].close)             # Close
-        assert candle_data[5] == str(candles[0].volume)            # Volume
+        assert candle_data[1] == str(candles[0].open)  # Open
+        assert candle_data[2] == str(candles[0].high)  # High
+        assert candle_data[3] == str(candles[0].low)  # Low
+        assert candle_data[4] == str(candles[0].close)  # Close
+        assert candle_data[5] == str(candles[0].volume)  # Volume
         assert candle_data[6] == str(candles[0].quote_asset_volume)  # Quote volume
 
     def test_format_ws_candle_message(self):
@@ -139,13 +139,7 @@ class TestBybitPerpetualPlugin:
     def test_parse_ws_subscription(self):
         """Test parsing WebSocket subscription message."""
         # Create subscription message
-        message = {
-            "op": "subscribe",
-            "args": [
-                "kline.1.BTCUSDT"
-            ],
-            "req_id": 12345
-        }
+        message = {"op": "subscribe", "args": ["kline.1.BTCUSDT"], "req_id": 12345}
 
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
@@ -153,18 +147,12 @@ class TestBybitPerpetualPlugin:
         # Check parsed subscriptions
         assert len(subscriptions) == 1
         assert subscriptions[0][0] == "BTC-USDT"  # Trading pair should be reformatted
-        assert subscriptions[0][1] == "1m"        # Interval should be mapped back to standard format
+        assert subscriptions[0][1] == "1m"  # Interval should be mapped back to standard format
 
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
         # Create subscription message
-        message = {
-            "op": "subscribe",
-            "args": [
-                "kline.1.BTCUSDT"
-            ],
-            "req_id": 12345
-        }
+        message = {"op": "subscribe", "args": ["kline.1.BTCUSDT"], "req_id": 12345}
 
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])

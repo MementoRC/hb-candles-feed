@@ -64,6 +64,7 @@ def create_mock_adapter():
 
     # Create a sample candle for the mock response
     from candles_feed.core.candle_data import CandleData
+
     sample_candle = CandleData(
         timestamp_raw=1625097600,
         open=35000.1,
@@ -74,7 +75,7 @@ def create_mock_adapter():
         quote_asset_volume=350000.0,
         n_trades=100,
         taker_buy_base_volume=5.0,
-        taker_buy_quote_volume=175000.0
+        taker_buy_quote_volume=175000.0,
     )
 
     # Create AsyncMock for async methods
@@ -152,9 +153,8 @@ async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
         },
     ), patch(
         "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=create_mock_adapter()
+        return_value=create_mock_adapter(),
     ):
-
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
             exchange="binance_spot",
@@ -198,7 +198,7 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
         },
     ), patch(
         "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=create_mock_adapter()
+        return_value=create_mock_adapter(),
     ):
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
@@ -211,7 +211,7 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
         # Patch the get_rest_data method of NetworkClientFactory.create_client
         with patch(
             "candles_feed.core.hummingbot_network_client_adapter.HummingbotNetworkClient.get_rest_data",
-            new_callable=AsyncMock
+            new_callable=AsyncMock,
         ) as mock_get_rest_data:
             # Configure the mock to return the sample data
             mock_get_rest_data.return_value = mock_hummingbot_components[
@@ -254,7 +254,7 @@ async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
         },
     ), patch(
         "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=create_mock_adapter()
+        return_value=create_mock_adapter(),
     ):
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
@@ -265,9 +265,10 @@ async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
         )
 
         # Mock WebSocketStrategy._listen_for_updates to avoid network calls
-        with patch("candles_feed.core.collection_strategies.WebSocketStrategy._listen_for_updates",
-               new_callable=AsyncMock) as mock_listen:
-
+        with patch(
+            "candles_feed.core.collection_strategies.WebSocketStrategy._listen_for_updates",
+            new_callable=AsyncMock,
+        ) as mock_listen:
             # Start the feed with websocket strategy
             await feed.start(strategy="websocket")
 

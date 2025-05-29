@@ -9,21 +9,21 @@ graph TD
     A[MockedCandleFeedServer] --> B[HTTP Server]
     A --> C[WebSocket Server]
     A --> D[Plugin System]
-    
+
     D --> E[ExchangePlugin]
-    
+
     E --> F[Binance Spot Plugin]
     E --> G[Other Exchange Plugins]
-    
+
     B --> H[REST Endpoints]
     C --> I[WS Subscriptions]
-    
+
     J[Network Simulation] --> B
     J --> C
-    
+
     K[Data Generation] --> H
     K --> I
-    
+
     style G fill:#f96
 ```
 
@@ -131,18 +131,18 @@ class TestCandlesFeedIntegration:
             trading_pair="BTC-USDT",
             interval="1m"
         )
-        
+
         # Override adapter REST URL to point to our mock server
         feed._adapter.get_rest_url = lambda: f"{mock_server.url}/api/v3/klines"
-        
+
         try:
             # Start the feed with REST polling strategy
             await feed.start(strategy="polling")
-            
+
             # Verify candles were retrieved
             candles = feed.get_candles()
             assert len(candles) > 0
-        
+
         finally:
             # Stop the feed
             await feed.stop()
@@ -160,28 +160,28 @@ async def test_error_handling(mock_server):
         packet_loss_rate=0.2,
         error_rate=0.2
     )
-    
+
     # Create feed and test
     feed = CandlesFeed(
         exchange="binance_spot",
         trading_pair="BTC-USDT",
         interval="1m"
     )
-    
+
     # Override adapter URLs to point to our mock server
     feed._adapter.get_rest_url = lambda: f"{mock_server.url}/api/v3/klines"
     feed._adapter.get_ws_url = lambda: f"ws://{mock_server.host}:{mock_server.port}/ws"
-    
+
     # Test with error conditions
     # ... (Your test code here)
-    
+
     # Reset conditions for recovery testing
     mock_server.set_network_conditions(
         latency_ms=0,
         packet_loss_rate=0.0,
         error_rate=0.0
     )
-    
+
     # Verify recovery
     # ... (Your verification code here)
 ```

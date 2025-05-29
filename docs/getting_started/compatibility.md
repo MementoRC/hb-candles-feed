@@ -108,9 +108,9 @@ throttler = AsyncThrottler(rate_limits=[])
 web_assistants_factory = WebAssistantsFactory(throttler=throttler)
 
 feed = CandlesFeed(
-    exchange="binance_spot", 
-    trading_pair="BTC-USDT", 
-    interval="1m", 
+    exchange="binance_spot",
+    trading_pair="BTC-USDT",
+    interval="1m",
     max_records=100,
     hummingbot_components={
         "throttler": throttler,

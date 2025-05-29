@@ -35,12 +35,10 @@ class BinanceSpotPlugin(BinanceBasePlugin):
         return {
             # Include handlers for candles functionality
             "/api/v3/klines": ("GET", "handle_klines"),
-
             # Include general utility endpoints
             "/api/v3/ping": ("GET", "handle_ping"),
             "/api/v3/time": ("GET", "handle_time"),
             "/api/v3/exchangeInfo": ("GET", "handle_exchange_info"),
-
             # Include market data endpoints that might be useful for candles context
             "/api/v3/ticker/price": ("GET", "handle_ticker_price"),
         }
@@ -103,13 +101,12 @@ class BinanceSpotPlugin(BinanceBasePlugin):
 
         # Map Binance parameters to generic parameters expected by handle_klines
         return {
-            "symbol": symbol,            # 'symbol' is the same in both
-            "interval": interval,        # 'interval' is the same in both
-            "start_time": start_time,    # 'startTime' in Binance maps to 'start_time' in generic handler
-            "end_time": end_time,        # 'endTime' in Binance maps to 'end_time' in generic handler
-            "time_zone": time_zone,      # 'timeZone' in Binance maps to 'time_zone'
-            "limit": limit,              # 'limit' has the same name
-
+            "symbol": symbol,  # 'symbol' is the same in both
+            "interval": interval,  # 'interval' is the same in both
+            "start_time": start_time,  # 'startTime' in Binance maps to 'start_time' in generic handler
+            "end_time": end_time,  # 'endTime' in Binance maps to 'end_time' in generic handler
+            "time_zone": time_zone,  # 'timeZone' in Binance maps to 'time_zone'
+            "limit": limit,  # 'limit' has the same name
             # Also keep the original Binance parameter names for reference
             "startTime": start_time,
             "endTime": end_time,

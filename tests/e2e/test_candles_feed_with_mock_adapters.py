@@ -5,16 +5,11 @@ These tests verify the complete workflow from adapter to candles feed.
 """
 
 import asyncio
+
 import pytest
 
-from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.network_client import NetworkClient
-from candles_feed.mocking_resources.adapter import (
-    AsyncMockedAdapter,
-    HybridMockedAdapter,
-    SyncMockedAdapter,
-)
 
 
 @pytest.mark.asyncio
@@ -36,10 +31,7 @@ class TestCandlesFeedWithMockAdapters:
 
         # Create the candles feed
         feed = CandlesFeed(
-            trading_pair="BTC-USDT",
-            exchange="sync_mocked_adapter",
-            interval="1m",
-            max_records=100
+            trading_pair="BTC-USDT", exchange="sync_mocked_adapter", interval="1m", max_records=100
         )
 
         # Test the feed gets initialized with REST polling strategy
@@ -65,10 +57,7 @@ class TestCandlesFeedWithMockAdapters:
 
         # Create the candles feed
         feed = CandlesFeed(
-            trading_pair="BTC-USDT",
-            exchange="async_mocked_adapter",
-            interval="1m",
-            max_records=100
+            trading_pair="BTC-USDT", exchange="async_mocked_adapter", interval="1m", max_records=100
         )
 
         # Test the feed gets initialized with REST polling strategy
@@ -97,7 +86,7 @@ class TestCandlesFeedWithMockAdapters:
             trading_pair="BTC-USDT",
             exchange="hybrid_mocked_adapter",
             interval="1m",
-            max_records=100
+            max_records=100,
         )
 
         # Test the feed gets initialized with REST polling strategy
@@ -128,31 +117,25 @@ class TestCandlesFeedWithMockAdapters:
 
         # Create feeds
         sync_feed = CandlesFeed(
-            trading_pair="BTC-USDT",
-            exchange="sync_mocked_adapter",
-            interval="1m",
-            max_records=100
+            trading_pair="BTC-USDT", exchange="sync_mocked_adapter", interval="1m", max_records=100
         )
 
         async_feed = CandlesFeed(
-            trading_pair="ETH-USDT",
-            exchange="async_mocked_adapter",
-            interval="5m",
-            max_records=100
+            trading_pair="ETH-USDT", exchange="async_mocked_adapter", interval="5m", max_records=100
         )
 
         hybrid_feed = CandlesFeed(
             trading_pair="LTC-USDT",
             exchange="hybrid_mocked_adapter",
             interval="15m",
-            max_records=100
+            max_records=100,
         )
 
         # Start all feeds with REST polling strategy
         await asyncio.gather(
             sync_feed.start(strategy="polling"),
             async_feed.start(strategy="polling"),
-            hybrid_feed.start(strategy="polling")
+            hybrid_feed.start(strategy="polling"),
         )
 
         # Wait for all feeds to initialize
@@ -173,8 +156,4 @@ class TestCandlesFeedWithMockAdapters:
         assert hybrid_candles[0].open > 0  # From hybrid adapter
 
         # Stop all feeds
-        await asyncio.gather(
-            sync_feed.stop(),
-            async_feed.stop(),
-            hybrid_feed.stop()
-        )
+        await asyncio.gather(sync_feed.stop(), async_feed.stop(), hybrid_feed.stop())

@@ -92,19 +92,21 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
 
         formatted_candles = []
         for candle in candles:
-            timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-            formatted_candles.append({
-                "start": timestamp_iso,
-                "low": str(candle.low),
-                "high": str(candle.high),
-                "open": str(candle.open),
-                "close": str(candle.close),
-                "volume": str(candle.volume)
-            })
+            timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
+            formatted_candles.append(
+                {
+                    "start": timestamp_iso,
+                    "low": str(candle.low),
+                    "high": str(candle.high),
+                    "open": str(candle.open),
+                    "close": str(candle.close),
+                    "volume": str(candle.volume),
+                }
+            )
 
-        return {
-            "candles": formatted_candles
-        }
+        return {"candles": formatted_candles}
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -141,7 +143,9 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         #   ]
         # }
 
-        timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
         current_time_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
 
         return {
@@ -159,11 +163,11 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
                             "high": str(candle.high),
                             "open": str(candle.open),
                             "close": str(candle.close),
-                            "volume": str(candle.volume)
+                            "volume": str(candle.volume),
                         }
-                    ]
+                    ],
                 }
-            ]
+            ],
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -182,13 +186,17 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         # }
 
         subscriptions = []
-        if isinstance(message, dict) and message.get("type") == "subscribe" and message.get("channel") == "candles":
+        if (
+            isinstance(message, dict)
+            and message.get("type") == "subscribe"
+            and message.get("channel") == "candles"
+        ):
             granularity = message.get("granularity")
             if granularity is not None:
                 # Convert granularity (seconds) to interval format
                 interval = next(
                     (k for k, v in INTERVALS.items() if v == granularity),
-                    f"{granularity}s"  # Fallback if not found
+                    f"{granularity}s",  # Fallback if not found
                 )
 
                 for product_id in message.get("product_ids", []):
@@ -219,12 +227,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
 
         return {
             "type": "subscriptions",
-            "channels": [
-                {
-                    "name": "candles",
-                    "product_ids": [tp for tp, _ in subscriptions]
-                }
-            ]
+            "channels": [{"name": "candles", "product_ids": [tp for tp, _ in subscriptions]}],
         }
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
@@ -249,7 +252,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         params = request.query
 
         # In Coinbase the product_id is in the URL path, extract it from the request's url
-        product_id = request.path.rsplit('/', 2)[-2] if '/products/' in request.path else None
+        product_id = request.path.rsplit("/", 2)[-2] if "/products/" in request.path else None
 
         # Convert Coinbase-specific parameter names to generic ones
         granularity = params.get("granularity")
@@ -259,7 +262,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         # Convert granularity to interval format
         interval = next(
             (k for k, v in INTERVALS.items() if str(v) == granularity),
-            "1m"  # Default to 1m if not found
+            "1m",  # Default to 1m if not found
         )
 
         # Map Coinbase parameters to generic parameters
@@ -273,7 +276,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         if start:
             try:
                 # Try to parse ISO format first
-                dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
+                dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
                 result["start_time"] = int(dt.timestamp())
             except ValueError:
                 # If not ISO, assume it's already a timestamp
@@ -281,7 +284,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
 
         if end:
             try:
-                dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
+                dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
                 result["end_time"] = int(dt.timestamp())
             except ValueError:
                 result["end_time"] = end
@@ -305,25 +308,27 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         products = []
         for trading_pair in server.trading_pairs:
             base, quote = trading_pair.split("-", 1)
-            products.append({
-                "product_id": trading_pair,
-                "price": str(server.trading_pairs[trading_pair]),
-                "price_percentage_change_24h": "0.0",
-                "volume_24h": "1000.0",
-                "base_increment": "0.00000001",
-                "quote_increment": "0.01",
-                "quote_min_size": "1.0",
-                "quote_max_size": "10000.0",
-                "base_min_size": "0.0001",
-                "base_max_size": "10000.0",
-                "base_name": base,
-                "quote_name": quote,
-                "status": "online",
-                "cancel_only": False,
-                "limit_only": False,
-                "post_only": False,
-                "trading_disabled": False
-            })
+            products.append(
+                {
+                    "product_id": trading_pair,
+                    "price": str(server.trading_pairs[trading_pair]),
+                    "price_percentage_change_24h": "0.0",
+                    "volume_24h": "1000.0",
+                    "base_increment": "0.00000001",
+                    "quote_increment": "0.01",
+                    "quote_min_size": "1.0",
+                    "quote_max_size": "10000.0",
+                    "base_min_size": "0.0001",
+                    "base_max_size": "10000.0",
+                    "base_name": base,
+                    "quote_name": quote,
+                    "status": "online",
+                    "cancel_only": False,
+                    "limit_only": False,
+                    "post_only": False,
+                    "trading_disabled": False,
+                }
+            )
 
         return web.json_response({"products": products})
 
@@ -344,7 +349,4 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         current_time = datetime.fromtimestamp(server._time(), tz=timezone.utc)
         iso_time = current_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
 
-        return web.json_response({
-            "iso": iso_time,
-            "epoch": server._time()
-        })
+        return web.json_response({"iso": iso_time, "epoch": server._time()})

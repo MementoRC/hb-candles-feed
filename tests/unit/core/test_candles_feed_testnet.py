@@ -5,11 +5,10 @@ This module tests the CandlesFeed class's ability to correctly initialize
 and use a network configuration for testnet environments.
 """
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.network_config import EndpointType, NetworkConfig, NetworkEnvironment
 
@@ -43,11 +42,7 @@ class TestCandlesFeedTestnet:
         registry, adapter = mock_registry
 
         # Create feed with default network config (should be production)
-        CandlesFeed(
-            exchange="binance_spot",
-            trading_pair="BTC-USDT",
-            interval="1m"
-        )
+        CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="1m")
 
         # Check that the adapter was initialized
         assert registry.get_adapter_instance.called
@@ -70,7 +65,7 @@ class TestCandlesFeedTestnet:
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=NetworkConfig.testnet()
+            network_config=NetworkConfig.testnet(),
         )
 
         # Check that the adapter was initialized with the testnet config
@@ -88,16 +83,12 @@ class TestCandlesFeedTestnet:
 
         # Create hybrid config
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
 
         # Create feed with hybrid config
         CandlesFeed(
-            exchange="binance_spot",
-            trading_pair="BTC-USDT",
-            interval="1m",
-            network_config=config
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", network_config=config
         )
 
         # Check that the adapter was initialized with the hybrid config
@@ -114,16 +105,12 @@ class TestCandlesFeedTestnet:
 
         # Create a specific config instance
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            ticker=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, ticker=NetworkEnvironment.PRODUCTION
         )
 
         # Create feed with the config
         CandlesFeed(
-            exchange="binance_spot",
-            trading_pair="BTC-USDT",
-            interval="1m",
-            network_config=config
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", network_config=config
         )
 
         # Check that the exact same config instance was passed to the adapter
@@ -139,13 +126,13 @@ class TestCandlesFeedTestnet:
         adapter.supports_testnet.return_value = True
 
         # Mock the adapter's _log_testnet_status method to verify it's called
-        with patch.object(adapter, '_log_testnet_status'):
+        with patch.object(adapter, "_log_testnet_status"):
             # Create feed with testnet config
             feed = CandlesFeed(
                 exchange="binance_spot",
                 trading_pair="BTC-USDT",
                 interval="1m",
-                network_config=NetworkConfig.testnet()
+                network_config=NetworkConfig.testnet(),
             )
 
             # Verify that constructor instantiates correctly with the config
@@ -161,7 +148,7 @@ class TestCandlesFeedTestnet:
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=NetworkConfig.testnet()
+            network_config=NetworkConfig.testnet(),
         )
 
         # Setup the adapter to check testnet support
@@ -188,7 +175,7 @@ class TestCandlesFeedTestnet:
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=NetworkConfig.testnet()
+            network_config=NetworkConfig.testnet(),
         )
 
         # The adapter should be initialized with testnet config
@@ -208,7 +195,7 @@ class TestCandlesFeedTestnet:
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=NetworkConfig.testnet()
+            network_config=NetworkConfig.testnet(),
         )
 
         # Create a feed with production config
@@ -216,7 +203,7 @@ class TestCandlesFeedTestnet:
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=NetworkConfig.production()
+            network_config=NetworkConfig.production(),
         )
 
         # Create a feed with hybrid config
@@ -225,9 +212,8 @@ class TestCandlesFeedTestnet:
             trading_pair="BTC-USDT",
             interval="1m",
             network_config=NetworkConfig.hybrid(
-                candles=NetworkEnvironment.TESTNET,
-                orders=NetworkEnvironment.PRODUCTION
-            )
+                candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
+            ),
         )
 
         # Verify all were initialized with appropriate configs

@@ -62,7 +62,7 @@ class TestMockAdaptersWithStrategies:
             trading_pair="BTC-USDT",
             interval="1m",
             data_processor=data_processor,
-            candles_store=candles_store
+            candles_store=candles_store,
         )
 
         # Test poll_once
@@ -91,7 +91,7 @@ class TestMockAdaptersWithStrategies:
             trading_pair="BTC-USDT",
             interval="1m",
             data_processor=data_processor,
-            candles_store=candles_store
+            candles_store=candles_store,
         )
 
         # Test poll_once
@@ -116,7 +116,7 @@ class TestMockAdaptersWithStrategies:
             trading_pair="BTC-USDT",
             interval="1m",
             data_processor=data_processor,
-            candles_store=candles_store
+            candles_store=candles_store,
         )
 
         # Test poll_once using the async method
@@ -149,7 +149,7 @@ class TestMockAdaptersWithStrategies:
             interval="1m",
             network_client=network_client,
             data_processor=data_processor,
-            candles_store=candles_store
+            candles_store=candles_store,
         )
 
         # Verify it's a WebSocketStrategy
@@ -173,7 +173,7 @@ class TestMockAdaptersWithStrategies:
             interval="1m",
             network_client=network_client,
             data_processor=data_processor,
-            candles_store=candles_store
+            candles_store=candles_store,
         )
 
         # Verify it's a RESTPollingStrategy
@@ -192,7 +192,7 @@ class TestMockAdaptersWithStrategies:
             trading_pair="BTC-USDT",
             interval="1m",
             data_processor=data_processor,
-            candles_store=candles_store
+            candles_store=candles_store,
         )
 
         # Start the strategy

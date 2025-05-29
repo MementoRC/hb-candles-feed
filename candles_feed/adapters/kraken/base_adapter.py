@@ -258,7 +258,9 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                 # [timestamp, open, close, high, low, close, volume, end_time, amount]
                 candles.append(
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_row[0]),  # Time in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            candle_row[0]
+                        ),  # Time in seconds
                         open=float(candle_row[1]),
                         high=float(candle_row[3]),  # High is at index 3 in test fixture
                         low=float(candle_row[4]),  # Low is at index 4 in test fixture
@@ -282,7 +284,9 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             candle_data = data[1]
             return [
                 CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Time in seconds
+                    timestamp_raw=self.ensure_timestamp_in_seconds(
+                        candle_data[0]
+                    ),  # Time in seconds
                     open=float(candle_data[2]),
                     high=float(candle_data[3]),
                     low=float(candle_data[4]),

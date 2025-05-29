@@ -63,9 +63,9 @@ async def main():
 
         # Set simulated network conditions (optional)
         server.set_network_conditions(
-            latency_ms=50,        # 50ms latency
+            latency_ms=50,  # 50ms latency
             packet_loss_rate=0.0,  # No packet loss
-            error_rate=0.0         # No errors
+            error_rate=0.0,  # No errors
         )
 
         # Create and use the adapter

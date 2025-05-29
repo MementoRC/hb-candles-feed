@@ -3,15 +3,11 @@ Tests for the KrakenBaseAdapter using the base adapter test class.
 """
 
 from datetime import datetime, timezone
-from unittest import mock
-
-import pytest
 
 from candles_feed.adapters.kraken.base_adapter import KrakenBaseAdapter
 from candles_feed.adapters.kraken.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
@@ -119,7 +115,7 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
                         "50500.0",
                         "50250.0",  # VWAP
                         "100.0",
-                        158
+                        158,
                     ],
                     [
                         base_time + 60,
@@ -129,11 +125,11 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
                         "51500.0",
                         "51000.0",  # VWAP
                         "150.0",
-                        210
+                        210,
                     ],
                 ],
-                "last": base_time + 120
-            }
+                "last": base_time + 120,
+            },
         }
 
     def get_mock_websocket_message(self):
@@ -150,11 +146,11 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
                 "49000.0",  # low
                 "50500.0",  # close
                 "50250.0",  # VWAP
-                "100.0",    # volume
-                158         # count
+                "100.0",  # volume
+                158,  # count
             ],
             "ohlc-1",  # channel name
-            "XXBTZUSD"  # pair
+            "XXBTZUSD",  # pair
         ]
 
     # Additional test cases specific to KrakenBaseAdapter
@@ -204,12 +200,12 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
                         "49000.0",  # low
                         "50500.0",  # close
                         "50250.0",  # VWAP
-                        "100.0",    # volume
-                        158         # count
+                        "100.0",  # volume
+                        158,  # count
                     ]
                 ],
-                "last": timestamp + 60
-            }
+                "last": timestamp + 60,
+            },
         }
 
         candles = adapter._parse_rest_response(mock_response)
@@ -233,18 +229,18 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
         ws_message = [
             42,  # channelID
             [
-                str(timestamp),     # time
+                str(timestamp),  # time
                 str(timestamp + 60),  # end
-                "50000.0",          # open
-                "51000.0",          # high
-                "49000.0",          # low
-                "50500.0",          # close
-                "50250.0",          # VWAP
-                "100.0",            # volume
-                158                 # count
+                "50000.0",  # open
+                "51000.0",  # high
+                "49000.0",  # low
+                "50500.0",  # close
+                "50250.0",  # VWAP
+                "100.0",  # volume
+                158,  # count
             ],
             "ohlc-1",  # channel name
-            "XXBTZUSD"  # pair
+            "XXBTZUSD",  # pair
         ]
 
         candles = adapter.parse_ws_message(ws_message)

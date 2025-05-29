@@ -1,19 +1,12 @@
 """
 Tests for the AscendExBaseAdapter using the base adapter test class.
 """
-
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
 
 from candles_feed.adapters.ascend_ex.base_adapter import AscendExBaseAdapter
 from candles_feed.adapters.ascend_ex.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    SUB_ENDPOINT_NAME,
-    WS_INTERVALS,
 )
 from tests.unit.adapters.base_adapter_test import BaseAdapterTest
 
@@ -91,7 +84,7 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
                         "h": "51000.0",
                         "l": "49000.0",
                         "c": "50500.0",
-                        "v": "5000000.0"
+                        "v": "5000000.0",
                     }
                 },
                 {
@@ -101,10 +94,10 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
                         "h": "52000.0",
                         "l": "50000.0",
                         "c": "51500.0",
-                        "v": "7500000.0"
+                        "v": "7500000.0",
                     }
-                }
-            ]
+                },
+            ],
         }
 
     def get_mock_websocket_message(self):
@@ -119,8 +112,8 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
                 "h": "51000.0",
                 "l": "49000.0",
                 "c": "50500.0",
-                "v": "5000000.0"
-            }
+                "v": "5000000.0",
+            },
         }
 
     # Additional test cases specific to AscendExBaseAdapter
@@ -144,10 +137,7 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
         """Test AscendEx-specific REST parameter format."""
         # AscendEx uses 'n' instead of 'limit' and 'to' instead of 'endTime'
         params = adapter._get_rest_params(
-            trading_pair="BTC-USDT",
-            interval="1m",
-            end_time=1622592000,
-            limit=100
+            trading_pair="BTC-USDT", interval="1m", end_time=1622592000, limit=100
         )
 
         assert "n" in params
@@ -170,7 +160,7 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
             "m": "ping",
             "data": {
                 "ts": 1672531200000  # 2023-01-01 00:00:00 UTC in milliseconds
-            }
+            },
         }
 
         candles = adapter.parse_ws_message(ws_message)
@@ -191,10 +181,10 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
                         "h": "51000.0",
                         "l": "49000.0",
                         "c": "50500.0",
-                        "v": "5000000.0"  # This is quote asset volume in AscendEx
+                        "v": "5000000.0",  # This is quote asset volume in AscendEx
                     }
                 }
-            ]
+            ],
         }
 
         candles = adapter._parse_rest_response(response)

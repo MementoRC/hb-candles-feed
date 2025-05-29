@@ -19,20 +19,20 @@ async def main():
         interval="1m",
         network_config=NetworkConfig.testnet()
     )
-    
+
     try:
         # Start the feed
         print("Starting feed with testnet configuration...")
         await feed.start()
-        
+
         # Wait for some data to arrive
         print("Waiting for initial data...")
         await asyncio.sleep(5)
-        
+
         # Get and print candles
         candles = feed.get_candles()
         print(f"Received {len(candles)} candles from testnet")
-        
+
         # Print the most recent candle
         if candles:
             latest = candles[-1]
@@ -40,7 +40,7 @@ async def main():
                   f"open={latest.open}, high={latest.high}, "
                   f"low={latest.low}, close={latest.close}, "
                   f"volume={latest.volume}")
-    
+
     finally:
         # Stop the feed
         print("Stopping feed...")
@@ -65,7 +65,7 @@ async def main():
         candles=NetworkEnvironment.PRODUCTION,
         orders=NetworkEnvironment.TESTNET
     )
-    
+
     # Create a feed with this configuration
     feed = CandlesFeed(
         exchange="binance_spot",
@@ -73,25 +73,25 @@ async def main():
         interval="1m",
         network_config=config
     )
-    
+
     try:
         # Start the feed
         print("Starting feed with hybrid configuration...")
         await feed.start()
-        
+
         # Wait for some data to arrive
         print("Waiting for initial data...")
         await asyncio.sleep(5)
-        
+
         # Get and print candles
         candles = feed.get_candles()
         print(f"Received {len(candles)} candles from production")
-        
+
         # In a real implementation, we would now place orders on testnet
         # while using production market data
         print("In a real implementation, orders would go to testnet "
               "while using production market data")
-    
+
     finally:
         # Stop the feed
         print("Stopping feed...")
@@ -118,7 +118,7 @@ async def main():
         interval="1m",
         network_config=NetworkConfig.testnet()
     )
-    
+
     # Note: This is a placeholder - implementation would depend on
     # which exchanges have testnet support
     other_exchange_feed = CandlesFeed(
@@ -127,7 +127,7 @@ async def main():
         interval="1m",
         network_config=NetworkConfig.testnet()
     )
-    
+
     try:
         # Start both feeds
         print("Starting feeds with testnet configuration...")
@@ -135,18 +135,18 @@ async def main():
             binance_feed.start(),
             other_exchange_feed.start()
         )
-        
+
         # Wait for some data to arrive
         print("Waiting for initial data...")
         await asyncio.sleep(5)
-        
+
         # Get and print candles from both feeds
         binance_candles = binance_feed.get_candles()
         other_exchange_candles = other_exchange_feed.get_candles()
-        
+
         print(f"Received {len(binance_candles)} candles from Binance testnet")
         print(f"Received {len(other_exchange_candles)} candles from other exchange testnet")
-    
+
     finally:
         # Stop both feeds
         print("Stopping feeds...")

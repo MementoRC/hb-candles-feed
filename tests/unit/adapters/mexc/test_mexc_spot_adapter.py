@@ -8,10 +8,9 @@ from unittest import mock
 
 import pytest
 
-from candles_feed.adapters.mexc.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+from candles_feed.adapters.mexc.constants import (  # noqa: F401, used in BaseAdapterTest
+    INTERVAL_TO_EXCHANGE_FORMAT,  # noqa: F401, used in BaseAdapterTest
+    INTERVALS,  # noqa: F401, used in BaseAdapterTest
     SPOT_CANDLES_ENDPOINT,
     SPOT_KLINE_TOPIC,
     SPOT_REST_URL,
@@ -57,7 +56,7 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
             "interval": interval,
             "limit": limit,
             "startTime": start_time * 1000,  # MEXC uses milliseconds
-            "endTime": end_time * 1000,      # MEXC uses milliseconds
+            "endTime": end_time * 1000,  # MEXC uses milliseconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -72,42 +71,46 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)  # In milliseconds
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+        )  # In milliseconds
 
         return [
             [
                 base_time,
-                "50000.0",       # open
-                "51000.0",       # high
-                "49000.0",       # low
-                "50500.0",       # close
-                "100.0",         # volume
-                base_time + 59999, # close time
-                "5000000.0",     # quote volume
-                1000,            # number of trades
-                "60.0",          # taker buy base volume
-                "3000000.0",     # taker buy quote volume
-                "0",             # ignore
+                "50000.0",  # open
+                "51000.0",  # high
+                "49000.0",  # low
+                "50500.0",  # close
+                "100.0",  # volume
+                base_time + 59999,  # close time
+                "5000000.0",  # quote volume
+                1000,  # number of trades
+                "60.0",  # taker buy base volume
+                "3000000.0",  # taker buy quote volume
+                "0",  # ignore
             ],
             [
                 base_time + 60000,
-                "50500.0",       # open
-                "52000.0",       # high
-                "50000.0",       # low
-                "51500.0",       # close
-                "150.0",         # volume
-                base_time + 119999, # close time
-                "7500000.0",     # quote volume
-                1500,            # number of trades
-                "90.0",          # taker buy base volume
-                "4500000.0",     # taker buy quote volume
-                "0",             # ignore
+                "50500.0",  # open
+                "52000.0",  # high
+                "50000.0",  # low
+                "51500.0",  # close
+                "150.0",  # volume
+                base_time + 119999,  # close time
+                "7500000.0",  # quote volume
+                1500,  # number of trades
+                "90.0",  # taker buy base volume
+                "4500000.0",  # taker buy quote volume
+                "0",  # ignore
             ],
         ]
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)  # In milliseconds
+        base_time = int(
+            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+        )  # In milliseconds
 
         return {
             "d": {
@@ -118,7 +121,7 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
                 "c": "50500.0",
                 "v": "100.0",
                 "qv": "5000000.0",
-                "n": 1000
+                "n": 1000,
             }
         }
 
@@ -160,18 +163,18 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
 
         # Create a mock response row
         row = [
-            timestamp,         # Open time
-            "50000.0",         # Open
-            "51000.0",         # High
-            "49000.0",         # Low
-            "50500.0",         # Close
-            "100.0",           # Volume
-            timestamp + 59999, # Close time
-            "5000000.0",       # Quote asset volume
-            1000,              # Number of trades
-            "60.0",            # Taker buy base asset volume
-            "3000000.0",       # Taker buy quote asset volume
-            "0",               # Ignore
+            timestamp,  # Open time
+            "50000.0",  # Open
+            "51000.0",  # High
+            "49000.0",  # Low
+            "50500.0",  # Close
+            "100.0",  # Volume
+            timestamp + 59999,  # Close time
+            "5000000.0",  # Quote asset volume
+            1000,  # Number of trades
+            "60.0",  # Taker buy base asset volume
+            "3000000.0",  # Taker buy quote asset volume
+            "0",  # Ignore
         ]
 
         candles = adapter._parse_rest_response([row])
@@ -206,7 +209,7 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
                 "c": "50500.0",
                 "v": "100.0",
                 "qv": "5000000.0",
-                "n": 1000
+                "n": 1000,
             }
         }
 
@@ -256,15 +259,20 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
         # Skip test for SyncOnlyAdapter adapters
         with contextlib.suppress(ImportError):
             from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+
             if isinstance(adapter, SyncOnlyAdapter):
                 pytest.skip("Test only applicable for async adapters")
 
         # Create a mock network client
         mock_client = mock.MagicMock()
-        mock_client.get_rest_data = mock.AsyncMock(return_value=self.get_mock_candlestick_response())
+        mock_client.get_rest_data = mock.AsyncMock(
+            return_value=self.get_mock_candlestick_response()
+        )
 
         # Call the async method
-        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        candles = await adapter.fetch_rest_candles(
+            trading_pair, interval, network_client=mock_client
+        )
 
         # Basic validation
         assert isinstance(candles, list)
@@ -274,8 +282,8 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
+        assert kwargs["url"] == adapter._get_rest_url()
 
         # Just verify that params were passed without checking the exact content
-        assert 'params' in kwargs
-        assert isinstance(kwargs['params'], dict)
+        assert "params" in kwargs
+        assert isinstance(kwargs["params"], dict)

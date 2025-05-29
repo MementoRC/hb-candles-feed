@@ -5,10 +5,7 @@ This module tests the Binance adapter's testnet URL handling
 and integration with the TestnetSupportMixin.
 """
 
-import logging
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from candles_feed.adapters.binance.constants import (
     SPOT_CANDLES_ENDPOINT,
@@ -58,7 +55,9 @@ class TestBinanceSpotAdapterTestnet:
 
         # Print debug info
         print(f"TestnetSupportMixin implementation: {hasattr(adapter, '_get_testnet_rest_url')}")
-        print(f"Is testnet for candles: {adapter.network_config.is_testnet_for(EndpointType.CANDLES)}")
+        print(
+            f"Is testnet for candles: {adapter.network_config.is_testnet_for(EndpointType.CANDLES)}"
+        )
         print(f"SPOT_REST_URL: {SPOT_REST_URL}")
         print(f"SPOT_TESTNET_REST_URL: {SPOT_TESTNET_REST_URL}")
         print(f"_get_rest_url: {adapter._get_rest_url()}")
@@ -78,7 +77,7 @@ class TestBinanceSpotAdapterTestnet:
         config = NetworkConfig.hybrid(
             candles=NetworkEnvironment.TESTNET,
             orders=NetworkEnvironment.PRODUCTION,
-            account=NetworkEnvironment.PRODUCTION
+            account=NetworkEnvironment.PRODUCTION,
         )
 
         adapter = BinanceSpotAdapter(network_config=config)
@@ -91,7 +90,7 @@ class TestBinanceSpotAdapterTestnet:
         config = NetworkConfig.hybrid(
             candles=NetworkEnvironment.PRODUCTION,
             orders=NetworkEnvironment.TESTNET,
-            account=NetworkEnvironment.TESTNET
+            account=NetworkEnvironment.TESTNET,
         )
 
         adapter = BinanceSpotAdapter(network_config=config)
@@ -125,29 +124,39 @@ class TestBinanceSpotAdapterTestnet:
         config = NetworkConfig.hybrid(
             candles=NetworkEnvironment.TESTNET,
             ticker=NetworkEnvironment.PRODUCTION,
-            trades=NetworkEnvironment.TESTNET
+            trades=NetworkEnvironment.TESTNET,
         )
 
         adapter = BinanceSpotAdapter(network_config=config)
 
         # Test with endpoint_type parameter if supported
-        if hasattr(adapter, '_get_rest_url') and callable(adapter._get_rest_url):
+        if hasattr(adapter, "_get_rest_url") and callable(adapter._get_rest_url):
             # Check if the method accepts endpoint_type parameter
             import inspect
-            sig = inspect.signature(adapter._get_rest_url)
-            if 'endpoint_type' in sig.parameters:
-                # Test URL selection based on endpoint type
-                assert adapter._get_rest_url(endpoint_type=EndpointType.CANDLES) == f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
-                assert adapter._get_rest_url(endpoint_type=EndpointType.TICKER) == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
-                assert adapter._get_rest_url(endpoint_type=EndpointType.TRADES) == f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
-    @patch('logging.Logger.info')
+            sig = inspect.signature(adapter._get_rest_url)
+            if "endpoint_type" in sig.parameters:
+                # Test URL selection based on endpoint type
+                assert (
+                    adapter._get_rest_url(endpoint_type=EndpointType.CANDLES)
+                    == f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+                )
+                assert (
+                    adapter._get_rest_url(endpoint_type=EndpointType.TICKER)
+                    == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+                )
+                assert (
+                    adapter._get_rest_url(endpoint_type=EndpointType.TRADES)
+                    == f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+                )
+
+    @patch("logging.Logger.info")
     def test_testnet_logging(self, mock_log_info):
         """Test that the adapter logs its testnet status."""
         adapter = BinanceSpotAdapter(network_config=NetworkConfig.testnet())
 
         # Trigger logging method if it exists
-        if hasattr(adapter, '_log_testnet_status') and callable(adapter._log_testnet_status):
+        if hasattr(adapter, "_log_testnet_status") and callable(adapter._log_testnet_status):
             adapter._log_testnet_status()
 
             # Should log about testnet URLs
@@ -170,11 +179,10 @@ class TestBinanceSpotAdapterTestnet:
             EndpointType.TICKER: NetworkEnvironment.TESTNET,
             EndpointType.TRADES: NetworkEnvironment.PRODUCTION,
             EndpointType.ORDERS: NetworkEnvironment.PRODUCTION,
-            EndpointType.ACCOUNT: NetworkEnvironment.PRODUCTION
+            EndpointType.ACCOUNT: NetworkEnvironment.PRODUCTION,
         }
         config = NetworkConfig(
-            default_environment=NetworkEnvironment.PRODUCTION,
-            endpoint_overrides=overrides
+            default_environment=NetworkEnvironment.PRODUCTION, endpoint_overrides=overrides
         )
 
         adapter = BinanceSpotAdapter(network_config=config)

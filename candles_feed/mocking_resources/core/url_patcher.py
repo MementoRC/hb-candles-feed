@@ -105,7 +105,9 @@ class ExchangeURLPatcher:
                             setattr(module, attr_name, original_url)
                             logger.info(f"Restored {module_name}.{attr_name} to {original_url}")
                 except ImportError as e:
-                    logger.error(f"Failed to import module {module_name} during URL restoration: {e}")
+                    logger.error(
+                        f"Failed to import module {module_name} during URL restoration: {e}"
+                    )
 
             # Clear the stored URLs
             self.original_urls = {}
@@ -217,7 +219,7 @@ class ExchangeURLPatcher:
         if not exchange_info:
             # Try to construct a generic path if specific mapping not found
             is_perpetual = "perpetual" in exchange_name
-            exchange_base_name = exchange_name.split('_')[0]
+            exchange_base_name = exchange_name.split("_")[0]
 
             # Construct a generic module path
             return (
@@ -225,7 +227,7 @@ class ExchangeURLPatcher:
                 {
                     "rest": "PERPETUAL_REST_URL" if is_perpetual else "SPOT_REST_URL",
                     "ws": "PERPETUAL_WSS_URL" if is_perpetual else "SPOT_WSS_URL",
-                }
+                },
             )
 
         return exchange_info["module"], {

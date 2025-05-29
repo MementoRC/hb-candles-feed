@@ -119,11 +119,12 @@ def _get_plugin_from_registry(exchange_type: ExchangeType):
 
 MockExchangeServerType = TypeVar("MockExchangeServerType", bound="MockedExchangeServer")
 
+
 def create_mock_server(
     exchange_type: ExchangeType,
     host: str = "127.0.0.1",
     port: int = 8080,
-    trading_pairs: Optional[List[Tuple[str, str, float]]] = None
+    trading_pairs: Optional[List[Tuple[str, str, float]]] = None,
 ) -> Optional[MockExchangeServerType]:
     """Create a mock exchange server.
 

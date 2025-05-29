@@ -49,7 +49,7 @@ class TestCandlesFeed:
         """Create a CandlesFeed instance with mocked dependencies."""
         with patch(
             "candles_feed.core.hummingbot_network_client_adapter.NetworkClientFactory.create_client",
-            return_value=mock_network_client
+            return_value=mock_network_client,
         ):
             # Create a feed
             feed = CandlesFeed(

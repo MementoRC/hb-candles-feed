@@ -41,8 +41,9 @@ class TestTimestampConversion:
         def _get_rest_url(self) -> str:
             return "https://test.com/api"
 
-        def _get_rest_params(self, trading_pair: str, interval: str, start_time=None,
-                            end_time=None, limit=None) -> dict:
+        def _get_rest_params(
+            self, trading_pair: str, interval: str, start_time=None, end_time=None, limit=None
+        ) -> dict:
             return {}
 
         def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
@@ -50,18 +51,22 @@ class TestTimestampConversion:
 
     class MockSecondsAdapter(MockAdapter):
         """Mock adapter with seconds timestamp unit."""
+
         TIMESTAMP_UNIT = "seconds"
 
     class MockMillisecondsAdapter(MockAdapter):
         """Mock adapter with milliseconds timestamp unit."""
+
         TIMESTAMP_UNIT = "milliseconds"
 
     class MockIso8601Adapter(MockAdapter):
         """Mock adapter with ISO8601 timestamp unit."""
+
         TIMESTAMP_UNIT = "iso8601"
 
     class MockUndefinedAdapter(MockAdapter):
         """Mock adapter with undefined timestamp unit."""
+
         TIMESTAMP_UNIT = ""
 
     def test_convert_timestamp_seconds(self):
@@ -193,7 +198,7 @@ class TestBaseAdapter:
                     high=data["data"]["high"],
                     low=data["data"]["low"],
                     close=data["data"]["close"],
-                    volume=data["data"]["volume"]
+                    volume=data["data"]["volume"],
                 )
             ]
 
@@ -205,8 +210,9 @@ class TestBaseAdapter:
             """Get REST URL."""
             return "https://test.com/api"
 
-        def _get_rest_params(self, trading_pair: str, interval: str, start_time=None,
-                            end_time=None, limit=None) -> dict:
+        def _get_rest_params(
+            self, trading_pair: str, interval: str, start_time=None, end_time=None, limit=None
+        ) -> dict:
             """Get REST parameters."""
             params = {"symbol": trading_pair, "interval": interval}
             if start_time:
@@ -230,7 +236,7 @@ class TestBaseAdapter:
                         high=float(item[2]),
                         low=float(item[3]),
                         close=float(item[4]),
-                        volume=float(item[5])
+                        volume=float(item[5]),
                     )
                     for item in data
                 ]
@@ -245,13 +251,15 @@ class TestBaseAdapter:
             network_client: NetworkClientProtocol | None = None,
         ) -> list[CandleData]:
             """Fetch REST candles."""
-            self.fetch_rest_candles_calls.append({
-                "trading_pair": trading_pair,
-                "interval": interval,
-                "start_time": start_time,
-                "limit": limit,
-                "network_client": network_client
-            })
+            self.fetch_rest_candles_calls.append(
+                {
+                    "trading_pair": trading_pair,
+                    "interval": interval,
+                    "start_time": start_time,
+                    "limit": limit,
+                    "network_client": network_client,
+                }
+            )
 
             # Default implementation for testing
             url = self._get_rest_url()
@@ -308,8 +316,8 @@ class TestBaseAdapter:
                 "high": 101.0,
                 "low": 99.0,
                 "close": 100.5,
-                "volume": 1000.0
-            }
+                "volume": 1000.0,
+            },
         }
         candles = adapter.parse_ws_message(message)
         assert len(candles) == 1
@@ -424,9 +432,9 @@ class TestBaseAdapter:
 
         # Create mock network client
         mock_client = Mock(spec=NetworkClientProtocol)
-        mock_client.get_rest_data = AsyncMock(return_value=[
-            [1620000000, "200.0", "201.0", "199.0", "200.5", "2000.0"]
-        ])
+        mock_client.get_rest_data = AsyncMock(
+            return_value=[[1620000000, "200.0", "201.0", "199.0", "200.5", "2000.0"]]
+        )
 
         # Test with network client
         candles = await adapter.fetch_rest_candles(
@@ -434,7 +442,7 @@ class TestBaseAdapter:
             interval="1m",
             start_time=1620000000,
             limit=100,
-            network_client=mock_client
+            network_client=mock_client,
         )
 
         # Verify method was called with correct parameters
@@ -459,4 +467,3 @@ class TestBaseAdapter:
         assert len(candles) == 1
         assert candles[0].timestamp == 1620000000
         assert candles[0].open == 200.0
-

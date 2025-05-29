@@ -4,7 +4,7 @@ Unit tests for TestnetSupportMixin.
 This module tests the functionality provided by the TestnetSupportMixin class.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -47,6 +47,7 @@ class TestnetMockAdapter(TestnetSupportMixin, MockAdapter):
 
 class NoTestnetMockAdapter(TestnetSupportMixin, MockAdapter):
     """Mock adapter without testnet support for testing."""
+
     # Inherits TestnetSupportMixin but doesn't implement the testnet URL methods
 
 
@@ -90,16 +91,14 @@ class TestTestnetSupportMixin:
     def test_get_rest_url_hybrid(self):
         """Test _get_rest_url method with hybrid configuration."""
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
         adapter = TestnetMockAdapter(network_config=config)
         assert adapter._get_rest_url() == "https://testnet-api.com/v1/endpoint"
 
         # Flip configuration
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.PRODUCTION,
-            orders=NetworkEnvironment.TESTNET
+            candles=NetworkEnvironment.PRODUCTION, orders=NetworkEnvironment.TESTNET
         )
         adapter = TestnetMockAdapter(network_config=config)
         assert adapter._get_rest_url() == "https://production-api.com/v1/endpoint"
@@ -122,7 +121,7 @@ class TestTestnetSupportMixin:
         adapter = NoTestnetMockAdapter()
         assert adapter.supports_testnet() is False
 
-    @patch('logging.Logger.info')
+    @patch("logging.Logger.info")
     def test_log_testnet_status(self, mock_log_info):
         """Test _log_testnet_status method."""
         # Test with all testnet
@@ -137,8 +136,7 @@ class TestTestnetSupportMixin:
 
         # Test with hybrid configuration
         config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
         adapter = TestnetMockAdapter(network_config=config)
         adapter._log_testnet_status()
@@ -167,7 +165,7 @@ class TestTestnetSupportMixin:
         config = NetworkConfig.hybrid(
             candles=NetworkEnvironment.TESTNET,
             ticker=NetworkEnvironment.PRODUCTION,
-            trades=NetworkEnvironment.TESTNET
+            trades=NetworkEnvironment.TESTNET,
         )
 
         adapter = TestnetMockAdapter(network_config=config)
@@ -197,9 +195,11 @@ class TestTestnetSupportMixin:
         This tests the behavior when an adapter that doesn't support testnet
         is configured to use testnet. It should fall back to production URLs.
         """
+
         # Create a custom adapter class that handles testnet gracefully
         class GracefulNoTestnetAdapter(TestnetSupportMixin, MockAdapter):
             """Mock adapter without testnet support but handles it gracefully."""
+
             def supports_testnet(self):
                 """Report that testnet is not supported."""
                 return False
@@ -221,6 +221,7 @@ class TestTestnetSupportMixin:
 
     def test_inheritance_order(self):
         """Test that inheritance order is important for TestnetSupportMixin."""
+
         # Create a class with wrong inheritance order
         class WrongOrderAdapter(MockAdapter, TestnetSupportMixin):
             def _get_testnet_rest_url(self):

@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from candles_feed.adapters.adapter_mixins import TestnetSupportMixin
-from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.core.network_config import EndpointType, NetworkConfig, NetworkEnvironment
+from candles_feed.core.candles_feed import CandlesFeed  # noqa: F401, used in skipped test
+from candles_feed.core.network_config import NetworkConfig, NetworkEnvironment
 
 
 class TestNetworkConfigWithMixin:
@@ -72,8 +72,7 @@ class TestNetworkConfigWithMixin:
         production_config = NetworkConfig.production()
         testnet_config = NetworkConfig.testnet()
         hybrid_config = NetworkConfig.hybrid(
-            candles=NetworkEnvironment.TESTNET,
-            orders=NetworkEnvironment.PRODUCTION
+            candles=NetworkEnvironment.TESTNET, orders=NetworkEnvironment.PRODUCTION
         )
 
         # Create adapters with different configs
@@ -81,21 +80,21 @@ class TestNetworkConfigWithMixin:
             exchange="test_exchange",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=production_config
+            network_config=production_config,
         )
 
         testnet_adapter = self.TestnetAdapter(
             exchange="test_exchange",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=testnet_config
+            network_config=testnet_config,
         )
 
         hybrid_adapter = self.TestnetAdapter(
             exchange="test_exchange",
             trading_pair="BTC-USDT",
             interval="1m",
-            network_config=hybrid_config
+            network_config=hybrid_config,
         )
 
         # Verify production adapter uses production URLs
@@ -123,9 +122,7 @@ class TestNetworkConfigWithMixin:
             # Configure mock registry to return our adapter
             mock_registry_instance = MagicMock()
             mock_registry_instance.get_adapter_instance.return_value = self.TestnetAdapter(
-                exchange="test_exchange",
-                trading_pair="BTC-USDT",
-                interval="1m"
+                exchange="test_exchange", trading_pair="BTC-USDT", interval="1m"
             )
             mock_registry.return_value = mock_registry_instance
 
@@ -134,7 +131,7 @@ class TestNetworkConfigWithMixin:
                 exchange="test_exchange",
                 trading_pair="BTC-USDT",
                 interval="1m",
-                network_config=NetworkConfig.testnet()
+                network_config=NetworkConfig.testnet(),
             )
 
             # Verify adapter was called with network config

@@ -59,14 +59,14 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                     "/fapi/v1/klines": 2,
                     "/fapi/v1/time": 1,
                     "/fapi/v1/exchangeInfo": 10,
-                }
+                },
             },
             "ws": {
                 "limit": 5,  # Messages per second
                 "burst": 10,  # Max burst
                 "connection_limit": 50,  # Max concurrent connections
                 "subscription_limit": 1000,  # Total subscriptions allowed
-            }
+            },
         }
 
     @property
@@ -82,15 +82,15 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                 "permissions": ["SPOT", "MARGIN", "FUTURES"],
                 "ip_whitelist": ["*"],  # Allowed IPs, * means all
                 "created_time": int(time.time() * 1000) - 86400000,  # 1 day ago
-                "enabled": True
+                "enabled": True,
             },
             "TESTKEY123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ": {
                 "api_secret": "TESTSECRET123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
                 "permissions": ["SPOT"],
                 "ip_whitelist": ["127.0.0.1"],
                 "created_time": int(time.time() * 1000),
-                "enabled": True
-            }
+                "enabled": True,
+            },
         }
 
     @property
@@ -103,7 +103,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         return {
             "websocket_keep_alive": {
                 "interval_seconds": 180,  # 3 minutes for Binance
-                "type": "ping"  # Binance uses ping for keep-alive
+                "type": "ping",  # Binance uses ping for keep-alive
             }
         }
 
@@ -165,12 +165,16 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                             for trading_pair, interval in subscriptions:
                                 # Normalize trading pair
                                 for pair in server.candles:
-                                    if self.normalize_trading_pair(pair).replace("-", "") == trading_pair.replace("-", ""):
+                                    if self.normalize_trading_pair(pair).replace(
+                                        "-", ""
+                                    ) == trading_pair.replace("-", ""):
                                         trading_pair = pair
                                         break
 
                                 # Create subscription key
-                                subscription_key = self.create_ws_subscription_key(trading_pair, interval)
+                                subscription_key = self.create_ws_subscription_key(
+                                    trading_pair, interval
+                                )
 
                                 # Add to subscriptions
                                 if subscription_key not in server.subscriptions:
@@ -179,7 +183,10 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                                 server.subscriptions[subscription_key].add(ws)
 
                                 # Send the current candle immediately if available
-                                if trading_pair in server.candles and interval in server.candles[trading_pair]:
+                                if (
+                                    trading_pair in server.candles
+                                    and interval in server.candles[trading_pair]
+                                ):
                                     candles = server.candles[trading_pair][interval]
                                     if candles:
                                         current_candle = candles[-1]
@@ -187,12 +194,14 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                                             candle=current_candle,
                                             trading_pair=trading_pair,
                                             interval=interval,
-                                            is_final=True
+                                            is_final=True,
                                         )
                                         await ws.send_json(message)
 
                             # Send subscription success response
-                            success_response = self.create_ws_subscription_success(data, subscriptions)
+                            success_response = self.create_ws_subscription_success(
+                                data, subscriptions
+                            )
                             await ws.send_json(success_response)
 
                         elif method == "UNSUBSCRIBE":
@@ -203,12 +212,16 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                             for trading_pair, interval in subscriptions:
                                 # Find the actual trading pair
                                 for pair in server.candles:
-                                    if self.normalize_trading_pair(pair).replace("-", "") == trading_pair.replace("-", ""):
+                                    if self.normalize_trading_pair(pair).replace(
+                                        "-", ""
+                                    ) == trading_pair.replace("-", ""):
                                         trading_pair = pair
                                         break
 
                                 # Create subscription key
-                                subscription_key = self.create_ws_subscription_key(trading_pair, interval)
+                                subscription_key = self.create_ws_subscription_key(
+                                    trading_pair, interval
+                                )
 
                                 # Remove from subscriptions
                                 if subscription_key in server.subscriptions:
@@ -219,15 +232,16 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                                         del server.subscriptions[subscription_key]
 
                             # Send unsubscription success response
-                            success_response = self.create_ws_subscription_success(data, subscriptions)
+                            success_response = self.create_ws_subscription_success(
+                                data, subscriptions
+                            )
                             await ws.send_json(success_response)
 
                         else:
                             # Unknown method
-                            await ws.send_json({
-                                "error": f"Unknown method: {method}",
-                                "id": data.get("id")
-                            })
+                            await ws.send_json(
+                                {"error": f"Unknown method: {method}", "id": data.get("id")}
+                            )
 
                     except json.JSONDecodeError:
                         await ws.send_json({"error": "Invalid JSON"})
@@ -256,7 +270,11 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         return ws
 
     def format_rest_candles(
-        self, candles: list[CandleData], trading_pair: str, interval: str, timezone_adjustment_ms: int = 0
+        self,
+        candles: list[CandleData],
+        trading_pair: str,
+        interval: str,
+        timezone_adjustment_ms: int = 0,
     ) -> list:
         """
         Format candle data as a Binance REST API response.
@@ -292,17 +310,17 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             [
                 # Apply timezone adjustment if provided
                 int(c.timestamp_ms) + timezone_adjustment_ms,  # Open time
-                str(c.open),                                   # Open
-                str(c.high),                                   # High
-                str(c.low),                                    # Low
-                str(c.close),                                  # Close
-                str(c.volume),                                 # Volume
+                str(c.open),  # Open
+                str(c.high),  # High
+                str(c.low),  # Low
+                str(c.close),  # Close
+                str(c.volume),  # Volume
                 int(c.timestamp_ms) + interval_ms + timezone_adjustment_ms,  # Close time
-                str(c.quote_asset_volume),                     # Quote asset volume
-                100,                                           # Number of trades (placeholder)
-                str(c.volume * 0.7),                           # Taker buy base asset volume (placeholder)
-                str(c.quote_asset_volume * 0.7),               # Taker buy quote asset volume (placeholder)
-                "0"                                            # Ignore
+                str(c.quote_asset_volume),  # Quote asset volume
+                100,  # Number of trades (placeholder)
+                str(c.volume * 0.7),  # Taker buy base asset volume (placeholder)
+                str(c.quote_asset_volume * 0.7),  # Taker buy quote asset volume (placeholder)
+                "0",  # Ignore
             ]
             for c in candles
         ]
@@ -327,7 +345,6 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             return value * 7 * 24 * 60 * 60 * 1000
         else:
             return 60 * 1000  # Default to 1m
-
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -391,8 +408,8 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                 "q": str(candle.quote_asset_volume),
                 "V": str(candle.volume * 0.7),
                 "Q": str(candle.quote_asset_volume * 0.7),
-                "B": "0"
-            }
+                "B": "0",
+            },
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -448,10 +465,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         #   "result": null,
         #   "id": 1
         # }
-        return {
-            "result": None,
-            "id": message.get("id", 1)
-        }
+        return {"result": None, "id": message.get("id", 1)}
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
         """
@@ -481,10 +495,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names or error information
         """
         params = request.query
-        result = {
-            "valid": True,
-            "error": None
-        }
+        result = {"valid": True, "error": None}
 
         # Get all Binance klines parameters
         symbol = params.get("symbol")
@@ -499,24 +510,41 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             result["valid"] = False
             result["error"] = {
                 "code": -1102,
-                "msg": "Mandatory parameter 'symbol' not sent or invalid."
+                "msg": "Mandatory parameter 'symbol' not sent or invalid.",
             }
             return result
 
         # Validate interval
-        valid_intervals = ["1s", "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"]
+        valid_intervals = [
+            "1s",
+            "1m",
+            "3m",
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "2h",
+            "4h",
+            "6h",
+            "8h",
+            "12h",
+            "1d",
+            "3d",
+            "1w",
+            "1M",
+        ]
         if not interval:
             result["valid"] = False
             result["error"] = {
                 "code": -1120,
-                "msg": "Mandatory parameter 'interval' not sent or invalid."
+                "msg": "Mandatory parameter 'interval' not sent or invalid.",
             }
             return result
         elif interval not in valid_intervals:
             result["valid"] = False
             result["error"] = {
                 "code": -1121,
-                "msg": f"Invalid interval: {interval}. Supported intervals: {', '.join(valid_intervals)}"
+                "msg": f"Invalid interval: {interval}. Supported intervals: {', '.join(valid_intervals)}",
             }
             return result
 
@@ -529,15 +557,12 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                     result["valid"] = False
                     result["error"] = {
                         "code": -1125,
-                        "msg": "Invalid parameter: endTime must be greater than startTime"
+                        "msg": "Invalid parameter: endTime must be greater than startTime",
                     }
                     return result
             except ValueError:
                 result["valid"] = False
-                result["error"] = {
-                    "code": -1104,
-                    "msg": "Not a valid timeframe format"
-                }
+                result["error"] = {"code": -1104, "msg": "Not a valid timeframe format"}
                 return result
 
         # Process limit parameter
@@ -546,19 +571,13 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                 limit = int(limit)
                 if limit <= 0:
                     result["valid"] = False
-                    result["error"] = {
-                        "code": -1127,
-                        "msg": "Limit must be greater than 0"
-                    }
+                    result["error"] = {"code": -1127, "msg": "Limit must be greater than 0"}
                     return result
                 if limit > 1000:  # Binance limit is 1000
                     limit = 1000
             except ValueError:
                 result["valid"] = False
-                result["error"] = {
-                    "code": -1128,
-                    "msg": "Limit must be an integer"
-                }
+                result["error"] = {"code": -1128, "msg": "Limit must be an integer"}
                 return result
         else:
             limit = 500  # Default limit
@@ -577,32 +596,30 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                 result["valid"] = False
                 result["error"] = {
                     "code": -1130,
-                    "msg": "Invalid timeZone parameter: must be between -12:00 and +14:00"
+                    "msg": "Invalid timeZone parameter: must be between -12:00 and +14:00",
                 }
                 return result
         except (ValueError, TypeError):
             result["valid"] = False
-            result["error"] = {
-                "code": -1130,
-                "msg": "Invalid timeZone parameter format"
-            }
+            result["error"] = {"code": -1130, "msg": "Invalid timeZone parameter format"}
             return result
 
         # Map Binance parameters to generic parameters expected by handle_klines
-        result.update({
-            "symbol": symbol,            # 'symbol' is the same in both
-            "interval": interval,        # 'interval' is the same in both
-            "start_time": start_time,    # 'startTime' in Binance maps to 'start_time' in generic handler
-            "end_time": end_time,        # 'endTime' in Binance maps to 'end_time' in generic handler
-            "time_zone": time_zone,      # 'timeZone' in Binance maps to 'time_zone'
-            "limit": limit,              # 'limit' has the same name
-
-            # Also keep the original Binance parameter names for reference
-            "startTime": start_time,
-            "endTime": end_time,
-            "timeZone": time_zone,
-            "timezone_offset_hours": timezone_offset_hours,
-        })
+        result.update(
+            {
+                "symbol": symbol,  # 'symbol' is the same in both
+                "interval": interval,  # 'interval' is the same in both
+                "start_time": start_time,  # 'startTime' in Binance maps to 'start_time' in generic handler
+                "end_time": end_time,  # 'endTime' in Binance maps to 'end_time' in generic handler
+                "time_zone": time_zone,  # 'timeZone' in Binance maps to 'time_zone'
+                "limit": limit,  # 'limit' has the same name
+                # Also keep the original Binance parameter names for reference
+                "startTime": start_time,
+                "endTime": end_time,
+                "timeZone": time_zone,
+                "timezone_offset_hours": timezone_offset_hours,
+            }
+        )
 
         return result
 
@@ -635,22 +652,20 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         if not symbol:
             return web.json_response(
                 {"code": -1102, "msg": "Mandatory parameter 'symbol' not sent or invalid."},
-                status=400
+                status=400,
             )
 
         try:
             limit = int(limit_str)
             if limit <= 0:
                 return web.json_response(
-                    {"code": -1100, "msg": "Illegal parameter format: limit"},
-                    status=400
+                    {"code": -1100, "msg": "Illegal parameter format: limit"}, status=400
                 )
             if limit > 5000:
                 limit = 5000
         except ValueError:
             return web.json_response(
-                {"code": -1100, "msg": "Illegal parameter format: limit"},
-                status=400
+                {"code": -1100, "msg": "Illegal parameter format: limit"}, status=400
             )
 
         # Generate mock order book data
@@ -667,8 +682,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         if not normalized_pair:
             # Trading pair not found, return empty response
             return web.json_response(
-                {"code": -1121, "msg": f"Invalid symbol: {symbol}"},
-                status=400
+                {"code": -1121, "msg": f"Invalid symbol: {symbol}"}, status=400
             )
 
         # Get the last candle to determine current price
@@ -696,11 +710,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             asks.append([f"{price:.8f}", f"{quantity:.8f}"])
 
         # Format response according to Binance API
-        response = {
-            "lastUpdateId": timestamp,
-            "bids": bids,
-            "asks": asks
-        }
+        response = {"lastUpdateId": timestamp, "bids": bids, "asks": asks}
 
         return web.json_response(response)
 
@@ -739,8 +749,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             if not normalized_pair:
                 # Trading pair not found, return error
                 return web.json_response(
-                    {"code": -1121, "msg": f"Invalid symbol: {symbol}"},
-                    status=400
+                    {"code": -1121, "msg": f"Invalid symbol: {symbol}"}, status=400
                 )
 
             # Get the last candle to determine current price
@@ -751,10 +760,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                     current_price = candles[-1].close
                     break
 
-            response = {
-                "symbol": trading_pair,
-                "price": f"{current_price:.8f}"
-            }
+            response = {"symbol": trading_pair, "price": f"{current_price:.8f}"}
 
             return web.json_response(response)
 
@@ -773,10 +779,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                         current_price = candles[-1].close
                         break
 
-                prices.append({
-                    "symbol": trading_pair,
-                    "price": f"{current_price:.8f}"
-                })
+                prices.append({"symbol": trading_pair, "price": f"{current_price:.8f}"})
 
             return web.json_response(prices)
 
@@ -813,11 +816,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             free = random.uniform(0.1, 100.0)
             locked = random.uniform(0.0, 10.0)
 
-            balances.append({
-                "asset": asset,
-                "free": f"{free:.8f}",
-                "locked": f"{locked:.8f}"
-            })
+            balances.append({"asset": asset, "free": f"{free:.8f}", "locked": f"{locked:.8f}"})
 
         # Add balances for all trading pairs in the server
         for pair in server.trading_pairs:
@@ -828,11 +827,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                 free = random.uniform(0.1, 100.0)
                 locked = random.uniform(0.0, 10.0)
 
-                balances.append({
-                    "asset": base,
-                    "free": f"{free:.8f}",
-                    "locked": f"{locked:.8f}"
-                })
+                balances.append({"asset": base, "free": f"{free:.8f}", "locked": f"{locked:.8f}"})
 
         response = {
             "makerCommission": 10,
@@ -845,7 +840,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             "updateTime": int(time.time() * 1000),
             "accountType": "SPOT",
             "balances": balances,
-            "permissions": ["SPOT"]
+            "permissions": ["SPOT"],
         }
 
         return web.json_response(response)
@@ -880,10 +875,11 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                     "quoteCcy": quote,
                     "settleCcy": quote,
                     "ctValCcy": quote,
-                    "optType": "C", # or "P" for put options
+                    "optType": "C",  # or "P" for put options
                     "stk": trading_pair,
                     "listTime": int(server._time() * 1000),
-                    "expTime": int(server._time() * 1000) + 3600 * 24 * 30 * 1000, # 30 days from now
+                    "expTime": int(server._time() * 1000)
+                    + 3600 * 24 * 30 * 1000,  # 30 days from now
                     "lever": "10",
                     "tickSz": "0.01",
                     "lotSz": "1",
@@ -895,7 +891,6 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
 
         response = {"code": "0", "msg": "", "data": instruments}
         return web.json_response(response)
-
 
     @staticmethod
     def _interval_to_seconds(interval: str) -> int:
@@ -986,30 +981,32 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                     base, quote = trading_pair[:-4], trading_pair[-4:]
 
             # Add symbol information
-            symbols.append({
-                "symbol": trading_pair.replace("-", ""),
-                "status": "TRADING",
-                "baseAsset": base,
-                "baseAssetPrecision": 8,
-                "quoteAsset": quote,
-                "quotePrecision": 8,
-                "orderTypes": ["LIMIT", "MARKET"],
-                "icebergAllowed": True,
-                "filters": [
-                    {
-                        "filterType": "PRICE_FILTER",
-                        "minPrice": "0.00000001",
-                        "maxPrice": "100000.00000000",
-                        "tickSize": "0.00000001"
-                    },
-                    {
-                        "filterType": "LOT_SIZE",
-                        "minQty": "0.00100000",
-                        "maxQty": "100000.00000000",
-                        "stepSize": "0.00100000"
-                    }
-                ]
-            })
+            symbols.append(
+                {
+                    "symbol": trading_pair.replace("-", ""),
+                    "status": "TRADING",
+                    "baseAsset": base,
+                    "baseAssetPrecision": 8,
+                    "quoteAsset": quote,
+                    "quotePrecision": 8,
+                    "orderTypes": ["LIMIT", "MARKET"],
+                    "icebergAllowed": True,
+                    "filters": [
+                        {
+                            "filterType": "PRICE_FILTER",
+                            "minPrice": "0.00000001",
+                            "maxPrice": "100000.00000000",
+                            "tickSize": "0.00000001",
+                        },
+                        {
+                            "filterType": "LOT_SIZE",
+                            "minQty": "0.00100000",
+                            "maxQty": "100000.00000000",
+                            "stepSize": "0.00100000",
+                        },
+                    ],
+                }
+            )
 
         # Prepare response
         response = {
@@ -1020,11 +1017,11 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                     "rateLimitType": "REQUEST_WEIGHT",
                     "interval": "MINUTE",
                     "intervalNum": 1,
-                    "limit": server.rate_limits.get("rest", {}).get("limit", 1200)
+                    "limit": server.rate_limits.get("rest", {}).get("limit", 1200),
                 }
             ],
             "exchangeFilters": [],
-            "symbols": symbols
+            "symbols": symbols,
         }
 
         return web.json_response(response)
@@ -1045,6 +1042,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
 
         # Parse parameters using our plugin method - handle both async and sync methods
         import inspect
+
         if inspect.iscoroutinefunction(self.parse_rest_candles_params):
             params = await self.parse_rest_candles_params(request)
         else:
@@ -1108,4 +1106,3 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         )
 
         return web.json_response(response_data)
-

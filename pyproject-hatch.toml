@@ -140,11 +140,11 @@ include = [
     "setup.py",
 ]
 exclude = [
-    "build", 
-    "dist", 
-    "**/__pycache__", 
-    "**/*.pyc", 
-    ".git", 
+    "build",
+    "dist",
+    "**/__pycache__",
+    "**/*.pyc",
+    ".git",
     ".github",
     "**/.pytest_cache",
     "**/.mypy_cache",

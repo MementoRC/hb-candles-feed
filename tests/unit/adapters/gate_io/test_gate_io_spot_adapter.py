@@ -7,9 +7,8 @@ from unittest import mock
 
 import pytest
 
-from candles_feed.adapters.gate_io.constants import (
-    INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
+from candles_feed.adapters.gate_io.constants import (  # noqa: F401, used in BaseAdapterTest
+    INTERVAL_TO_EXCHANGE_FORMAT,  # noqa: F401, used in BaseAdapterTest
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_CHANNEL_NAME,
@@ -55,7 +54,7 @@ class TestGateIoSpotAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "from": start_time,  # Gate.io uses seconds
-            "to": end_time,      # Gate.io uses seconds
+            "to": end_time,  # Gate.io uses seconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -78,24 +77,24 @@ class TestGateIoSpotAdapter(BaseAdapterTest):
 
         return [
             [
-                str(base_time),      # timestamp
-                "50000.0",           # open
-                "50500.0",           # close
-                "49000.0",           # low
-                "51000.0",           # high
-                "100.0",             # volume
-                "5000000.0",         # quote currency volume
-                "BTC_USDT",          # currency pair
+                str(base_time),  # timestamp
+                "50000.0",  # open
+                "50500.0",  # close
+                "49000.0",  # low
+                "51000.0",  # high
+                "100.0",  # volume
+                "5000000.0",  # quote currency volume
+                "BTC_USDT",  # currency pair
             ],
             [
-                str(base_time + 60), # timestamp
-                "50500.0",           # open
-                "51500.0",           # close
-                "50000.0",           # low
-                "52000.0",           # high
-                "150.0",             # volume
-                "7500000.0",         # quote currency volume
-                "BTC_USDT",          # currency pair
+                str(base_time + 60),  # timestamp
+                "50500.0",  # open
+                "51500.0",  # close
+                "50000.0",  # low
+                "52000.0",  # high
+                "150.0",  # volume
+                "7500000.0",  # quote currency volume
+                "BTC_USDT",  # currency pair
             ],
         ]
 
@@ -110,13 +109,13 @@ class TestGateIoSpotAdapter(BaseAdapterTest):
                 {"currency_pair": "BTC_USDT", "interval": "1m", "status": "open"},
                 [
                     str(base_time),  # timestamp
-                    "50000.0",       # open
-                    "50500.0",       # close
-                    "49000.0",       # low
-                    "51000.0",       # high
-                    "100.0",         # volume
-                    "5000000.0",     # quote currency volume
-                    "BTC_USDT",      # currency pair
+                    "50000.0",  # open
+                    "50500.0",  # close
+                    "49000.0",  # low
+                    "51000.0",  # high
+                    "100.0",  # volume
+                    "5000000.0",  # quote currency volume
+                    "BTC_USDT",  # currency pair
                 ],
             ],
         }
@@ -156,10 +155,14 @@ class TestGateIoSpotAdapter(BaseAdapterTest):
         """Test fetch_rest_candles async method."""
         # Create a mock network client
         mock_client = mock.MagicMock()
-        mock_client.get_rest_data = mock.AsyncMock(return_value=self.get_mock_candlestick_response())
+        mock_client.get_rest_data = mock.AsyncMock(
+            return_value=self.get_mock_candlestick_response()
+        )
 
         # Call the async method
-        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        candles = await adapter.fetch_rest_candles(
+            trading_pair, interval, network_client=mock_client
+        )
 
         # Basic validation
         assert isinstance(candles, list)
@@ -169,7 +172,7 @@ class TestGateIoSpotAdapter(BaseAdapterTest):
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
+        assert kwargs["url"] == adapter._get_rest_url()
         # Verify params match expected values
         expected_params = adapter._get_rest_params(trading_pair, interval)
-        assert kwargs['params'] == expected_params
+        assert kwargs["params"] == expected_params

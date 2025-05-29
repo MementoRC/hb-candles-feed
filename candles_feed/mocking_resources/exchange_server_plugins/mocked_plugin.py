@@ -105,10 +105,14 @@ class MockedPlugin(ExchangePlugin):
                 "close": str(candle.close),
                 "volume": str(candle.volume),
                 "close_time": int(candle.timestamp_ms) + interval_ms,
-                "quote_volume": str(candle.quote_asset_volume) if candle.quote_asset_volume else "0",
+                "quote_volume": str(candle.quote_asset_volume)
+                if candle.quote_asset_volume
+                else "0",
                 "trades": 100,
                 "taker_base_volume": str(candle.volume * 0.7),
-                "taker_quote_volume": str(candle.quote_asset_volume * 0.7) if candle.quote_asset_volume else "0"
+                "taker_quote_volume": str(candle.quote_asset_volume * 0.7)
+                if candle.quote_asset_volume
+                else "0",
             }
             for candle in candles
         ]
@@ -118,7 +122,7 @@ class MockedPlugin(ExchangePlugin):
             "status": "ok",
             "symbol": trading_pair,
             "interval": interval,
-            "data": formatted_candles
+            "data": formatted_candles,
         }
 
     def format_ws_candle_message(
@@ -146,8 +150,10 @@ class MockedPlugin(ExchangePlugin):
                 "low": str(candle.low),
                 "close": str(candle.close),
                 "volume": str(candle.volume),
-                "quote_volume": str(candle.quote_asset_volume) if candle.quote_asset_volume else "0",
-            }
+                "quote_volume": str(candle.quote_asset_volume)
+                if candle.quote_asset_volume
+                else "0",
+            },
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -193,21 +199,17 @@ class MockedPlugin(ExchangePlugin):
         # Handle the Binance format if it's detected
         if message.get("method") == "SUBSCRIBE":
             # Binance format response
-            return {
-                "result": None,
-                "id": message.get("id", 1)
-            }
+            return {"result": None, "id": message.get("id", 1)}
 
         # Otherwise, use our standard format
         subscription_details = [
-            {"symbol": pair, "interval": interval}
-            for pair, interval in subscriptions
+            {"symbol": pair, "interval": interval} for pair, interval in subscriptions
         ]
 
         return {
             "type": "subscribe_result",
             "status": "success",
-            "subscriptions": subscription_details
+            "subscriptions": subscription_details,
         }
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
@@ -275,7 +277,7 @@ class MockedPlugin(ExchangePlugin):
         # Try to find common quote asset patterns
         for quote in ["USDT", "USD", "BTC", "ETH", "BNB", "USDC"]:
             if trading_pair.endswith(quote):
-                base = trading_pair[:-len(quote)]
+                base = trading_pair[: -len(quote)]
                 return f"{base}-{quote}"
 
         # Default case: assume last 4 characters are the quote asset
@@ -372,11 +374,9 @@ class MockedPlugin(ExchangePlugin):
 
         current_time = int(server._time() * 1000)
 
-        return web.json_response({
-            "status": "ok",
-            "timestamp": current_time,
-            "server_time": current_time
-        })
+        return web.json_response(
+            {"status": "ok", "timestamp": current_time, "server_time": current_time}
+        )
 
     async def handle_instruments(self, server, request):
         """
@@ -394,18 +394,21 @@ class MockedPlugin(ExchangePlugin):
 
         instruments = []
         for trading_pair in server.trading_pairs:
-            base, quote = trading_pair.split("-") if "-" in trading_pair else (trading_pair[:-4], trading_pair[-4:])
-            instruments.append({
-                "symbol": trading_pair,
-                "base_asset": base,
-                "quote_asset": quote,
-                "status": "TRADING"
-            })
+            base, quote = (
+                trading_pair.split("-")
+                if "-" in trading_pair
+                else (trading_pair[:-4], trading_pair[-4:])
+            )
+            instruments.append(
+                {
+                    "symbol": trading_pair,
+                    "base_asset": base,
+                    "quote_asset": quote,
+                    "status": "TRADING",
+                }
+            )
 
-        return web.json_response({
-            "status": "ok",
-            "instruments": instruments
-        })
+        return web.json_response({"status": "ok", "instruments": instruments})
 
     async def handle_ping(self, server, request):
         """
@@ -459,7 +462,9 @@ class MockedPlugin(ExchangePlugin):
                             subscriptions = self.parse_ws_subscription(data)
 
                             # Handle method (either our format with type="subscribe" or Binance format with method="SUBSCRIBE")
-                            method = "SUBSCRIBE" if data.get("method") == "SUBSCRIBE" else "subscribe"
+                            method = (
+                                "SUBSCRIBE" if data.get("method") == "SUBSCRIBE" else "subscribe"
+                            )
 
                             # Create success response first (before sending data)
                             if method == "subscribe":
@@ -470,14 +475,11 @@ class MockedPlugin(ExchangePlugin):
                                     "subscriptions": [
                                         {"symbol": pair, "interval": interval}
                                         for pair, interval in subscriptions
-                                    ]
+                                    ],
                                 }
                             else:
                                 # Binance format
-                                success_response = {
-                                    "result": None,
-                                    "id": data.get("id", 1)
-                                }
+                                success_response = {"result": None, "id": data.get("id", 1)}
 
                             # Send response immediately
                             await ws.send_json(success_response)
@@ -487,13 +489,21 @@ class MockedPlugin(ExchangePlugin):
                                 # Find the actual trading pair in server
                                 normalized_pair = None
                                 for pair in server.candles:
-                                    if self.normalize_trading_pair(pair).replace("-", "").lower() == trading_pair.lower() or pair.lower() == trading_pair.lower():
+                                    if (
+                                        self.normalize_trading_pair(pair).replace("-", "").lower()
+                                        == trading_pair.lower()
+                                        or pair.lower() == trading_pair.lower()
+                                    ):
                                         normalized_pair = pair
                                         break
 
-                                if normalized_pair and interval in server.candles.get(normalized_pair, {}):
+                                if normalized_pair and interval in server.candles.get(
+                                    normalized_pair, {}
+                                ):
                                     # Create subscription key
-                                    subscription_key = self.create_ws_subscription_key(normalized_pair, interval)
+                                    subscription_key = self.create_ws_subscription_key(
+                                        normalized_pair, interval
+                                    )
 
                                     # Add to subscriptions
                                     if subscription_key not in server.subscriptions:
@@ -509,7 +519,7 @@ class MockedPlugin(ExchangePlugin):
                                             candle=current_candle,
                                             trading_pair=normalized_pair,
                                             interval=interval,
-                                            is_final=True
+                                            is_final=True,
                                         )
                                         # Delay sending initial data to ensure subscription confirmation is processed first
                                         await asyncio.sleep(0.1)
@@ -522,12 +532,17 @@ class MockedPlugin(ExchangePlugin):
                             # Unsubscribe from each topic
                             for trading_pair, interval in subscriptions:
                                 for pair in server.candles:
-                                    if self.normalize_trading_pair(pair).replace("-", "").lower() == trading_pair.lower():
+                                    if (
+                                        self.normalize_trading_pair(pair).replace("-", "").lower()
+                                        == trading_pair.lower()
+                                    ):
                                         trading_pair = pair
                                         break
 
                                 # Create subscription key
-                                subscription_key = self.create_ws_subscription_key(trading_pair, interval)
+                                subscription_key = self.create_ws_subscription_key(
+                                    trading_pair, interval
+                                )
 
                                 # Remove from subscriptions
                                 if subscription_key in server.subscriptions:
@@ -538,7 +553,9 @@ class MockedPlugin(ExchangePlugin):
                                         del server.subscriptions[subscription_key]
 
                             # Send unsubscription success response
-                            success_response = self.create_ws_subscription_success(data, subscriptions)
+                            success_response = self.create_ws_subscription_success(
+                                data, subscriptions
+                            )
                             await ws.send_json(success_response)
 
                     except json.JSONDecodeError:
@@ -547,7 +564,9 @@ class MockedPlugin(ExchangePlugin):
                         await ws.send_json({"error": f"Error: {str(e)}"})
 
                 elif msg.type == web.WSMsgType.ERROR:
-                    server.logger.error(f"WebSocket connection closed with exception: {ws.exception()}")
+                    server.logger.error(
+                        f"WebSocket connection closed with exception: {ws.exception()}"
+                    )
                     break
 
         finally:
@@ -595,7 +614,10 @@ class MockedPlugin(ExchangePlugin):
         if not trading_pair and symbol:
             # Try to find by normalized symbol
             for pair in server.candles:
-                if pair.lower() == symbol.lower() or pair.replace("-", "").lower() == symbol.lower():
+                if (
+                    pair.lower() == symbol.lower()
+                    or pair.replace("-", "").lower() == symbol.lower()
+                ):
                     trading_pair = pair
                     break
 

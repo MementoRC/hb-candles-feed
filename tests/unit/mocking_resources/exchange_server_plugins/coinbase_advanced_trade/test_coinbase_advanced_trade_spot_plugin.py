@@ -87,7 +87,9 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
 
         # Check first candle
         candle_data = formatted["candles"][0]
-        expected_iso = datetime.fromtimestamp(candles[0].timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        expected_iso = datetime.fromtimestamp(candles[0].timestamp, tz=timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
         assert candle_data["start"] == expected_iso
         assert candle_data["open"] == str(candles[0].open)
         assert candle_data["high"] == str(candles[0].high)
@@ -125,7 +127,9 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
 
         # Check candle data
         candle_data = message["events"][0]["candles"][0]
-        expected_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        expected_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
         assert candle_data["start"] == expected_iso
         assert candle_data["open"] == str(candle.open)
         assert candle_data["high"] == str(candle.high)
@@ -140,7 +144,7 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
             "type": "subscribe",
             "product_ids": ["BTC-USD", "ETH-USD"],
             "channel": "candles",
-            "granularity": 60
+            "granularity": 60,
         }
 
         # Parse subscription
@@ -160,7 +164,7 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
             "type": "subscribe",
             "product_ids": ["BTC-USD"],
             "channel": "candles",
-            "granularity": 60
+            "granularity": 60,
         }
 
         # Create success response

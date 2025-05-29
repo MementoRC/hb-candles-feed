@@ -125,12 +125,7 @@ class TestHyperliquidPerpetualPlugin:
     def test_parse_ws_subscription(self):
         """Test parsing WebSocket subscription message."""
         # Create subscription message
-        message = {
-            "method": "subscribe",
-            "channel": "candles",
-            "coin": "BTC",
-            "interval": "1"
-        }
+        message = {"method": "subscribe", "channel": "candles", "coin": "BTC", "interval": "1"}
 
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
@@ -143,12 +138,7 @@ class TestHyperliquidPerpetualPlugin:
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
         # Create subscription message
-        message = {
-            "method": "subscribe",
-            "channel": "candles",
-            "coin": "BTC",
-            "interval": "1"
-        }
+        message = {"method": "subscribe", "channel": "candles", "coin": "BTC", "interval": "1"}
 
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])

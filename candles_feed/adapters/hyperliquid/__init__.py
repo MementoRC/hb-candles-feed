@@ -21,7 +21,6 @@ __all__ = [
     # Adapters
     "HyperliquidPerpetualAdapter",
     "HyperliquidSpotAdapter",
-
     # Constants
     "SPOT_CANDLES_ENDPOINT",
     "SPOT_REST_URL",

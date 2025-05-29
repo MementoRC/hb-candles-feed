@@ -19,10 +19,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Pixi
         uses: prefix-dev/setup-pixi@v0.8.1
-      
+
       - name: Install project dependencies (using Pixi)
         run: |
           pixi install # This will install dependencies based on pyproject.toml and create/use pixi.lock
@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Pixi
         uses: prefix-dev/setup-pixi@v0.8.1
 

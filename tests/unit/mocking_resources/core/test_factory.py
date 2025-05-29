@@ -127,8 +127,8 @@ class TestFactory(unittest.TestCase):
         # rather than specific keys
         trading_pair_values = list(server.trading_pairs.values())
         self.assertIn(50000.0, trading_pair_values)  # BTC price
-        self.assertIn(3000.0, trading_pair_values)   # ETH price
-        self.assertIn(100.0, trading_pair_values)    # SOL price
+        self.assertIn(3000.0, trading_pair_values)  # ETH price
+        self.assertIn(100.0, trading_pair_values)  # SOL price
 
         # Also check that we have the expected number of trading pairs
         self.assertEqual(len(server.trading_pairs), 3)

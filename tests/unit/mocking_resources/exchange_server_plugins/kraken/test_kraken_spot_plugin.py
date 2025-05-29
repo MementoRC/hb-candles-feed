@@ -98,13 +98,15 @@ class TestKrakenSpotPlugin:
         # Check candle fields
         candle_data = kraken_candles[0]
         assert candle_data[0] == int(candles[0].timestamp)  # Time in seconds
-        assert candle_data[1] == str(candles[0].open)       # Open
-        assert candle_data[2] == str(candles[0].high)       # High
-        assert candle_data[3] == str(candles[0].low)        # Low
-        assert candle_data[4] == str(candles[0].close)      # Close
-        assert float(candle_data[5]) < float(candles[0].close)  # VWAP should be slightly less than close
-        assert candle_data[6] == str(candles[0].volume)     # Volume
-        assert isinstance(candle_data[7], int)              # Count
+        assert candle_data[1] == str(candles[0].open)  # Open
+        assert candle_data[2] == str(candles[0].high)  # High
+        assert candle_data[3] == str(candles[0].low)  # Low
+        assert candle_data[4] == str(candles[0].close)  # Close
+        assert float(candle_data[5]) < float(
+            candles[0].close
+        )  # VWAP should be slightly less than close
+        assert candle_data[6] == str(candles[0].volume)  # Volume
+        assert isinstance(candle_data[7], int)  # Count
 
         # Check last timestamp
         assert formatted["result"]["last"] == int(candles[0].timestamp)
@@ -143,7 +145,9 @@ class TestKrakenSpotPlugin:
         assert "." in timestamp_str, "Timestamp should include decimal for microseconds"
         timestamp_parts = timestamp_str.split(".")
         assert len(timestamp_parts) == 2, "Timestamp should have seconds and microseconds parts"
-        assert timestamp_parts[0] == str(int(candle.timestamp)), "Seconds part should match timestamp"
+        assert timestamp_parts[0] == str(
+            int(candle.timestamp)
+        ), "Seconds part should match timestamp"
         assert len(timestamp_parts[1]) > 0, "Microseconds part should not be empty"
 
         # Check end time format
@@ -155,9 +159,9 @@ class TestKrakenSpotPlugin:
         assert len(candle_data[2].split(".")[-1]) == 5, "Open price should have 5 decimal places"
         assert float(candle_data[3]) == candle.high  # High
         assert len(candle_data[3].split(".")[-1]) == 5, "High price should have 5 decimal places"
-        assert float(candle_data[4]) == candle.low   # Low
+        assert float(candle_data[4]) == candle.low  # Low
         assert len(candle_data[4].split(".")[-1]) == 5, "Low price should have 5 decimal places"
-        assert float(candle_data[5]) == candle.close # Close
+        assert float(candle_data[5]) == candle.close  # Close
         assert len(candle_data[5].split(".")[-1]) == 5, "Close price should have 5 decimal places"
 
         # Check VWAP (approximated)
@@ -180,10 +184,7 @@ class TestKrakenSpotPlugin:
             "name": "subscribe",
             "reqid": 1,
             "pair": ["XBT/USD"],
-            "subscription": {
-                "name": "ohlc",
-                "interval": 1
-            }
+            "subscription": {"name": "ohlc", "interval": 1},
         }
 
         # Parse subscription
@@ -203,10 +204,7 @@ class TestKrakenSpotPlugin:
             "name": "subscribe",
             "reqid": 1,
             "pair": ["XBT/USD"],
-            "subscription": {
-                "name": "ohlc",
-                "interval": 1
-            }
+            "subscription": {"name": "ohlc", "interval": 1},
         }
 
         # Create success response

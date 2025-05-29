@@ -12,20 +12,20 @@ graph TD
     A --> C[Integration Tests]
     A --> D[End-to-End Tests]
     A --> E[Mock Tests]
-    
+
     B --> B1[Test individual methods]
     B --> B2[Test with various inputs]
     B --> B3[Test edge cases]
-    
+
     C --> C1[Test with real API]
     C --> C2[Test network behavior]
-    
+
     D --> D1[Test complete data flow]
     D --> D2[Test with real exchange]
-    
+
     E --> E1[Test with mock responses]
     E --> E2[Test error handling]
-    
+
     style B fill:#d0f0c0
     style C fill:#f0d0c0
     style D fill:#c0d0f0
@@ -42,12 +42,12 @@ Unit tests verify individual components of your adapter work correctly in isolat
 def test_get_trading_pair_format():
     """Test trading pair format conversion."""
     adapter = YourExchangeAdapter()
-    
+
     # Test with various trading pairs
     assert adapter.get_trading_pair_format("BTC-USDT") == "BTCUSDT"
     assert adapter.get_trading_pair_format("ETH-BTC") == "ETHBTC"
     assert adapter.get_trading_pair_format("SOL-USDC") == "SOLUSDC"
-    
+
     # Test with special cases if your exchange has them
     assert adapter.get_trading_pair_format("BTC-USD") == "BTC-USD"  # Kraken example
 ```
@@ -58,17 +58,17 @@ def test_get_trading_pair_format():
 def test_get_rest_params():
     """Test REST API parameters generation."""
     adapter = YourExchangeAdapter()
-    
+
     # Test with minimal parameters
     params = adapter.get_rest_params("BTC-USDT", "1m")
     assert params["symbol"] == "BTCUSDT"
     assert params["interval"] == "1m"
     assert "limit" in params
-    
+
     # Test with all parameters
     params = adapter.get_rest_params(
-        "ETH-USDT", 
-        "1h", 
+        "ETH-USDT",
+        "1h",
         start_time=1625097600,
         end_time=1625184000,
         limit=500
@@ -87,7 +87,7 @@ def test_get_rest_params():
 def test_parse_rest_response():
     """Test parsing REST API responses."""
     adapter = YourExchangeAdapter()
-    
+
     # Sample response based on your exchange's format
     response = {
         "candles": [
@@ -102,9 +102,9 @@ def test_parse_rest_response():
             }
         ]
     }
-    
+
     candles = adapter.parse_rest_response(response)
-    
+
     # Verify results
     assert len(candles) == 1
     assert candles[0].timestamp == 1625097600  # Should be in seconds
@@ -121,7 +121,7 @@ def test_parse_rest_response():
 def test_parse_ws_message():
     """Test parsing WebSocket messages."""
     adapter = YourExchangeAdapter()
-    
+
     # Test with candle update message
     message = {
         # Format depends on exchange
@@ -135,15 +135,15 @@ def test_parse_ws_message():
             "v": "10.5"
         }
     }
-    
+
     candles = adapter.parse_ws_message(message)
-    
+
     # Verify results
     assert candles is not None
     assert len(candles) == 1
     assert candles[0].timestamp == 1625097600  # Should be in seconds
     assert candles[0].open == 35000.0
-    
+
     # Test with non-candle message
     other_message = {"type": "ping"}
     assert adapter.parse_ws_message(other_message) is None
@@ -155,14 +155,14 @@ def test_parse_ws_message():
 def test_supported_intervals():
     """Test interval support methods."""
     adapter = YourExchangeAdapter()
-    
+
     # Test supported intervals
     intervals = adapter.get_supported_intervals()
     assert "1m" in intervals
     assert "1h" in intervals
     assert intervals["1m"] == 60
     assert intervals["1h"] == 3600
-    
+
     # Test WebSocket-supported intervals
     ws_intervals = adapter.get_ws_supported_intervals()
     assert isinstance(ws_intervals, list)
@@ -180,11 +180,11 @@ async def test_fetch_candles_with_mock():
     """Test fetching candles with mock responses."""
     # Create adapter
     adapter = YourExchangeAdapter()
-    
+
     # Create mock for network client
     mock_client = MagicMock()
     mock_client.get_rest_data = AsyncMock()
-    
+
     # Set up mock response
     mock_response = {
         "candles": [
@@ -192,7 +192,7 @@ async def test_fetch_candles_with_mock():
         ]
     }
     mock_client.get_rest_data.return_value = mock_response
-    
+
     # Create strategy with mocks
     strategy = RESTPollingStrategy(
         network_client=mock_client,
@@ -202,23 +202,23 @@ async def test_fetch_candles_with_mock():
         data_processor=DataProcessor(),
         candles_store=deque(maxlen=100)
     )
-    
+
     # Test fetch_candles
     candles = await strategy.fetch_candles(
         start_time=1625097600,
         end_time=1625184000
     )
-    
+
     # Verify mock was called with correct params
     expected_params = adapter.get_rest_params(
-        "BTC-USDT", "1m", 
+        "BTC-USDT", "1m",
         start_time=1625097600,
         end_time=1625184000
     )
     mock_client.get_rest_data.assert_called_once()
     args, kwargs = mock_client.get_rest_data.call_args
     assert kwargs["params"] == expected_params
-    
+
     # Verify results
     assert len(candles) > 0
 ```
@@ -232,7 +232,7 @@ Test your adapter with the actual exchange API:
 @pytest.mark.asyncio
 async def test_real_api_fetch():
     """Test fetching from real API.
-    
+
     Note: These tests require internet connection and may be rate-limited.
     """
     # Create real adapter and components
@@ -240,7 +240,7 @@ async def test_real_api_fetch():
     throttler = AsyncThrottler(rate_limits=[])
     network_client = NetworkClient(throttler)
     data_processor = DataProcessor()
-    
+
     # Create strategy
     strategy = RESTPollingStrategy(
         network_client=network_client,
@@ -250,21 +250,21 @@ async def test_real_api_fetch():
         data_processor=data_processor,
         candles_store=deque(maxlen=100)
     )
-    
+
     # Fetch recent candles
     end_time = int(time.time())
     start_time = end_time - 3600  # Last hour
-    
+
     candles = await strategy.fetch_candles(
         start_time=start_time,
         end_time=end_time
     )
-    
+
     # Verify results
     assert len(candles) > 0
     assert all(isinstance(c, CandleData) for c in candles)
     assert all(start_time <= c.timestamp <= end_time for c in candles)
-    
+
     # Verify candles are properly formatted
     for candle in candles:
         assert candle.high >= candle.low
@@ -285,32 +285,32 @@ async def test_websocket_subscription():
     """Test WebSocket subscription with mock."""
     # Create adapter
     adapter = YourExchangeAdapter()
-    
+
     # Create mock WebSocket assistant
     mock_ws = AsyncMock()
     mock_ws.connect = AsyncMock()
     mock_ws.send = AsyncMock()
     mock_ws.disconnect = AsyncMock()
-    
+
     # Create mock for iter_messages
     message_queue = asyncio.Queue()
-    
+
     # Add sample messages to queue
     await message_queue.put(MagicMock(data={"type": "subscription_success"}))
     await message_queue.put(MagicMock(data={"e": "kline", "k": {...}}))
-    
+
     # Mock the iter_messages method
     async def mock_iter_messages():
         while not message_queue.empty():
             yield await message_queue.get()
-    
+
     mock_ws.iter_messages = mock_iter_messages
-    
+
     # Create mock network client
     mock_client = MagicMock()
     mock_client.establish_ws_connection = AsyncMock(return_value=mock_ws)
     mock_client.send_ws_message = AsyncMock()
-    
+
     # Create strategy
     strategy = WebSocketStrategy(
         network_client=mock_client,
@@ -320,17 +320,17 @@ async def test_websocket_subscription():
         data_processor=DataProcessor(),
         candles_store=deque(maxlen=100)
     )
-    
+
     # Start strategy (will connect and subscribe)
     await strategy.start()
-    
+
     # Wait for messages to be processed
     await asyncio.sleep(0.1)
-    
+
     # Verify connection and subscription
     mock_client.establish_ws_connection.assert_called_once_with(adapter.get_ws_url())
     mock_client.send_ws_message.assert_called_once()
-    
+
     # Clean up
     await strategy.stop()
     mock_ws.disconnect.assert_called_once()
@@ -347,7 +347,7 @@ async def test_candles_feed_e2e():
     """Test complete candles feed flow."""
     # Create adapter
     adapter = YourExchangeAdapter()
-    
+
     # Create candles feed
     feed = CandlesFeed(
         adapter=adapter,
@@ -355,24 +355,24 @@ async def test_candles_feed_e2e():
         interval="1m",
         max_records=100
     )
-    
+
     # Start feed
     await feed.start()
-    
+
     # Wait for some data
     start_time = time.time()
     while not feed.ready and time.time() - start_time < 30:
         await asyncio.sleep(1)
-        
+
     # Get data as dataframe
     df = feed.get_candles_df()
-    
+
     # Verify we have data
     assert not df.empty
     assert all(col in df.columns for col in [
         "timestamp", "open", "high", "low", "close", "volume"
     ])
-    
+
     # Clean up
     await feed.stop()
 ```
@@ -392,12 +392,12 @@ Be sure to test various edge cases:
 def test_parse_rest_response_empty():
     """Test parsing empty REST response."""
     adapter = YourExchangeAdapter()
-    
+
     # Empty response
     response = {"candles": []}
     candles = adapter.parse_rest_response(response)
     assert len(candles) == 0
-    
+
     # Missing 'candles' key
     response = {"other": []}
     candles = adapter.parse_rest_response(response)
@@ -406,7 +406,7 @@ def test_parse_rest_response_empty():
 def test_parse_rest_response_missing_fields():
     """Test parsing REST response with missing fields."""
     adapter = YourExchangeAdapter()
-    
+
     # Response with missing fields
     response = {
         "candles": [
@@ -419,7 +419,7 @@ def test_parse_rest_response_missing_fields():
             }
         ]
     }
-    
+
     # Adapter should handle missing fields gracefully
     candles = adapter.parse_rest_response(response)
     assert len(candles) == 1
@@ -444,24 +444,24 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-asyncio aioresponses
         pip install -e .
-        
+
     - name: Test with pytest
       run: |
         pytest tests/unit
-        
+
     - name: Integration tests
       if: github.event_name == 'push'
       run: |

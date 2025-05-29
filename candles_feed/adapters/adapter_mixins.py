@@ -58,9 +58,7 @@ class SyncOnlyAdapter:
         """
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
-            None,
-             self.fetch_rest_candles_synchronous,
-            trading_pair, interval, start_time, limit
+            None, self.fetch_rest_candles_synchronous, trading_pair, interval, start_time, limit
         )
 
 
@@ -109,7 +107,9 @@ class AsyncOnlyAdapter:
         pass
 
     class AdapterImplementationProtocol(Protocol):
-        def _get_rest_params(self, trading_pair: str, interval: str, start_time: int | None = None, limit: int = 500) -> dict:
+        def _get_rest_params(
+            self, trading_pair: str, interval: str, start_time: int | None = None, limit: int = 500
+        ) -> dict:
             ...
 
         def _get_rest_url(self) -> str:
@@ -140,10 +140,7 @@ class AsyncOnlyAdapter:
             raise ValueError("network_client is required for async operations")
 
         params = adapter_implementation._get_rest_params(
-            trading_pair=trading_pair,
-            interval=interval,
-            start_time=start_time,
-            limit=limit
+            trading_pair=trading_pair, interval=interval, start_time=start_time, limit=limit
         )
 
         url = adapter_implementation._get_rest_url()
@@ -187,7 +184,7 @@ class TestnetSupportMixin:
         :return: REST API URL for configured environment
         """
         # Allow tests to bypass network selection
-        if getattr(self, '_bypass_network_selection', False):
+        if getattr(self, "_bypass_network_selection", False):
             # Use the parent implementation or the production URL
             return self._get_production_rest_url()
 
@@ -204,7 +201,7 @@ class TestnetSupportMixin:
         :return: WebSocket URL for configured environment
         """
         # Allow tests to bypass network selection
-        if getattr(self, '_bypass_network_selection', False):
+        if getattr(self, "_bypass_network_selection", False):
             # Use the parent implementation or the production URL
             return self._get_production_ws_url()
 
@@ -240,9 +237,7 @@ class TestnetSupportMixin:
         :return: Testnet REST API URL
         :raises NotImplementedError: If testnet is not supported by this adapter
         """
-        raise NotImplementedError(
-            f"Testnet REST URL not implemented for {self.__class__.__name__}"
-        )
+        raise NotImplementedError(f"Testnet REST URL not implemented for {self.__class__.__name__}")
 
     def _get_testnet_ws_url(self) -> str:
         """Get testnet WebSocket URL.

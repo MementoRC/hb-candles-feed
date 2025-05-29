@@ -46,14 +46,14 @@ class ExchangePlugin(abc.ABC):
             "rest": {
                 "limit": 100,  # Default weight limit
                 "period_ms": 60000,  # 1 minute window
-                "weights": {}  # Endpoint-specific weights
+                "weights": {},  # Endpoint-specific weights
             },
             "ws": {
                 "limit": 10,  # Messages per second
                 "burst": 20,  # Max burst
                 "connection_limit": 50,  # Max concurrent connections
                 "subscription_limit": 1000,  # Total subscriptions allowed
-            }
+            },
         }
 
     @property
@@ -70,7 +70,7 @@ class ExchangePlugin(abc.ABC):
                 "permissions": ["READ", "TRADE"],
                 "ip_whitelist": ["*"],
                 "created_time": int(time.time() * 1000) - 86400000,  # 1 day ago
-                "enabled": True
+                "enabled": True,
             }
         }
 
@@ -85,7 +85,7 @@ class ExchangePlugin(abc.ABC):
         return {
             "websocket_keep_alive": {
                 "interval_seconds": 30,  # Default 30 seconds
-                "type": "ping"  # Default ping message
+                "type": "ping",  # Default ping message
             }
         }
 
@@ -234,10 +234,7 @@ class ExchangePlugin(abc.ABC):
 
         :returns: A dictionary with REST and WebSocket URLs.
         """
-        return {
-            "rest": self.rest_url,
-            "ws": self.wss_url
-        }
+        return {"rest": self.rest_url, "ws": self.wss_url}
 
     def get_patched_urls(self, host: str, port: int) -> Dict[str, str]:
         """
@@ -248,7 +245,4 @@ class ExchangePlugin(abc.ABC):
         :returns: A dictionary with patched REST and WebSocket URLs.
         """
         # Default implementation that can be overridden by specific exchanges
-        return {
-            "rest": f"http://{host}:{port}",
-            "ws": f"ws://{host}:{port}/ws"
-        }
+        return {"rest": f"http://{host}:{port}", "ws": f"ws://{host}:{port}/ws"}

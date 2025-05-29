@@ -95,23 +95,22 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
 
         formatted_candles = []
         for c in candles:
-            formatted_candles.append({
-                "m": "bar",
-                "s": exchange_symbol,
-                "data": {
-                    "ts": int(c.timestamp_ms),
-                    "o": str(c.open),
-                    "h": str(c.high),
-                    "l": str(c.low),
-                    "c": str(c.close),
-                    "v": str(c.quote_asset_volume)
+            formatted_candles.append(
+                {
+                    "m": "bar",
+                    "s": exchange_symbol,
+                    "data": {
+                        "ts": int(c.timestamp_ms),
+                        "o": str(c.open),
+                        "h": str(c.high),
+                        "l": str(c.low),
+                        "c": str(c.close),
+                        "v": str(c.quote_asset_volume),
+                    },
                 }
-            })
+            )
 
-        return {
-            "code": 0,
-            "data": formatted_candles
-        }
+        return {"code": 0, "data": formatted_candles}
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -150,8 +149,8 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
                 "h": str(candle.high),
                 "l": str(candle.low),
                 "c": str(candle.close),
-                "v": str(candle.quote_asset_volume)
-            }
+                "v": str(candle.quote_asset_volume),
+            },
         }
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -201,11 +200,7 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
         :returns: A subscription success response message.
         """
         # AscendEx returns a generic subscription success response
-        return {
-            "m": "sub",
-            "id": message.get("id", ""),
-            "code": 0
-        }
+        return {"m": "sub", "id": message.get("id", ""), "code": 0}
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
         """
@@ -260,7 +255,6 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
             "interval": interval,
             "end_time": to,
             "limit": n,
-
             # Also keep the original parameter names for reference
             "to": to,
             "n": n,
@@ -283,17 +277,19 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
         instruments = []
         for trading_pair in server.trading_pairs:
             base, quote = trading_pair.split("-", 1)
-            instruments.append({
-                "symbol": trading_pair.replace("-", "/"),
-                "baseAsset": base,
-                "quoteAsset": quote,
-                "status": "Normal",
-                "minQty": "0.0001",
-                "maxQty": "100000",
-                "minNotional": "5",
-                "maxNotional": "1000000",
-                "tickSize": "0.01",
-                "lotSize": "0.0001"
-            })
+            instruments.append(
+                {
+                    "symbol": trading_pair.replace("-", "/"),
+                    "baseAsset": base,
+                    "quoteAsset": quote,
+                    "status": "Normal",
+                    "minQty": "0.0001",
+                    "maxQty": "100000",
+                    "minNotional": "5",
+                    "maxNotional": "1000000",
+                    "tickSize": "0.01",
+                    "lotSize": "0.0001",
+                }
+            )
 
         return web.json_response({"code": 0, "data": instruments})

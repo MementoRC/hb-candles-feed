@@ -16,7 +16,6 @@ from .spot_adapter import CoinbaseAdvancedTradeSpotAdapter
 __all__ = [
     # Adapters
     "CoinbaseAdvancedTradeSpotAdapter",
-
     # Constants
     "SPOT_CANDLES_ENDPOINT",
     "SPOT_REST_URL",

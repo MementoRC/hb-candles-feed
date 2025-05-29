@@ -49,16 +49,23 @@ async def binance_app():
                 async def dummy_simulate(self=None):
                     pass
 
-                mock_server = type('MockServer', (), {
-                    '_simulate_network_conditions': dummy_simulate,
-                    '_check_rate_limit': lambda self, client_ip, limit_type: True,
-                    'verify_authentication': lambda self, request, required_permissions=None: {"authenticated": True, "error": None},
-                    'candles': {},
-                    'trading_pairs': {"BTC-USDT": 50000.0, "ETH-USDT": 3000.0},
-                    'last_candle_time': {},
-                    '_time': lambda self=None: asyncio.get_running_loop().time(),
-                    'logger': logging.getLogger(__name__)
-                })()
+                mock_server = type(
+                    "MockServer",
+                    (),
+                    {
+                        "_simulate_network_conditions": dummy_simulate,
+                        "_check_rate_limit": lambda self, client_ip, limit_type: True,
+                        "verify_authentication": lambda self, request, required_permissions=None: {
+                            "authenticated": True,
+                            "error": None,
+                        },
+                        "candles": {},
+                        "trading_pairs": {"BTC-USDT": 50000.0, "ETH-USDT": 3000.0},
+                        "last_candle_time": {},
+                        "_time": lambda self=None: asyncio.get_running_loop().time(),
+                        "logger": logging.getLogger(__name__),
+                    },
+                )()
 
                 # Generate some test candles for BTC-USDT
                 import time
@@ -75,9 +82,7 @@ async def binance_app():
                 for i in range(100):
                     timestamp = base_time - (99 - i) * 60  # Oldest to newest
                     candle = CandleDataFactory.create_random(
-                        timestamp=timestamp,
-                        base_price=50000.0,
-                        volatility=0.01
+                        timestamp=timestamp, base_price=50000.0, volatility=0.01
                     )
                     candles.append(candle)
 
@@ -87,24 +92,20 @@ async def binance_app():
                 for i in range(100):
                     timestamp = base_time - (99 - i) * 300  # 5 minute intervals
                     eth_candle = CandleDataFactory.create_random(
-                        timestamp=timestamp,
-                        base_price=3000.0,
-                        volatility=0.01
+                        timestamp=timestamp, base_price=3000.0, volatility=0.01
                     )
                     eth_candles.append(eth_candle)
 
-                mock_server.candles = {
-                    "BTC-USDT": {"1m": candles},
-                    "ETH-USDT": {"5m": eth_candles}
-                }
+                mock_server.candles = {"BTC-USDT": {"1m": candles}, "ETH-USDT": {"5m": eth_candles}}
 
                 # Add last candle times
                 mock_server.last_candle_time = {
                     "BTC-USDT": {"1m": candles[-1].timestamp_ms},
-                    "ETH-USDT": {"5m": eth_candles[-1].timestamp_ms}
+                    "ETH-USDT": {"5m": eth_candles[-1].timestamp_ms},
                 }
 
                 return await handler(mock_server, request)
+
             return wrapper
 
         # Add the route to the application
@@ -134,14 +135,15 @@ async def spot_adapter(client):
     """Create a spot adapter with patched URLs pointing to the test client."""
     # Create a network client for the adapter
     from candles_feed.core.network_client import NetworkClient
+
     network_client = NetworkClient()
 
     adapter = BinanceSpotAdapter()
 
     # Patch the URLs to point to the test client
-    server_url = str(client.server.make_url(''))
+    server_url = str(client.server.make_url(""))
 
-    with patch('candles_feed.adapters.binance.constants.SPOT_REST_URL', server_url):
+    with patch("candles_feed.adapters.binance.constants.SPOT_REST_URL", server_url):
         yield adapter, network_client
 
     # Clean up
@@ -178,11 +180,9 @@ async def test_time_endpoint(client):
 async def test_klines_endpoint(client):
     """Test the klines endpoint."""
     # Send a request to the klines endpoint
-    response = await client.get("/api/v3/klines", params={
-        "symbol": "BTCUSDT",
-        "interval": "1m",
-        "limit": 10
-    })
+    response = await client.get(
+        "/api/v3/klines", params={"symbol": "BTCUSDT", "interval": "1m", "limit": 10}
+    )
 
     # Check the response
     assert response.status == 200
@@ -207,11 +207,9 @@ async def test_klines_endpoint(client):
 async def test_error_handling(client):
     """Test error handling for invalid parameters."""
     # Send a request with an invalid symbol
-    response = await client.get("/api/v3/klines", params={
-        "symbol": "INVALID",
-        "interval": "1m",
-        "limit": 10
-    })
+    response = await client.get(
+        "/api/v3/klines", params={"symbol": "INVALID", "interval": "1m", "limit": 10}
+    )
 
     # Check that we get an error response
     assert response.status == 400
@@ -221,11 +219,9 @@ async def test_error_handling(client):
     assert "invalid" in error["msg"].lower() or "symbol" in error["msg"].lower()
 
     # Send a request with an invalid interval
-    response = await client.get("/api/v3/klines", params={
-        "symbol": "BTCUSDT",
-        "interval": "invalid",
-        "limit": 10
-    })
+    response = await client.get(
+        "/api/v3/klines", params={"symbol": "BTCUSDT", "interval": "invalid", "limit": 10}
+    )
 
     # Check that we get an error response
     assert response.status == 400

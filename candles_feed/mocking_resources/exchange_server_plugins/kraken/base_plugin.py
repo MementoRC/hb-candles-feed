@@ -103,14 +103,14 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         for candle in candles:
             # Format each candle according to Kraken's format
             formatted_candle = [
-                int(candle.timestamp),        # Time in seconds as integer
-                str(candle.open),             # Open price as string
-                str(candle.high),             # High price as string
-                str(candle.low),              # Low price as string
-                str(candle.close),            # Close price as string
-                str(candle.close * 0.9999),   # VWAP - approximated as slightly less than close
-                str(candle.volume),           # Volume as string
-                100                           # Count (number of trades) - placeholder value
+                int(candle.timestamp),  # Time in seconds as integer
+                str(candle.open),  # Open price as string
+                str(candle.high),  # High price as string
+                str(candle.low),  # Low price as string
+                str(candle.close),  # Close price as string
+                str(candle.close * 0.9999),  # VWAP - approximated as slightly less than close
+                str(candle.volume),  # Volume as string
+                100,  # Count (number of trades) - placeholder value
             ]
             formatted_candles.append(formatted_candle)
 
@@ -118,8 +118,8 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
             "error": [],
             "result": {
                 kraken_formatted_pair: formatted_candles,
-                "last": int(candles[-1].timestamp) if candles else 0
-            }
+                "last": int(candles[-1].timestamp) if candles else 0,
+            },
         }
 
     def format_ws_candle_message(
@@ -160,23 +160,23 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
 
         # Format the candle data
         candle_data = [
-            f"{candle.timestamp}.000000",     # Time with microsecond precision
-            f"{end_time}.000000",             # End time with microsecond precision
-            f"{candle.open:.5f}",             # Open price with 5 decimals
-            f"{candle.high:.5f}",             # High price with 5 decimals
-            f"{candle.low:.5f}",              # Low price with 5 decimals
-            f"{candle.close:.5f}",            # Close price with 5 decimals
-            f"{candle.close * 0.9999:.5f}",   # VWAP approximated with 5 decimals
-            f"{candle.volume:.8f}",           # Volume with 8 decimals
-            100                               # Count - placeholder
+            f"{candle.timestamp}.000000",  # Time with microsecond precision
+            f"{end_time}.000000",  # End time with microsecond precision
+            f"{candle.open:.5f}",  # Open price with 5 decimals
+            f"{candle.high:.5f}",  # High price with 5 decimals
+            f"{candle.low:.5f}",  # Low price with 5 decimals
+            f"{candle.close:.5f}",  # Close price with 5 decimals
+            f"{candle.close * 0.9999:.5f}",  # VWAP approximated with 5 decimals
+            f"{candle.volume:.8f}",  # Volume with 8 decimals
+            100,  # Count - placeholder
         ]
 
         # Return the message as an array (Kraken uses arrays, not objects, for WebSocket messages)
         return [
-            0,                           # Channel ID (placeholder)
-            candle_data,                 # Candle data array
-            f"ohlc-{interval_num}",      # Channel name with interval
-            kraken_formatted_pair        # Formatted trading pair
+            0,  # Channel ID (placeholder)
+            candle_data,  # Candle data array
+            f"ohlc-{interval_num}",  # Channel name with interval
+            kraken_formatted_pair,  # Formatted trading pair
         ]
 
     def parse_ws_subscription(self, message: dict) -> list[tuple[str, str]]:
@@ -206,7 +206,7 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
                 # Convert interval in minutes to our standard format
                 interval = next(
                     (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if v == interval_min),
-                    "1m"  # Default to 1m if not found
+                    "1m",  # Default to 1m if not found
                 )
 
                 # Extract trading pairs
@@ -250,25 +250,25 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
             interval_num = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1)
             kraken_pair = self._format_trading_pair(trading_pair)
 
-            responses.append({
-                "channelID": hash(f"{kraken_pair}_{interval}") % 1000,  # Generate a pseudo-random channel ID
-                "channelName": f"ohlc-{interval_num}",
-                "pair": kraken_pair,
-                "reqid": reqid,
-                "status": "subscribed",
-                "subscription": {
-                    "interval": interval_num,
-                    "name": "ohlc"
+            responses.append(
+                {
+                    "channelID": hash(f"{kraken_pair}_{interval}")
+                    % 1000,  # Generate a pseudo-random channel ID
+                    "channelName": f"ohlc-{interval_num}",
+                    "pair": kraken_pair,
+                    "reqid": reqid,
+                    "status": "subscribed",
+                    "subscription": {"interval": interval_num, "name": "ohlc"},
                 }
-            })
+            )
 
         # Return the first response if there's only one
         # (Kraken sends separate messages for each subscription)
-        return responses[0] if responses else {
-            "errorMessage": "No valid subscriptions found",
-            "status": "error",
-            "reqid": reqid
-        }
+        return (
+            responses[0]
+            if responses
+            else {"errorMessage": "No valid subscriptions found", "status": "error", "reqid": reqid}
+        )
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
         """
@@ -302,7 +302,7 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         # Convert interval in minutes to our standard format
         interval = next(
             (k for k, v in INTERVAL_TO_EXCHANGE_FORMAT.items() if str(v) == interval_min),
-            "1m"  # Default to 1m if not found
+            "1m",  # Default to 1m if not found
         )
 
         # Map Kraken parameters to generic parameters
@@ -335,13 +335,15 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
 
         current_time = int(server._time())
 
-        return web.json_response({
-            "error": [],
-            "result": {
-                "unixtime": current_time,
-                "rfc1123": "Thu, 1 Jan 1970 00:00:00 +0000"  # Placeholder, not actually formatted
+        return web.json_response(
+            {
+                "error": [],
+                "result": {
+                    "unixtime": current_time,
+                    "rfc1123": "Thu, 1 Jan 1970 00:00:00 +0000",  # Placeholder, not actually formatted
+                },
             }
-        })
+        )
 
     def _format_trading_pair(self, trading_pair: str) -> str:
         """

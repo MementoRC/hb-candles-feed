@@ -59,7 +59,7 @@ class TestOKXPerpetualAdapter(BaseAdapterTest):
             "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "after": start_time * 1000,  # Convert to milliseconds
-            "before": end_time * 1000,   # Convert to milliseconds
+            "before": end_time * 1000,  # Convert to milliseconds
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -85,24 +85,24 @@ class TestOKXPerpetualAdapter(BaseAdapterTest):
             "msg": "",
             "data": [
                 [
-                    str(base_time),             # Time
-                    "50000.0",                  # Open
-                    "51000.0",                  # High
-                    "49000.0",                  # Low
-                    "50500.0",                  # Close
-                    "100.0",                    # Volume
-                    "5000000.0",                # Quote asset volume
+                    str(base_time),  # Time
+                    "50000.0",  # Open
+                    "51000.0",  # High
+                    "49000.0",  # Low
+                    "50500.0",  # Close
+                    "100.0",  # Volume
+                    "5000000.0",  # Quote asset volume
                 ],
                 [
-                    str(base_time + 60000),     # Time
-                    "50500.0",                  # Open
-                    "52000.0",                  # High
-                    "50000.0",                  # Low
-                    "51500.0",                  # Close
-                    "150.0",                    # Volume
-                    "7500000.0",                # Quote asset volume
+                    str(base_time + 60000),  # Time
+                    "50500.0",  # Open
+                    "52000.0",  # High
+                    "50000.0",  # Low
+                    "51500.0",  # Close
+                    "150.0",  # Volume
+                    "7500000.0",  # Quote asset volume
                 ],
-            ]
+            ],
         }
 
     def get_mock_websocket_message(self):
@@ -110,21 +110,18 @@ class TestOKXPerpetualAdapter(BaseAdapterTest):
         base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
 
         return {
-            "arg": {
-                "channel": "candle1m",
-                "instId": "BTC/USDT"
-            },
+            "arg": {"channel": "candle1m", "instId": "BTC/USDT"},
             "data": [
                 [
-                    str(base_time),             # Time
-                    "50000.0",                  # Open
-                    "51000.0",                  # High
-                    "49000.0",                  # Low
-                    "50500.0",                  # Close
-                    "100.0",                    # Volume
-                    "5000000.0",                # Quote asset volume
+                    str(base_time),  # Time
+                    "50000.0",  # Open
+                    "51000.0",  # High
+                    "49000.0",  # Low
+                    "50500.0",  # Close
+                    "100.0",  # Volume
+                    "5000000.0",  # Quote asset volume
                 ]
-            ]
+            ],
         }
 
     # Additional test cases specific to OKXPerpetualAdapter
@@ -166,9 +163,7 @@ class TestOKXPerpetualAdapter(BaseAdapterTest):
 
         # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
-            trading_pair=trading_pair,
-            interval=interval,
-            network_client=mock_client
+            trading_pair=trading_pair, interval=interval, network_client=mock_client
         )
 
         # Verify the result
@@ -180,5 +175,5 @@ class TestOKXPerpetualAdapter(BaseAdapterTest):
 
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == url
-        assert kwargs['params'] == params
+        assert kwargs["url"] == url
+        assert kwargs["params"] == params

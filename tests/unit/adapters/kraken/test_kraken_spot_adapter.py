@@ -3,19 +3,16 @@ Tests for the KrakenSpotAdapter using the base adapter test class.
 """
 
 import contextlib
-from datetime import datetime
-from unittest.mock import AsyncMock
+from datetime import datetime, timezone
+from unittest import mock
 
 import pytest
 
 from candles_feed.adapters.kraken.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
-    INTERVALS,
-    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
-    WS_INTERVALS,
 )
 from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
 from candles_feed.core.candle_data import CandleData
@@ -100,8 +97,8 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
                         "49000.0",  # low
                         "50500.0",  # close
                         "50250.0",  # VWAP
-                        "100.0",    # volume
-                        158         # count
+                        "100.0",  # volume
+                        158,  # count
                     ],
                     [
                         base_time + 60,
@@ -110,12 +107,12 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
                         "50000.0",  # low
                         "51500.0",  # close
                         "51000.0",  # VWAP
-                        "150.0",    # volume
-                        210         # count
+                        "150.0",  # volume
+                        210,  # count
                     ],
                 ],
-                "last": base_time + 120
-            }
+                "last": base_time + 120,
+            },
         }
 
     def get_mock_websocket_message(self):
@@ -125,18 +122,18 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
         return [
             12345,  # channelID
             [
-                str(base_time),    # start time
+                str(base_time),  # start time
                 str(base_time + 60),  # end time
-                "50000.0",         # open
-                "51000.0",         # high
-                "49000.0",         # low
-                "50500.0",         # close
-                "50250.0",         # VWAP
-                "100.0",           # volume
-                158                # count
+                "50000.0",  # open
+                "51000.0",  # high
+                "49000.0",  # low
+                "50500.0",  # close
+                "50250.0",  # VWAP
+                "100.0",  # volume
+                158,  # count
             ],
             "ohlc-1",  # channel name
-            "XXBTZUSD"  # pair
+            "XXBTZUSD",  # pair
         ]
 
     # Additional test cases specific to KrakenSpotAdapter
@@ -157,12 +154,12 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
                         "49000.0",  # low
                         "50500.0",  # close
                         "50250.0",  # VWAP
-                        "100.0",    # volume
-                        158         # count
+                        "100.0",  # volume
+                        158,  # count
                     ]
                 ],
-                "last": base_time + 60
-            }
+                "last": base_time + 60,
+            },
         }
 
         candles = adapter._parse_rest_response(response)
@@ -206,18 +203,18 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
         ws_message = [
             42,  # channelID
             [
-                str(base_time),    # start time
+                str(base_time),  # start time
                 str(base_time + 60),  # end time
-                "50000.0",         # open
-                "51000.0",         # high
-                "49000.0",         # low
-                "50500.0",         # close
-                "50250.0",         # VWAP
-                "100.0",           # volume
-                158                # count
+                "50000.0",  # open
+                "51000.0",  # high
+                "49000.0",  # low
+                "50500.0",  # close
+                "50250.0",  # VWAP
+                "100.0",  # volume
+                158,  # count
             ],
             "ohlc-1",  # channel name
-            "XXBTZUSD"  # pair
+            "XXBTZUSD",  # pair
         ]
 
         candles = adapter.parse_ws_message(ws_message)
@@ -251,6 +248,7 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
         # Skip test for SyncOnlyAdapter adapters
         with contextlib.suppress(ImportError):
             from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+
             if isinstance(adapter, SyncOnlyAdapter):
                 pytest.skip("Test only applicable for async adapters")
 
@@ -262,7 +260,9 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
         mock_client.get_rest_data = mock.AsyncMock(return_value=mock_response)
 
         # Call the async method
-        candles = await adapter.fetch_rest_candles(trading_pair, interval, network_client=mock_client)
+        candles = await adapter.fetch_rest_candles(
+            trading_pair, interval, network_client=mock_client
+        )
 
         # Basic validation
         assert isinstance(candles, list)
@@ -272,8 +272,8 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
         # Verify the network client was called correctly
         mock_client.get_rest_data.assert_called_once()
         args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs['url'] == adapter._get_rest_url()
+        assert kwargs["url"] == adapter._get_rest_url()
 
         # For Kraken, verify at least the pair is correct without comparing entire params dict
-        assert "pair" in kwargs['params']
-        assert kwargs['params']["pair"] == "XXBTZUSD"  # For BTC-USDT
+        assert "pair" in kwargs["params"]
+        assert kwargs["params"]["pair"] == "XXBTZUSD"  # For BTC-USDT

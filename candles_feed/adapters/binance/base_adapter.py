@@ -171,7 +171,8 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         return {
             "method": "SUBSCRIBE",
             "params": [
-                f"{self.get_trading_pair_format(trading_pair).lower()}@kline_{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}"],
+                f"{self.get_trading_pair_format(trading_pair).lower()}@kline_{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}"
+            ],
             "id": 1,
         }
 

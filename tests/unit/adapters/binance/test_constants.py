@@ -4,8 +4,6 @@ Unit tests for Binance adapter constants.
 Tests that necessary constants are defined and have appropriate values.
 """
 
-import pytest
-
 from candles_feed.adapters.binance.constants import (
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,

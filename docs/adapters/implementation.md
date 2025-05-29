@@ -77,51 +77,51 @@ from candles_feed.core.exchange_registry import ExchangeRegistry
 @ExchangeRegistry.register("your_exchange_name")
 class YourExchangeAdapter(BaseAdapter):
     """Your exchange adapter implementation."""
-    
+
     def get_trading_pair_format(self, trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
-        
+
         Args:
             trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
-            
+
         Returns:
             Trading pair in exchange format
         """
         # Implement exchange-specific trading pair formatting
         # For example, some exchanges use format like "BTCUSDT" without hyphen
         return trading_pair.replace("-", "")
-    
+
     def get_rest_url(self) -> str:
         """Get REST API URL for candles.
-        
+
         Returns:
             REST API URL
         """
         return f"{REST_URL}{CANDLES_ENDPOINT}"
-    
+
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
-        
+
         Returns:
             WebSocket URL
         """
         return WSS_URL
-    
-    def get_rest_params(self, 
-                      trading_pair: str, 
-                      interval: str, 
-                      start_time: Optional[int] = None, 
-                      end_time: Optional[int] = None, 
+
+    def get_rest_params(self,
+                      trading_pair: str,
+                      interval: str,
+                      start_time: Optional[int] = None,
+                      end_time: Optional[int] = None,
                       limit: Optional[int] = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST) -> dict:
         """Get parameters for REST API request.
-        
+
         Args:
             trading_pair: Trading pair
             interval: Candle interval
             start_time: Start time in seconds
             end_time: End time in seconds
             limit: Maximum number of candles to return
-            
+
         Returns:
             Dictionary of parameters for REST API request
         """
@@ -131,28 +131,28 @@ class YourExchangeAdapter(BaseAdapter):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit
         }
-        
+
         # Some exchanges use different parameter names or formats for timestamps
         if start_time:
             params["startTime"] = start_time * 1000  # Convert to milliseconds if needed
-        
+
         if end_time:
             params["endTime"] = end_time * 1000  # Convert to milliseconds if needed
-            
+
         return params
-    
+
     def parse_rest_response(self, data: dict) -> List[CandleData]:
         """Parse REST API response into CandleData objects.
-        
+
         Args:
             data: REST API response
-            
+
         Returns:
             List of CandleData objects
         """
         # Implement exchange-specific response parsing
         candles = []
-        
+
         # Example implementation (adjust according to exchange response format)
         for row in data.get("data", []):
             candles.append(CandleData(
@@ -168,16 +168,16 @@ class YourExchangeAdapter(BaseAdapter):
                 taker_buy_base_volume=float(row[8]) if len(row) > 8 else 0.0,
                 taker_buy_quote_volume=float(row[9]) if len(row) > 9 else 0.0
             ))
-        
+
         return candles
-    
+
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
-        
+
         Args:
             trading_pair: Trading pair
             interval: Candle interval
-            
+
         Returns:
             WebSocket subscription payload
         """
@@ -190,13 +190,13 @@ class YourExchangeAdapter(BaseAdapter):
             ],
             "id": 1
         }
-    
+
     def parse_ws_message(self, data: dict) -> Optional[List[CandleData]]:
         """Parse WebSocket message into CandleData objects.
-        
+
         Args:
             data: WebSocket message
-            
+
         Returns:
             List of CandleData objects or None if message is not a candle update
         """
@@ -217,20 +217,20 @@ class YourExchangeAdapter(BaseAdapter):
                 taker_buy_base_volume=float(k.get("V", 0)),
                 taker_buy_quote_volume=float(k.get("Q", 0))
             )]
-        
+
         return None
-        
+
     def get_supported_intervals(self) -> Dict[str, int]:
         """Get supported intervals and their durations in seconds.
-        
+
         Returns:
             Dictionary mapping interval strings to their duration in seconds
         """
         return INTERVALS
-        
+
     def get_ws_supported_intervals(self) -> List[str]:
         """Get intervals supported by WebSocket API.
-        
+
         Returns:
             List of interval strings supported by WebSocket API
         """
@@ -291,7 +291,7 @@ flowchart TD
     F --> G[Implement WebSocket Subscription]
     G --> H[Implement WebSocket Message Parsing]
     H --> I[Test Your Adapter]
-    
+
     style I fill:#f96,stroke:#333,stroke-width:2px
 ```
 

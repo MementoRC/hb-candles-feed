@@ -121,12 +121,7 @@ class TestMEXCSpotPlugin:
     def test_parse_ws_subscription(self):
         """Test parsing WebSocket subscription message."""
         # Create subscription message
-        message = {
-            "method": "sub",
-            "params": [
-                "spot@kline.Min1_btcusdt"
-            ]
-        }
+        message = {"method": "sub", "params": ["spot@kline.Min1_btcusdt"]}
 
         # Parse subscription
         subscriptions = self.plugin.parse_ws_subscription(message)
@@ -139,12 +134,7 @@ class TestMEXCSpotPlugin:
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
         # Create subscription message
-        message = {
-            "method": "sub",
-            "params": [
-                "spot@public.kline.Min1_btcusdt"
-            ]
-        }
+        message = {"method": "sub", "params": ["spot@public.kline.Min1_btcusdt"]}
 
         # Create success response
         response = self.plugin.create_ws_subscription_success(message, [("BTC-USDT", "1m")])
