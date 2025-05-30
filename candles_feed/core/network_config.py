@@ -86,7 +86,9 @@ class NetworkConfig:
         return cls(default_environment=NetworkEnvironment.TESTNET)
 
     @classmethod
-    def hybrid(cls, **endpoint_overrides: Any) -> "NetworkConfig": # Add : Any for **endpoint_overrides values
+    def hybrid(
+        cls, **endpoint_overrides: Any
+    ) -> "NetworkConfig":  # Add : Any for **endpoint_overrides values
         """Create a hybrid configuration with specific overrides.
 
         Example:
@@ -100,29 +102,33 @@ class NetworkConfig:
         :raises ValueError: If an invalid endpoint type or environment is provided
         """
         # Convert string keys to EndpointType enum
-        processed_overrides: Dict[EndpointType, NetworkEnvironment] = {} # Explicitly type processed_overrides
-        for key_str, value_orig in endpoint_overrides.items(): # Use key_str and value_orig
+        processed_overrides: Dict[
+            EndpointType, NetworkEnvironment
+        ] = {}  # Explicitly type processed_overrides
+        for key_str, value_orig in endpoint_overrides.items():  # Use key_str and value_orig
             typed_key: EndpointType
             try:
-                typed_key = EndpointType(key_str) # Assign to new variable typed_key
+                typed_key = EndpointType(key_str)  # Assign to new variable typed_key
             except ValueError:
-                raise ValueError(f"Invalid endpoint type: {key_str}") from None # Use key_str in error
+                raise ValueError(
+                    f"Invalid endpoint type: {key_str}"
+                ) from None  # Use key_str in error
 
-            typed_value: NetworkEnvironment # Declare typed_value
-            if isinstance(value_orig, str): # Check value_orig type
+            typed_value: NetworkEnvironment  # Declare typed_value
+            if isinstance(value_orig, str):  # Check value_orig type
                 try:
-                    typed_value = NetworkEnvironment(value_orig) # Assign to typed_value
+                    typed_value = NetworkEnvironment(value_orig)  # Assign to typed_value
                 except ValueError:
                     raise ValueError(f"Invalid network environment: {value_orig}") from None
-            elif isinstance(value_orig, NetworkEnvironment): # Check if already NetworkEnvironment
-                typed_value = value_orig # Assign to typed_value
+            elif isinstance(value_orig, NetworkEnvironment):  # Check if already NetworkEnvironment
+                typed_value = value_orig  # Assign to typed_value
             else:
                 # Handle unexpected type for value_orig
                 raise TypeError(
                     f"Invalid value type for endpoint override: {key_str}={value_orig!r} "
                     f"(expected str or NetworkEnvironment)"
                 )
-            processed_overrides[typed_key] = typed_value # Use typed_key and typed_value
+            processed_overrides[typed_key] = typed_value  # Use typed_key and typed_value
 
         return cls(
             default_environment=NetworkEnvironment.PRODUCTION,

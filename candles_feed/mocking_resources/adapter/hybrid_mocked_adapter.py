@@ -152,7 +152,9 @@ class HybridMockedAdapter(BaseAdapter):
 
         return params
 
-    def _parse_rest_response(self, response_data: dict[Any, Any] | list[Any] | None) -> List[CandleData]:
+    def _parse_rest_response(
+        self, response_data: dict[Any, Any] | list[Any] | None
+    ) -> List[CandleData]:
         """Process REST API response data into CandleData objects.
 
         :param response_data: Response data from the REST API.

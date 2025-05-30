@@ -123,7 +123,10 @@ class MockedAdapter(BaseAdapter):
         return params
 
     def parse_rest_response(
-        self, response_data: Dict[str, Any], trading_pair: Optional[str] = None, interval: Optional[str] = None
+        self,
+        response_data: Dict[str, Any],
+        trading_pair: Optional[str] = None,
+        interval: Optional[str] = None,
     ) -> List[CandleData]:
         """Alias for process_rest_response to match BaseAdapter interface.
 
