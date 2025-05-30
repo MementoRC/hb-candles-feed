@@ -36,10 +36,10 @@ def configure_logging():
 def unused_tcp_port():
     """Find an unused TCP port for testing."""
     import socket
-    
+
     # Create a socket and bind to port 0 to let the OS choose an available port
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('127.0.0.1', 0))
+        s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
     return port
 

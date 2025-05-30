@@ -45,7 +45,7 @@ class HummingbotWSAssistantAdapter(WSAssistant):
         :param logger: Logger instance
         """
         self._ws = ws_assistant
-        self._logger: Logger = logger or cast(Logger, logging.getLogger(__name__))
+        self._logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
 
     async def connect(self) -> None:
         """Connect to WebSocket."""
@@ -138,7 +138,7 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         self._throttler = throttler
         self._web_assistants_factory = web_assistants_factory
         self._throttler_adapter = HummingbotThrottlerAdapter(throttler)
-        self._logger: Logger = logger or cast(Logger, logging.getLogger(__name__))
+        self._logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
         self._rest_assistant: Optional[RESTAssistant] = None
 
     async def _ensure_rest_assistant(self):

@@ -2,7 +2,7 @@ import json
 import random
 import time
 from abc import ABC
-from typing import Any, Dict, cast
+from typing import Any, Dict
 
 from aiohttp import web
 

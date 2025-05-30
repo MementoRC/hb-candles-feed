@@ -23,7 +23,7 @@ class NetworkClient:
 
         :param logger: Logger instance
         """
-        self.logger: Logger = logger or cast(Logger, logging.getLogger(__name__))
+        self.logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
         self._session: aiohttp.ClientSession | None = None
 
     async def _ensure_session(self):
