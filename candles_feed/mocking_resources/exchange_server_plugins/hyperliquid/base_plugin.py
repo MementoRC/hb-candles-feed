@@ -188,7 +188,7 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
         exchange_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
         return f"{coin}:{exchange_interval}"
 
-    async def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
+    async def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:  # type: ignore[override]
         """
         Parse REST API parameters for HyperLiquid candle requests.
 

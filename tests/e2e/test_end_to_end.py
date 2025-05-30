@@ -269,9 +269,9 @@ class TestEndToEnd:
                     elif interval == "1h":
                         expected_diff = 3600  # 1h = 3600 seconds
 
-                    assert abs(time_diff - expected_diff) < 10, (
-                        f"Incorrect time spacing for {interval} interval"
-                    )
+                    assert (
+                        abs(time_diff - expected_diff) < 10
+                    ), f"Incorrect time spacing for {interval} interval"
 
         finally:
             # Clean up resources
@@ -289,9 +289,9 @@ class TestEndToEnd:
 
         # Make sure we're using our mock server, not the real Binance API
         assert "127.0.0.1:8080" in binance_constants.SPOT_REST_URL, "URL patching failed"
-        assert "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL, (
-            "WebSocket URL patching failed"
-        )
+        assert (
+            "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL
+        ), "WebSocket URL patching failed"
 
         # Add a known valid trading pair to the server
         mock_binance_server.add_trading_pair("BTC-USDT", "1m", 50000.0)
@@ -386,9 +386,9 @@ class TestEndToEnd:
             # 1. We successfully fetched via REST, or
             # 2. We got some data via WebSocket, or
             # 3. We recovered after network errors
-            assert successfully_fetched or data_received or final_count > 0, (
-                "Error handling test failed"
-            )
+            assert (
+                successfully_fetched or data_received or final_count > 0
+            ), "Error handling test failed"
 
             # The actual assertions are more relaxed because we're testing error handling
             # If we get here without crashes, the error handling is working as expected

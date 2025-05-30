@@ -2,7 +2,7 @@ import json
 import random
 import time
 from abc import ABC
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from aiohttp import web
 
@@ -154,11 +154,18 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             async for msg in ws:
                 if msg.type == web.WSMsgType.TEXT:
                     try:
-                        data = json.loads(msg.data)
-                        method = data.get("method")
+                        raw_data = json.loads(msg.data)
+                        if not isinstance(raw_data, dict):
+                            await ws.send_json(
+                                {"error": "Invalid message format: expected a JSON object."}
+                            )
+                            continue
+                        data: Dict[str, Any] = raw_data
+                        method = data.get("method")  # method is Optional[Any]
 
                         if method == "SUBSCRIBE":
                             # Parse subscriptions using our plugin method
+                            # data is now correctly typed as Dict[str, Any] for parse_ws_subscription
                             subscriptions = self.parse_ws_subscription(data)
 
                             # Create subscription keys and add to server's subscriptions
@@ -419,7 +426,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         :param message: The subscription message from the client.
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
-        subscriptions = []
+        subscriptions: list[tuple[str, str]] = []
 
         # Binance uses a different subscription format:
         # {
@@ -451,8 +458,8 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         return subscriptions
 
     def create_ws_subscription_success(
-        self, message: dict, subscriptions: list[tuple[str, str]]
-    ) -> dict:
+        self, message: Dict[str, Any], subscriptions: list[tuple[str, str]]
+    ) -> Dict[str, Any]:
         """
         Create a Binance WebSocket subscription success response.
 
