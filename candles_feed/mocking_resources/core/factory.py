@@ -4,21 +4,22 @@ Server factory for creating mock exchange servers.
 
 import importlib
 import logging
-from typing import TYPE_CHECKING, List, Optional, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar
 
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
 if TYPE_CHECKING:
+    from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
     from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
 
 logger = logging.getLogger(__name__)
 
 
-_PLUGIN_REGISTRY = {}
+_PLUGIN_REGISTRY: Dict[ExchangeType, "ExchangePlugin"] = {}
 
 
-def register_plugin(exchange_type: ExchangeType, plugin):
+def register_plugin(exchange_type: ExchangeType, plugin: "ExchangePlugin") -> None:
     """Register an exchange plugin.
 
     :param exchange_type: The exchange type
@@ -31,7 +32,7 @@ def register_plugin(exchange_type: ExchangeType, plugin):
     _PLUGIN_REGISTRY[exchange_type] = plugin
 
 
-def get_plugin(exchange_type: ExchangeType):
+def get_plugin(exchange_type: ExchangeType) -> "Optional[ExchangePlugin]":
     """Get the plugin for an exchange type.
 
     :param exchange_type: ExchangeType:
@@ -45,14 +46,14 @@ def get_plugin(exchange_type: ExchangeType):
     return _get_plugin_from_registry(exchange_type)
 
 
-def _get_plugin_from_registry(exchange_type: ExchangeType):
+def _get_plugin_from_registry(exchange_type: ExchangeType) -> "Optional[ExchangePlugin]":
     """Get a plugin instance using the plugin registry mapping.
 
     :param exchange_type: The exchange type to get a plugin for
     :returns: A plugin instance or None if no plugin is registered
     """
     # Plugin registry mapping
-    plugin_registry = {  # Renamed from PLUGIN_REGISTRY to follow N806 for local var if it were one, though it's a constant here.
+    plugin_registry: Dict[ExchangeType, str] = {
         ExchangeType.BINANCE_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin.BinanceSpotPlugin",
         ExchangeType.BINANCE_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.binance.perpetual_plugin.BinancePerpetualPlugin",
         ExchangeType.OKX_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.okx.spot_plugin.OKXSpotPlugin",

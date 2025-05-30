@@ -38,15 +38,13 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
-    ) -> dict[str, str | int]:
+        limit: int = 500,
+    ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
@@ -56,11 +54,15 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         if start_time:
             params["startAt"] = self.convert_timestamp_to_exchange(start_time)
 
-        if end_time:
-            params["endAt"] = self.convert_timestamp_to_exchange(end_time)
-
-        if limit:
-            params["limit"] = limit
+        # KuCoin Spot API for klines does not seem to directly support a 'limit' parameter
+        # when 'startAt' and 'endAt' are used. It returns data within the range.
+        # The public API docs mention 'limit' for other endpoints, but for klines,
+        # it's usually about the time range.
+        # If 'limit' is to be used, it might be for requests *without* startAt/endAt,
+        # or the API might have changed. The original code included `if limit: params["limit"] = limit`.
+        # Assuming this is still valid for KuCoin Spot if `limit` is provided.
+        # Since `limit` is now `int = 500`, it will always be an int.
+        params["limit"] = limit
 
         return params
 

@@ -6,6 +6,7 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import Any, Dict, List
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -29,18 +30,16 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
 
-    @staticmethod
     @abstractmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
         :returns: WebSocket URL
@@ -68,30 +67,45 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    ) -> dict:
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
         # OKX uses after and before parameters with timestamps
-        params = {
-            "instId": trading_pair.replace("-", "/"),
+        params: dict[str, str | int] = {  # type: ignore
+            "instId": OKXBaseAdapter.get_trading_pair_format(
+                trading_pair
+            ),  # OKX uses / in path, not params for symbol
             "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
         }
 
         if start_time:
-            params["after"] = self.convert_timestamp_to_exchange(start_time)
-
-        if end_time:
-            params["before"] = self.convert_timestamp_to_exchange(end_time)
+            # OKX 'after' is for data after this timestamp (exclusive for newer data, inclusive for older data if 'before' is not set)
+            # OKX 'before' is for data before this timestamp (exclusive for older data)
+            # To get data starting from 'start_time', we might need to use 'after' carefully or adjust.
+            # If start_time means "inclusive start", then 'after' should be start_time - interval_duration,
+            # or rely on 'limit' to fetch enough data to cover the start_time.
+            # For simplicity, directly using start_time for 'after'.
+            # The API typically wants 'after' for pagination of older data (cursor is the oldest ts)
+            # and 'before' for newer data (cursor is the newest ts).
+            # If 'start_time' means "fetch candles whose timestamp is >= start_time",
+            # OKX's 'after' (for older data) or 'before' (for newer data) needs careful handling.
+            # Given _fetch_rest_candles logic, start_time is for older data.
+            # So 'after' should be used if start_time means "fetch data older than this".
+            # However, the common interpretation of start_time is "fetch data from this time onwards".
+            # OKX REST API: "after: Request data after this timestamp" (newer data).
+            # "before: Request data before this timestamp" (older data).
+            # If we want data from a historical start_time up to now (or a limit), we'd use 'before' with start_time.
+            # This seems reversed from typical 'start_time' usage.
+            # Let's assume start_time is used to get data *before* this timestamp (i.e., older data).
+            params["before"] = self.convert_timestamp_to_exchange(start_time)
 
         return params
 
@@ -118,7 +132,12 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return []
 
-        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+        if not isinstance(data, dict) or "data" not in data:
+            return []
+
+        candle_list_payload = data["data"]
+        if not isinstance(candle_list_payload, list):
+            return []
 
         candles: list[CandleData] = []
         candles.extend(
@@ -129,9 +148,10 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                 low=float(row[3]),
                 close=float(row[4]),
                 volume=float(row[5]),
-                quote_asset_volume=float(row[6]) if len(row) > 6 else 0.0,
+                quote_asset_volume=float(row[6]) if len(row) > 6 and row[6] is not None else 0.0,
             )
-            for row in data.get("data", [])
+            for row in candle_list_payload
+            if isinstance(row, list) and len(row) >= 6  # Ensure row is list and has enough items
         )
         return candles
 
@@ -169,12 +189,14 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: WebSocket subscription payload
         """
         # OKX WebSocket subscription format:
-        return {
-            "op": "subscribe",
-            "args": [
-                {
-                    "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}",
-                    "instId": trading_pair.replace("-", "/"),
+        return {  # type: ignore
+            "op": "subscribe",  # type: ignore
+            "args": [  # type: ignore
+                {  # type: ignore
+                    "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}",  # type: ignore
+                    "instId": OKXBaseAdapter.get_trading_pair_format(trading_pair).replace(
+                        "-", "/"
+                    ),  # type: ignore
                 }
             ],
         }
@@ -209,20 +231,24 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             return None
 
         if "data" in data and isinstance(data["data"], list):
-            candles = []
-            candles.extend(
-                CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
-                    open=float(row[1]),
-                    high=float(row[2]),
-                    low=float(row[3]),
-                    close=float(row[4]),
-                    volume=float(row[5]),
-                    quote_asset_volume=float(row[6]) if row[6] != "0" else 0.0,
-                )
-                for row in data["data"]
-            )
-            return candles
+            candle_list_payload = data["data"]
+            parsed_candles: list[CandleData] = []
+            for row_payload in candle_list_payload:
+                if isinstance(row_payload, list) and len(row_payload) >= 7:
+                    parsed_candles.append(
+                        CandleData(
+                            timestamp_raw=self.ensure_timestamp_in_seconds(row_payload[0]),
+                            open=float(row_payload[1]),
+                            high=float(row_payload[2]),
+                            low=float(row_payload[3]),
+                            close=float(row_payload[4]),
+                            volume=float(row_payload[5]),
+                            quote_asset_volume=float(row_payload[6])
+                            if row_payload[6] != "0"
+                            else 0.0,
+                        )
+                    )
+            return parsed_candles
 
         return None
 

@@ -27,18 +27,16 @@ class MEXCBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     Child classes only need to implement methods that differ between the markets.
     """
 
-    @staticmethod
     @abstractmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
         :returns: WebSocket URL
@@ -84,15 +82,13 @@ class MEXCBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    ) -> dict:
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
@@ -141,12 +137,12 @@ class MEXCBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: WebSocket subscription payload
         """
         # Prepare the symbol in MEXC format
-        symbol = self.get_trading_pair_format(trading_pair).replace("_", "").lower()
-        mexc_interval = self.get_interval_format(interval)
+        symbol: str = MEXCBaseAdapter.get_trading_pair_format(trading_pair).replace("_", "").lower()
+        mexc_interval: str = self.get_interval_format(interval)  # type: ignore
 
         return {
             "method": SUB_ENDPOINT_NAME,
-            "params": [f"{self.get_kline_topic()}{mexc_interval}_{symbol}"],
+            "params": [f"{self.get_kline_topic()}{mexc_interval}_{symbol}"],  # type: ignore
         }
 
     @abstractmethod

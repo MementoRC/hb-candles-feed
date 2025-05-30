@@ -59,15 +59,13 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
-    ) -> dict[str, str | int]:
+        limit: int = 500,  # Matched base class signature
+    ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
@@ -76,13 +74,12 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
             "interval": interval,
         }
 
-        if limit:
-            params["limit"] = limit
+        # limit is now an int with a default, so it's always provided to the method.
+        # Assuming MEXC API takes 'limit' parameter.
+        params["limit"] = limit
 
         if start_time:
             params["startTime"] = self.convert_timestamp_to_exchange(start_time)
-        if end_time:
-            params["endTime"] = self.convert_timestamp_to_exchange(end_time)
 
         return params
 

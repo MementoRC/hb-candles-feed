@@ -80,28 +80,31 @@ class BaseAdapter(ABC):
         pass
 
     # Private implementation methods for subclasses
-    @staticmethod
-    def _get_rest_url() -> str:
+    @abstractmethod
+    def _get_rest_url(self) -> str:
         """Internal method to get REST API URL.
+
+        Subclasses must implement this to provide the base REST API URL for candles.
+        This method is an instance method to allow for dynamic URL construction
+        if needed (e.g., based on `self`'s configuration).
 
         :returns: REST API URL
         """
-        raise NotImplementedError("Subclasses must implement _get_rest_url")
+        pass
 
+    @abstractmethod
     def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
+        limit: int = 500,  # Default matches AdapterProtocol.fetch_rest_candles
     ) -> dict:
         """Internal method to get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """

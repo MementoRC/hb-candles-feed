@@ -16,7 +16,8 @@ from .constants import (
 class OKXPerpetualAdapter(OKXBaseAdapter):
     """OKX perpetual exchange adapter."""
 
-    def get_trading_pair_format(self, trading_pair: str) -> str:
+    @staticmethod
+    def get_trading_pair_format(trading_pair: str) -> str:  # type: ignore[override]
         """Convert standard trading pair format to exchange format.
 
         For perpetual contracts, OKX requires the SWAP suffix to be added.
@@ -29,16 +30,14 @@ class OKXPerpetualAdapter(OKXBaseAdapter):
             return trading_pair
         return f"{trading_pair}-SWAP"
 
-    @staticmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:  # type: ignore[override]
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
-    @staticmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:  # type: ignore[override]
         """Get WebSocket URL.
 
         :returns: WebSocket URL

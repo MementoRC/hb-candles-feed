@@ -37,9 +37,9 @@ class HybridMockedAdapter(BaseAdapter):
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments, may include 'network_client'
         """
-        super().__init__()  # Call object.__init__()
-        self._network_config = network_config
-        self._network_client = kwargs.get("network_client")
+        super().__init__()  # Call object.__init__(), BaseAdapter has no __init__
+        self._network_config: Optional[NetworkConfig] = network_config
+        self._network_client: Optional[NetworkClientProtocol] = kwargs.get("network_client")
 
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
@@ -113,21 +113,20 @@ class HybridMockedAdapter(BaseAdapter):
             )
         ]
 
-    @staticmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:  # type: ignore[override]
         """Get the REST API URL for candles.
 
         :returns: REST API URL.
         """
         return f"{SPOT_REST_URL}{REST_CANDLES_ENDPOINT}"
 
-    def _get_rest_params(
+    def _get_rest_params(  # type: ignore[override]
         self,
         trading_pair: str,
         interval: str,
         start_time: Optional[int] = None,
         end_time: Optional[int] = None,
-        limit: Optional[int] = None,
+        limit: int = DEFAULT_CANDLES_LIMIT,
     ) -> Dict[str, Any]:
         """Get REST API request parameters.
 
@@ -138,10 +137,10 @@ class HybridMockedAdapter(BaseAdapter):
         :param limit: Maximum number of candles to retrieve.
         :returns: Dictionary of request parameters.
         """
-        params = {
-            "symbol": self.get_trading_pair_format(trading_pair),
+        params: Dict[str, Any] = {
+            "symbol": HybridMockedAdapter.get_trading_pair_format(trading_pair),
             "interval": interval,
-            "limit": limit if limit is not None else DEFAULT_CANDLES_LIMIT,
+            "limit": limit,
         }
 
         if start_time is not None:
@@ -160,29 +159,31 @@ class HybridMockedAdapter(BaseAdapter):
         :param response_data: Response data from the REST API.
         :returns: List of CandleData objects.
         """
-        result = []
+        result: List[CandleData] = []
 
         # The mock server returns a standardized format
         if isinstance(response_data, dict) and response_data.get("status") == "ok":
-            candles_data = response_data.get("data", [])
-            if not isinstance(candles_data, list):  # Ensure candles_data is a list
+            candles_payload = response_data.get("data", [])
+            if not isinstance(candles_payload, list):  # Ensure candles_payload is a list
                 return result  # Or handle error appropriately
 
-            for candle in candles_data:
-                timestamp = candle.get("timestamp")
+            for candle_item in candles_payload:
+                if not isinstance(candle_item, dict):
+                    continue
+                timestamp = candle_item.get("timestamp")
 
                 # Convert timestamp to seconds
                 timestamp = self.ensure_timestamp_in_seconds(timestamp)
 
                 result.append(
                     CandleData(
-                        timestamp_raw=timestamp,
-                        open=float(candle.get("open", 0)),
-                        high=float(candle.get("high", 0)),
-                        low=float(candle.get("low", 0)),
-                        close=float(candle.get("close", 0)),
-                        volume=float(candle.get("volume", 0)),
-                        quote_asset_volume=float(candle.get("quote_volume", 0)),
+                        timestamp_raw=timestamp,  # type: ignore
+                        open=float(candle_item.get("open", 0)),
+                        high=float(candle_item.get("high", 0)),
+                        low=float(candle_item.get("low", 0)),
+                        close=float(candle_item.get("close", 0)),
+                        volume=float(candle_item.get("volume", 0)),
+                        quote_asset_volume=float(candle_item.get("quote_volume", 0)),
                     )
                 )
 
@@ -207,18 +208,18 @@ class HybridMockedAdapter(BaseAdapter):
         :returns: List of CandleData objects
         """
         # Generate mock candle data
-        current_time = start_time or 1620000000  # Example timestamp
-        interval_seconds = INTERVALS.get(interval, 60)
+        current_time_sec: int = start_time or 1620000000  # Example timestamp
+        interval_seconds: int = INTERVALS.get(interval, 60)
 
-        # Handle case where limit is None
-        actual_limit = limit if limit is not None else 500
+        # 'limit' is now guaranteed to be an int by the signature
+        # actual_limit = limit if limit is not None else 500
 
-        candles = []
-        for i in range(actual_limit):
-            timestamp = current_time + (i * interval_seconds)
-            candles.append(
+        candle_payloads: List[Dict[str, Any]] = []
+        for i in range(limit):  # Use the direct limit
+            timestamp_sec: int = current_time_sec + (i * interval_seconds)
+            candle_payloads.append(
                 {
-                    "timestamp": timestamp * 1000,  # Convert to milliseconds
+                    "timestamp": timestamp_sec * 1000,  # Convert to milliseconds
                     "open": 100.0 + i,
                     "high": 101.0 + i,
                     "low": 99.0 + i,
@@ -229,9 +230,9 @@ class HybridMockedAdapter(BaseAdapter):
             )
 
         # Create a response like what our mock server would return
-        response = {"status": "ok", "data": candles}
+        response_payload: Dict[str, Any] = {"status": "ok", "data": candle_payloads}
 
-        return self._parse_rest_response(response)
+        return self._parse_rest_response(response_payload)
 
     async def fetch_rest_candles(
         self,
@@ -254,28 +255,29 @@ class HybridMockedAdapter(BaseAdapter):
         :returns: List of CandleData objects
         """
         # Use the provided client, the instance client, or simulate one
-        client = network_client or self._network_client
+        client: Optional[NetworkClientProtocol] = network_client or self._network_client
         if client:
             # In a real implementation, we'd use the client to make a request
             # For the mock adapter, we'll just generate test data with
             # a slightly different pattern than the sync method
+            # This is a mock, so we don't actually use the client here.
             pass
 
         # Generate different mock candle data for async to demonstrate
         # that this is actually using the async implementation
-        current_time = start_time or 1620000000  # Example timestamp
-        interval_seconds = INTERVALS.get(interval, 60)
+        current_time_sec: int = start_time or 1620000000  # Example timestamp
+        interval_seconds: int = INTERVALS.get(interval, 60)
 
-        # Handle case where limit is None
-        actual_limit = limit if limit is not None else 500
+        # 'limit' is now guaranteed to be an int by the signature
+        # actual_limit = limit if limit is not None else 500
 
-        candles = []
-        for i in range(actual_limit):
-            timestamp = current_time + (i * interval_seconds)
+        candle_payloads: List[Dict[str, Any]] = []
+        for i in range(limit):  # Use the direct limit
+            timestamp_sec: int = current_time_sec + (i * interval_seconds)
             # Different price pattern to distinguish from sync method
-            candles.append(
+            candle_payloads.append(
                 {
-                    "timestamp": timestamp * 1000,  # Convert to milliseconds
+                    "timestamp": timestamp_sec * 1000,  # Convert to milliseconds
                     "open": 200.0 + i * 2,
                     "high": 205.0 + i * 2,
                     "low": 195.0 + i * 2,
@@ -286,6 +288,6 @@ class HybridMockedAdapter(BaseAdapter):
             )
 
         # Create a response like what our mock server would return
-        response = {"status": "ok", "data": candles}
+        response_payload: Dict[str, Any] = {"status": "ok", "data": candle_payloads}
 
-        return self._parse_rest_response(response)
+        return self._parse_rest_response(response_payload)

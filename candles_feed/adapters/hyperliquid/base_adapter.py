@@ -6,6 +6,7 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import Any, Dict, List
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -30,18 +31,16 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "seconds"
 
-    @staticmethod
     @abstractmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
         :returns: WebSocket URL
@@ -71,22 +70,20 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    ) -> dict:
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
         # HyperLiquid uses a POST request with JSON body
-        coin = self.get_trading_pair_format(trading_pair)
+        coin: str = HyperliquidBaseAdapter.get_trading_pair_format(trading_pair)
 
-        params = {
+        params: dict[str, str | int] = {  # type: ignore
             "type": "candles",
             "coin": coin,
             "resolution": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
@@ -94,9 +91,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         }
 
         if start_time:
-            params["startTime"] = self.convert_timestamp_to_exchange(start_time)
-        if end_time:
-            params["endTime"] = self.convert_timestamp_to_exchange(end_time)
+            params["startTime"] = self.convert_timestamp_to_exchange(start_time)  # type: ignore
 
         return params
 
@@ -109,22 +104,24 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None or not isinstance(data, list):
             return []
 
-        return [
-            CandleData(
-                timestamp_raw=self.ensure_timestamp_in_seconds(candle[0]),
-                open=float(candle[1]),
-                high=float(candle[2]),
-                low=float(candle[3]),
-                close=float(candle[4]),
-                volume=float(candle[5]),
-                quote_asset_volume=float(candle[6]),
-                n_trades=0,  # Not provided by HyperLiquid
-                taker_buy_base_volume=0.0,  # Not provided
-                taker_buy_quote_volume=0.0,  # Not provided
-            )
-            for candle in data
-            if len(candle) >= 7
-        ]
+        candles: list[CandleData] = []
+        for candle_row in data:
+            if isinstance(candle_row, list) and len(candle_row) >= 7:
+                candles.append(
+                    CandleData(
+                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_row[0]),
+                        open=float(candle_row[1]),
+                        high=float(candle_row[2]),
+                        low=float(candle_row[3]),
+                        close=float(candle_row[4]),
+                        volume=float(candle_row[5]),
+                        quote_asset_volume=float(candle_row[6]),
+                        n_trades=0,  # Not provided by HyperLiquid
+                        taker_buy_base_volume=0.0,  # Not provided
+                        taker_buy_quote_volume=0.0,  # Not provided
+                    )
+                )
+        return candles
 
     async def fetch_rest_candles(
         self,
@@ -159,7 +156,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param interval: Candle interval
         :returns: WebSocket subscription payload
         """
-        coin = self.get_trading_pair_format(trading_pair)
+        coin: str = HyperliquidBaseAdapter.get_trading_pair_format(trading_pair)
 
         return {
             "method": "subscribe",
@@ -179,18 +176,18 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         # Check if this is a candle message
         if data.get("channel") == CHANNEL_NAME and "data" in data:
-            candle = data["data"]
+            candle_payload = data["data"]
 
-            if isinstance(candle, list) and len(candle) >= 7:
+            if isinstance(candle_payload, list) and len(candle_payload) >= 7:
                 return [
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle[0]),
-                        open=float(candle[1]),
-                        high=float(candle[2]),
-                        low=float(candle[3]),
-                        close=float(candle[4]),
-                        volume=float(candle[5]),
-                        quote_asset_volume=float(candle[6]),
+                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_payload[0]),
+                        open=float(candle_payload[1]),
+                        high=float(candle_payload[2]),
+                        low=float(candle_payload[3]),
+                        close=float(candle_payload[4]),
+                        volume=float(candle_payload[5]),
+                        quote_asset_volume=float(candle_payload[6]),
                         n_trades=0,  # Not provided by HyperLiquid
                         taker_buy_base_volume=0.0,  # Not provided
                         taker_buy_quote_volume=0.0,  # Not provided

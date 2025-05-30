@@ -4,9 +4,9 @@ CCXT base adapter for the Candle Feed framework.
 This module provides a base implementation for exchange adapters using CCXT.
 """
 
-from typing import Any, Literal
+from typing import Any, Dict, List, Literal
 
-import ccxt
+import ccxt  # type: ignore
 
 from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -57,9 +57,9 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         raise NotImplementedError("This adapter does not support WebSocket")
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize CCXT exchange instance."""
-        self.exchange = getattr(ccxt, self.exchange_name)(
+        self.exchange: ccxt.Exchange = getattr(ccxt, self.exchange_name)(
             {
                 "enableRateLimit": True,
                 "options": self._get_ccxt_options(),
@@ -89,7 +89,8 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
             options = {"defaultType": "spot"}
         return options
 
-    def get_trading_pair_format(self, trading_pair: str) -> str:
+    @staticmethod
+    def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to CCXT format.
 
         :param trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
@@ -102,23 +103,21 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
+        limit: int = 500,  # Default matches AdapterProtocol.fetch_rest_candles_synchronous
     ) -> dict:
         """Get parameters for CCXT API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for CCXT API request
         """
-        params = {
-            "symbol": self.get_trading_pair_format(trading_pair),
+        params: dict[str, Any] = {
+            "symbol": CCXTBaseAdapter.get_trading_pair_format(trading_pair),
             "timeframe": interval,
             "since": self.convert_timestamp_to_exchange(start_time) if start_time else None,
-            "limit": limit or 500,
+            "limit": limit,
         }
         return params
 
@@ -128,17 +127,19 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         :param data: CCXT OHLCV response
         :returns: List of CandleData objects
         """
-        return [
-            CandleData(
-                timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
-                open=row[1],
-                high=row[2],
-                low=row[3],
-                close=row[4],
-                volume=row[5],
+        candles: list[CandleData] = []
+        for row in data:
+            candles.append(
+                CandleData(
+                    timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
+                    open=row[1],
+                    high=row[2],
+                    low=row[3],
+                    close=row[4],
+                    volume=row[5],
+                )
             )
-            for row in data
-        ]
+        return candles
 
     def fetch_rest_candles_synchronous(
         self,
@@ -171,7 +172,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         timeframes = self.exchange.timeframes
         # Convert CCXT timeframes to seconds
-        result = {}
+        result: dict[str, int] = {}
 
         # Basic conversion of common timeframes
         timeframe_to_seconds = {

@@ -77,7 +77,7 @@ class WebSocketStrategy:
     async def poll_once(
         self,
         start_time: int | None = None,
-        end_time: int | None = None,
+        end_time: int | None = None,  # end_time is not used by fetch_rest_candles
         limit: int | None = None,
     ) -> list[CandleData]:
         """Fetch candles for a specific time range (one-time poll).
@@ -85,7 +85,7 @@ class WebSocketStrategy:
         For WebSocket strategy, this falls back to REST API for historical data.
 
         :param start_time: Start time in seconds.
-        :param end_time: End time in seconds.
+        :param end_time: End time in seconds (currently not utilized by underlying calls).
         :param limit: Maximum number of candles to return.
         :returns: List of CandleData objects.
         """
@@ -98,7 +98,7 @@ class WebSocketStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit,
+                    limit=limit if limit is not None else 500,
                     network_client=self.network_client,
                 )
             elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
@@ -109,7 +109,7 @@ class WebSocketStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit,
+                    limit=limit if limit is not None else 500,
                 )
             else:
                 raise NotImplementedError(
@@ -254,7 +254,8 @@ class RESTPollingStrategy:
     async def poll_once(
         self,
         start_time: int | None = None,
-        end_time: int | None = None,
+        end_time: int
+        | None = None,  # end_time is used here for calculation, but not directly by fetch_rest_candles
         limit: int | None = None,
     ) -> list[CandleData]:
         """Fetch candles for a specific time range (one-time poll).
@@ -289,7 +290,7 @@ class RESTPollingStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit,
+                    limit=limit if limit is not None else 500,
                     network_client=self.network_client,
                 )
             elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
@@ -300,7 +301,7 @@ class RESTPollingStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit,
+                    limit=limit if limit is not None else 500,
                 )
             else:
                 raise NotImplementedError(

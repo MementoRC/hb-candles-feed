@@ -41,16 +41,20 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
-    ) -> dict[str, str | int]:
+        limit: int = 500,  # KuCoin Futures API doesn't seem to have a direct 'limit' for klines.
+        # It uses 'from' and 'to' for range.
+        # The base signature has 'limit', so we accept it.
+        # This implementation might ignore 'limit' if the API doesn't support it.
+        # Or, it might try to calculate 'to' based on 'start_time' and 'limit',
+        # but that's more complex and not in original code.
+        # For now, just match signature. The 'limit' param will be unused here.
+    ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
-        :param limit: Maximum number of candles to return
+        :param limit: Maximum number of candles to return (may not be used by this specific API endpoint)
         :returns: Dictionary of parameters for REST API request
         """
         # KuCoin Futures uses different API parameters
@@ -62,8 +66,10 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         if start_time:
             params["from"] = self.convert_timestamp_to_exchange(start_time)
 
-        if end_time:
-            params["to"] = self.convert_timestamp_to_exchange(end_time)
+        # 'limit' from base signature is not directly used by KuCoin Futures kline endpoint.
+        # It primarily uses 'from' and 'to'.
+        # If 'limit' needs to be implemented, logic to calculate 'to' or chunk requests would be needed.
+        # Original code did not use 'limit' for this adapter.
 
         return params
 

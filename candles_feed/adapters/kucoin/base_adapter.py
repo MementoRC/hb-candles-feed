@@ -29,18 +29,16 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
 
-    @staticmethod
     @abstractmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
         :returns: WebSocket URL
@@ -69,15 +67,13 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """

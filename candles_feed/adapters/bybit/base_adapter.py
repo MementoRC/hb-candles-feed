@@ -6,6 +6,7 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import Any, Dict, List
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -29,18 +30,16 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
 
-    @staticmethod
     @abstractmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
         :returns: WebSocket URL
@@ -76,33 +75,28 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    ) -> dict:
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
         # Bybit uses startTime and endTime parameters with timestamps in milliseconds
-        params = {
+        params: dict[str, str | int] = {  # type: ignore
             "symbol": self.get_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
         }
 
         if category := self.get_category_param():
-            params["category"] = category
+            params["category"] = category  # type: ignore
 
         if start_time:
-            params["start"] = self.convert_timestamp_to_exchange(start_time)
-
-        if end_time:
-            params["end"] = self.convert_timestamp_to_exchange(end_time)
+            params["start"] = self.convert_timestamp_to_exchange(start_time)  # type: ignore
 
         return params
 
@@ -135,6 +129,10 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             return []
 
         assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+        result_data = data.get("result", {})
+        assert isinstance(result_data, dict), "result field is not a dict"
+        candle_list_data = result_data.get("list", [])
+        assert isinstance(candle_list_data, list), "list field is not a list"
 
         candles: list[CandleData] = []
         candles.extend(
@@ -147,7 +145,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                 volume=float(row[5]),
                 quote_asset_volume=float(row[6]),
             )
-            for row in data.get("result", {}).get("list", [])
+            for row in candle_list_data
         )
         return candles
 
@@ -223,21 +221,29 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return None
 
-        if "topic" in data and data["topic"].startswith("kline.") and "data" in data:
-            candles = []
-            candles.extend(
-                CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(item["start"]),
-                    open=float(item["open"]),
-                    high=float(item["high"]),
-                    low=float(item["low"]),
-                    close=float(item["close"]),
-                    volume=float(item["volume"]),
-                    quote_asset_volume=float(item["turnover"]),
-                )
-                for item in data["data"]
-            )
-            return candles
+        if (
+            "topic" in data
+            and isinstance(data["topic"], str)
+            and data["topic"].startswith("kline.")
+            and "data" in data
+        ):
+            candle_items = data["data"]
+            if isinstance(candle_items, list):
+                candles: list[CandleData] = []
+                for item in candle_items:
+                    if isinstance(item, dict):
+                        candles.append(
+                            CandleData(
+                                timestamp_raw=self.ensure_timestamp_in_seconds(item["start"]),
+                                open=float(item["open"]),
+                                high=float(item["high"]),
+                                low=float(item["low"]),
+                                close=float(item["close"]),
+                                volume=float(item["volume"]),
+                                quote_asset_volume=float(item["turnover"]),
+                            )
+                        )
+                return candles
 
         return None
 

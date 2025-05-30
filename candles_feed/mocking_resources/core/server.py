@@ -9,7 +9,7 @@ import logging
 import random
 import time
 from collections import deque
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from aiohttp import web
@@ -75,13 +75,17 @@ class MockedExchangeServer:
         self.rate_limits = plugin.rate_limits.copy()
 
         # Default IP limits if not provided by the plugin
-        if "ip_limits" not in self.rate_limits.get("rest", {}):
-            self.rate_limits.setdefault("rest", {})["ip_limits"] = {
-                "default": self.rate_limits.get("rest", {}).get("limit", 1200),
-                "strict": self.rate_limits.get("rest", {}).get("limit", 1200) // 2,
+        rest_limits_config = self.rate_limits.setdefault("rest", {})  # type: ignore
+        if "ip_limits" not in rest_limits_config:
+            default_limit = rest_limits_config.get("limit", 1200)  # type: ignore
+            rest_limits_config["ip_limits"] = {  # type: ignore
+                "default": default_limit,
+                "strict": default_limit // 2,
             }
 
-        self.request_counts: dict[str, dict[str, deque | dict]] = {
+        self.request_counts: dict[
+            str, dict[str, deque | dict[str, Any]]
+        ] = {  # Adjusted dict value type
             "rest": {
                 # Format: {ip: {"timestamps": deque(), "weights": deque()}}
             },
@@ -156,7 +160,7 @@ class MockedExchangeServer:
         factory = CandleDataFactory()
 
         # Get interval in seconds
-        interval_seconds = self.plugin._interval_to_seconds(interval)
+        interval_seconds = self.plugin._interval_to_seconds(interval)  # type: ignore
 
         # Use current time as base and go backward
         end_timestamp = int(self._time())
@@ -369,7 +373,7 @@ class MockedExchangeServer:
                             last_time = last_time / 1000
 
                         # Calculate interval in seconds
-                        interval_seconds = self.plugin._interval_to_seconds(interval)
+                        interval_seconds = self.plugin._interval_to_seconds(interval)  # type: ignore
 
                         # Generate candles to catch up to current time
                         while last_time + interval_seconds <= current_time:
@@ -424,14 +428,14 @@ class MockedExchangeServer:
         :param candle: The candle data.
         :param is_final: Whether this is the final update for this candle.
         """
-        subscription_key = self.plugin.create_ws_subscription_key(trading_pair, interval)
+        subscription_key = self.plugin.create_ws_subscription_key(trading_pair, interval)  # type: ignore
         subscribers = self.subscriptions.get(subscription_key, set())
 
         if not subscribers:
             return
 
         # Format the message according to the exchange
-        message = self.plugin.format_ws_candle_message(
+        message = self.plugin.format_ws_candle_message(  # type: ignore
             candle=candle, trading_pair=trading_pair, interval=interval, is_final=is_final
         )
 
@@ -642,10 +646,10 @@ class MockedExchangeServer:
             return web.json_response({"code": -1003, "msg": "Too many requests"}, status=429)
 
         # Parse parameters using the plugin's method
-        params = self.plugin.parse_rest_candles_params(request)
+        params = self.plugin.parse_rest_candles_params(request)  # type: ignore
 
         # Check if parameters are valid
-        if not params.get("valid", True):
+        if not params.get("valid", True):  # type: ignore
             return web.json_response(params.get("error", {"msg": "Invalid parameters"}), status=400)
 
         symbol = params.get("symbol")
@@ -655,34 +659,42 @@ class MockedExchangeServer:
         limit = params.get("limit", 500)
 
         # Find the trading pair in our list (may need normalization)
-        trading_pair = None
-        for pair in self.candles:
-            if self.plugin.normalize_trading_pair(pair).replace("-", "") == symbol:
-                trading_pair = pair
+        trading_pair_key = None  # Renamed to avoid confusion with the loop variable 'trading_pair'
+        normalized_symbol = (
+            str(symbol).replace("-", "") if symbol else ""
+        )  # Ensure symbol is str for comparison
+        for pair_in_store in self.candles:
+            if (
+                self.plugin.normalize_trading_pair(pair_in_store).replace("-", "")
+                == normalized_symbol
+            ):  # type: ignore
+                trading_pair_key = pair_in_store
                 break
 
-        if not trading_pair:
+        if not trading_pair_key:
             return web.json_response(
                 {"code": -1121, "msg": f"Invalid symbol: {symbol}"}, status=400
             )
 
         # Check if we have this interval
-        if interval not in self.candles.get(trading_pair, {}):
+        if interval not in self.candles.get(trading_pair_key, {}):
             return web.json_response(
                 {"code": -1120, "msg": f"Invalid interval: {interval}"}, status=400
             )
 
         # Get the candles
-        candles = self.candles[trading_pair][interval]
+        candles = self.candles[trading_pair_key][
+            str(interval)
+        ]  # Ensure interval is str for dict key
 
         # Filter by time if specified
         if start_time:
-            start_time = int(start_time)
-            candles = [c for c in candles if c.timestamp_ms >= start_time]
+            start_time_ms = int(start_time)
+            candles = [c for c in candles if c.timestamp_ms >= start_time_ms]
 
         if end_time:
-            end_time = int(end_time)
-            candles = [c for c in candles if c.timestamp_ms <= end_time]
+            end_time_ms = int(end_time)
+            candles = [c for c in candles if c.timestamp_ms <= end_time_ms]
 
         # Apply limit
         if limit and len(candles) > limit:
@@ -693,8 +705,8 @@ class MockedExchangeServer:
         timezone_offset_hours = params.get("timezone_offset_hours", 0)
         timezone_adjustment_ms = int(timezone_offset_hours * 3600 * 1000)
 
-        response_data = self.plugin.format_rest_candles(
-            candles, trading_pair, interval, timezone_adjustment_ms
+        response_data = self.plugin.format_rest_candles(  # type: ignore
+            candles, trading_pair_key, str(interval), timezone_adjustment_ms
         )
 
         return web.json_response(response_data)
@@ -916,10 +928,10 @@ class MockedExchangeServer:
         :param client_ip: The client IP address.
         """
         # Parse the subscription request using the plugin
-        subscriptions = self.plugin.parse_ws_subscription(data)
+        subscriptions = self.plugin.parse_ws_subscription(data)  # type: ignore
 
         # Check subscription limit
-        current_subs = self.request_counts["ws"][client_ip]["subscriptions"]
+        current_subs = self.request_counts["ws"][client_ip]["subscriptions"]  # type: ignore
         if len(current_subs) + len(subscriptions) > self.rate_limits["ws"]["subscription_limit"]:
             await ws.send_json({"error": "Subscription limit exceeded", "id": data.get("id")})
             return
@@ -927,15 +939,22 @@ class MockedExchangeServer:
         # Subscribe to each topic
         for trading_pair, interval in subscriptions:
             # Normalize trading pair for our internal tracking
-            for pair in self.candles:
-                if self.plugin.normalize_trading_pair(pair).replace(
-                    "-", ""
-                ) == trading_pair.replace("-", ""):
-                    trading_pair = pair
+            normalized_trading_pair_arg = trading_pair.replace("-", "")
+            actual_trading_pair_key = (
+                trading_pair  # Default if not found, or use first part if normalized
+            )
+            for pair_in_store in self.candles:
+                if (
+                    self.plugin.normalize_trading_pair(pair_in_store).replace("-", "")
+                    == normalized_trading_pair_arg
+                ):  # type: ignore
+                    actual_trading_pair_key = pair_in_store
                     break
 
             # Create subscription key
-            subscription_key = self.plugin.create_ws_subscription_key(trading_pair, interval)
+            subscription_key = self.plugin.create_ws_subscription_key(
+                actual_trading_pair_key, interval
+            )  # type: ignore
 
             # Add to subscriptions
             if subscription_key not in self.subscriptions:
@@ -947,19 +966,19 @@ class MockedExchangeServer:
             current_subs.add(subscription_key)
 
             # Send the current candle immediately
-            candles = self.candles.get(trading_pair, {}).get(interval, [])
-            if candles:
-                current_candle = candles[-1]
-                message = self.plugin.format_ws_candle_message(
+            candles_for_sub = self.candles.get(actual_trading_pair_key, {}).get(interval, [])
+            if candles_for_sub:
+                current_candle = candles_for_sub[-1]
+                message = self.plugin.format_ws_candle_message(  # type: ignore
                     candle=current_candle,
-                    trading_pair=trading_pair,
+                    trading_pair=actual_trading_pair_key,
                     interval=interval,
                     is_final=True,
                 )
                 await ws.send_json(message)
 
         # Send subscription success response
-        success_response = self.plugin.create_ws_subscription_success(data, subscriptions)
+        success_response = self.plugin.create_ws_subscription_success(data, subscriptions)  # type: ignore
         await ws.send_json(success_response)
 
     async def _handle_unsubscription(self, ws: web.WebSocketResponse, data: dict):
@@ -970,20 +989,25 @@ class MockedExchangeServer:
         :param data: The unsubscription data.
         """
         # Parse the unsubscription request using the plugin
-        subscriptions = self.plugin.parse_ws_subscription(data)
+        subscriptions_to_remove = self.plugin.parse_ws_subscription(data)  # type: ignore
 
         # Unsubscribe from each topic
-        for trading_pair, interval in subscriptions:
+        for trading_pair_arg, interval_arg in subscriptions_to_remove:
             # Normalize trading pair for our internal tracking
-            for pair in self.candles:
-                if self.plugin.normalize_trading_pair(pair).replace(
-                    "-", ""
-                ) == trading_pair.replace("-", ""):
-                    trading_pair = pair
+            normalized_trading_pair_arg = trading_pair_arg.replace("-", "")
+            actual_trading_pair_key = trading_pair_arg  # Default
+            for pair_in_store in self.candles:
+                if (
+                    self.plugin.normalize_trading_pair(pair_in_store).replace("-", "")
+                    == normalized_trading_pair_arg
+                ):  # type: ignore
+                    actual_trading_pair_key = pair_in_store
                     break
 
             # Create subscription key
-            subscription_key = self.plugin.create_ws_subscription_key(trading_pair, interval)
+            subscription_key = self.plugin.create_ws_subscription_key(
+                actual_trading_pair_key, interval_arg
+            )  # type: ignore
 
             # Remove from subscriptions
             if subscription_key in self.subscriptions:
@@ -999,7 +1023,7 @@ class MockedExchangeServer:
                 self.request_counts["ws"][client_ip]["subscriptions"].discard(subscription_key)
 
         # Send unsubscription success response (usually same format as subscription)
-        success_response = self.plugin.create_ws_subscription_success(data, subscriptions)
+        success_response = self.plugin.create_ws_subscription_success(data, subscriptions_to_remove)  # type: ignore
         await ws.send_json(success_response)
 
     def _get_subscriptions_for_connection(self, ws: web.WebSocketResponse) -> list:
@@ -1034,7 +1058,7 @@ class MockedExchangeServer:
             del self.subscriptions[key]
 
         # Remove from client tracking
-        if hasattr(ws, "request"):
-            client_ip = ws.request.remote
-            if client_ip in self.request_counts["ws"]:
-                self.request_counts["ws"][client_ip]["subscriptions"] = set()
+        # hasattr check is not strictly necessary as ws.request should exist for a prepared WebSocketResponse
+        client_ip = ws.request.remote
+        if client_ip in self.request_counts["ws"]:
+            self.request_counts["ws"][client_ip]["subscriptions"] = set()  # type: ignore

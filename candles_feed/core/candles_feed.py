@@ -311,7 +311,7 @@ class CandlesFeed:
         :param timestamp: Timestamp in seconds
         :return: Rounded timestamp
         """
-        interval_seconds = self._adapter.get_seconds_from_interval(self.interval)
+        interval_seconds = self._adapter.get_supported_intervals()[self.interval]
         return int(timestamp - timestamp % interval_seconds)
 
     def check_candles_sorted_and_equidistant(self, candles_data=None) -> bool:
@@ -341,7 +341,7 @@ class CandlesFeed:
         timestamp_diffs = np.diff(timestamps)
         if len(timestamp_diffs) > 0:
             unique_diffs = np.unique(timestamp_diffs)
-            interval_seconds = self._adapter.get_seconds_from_interval(self.interval)
+            interval_seconds = self._adapter.get_supported_intervals()[self.interval]
             if not np.all(np.isclose(unique_diffs, interval_seconds, rtol=1e-5)):
                 self.logger.warning("Candles do not have equal intervals")
                 return False

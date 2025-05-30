@@ -28,9 +28,9 @@ class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments
         """
-        super().__init__(*args, network_config=network_config, **kwargs)
+        super().__init__(*args, network_config=network_config, **kwargs)  # type: ignore
 
-    def _get_rest_url(self) -> str:
+    def _get_rest_url(self) -> str:  # type: ignore[override]
         """Get REST API URL for candles.
 
         This method implements TestnetSupportMixin's URL selection logic
@@ -48,7 +48,7 @@ class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
         # Default to production URL
         return self._get_production_rest_url()
 
-    def _get_ws_url(self) -> str:
+    def _get_ws_url(self) -> str:  # type: ignore[override]
         """Get WebSocket URL.
 
         This method implements TestnetSupportMixin's URL selection logic
@@ -56,38 +56,35 @@ class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
 
         :return: WebSocket URL
         """
-        # Use TestnetSupportMixin's implementation which checks network_config
-        if hasattr(self, "network_config") and hasattr(self, "_bypass_network_selection"):
-            if getattr(self, "_bypass_network_selection", False):
-                return self._get_production_ws_url()
-            elif self.network_config.is_testnet_for(EndpointType.CANDLES):
-                return self._get_testnet_ws_url()
-
-        # Default to production URL
+        # Logic from TestnetSupportMixin's _get_ws_url
+        if getattr(self, "_bypass_network_selection", False):
+            return self._get_production_ws_url()
+        elif self.network_config.is_testnet_for(EndpointType.CANDLES):
+            return self._get_testnet_ws_url()
         return self._get_production_ws_url()
 
-    def _get_production_rest_url(self) -> str:
+    def _get_production_rest_url(self) -> str:  # type: ignore[override]
         """Get production REST URL for candles.
 
         :return: Production REST URL for candles endpoint
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
-    def _get_production_ws_url(self) -> str:
+    def _get_production_ws_url(self) -> str:  # type: ignore[override]
         """Get production WebSocket URL.
 
         :return: Production WebSocket URL
         """
         return SPOT_WSS_URL
 
-    def _get_testnet_rest_url(self) -> str:
+    def _get_testnet_rest_url(self) -> str:  # type: ignore[override]
         """Get testnet REST URL for candles.
 
         :return: Testnet REST URL for candles endpoint
         """
         return f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
-    def _get_testnet_ws_url(self) -> str:
+    def _get_testnet_ws_url(self) -> str:  # type: ignore[override]
         """Get testnet WebSocket URL.
 
         :return: Testnet WebSocket URL

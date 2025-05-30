@@ -2,6 +2,8 @@
 Binance Spot plugin implementation for the mock exchange server.
 """
 
+from typing import Any, Optional
+
 from aiohttp import web
 
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
@@ -76,40 +78,47 @@ class BinanceSpotPlugin(BinanceBasePlugin):
         params = request.query
 
         # Get all Binance klines parameters
-        symbol = params.get("symbol")
-        interval = params.get("interval")
-        start_time = params.get("startTime")
-        end_time = params.get("endTime")
-        time_zone = params.get("timeZone", "0")
-        limit = params.get("limit")
+        symbol: Optional[str] = params.get("symbol")
+        interval: Optional[str] = params.get("interval")
+        start_time_str: Optional[str] = params.get("startTime")
+        end_time_str: Optional[str] = params.get("endTime")
+        time_zone_str: str = params.get("timeZone", "0")  # Default to "0" if not provided
+        limit_str: Optional[str] = params.get("limit")
 
-        if limit is not None:
+        parsed_limit: int = 500  # Default limit
+        if limit_str is not None:
             try:
-                limit = int(limit)
-                limit = min(limit, 1000)
+                parsed_limit = int(limit_str)
+                parsed_limit = min(parsed_limit, 1000)  # Max limit is 1000
             except ValueError:
-                limit = 500  # Default limit
+                # If limit is not a valid integer, Binance might use default or error.
+                # Here, we'll stick to a default or previously parsed valid value.
+                # For simplicity, if invalid, it remains 500 or the last valid parsed_limit.
+                pass  # Keep default if invalid string
 
+        timezone_offset_hours: float = 0.0
         try:
-            if ":" in time_zone:
-                hours, minutes = time_zone.split(":")
-                timezone_offset_hours = int(hours) + (int(minutes) / 60)
+            if ":" in time_zone_str:
+                hours, minutes = time_zone_str.split(":")
+                timezone_offset_hours = float(hours) + (float(minutes) / 60.0)
             else:
-                timezone_offset_hours = int(time_zone)
+                timezone_offset_hours = float(time_zone_str)
         except (ValueError, TypeError):
-            timezone_offset_hours = 0
+            timezone_offset_hours = 0.0  # Default to 0 if parsing fails
 
         # Map Binance parameters to generic parameters expected by handle_klines
-        return {
-            "symbol": symbol,  # 'symbol' is the same in both
-            "interval": interval,  # 'interval' is the same in both
-            "start_time": start_time,  # 'startTime' in Binance maps to 'start_time' in generic handler
-            "end_time": end_time,  # 'endTime' in Binance maps to 'end_time' in generic handler
-            "time_zone": time_zone,  # 'timeZone' in Binance maps to 'time_zone'
-            "limit": limit,  # 'limit' has the same name
-            # Also keep the original Binance parameter names for reference
-            "startTime": start_time,
-            "endTime": end_time,
-            "timeZone": time_zone,
-            "timezone_offset_hours": timezone_offset_hours,
+        # Ensure types are consistent where possible (e.g. start_time, end_time as str as received)
+        return_params: dict[str, Any] = {
+            "symbol": symbol,
+            "interval": interval,
+            "start_time": start_time_str,  # Pass as string, server.py handle_klines will parse
+            "end_time": end_time_str,  # Pass as string
+            "time_zone": time_zone_str,
+            "limit": parsed_limit,
+            # Also keep the original Binance parameter names for reference if needed by plugin
+            "startTime": start_time_str,
+            "endTime": end_time_str,
+            "timeZone": time_zone_str,
+            "timezone_offset_hours": timezone_offset_hours,  # This is calculated for internal use
         }
+        return return_params

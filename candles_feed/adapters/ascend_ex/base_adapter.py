@@ -3,6 +3,7 @@ AscendEx spot exchange adapter for the Candle Feed framework.
 """
 
 from abc import abstractmethod
+from typing import List
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -27,18 +28,16 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
 
-    @staticmethod
     @abstractmethod
-    def _get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def _get_ws_url() -> str:
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
         :returns: WebSocket URL
@@ -66,26 +65,27 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    ) -> dict:
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair.
         :param interval: Candle interval.
         :param start_time: Start time in seconds.
-        :param end_time: End time in seconds.
         :param limit: Maximum number of candles to return.
         :returns: Dictionary of parameters for REST API request.
         """
-        params = {
+        params: dict[str, str | int] = {
             "symbol": self.get_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "n": limit,
         }
 
-        if end_time:
-            params["to"] = self.convert_timestamp_to_exchange(end_time)
+        # AscendEx uses 'to' for end time, but _fetch_rest_candles doesn't pass end_time.
+        # If start_time is provided, AscendEx API might implicitly fetch from start_time onwards.
+        # The 'from' parameter (for start_time) is also supported by AscendEx.
+        if start_time:
+            params["from"] = self.convert_timestamp_to_exchange(start_time)
 
         return params
 
@@ -115,20 +115,25 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return []
 
-        candles = []
+        candles: list[CandleData] = []
         assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
 
-        for candle in data.get("data", []):
-            timestamp = self.ensure_timestamp_in_seconds(candle["data"]["ts"])
+        for candle_item in data.get("data", []):
+            assert isinstance(candle_item, dict)
+            candle_payload = candle_item.get("data")
+            assert isinstance(candle_payload, dict)
+
+            timestamp = self.ensure_timestamp_in_seconds(candle_payload["ts"])
+            # timestamp = self.ensure_timestamp_in_seconds(candle["data"]["ts"]) # Erroneous duplicate line removed
             candles.append(
                 CandleData(
                     timestamp_raw=timestamp,
-                    open=float(candle["data"]["o"]),
-                    high=float(candle["data"]["h"]),
-                    low=float(candle["data"]["l"]),
-                    close=float(candle["data"]["c"]),
+                    open=float(candle_payload["o"]),  # Corrected to candle_payload
+                    high=float(candle_payload["h"]),  # Corrected to candle_payload
+                    low=float(candle_payload["l"]),  # Corrected to candle_payload
+                    close=float(candle_payload["c"]),  # Corrected to candle_payload
                     volume=0.0,  # No volume data available
-                    quote_asset_volume=float(candle["data"]["v"]),
+                    quote_asset_volume=float(candle_payload["v"]),  # Corrected to candle_payload
                     n_trades=0,  # No trade count data available
                     taker_buy_base_volume=0.0,  # No taker data available
                     taker_buy_quote_volume=0.0,  # No taker data available
@@ -202,16 +207,18 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         # Check if this is a candle message
         if data.get("m") == "bar" and "data" in data:
-            timestamp = self.ensure_timestamp_in_seconds(data["data"]["ts"])
+            candle_payload = data["data"]
+            assert isinstance(candle_payload, dict)
+            timestamp = self.ensure_timestamp_in_seconds(candle_payload["ts"])
             return [
                 CandleData(
                     timestamp_raw=timestamp,
-                    open=float(data["data"]["o"]),
-                    high=float(data["data"]["h"]),
-                    low=float(data["data"]["l"]),
-                    close=float(data["data"]["c"]),
+                    open=float(candle_payload["o"]),
+                    high=float(candle_payload["h"]),
+                    low=float(candle_payload["l"]),
+                    close=float(candle_payload["c"]),
                     volume=0.0,  # No volume data available
-                    quote_asset_volume=float(data["data"]["v"]),
+                    quote_asset_volume=float(candle_payload["v"]),
                     n_trades=0,  # No trade count data available
                     taker_buy_base_volume=0.0,  # No taker data available
                     taker_buy_quote_volume=0.0,  # No taker data available

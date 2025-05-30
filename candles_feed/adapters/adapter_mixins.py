@@ -22,6 +22,7 @@ class SyncOnlyAdapter:
     """
 
     @abstractmethod
+    @abstractmethod
     def fetch_rest_candles_synchronous(
         self,
         trading_pair: str,
@@ -121,7 +122,7 @@ class AsyncOnlyAdapter:
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        limit: int = 500,
+        limit: int = 500,  # Default matches AdapterProtocol.fetch_rest_candles
         network_client: NetworkClientProtocol | None = None,
     ) -> list[CandleData]:
         """Fetch candles from REST API asynchronously.
@@ -181,9 +182,9 @@ class TestnetSupportMixin:
         :return: REST API URL for configured environment
         """
         # Allow tests to bypass network selection
+        # Allow tests to bypass network selection
         if getattr(self, "_bypass_network_selection", False):
-            # Use the parent implementation or the production URL
-            return self._get_production_rest_url()
+            return self._get_production_rest_url()  # type: ignore[attr-defined]
 
         if self.network_config.is_testnet_for(EndpointType.CANDLES):
             return self._get_testnet_rest_url()
@@ -198,34 +199,41 @@ class TestnetSupportMixin:
         :return: WebSocket URL for configured environment
         """
         # Allow tests to bypass network selection
+        # Allow tests to bypass network selection
         if getattr(self, "_bypass_network_selection", False):
-            # Use the parent implementation or the production URL
-            return self._get_production_ws_url()
+            return self._get_production_ws_url()  # type: ignore[attr-defined]
 
         if self.network_config.is_testnet_for(EndpointType.CANDLES):
             return self._get_testnet_ws_url()
         return self._get_production_ws_url()
 
+    @abstractmethod
     def _get_production_rest_url(self) -> str:
         """Get production REST URL for candles.
 
-        This is typically what would have been returned by the original _get_rest_url.
+        This method must be implemented by subclasses that support testnet.
 
         :return: Production REST API URL
+        :raises NotImplementedError: If not implemented by the subclass.
         """
-        # By default, use the original implementation from the parent class
-        return super()._get_rest_url()
+        raise NotImplementedError(
+            f"Production REST URL not implemented for {self.__class__.__name__}"
+        )
 
+    @abstractmethod
     def _get_production_ws_url(self) -> str:
         """Get production WebSocket URL.
 
-        This is typically what would have been returned by the original _get_ws_url.
+        This method must be implemented by subclasses that support testnet.
 
         :return: Production WebSocket URL
+        :raises NotImplementedError: If not implemented by the subclass.
         """
-        # By default, use the original implementation from the parent class
-        return super()._get_ws_url()
+        raise NotImplementedError(
+            f"Production WebSocket URL not implemented for {self.__class__.__name__}"
+        )
 
+    @abstractmethod
     def _get_testnet_rest_url(self) -> str:
         """Get testnet REST URL for candles.
 
@@ -255,8 +263,8 @@ class TestnetSupportMixin:
         """
         try:
             # Try to get testnet URLs without using them
-            self._get_testnet_rest_url()
-            self._get_testnet_ws_url()
+            self._get_testnet_rest_url()  # type: ignore[attr-defined]
+            self._get_testnet_ws_url()  # type: ignore[attr-defined]
             return True
         except NotImplementedError:
             return False

@@ -58,15 +58,13 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
-    ) -> dict[str, str | int]:
+        limit: int = 500,
+    ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
@@ -76,13 +74,11 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
             "interval": self.get_interval_format(interval),
         }
 
-        if limit:
-            params["size"] = limit
+        # limit is now an int with a default. MEXC Perpetual uses "size".
+        params["size"] = limit
 
         if start_time:
             params["start"] = self.convert_timestamp_to_exchange(start_time)
-        if end_time:
-            params["end"] = self.convert_timestamp_to_exchange(end_time)
 
         return params
 

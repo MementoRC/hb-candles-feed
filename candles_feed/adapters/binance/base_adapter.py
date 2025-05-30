@@ -6,6 +6,7 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import Any, Dict, List
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -66,15 +67,13 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
         :returns: Dictionary of parameters for REST API request
         """
@@ -86,8 +85,6 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         if start_time:
             params["startTime"] = self.convert_timestamp_to_exchange(start_time)
-        if end_time:
-            params["endTime"] = self.convert_timestamp_to_exchange(end_time)
 
         return params
 
@@ -118,7 +115,8 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return []
 
-        candles = []
+        candles: list[CandleData] = []
+        assert isinstance(data, list), f"Unexpected data type: {type(data)}"
         candles.extend(
             CandleData(
                 timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
@@ -213,20 +211,22 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             return None
 
         if data.get("e") == "kline":
-            return [
-                CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(data["k"]["t"]),
-                    open=float(data["k"]["o"]),
-                    high=float(data["k"]["h"]),
-                    low=float(data["k"]["l"]),
-                    close=float(data["k"]["c"]),
-                    volume=float(data["k"]["v"]),
-                    quote_asset_volume=float(data["k"]["q"]),
-                    n_trades=int(data["k"]["n"]),
-                    taker_buy_base_volume=float(data["k"]["V"]),
-                    taker_buy_quote_volume=float(data["k"]["Q"]),
-                )
-            ]
+            kline_data = data.get("k")
+            if isinstance(kline_data, dict):
+                return [
+                    CandleData(
+                        timestamp_raw=self.ensure_timestamp_in_seconds(kline_data["t"]),
+                        open=float(kline_data["o"]),
+                        high=float(kline_data["h"]),
+                        low=float(kline_data["l"]),
+                        close=float(kline_data["c"]),
+                        volume=float(kline_data["v"]),
+                        quote_asset_volume=float(kline_data["q"]),
+                        n_trades=int(kline_data["n"]),
+                        taker_buy_base_volume=float(kline_data["V"]),
+                        taker_buy_quote_volume=float(kline_data["Q"]),
+                    )
+                ]
         return None
 
     def get_supported_intervals(self) -> dict[str, int]:
