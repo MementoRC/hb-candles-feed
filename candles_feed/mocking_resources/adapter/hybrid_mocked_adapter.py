@@ -163,8 +163,10 @@ class HybridMockedAdapter(BaseAdapter):
         result = []
 
         # The mock server returns a standardized format
-        if "status" in response_data and response_data["status"] == "ok":
+        if isinstance(response_data, dict) and response_data.get("status") == "ok":
             candles_data = response_data.get("data", [])
+            if not isinstance(candles_data, list):  # Ensure candles_data is a list
+                return result  # Or handle error appropriately
 
             for candle in candles_data:
                 timestamp = candle.get("timestamp")

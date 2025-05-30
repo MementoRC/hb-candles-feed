@@ -41,7 +41,8 @@ class SyncMockedAdapter(BaseAdapter, SyncOnlyAdapter):
         self._network_config = network_config
         self._network_client = kwargs.get("network_client")
 
-    def get_trading_pair_format(self, trading_pair: str) -> str:
+    @staticmethod
+    def get_trading_pair_format(trading_pair: str) -> str:
         """Convert trading pair to exchange format.
 
         :param trading_pair: Trading pair in standard format (e.g., BTC-USDT).
@@ -112,7 +113,8 @@ class SyncMockedAdapter(BaseAdapter, SyncOnlyAdapter):
             )
         ]
 
-    def _get_rest_url(self) -> str:
+    @staticmethod
+    def _get_rest_url() -> str:
         """Get the REST API URL for candles.
 
         :returns: REST API URL.
@@ -150,7 +152,7 @@ class SyncMockedAdapter(BaseAdapter, SyncOnlyAdapter):
 
         return params
 
-    def _parse_rest_response(self, response_data: Dict[str, Any]) -> List[CandleData]:
+    def _parse_rest_response(self, response_data: dict | list | None) -> List[CandleData]:
         """Process REST API response data into CandleData objects.
 
         :param response_data: Response data from the REST API.
@@ -159,8 +161,10 @@ class SyncMockedAdapter(BaseAdapter, SyncOnlyAdapter):
         result = []
 
         # The mock server returns a standardized format
-        if "status" in response_data and response_data["status"] == "ok":
+        if isinstance(response_data, dict) and response_data.get("status") == "ok":
             candles_data = response_data.get("data", [])
+            if not isinstance(candles_data, list):  # Ensure candles_data is a list
+                return result  # Or handle error appropriately
 
             for candle in candles_data:
                 timestamp = candle.get("timestamp")
