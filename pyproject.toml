@@ -39,6 +39,7 @@ Repository = "https://github.com/MementoRC/hb-candles-feed/tree/master"
 
 [project.optional-dependencies]
 dev = [
+    "aioresponses>=0.7.0",
     "pre-commit>=2.15.0",
     "pytest>=7.0.0",
     "pytest-aiohttp>=1.1.0",
@@ -79,6 +80,7 @@ packages = ["candles_feed"]
 [tool.pixi.dependencies]
 cython = ">=3"
 wheel = ">=0.37.0"
+aioresponses = "*"
 
 # Tasks equivalent to hatch scripts
 [tool.pixi.tasks]

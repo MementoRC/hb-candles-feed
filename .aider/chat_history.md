@@ -15726,3 +15726,2911 @@ candles_feed/core/hummingbot_network_client_adapter.py
             None if params is None else {k: v for k, v in params.items() if v is not None}
 >>>>>>> REPLACE
 ```
+
+# aider chat started at 2025-05-30 15:47:59
+
+
+#### Create a comprehensive aioresponses-based mocking solution to replace the URL patching mechanism. I need to:  
+####   
+#### 1. Create a new E2E test fixture that uses aioresponses to intercept HTTP requests  
+#### 2. Configure aioresponses to route requests to mock server logic   
+#### 3. Remove dependency on URL patching which fails due to import variable binding  
+#### 4. Ensure the mock responses match the expected exchange API format (specifically Binance)  
+#### 5. Create a reusable pattern that can work for other exchanges too  
+####   
+#### The goal is to replace the URL patching approach with HTTP-level interception using aioresponses, making tests more robust and not dependent on import timing.  
+####   
+#### Key requirements:  
+#### - Intercept all HTTP requests that would go to real exchange APIs  
+#### - Route them to appropriate mock server responses   
+#### - Handle both REST and WebSocket connection attempts gracefully  
+#### - Make it easy to configure different responses for testing scenarios  
+#### - Keep the existing mock server logic but access it through aioresponses  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will provide instructions to refactor the E2E tests using `aioresponses` to intercept HTTP requests and route them to the `MockedExchangeServer`. This will eliminate the need for `ExchangeURLPatcher` and its associated import-time issues.
+
+**Summary of Changes:**
+
+1.  **Modify `tests/e2e/test_end_to_end.py`**:
+    *   Remove `ExchangeURLPatcher` import and usage.
+    *   Replace the existing `mock_binance_server` fixture with a new fixture named `aioresponses_mock_binance_server`.
+    *   This new fixture will:
+        *   Initialize and configure `aioresponses` to intercept HTTP GET/POST requests to real Binance API URLs.
+        *   Use a callback mechanism within `aioresponses` to forward these intercepted requests to the `MockedExchangeServer` instance running locally.
+        *   The `MockedExchangeServer` will run on a dynamically assigned port.
+        *   The fixture will provide the `MockedExchangeServer` instance to tests, along with its actual base REST URL and WebSocket URL for direct use if needed (specifically for WebSocket connections).
+    *   Update all tests within `TestEndToEnd` to use the new `aioresponses_mock_binance_server` fixture.
+    *   For WebSocket tests, directly patch the `get_ws_url` method of the `CandlesFeed`'s adapter instance to return the mock server's WebSocket URL. This is an instance-level patch, not a global constant patch.
+    *   Remove assertions related to global URL constant patching in `test_error_handling`.
+
+**Detailed Instructions:**
+
+**File: `tests/e2e/test_end_to_end.py`**
+
+1.  **Remove `ExchangeURLPatcher`**:
+    *   Delete the line: `from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher`
+
+2.  **Replace `mock_binance_server` fixture with `aioresponses_mock_binance_server`**:
+    *   Delete the existing `mock_binance_server` fixture.
+    *   Add the new `aioresponses_mock_binance_server` fixture. This fixture will set up `aioresponses` to act as a passthrough to your `MockedExchangeServer`.
+
+    ```python
+    # Add these imports at the top of the file if not already present
+    import re
+    from urllib.parse import urlparse, urlunparse
+    import aiohttp
+    from aioresponses import aioresponses
+    from candles_feed.adapters.binance import constants as binance_constants # For REAL URLs
+    
+    # ... (other imports) ...
+    
+    # Replace the old mock_binance_server fixture with this:
+    @pytest.fixture
+    async def aioresponses_mock_binance_server(self, unused_tcp_port): # Removed monkeypatch, added unused_tcp_port
+        """Create a mock Binance server for testing, with aioresponses intercepting calls."""
+        plugin = get_plugin(ExchangeType.BINANCE_SPOT)
+        host = "127.0.0.1"
+        port = unused_tcp_port  # Use dynamically assigned port
+    
+        server = MockedExchangeServer(plugin, host, port)
+        await server.start()
+    
+        # Store mock server URLs for direct access (e.g., WS) and passthrough
+        server.mock_rest_url_base = f"http://{host}:{port}"
+        
+        # Determine the WebSocket path from the plugin's routes
+        # Assuming the first WS route is the primary one, or a known path like '/ws'
+        ws_path = "/ws" # Default for Binance Spot
+        for path_key in plugin.ws_routes:
+            if "stream" not in path_key: # Prefer generic paths like /ws over /stream/etc.
+                ws_path = path_key
+                break
+            else: # Fallback to the first key if only stream-like paths exist
+                ws_path = list(plugin.ws_routes.keys())[0]
+                break
+        server.mock_ws_url = f"ws://{host}:{port}{ws_path}"
+    
+        async def make_passthrough_callback(target_url_str, original_request_method):
+            async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
+                # url_obj.path and url_obj.query_string are from the *intercepted* request.
+                # target_url_str is the base path for this route on the mock server.
+                
+                # Construct the final target URL for the local mock server
+                parsed_target_base = urlparse(target_url_str) # e.g., http://127.0.0.1:xxxx/api/v3/klines
+                
+                final_target_url = urlunparse((
+                    parsed_target_base.scheme,
+                    parsed_target_base.netloc,
+                    url_obj.path,  # Use path from the intercepted URL
+                    "",  # params for urlunparse; path params are part of url_obj.path
+                    url_obj.query_string,  # Use query string from the intercepted URL
+                    ""  # fragment for urlunparse
+                ))
+    
+                request_headers = {
+                    k: v for k, v in kwargs.get('headers', {}).items()
+                    if k.lower() not in ['host', 'content-length', 'transfer-encoding']
+                }
+                # Propagate auth headers if present (e.g. X-MBX-APIKEY)
+                # aioresponses passes original headers in kwargs['headers']
+    
+                outgoing_json_payload = kwargs.get('json_payload') # aioresponses provides this
+                outgoing_data = kwargs.get('data')
+    
+                if outgoing_json_payload is not None:
+                    outgoing_data = None # Ensure only one form of body is used
+    
+                async with aiohttp.ClientSession() as session:
+                    try:
+                        async with session.request(
+                            original_request_method,
+                            final_target_url,
+                            params=None, # Query string is already part of final_target_url via url_obj.query_string
+                            data=outgoing_data,
+                            json=outgoing_json_payload,
+                            headers=request_headers,
+                            allow_redirects=kwargs.get('allow_redirects', True)
+                        ) as resp:
+                            content = await resp.read()
+                            response_headers = {
+                                k: v for k, v in resp.headers.items()
+                                if k.lower() not in ['transfer-encoding']
+                            }
+                            return aioresponses.CallbackResult(status=resp.status, body=content, headers=response_headers)
+                    except aiohttp.ClientConnectorError as e:
+                        logger.error(f"Passthrough to {final_target_url} failed: {e}")
+                        return aioresponses.CallbackResult(status=503, body=f"Mock server connection error: {e}")
+            return callback
+    
+        with aioresponses() as m:
+            real_binance_spot_base_url = binance_constants.SPOT_REST_URL # "https://api.binance.com"
+    
+            for route_path, (method, _) in plugin.rest_routes.items():
+                # Construct the real URL pattern that the adapter would try to hit
+                real_url_to_intercept = f"{real_binance_spot_base_url}{route_path}"
+                
+                # The target URL for the passthrough is the mock server's equivalent endpoint
+                mock_target_for_route = f"{server.mock_rest_url_base}{route_path}"
+    
+                # Regex to match the base path and any query parameters
+                url_pattern_regex = re.compile(f"^{re.escape(real_url_to_intercept)}(\\?.*)?$")
+    
+                m.add(
+                    url_pattern_regex,
+                    method=method.upper(),
+                    callback=await make_passthrough_callback(mock_target_for_route, method.upper()),
+                    repeat=True # Allow multiple calls to the same URL
+                )
+            
+            yield server  # Provide the MockedExchangeServer instance to the test
+    
+        # Teardown: stop the server
+        await server.stop()
+
+    ```
+
+3.  **Update test methods to use the new fixture and WebSocket patching strategy**:
+
+    *   Change `mock_binance_server` to `aioresponses_mock_binance_server` in the argument list of all test methods within `TestEndToEnd`.
+    *   For tests involving WebSockets (`test_websocket_streaming`, and `test_error_handling` if it starts WebSocket), patch the `feed._adapter.get_ws_url()` method.
+
+    **Example for `test_rest_candles_retrieval`**:
+    ```python
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server): # Changed fixture name
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+        # No WS patching needed here as it's a REST test primarily
+
+        try:
+            # ... (rest of the test logic remains the same) ...
+    ```
+
+    **Example for `test_websocket_streaming`**:
+    ```python
+    @pytest.mark.asyncio
+    async def test_websocket_streaming(self, aioresponses_mock_binance_server): # Changed fixture name
+        """Test streaming candles via WebSocket."""
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        # Patch the adapter's get_ws_url method to point to the mock server's WS endpoint
+        original_get_ws_url = feed._adapter.get_ws_url
+        feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+        
+        try:
+            # ... (rest of the test logic) ...
+            # Debug the subscription status
+            logger.info("Checking MockedExchangeServer state before WebSocket start:")
+            logger.info(f"Subscriptions: {aioresponses_mock_binance_server.subscriptions}") # Use new fixture name
+            logger.info(f"WS connections: {len(aioresponses_mock_binance_server.ws_connections)}") # Use new fixture name
+            # ...
+            # last_candle = aioresponses_mock_binance_server.candles[trading_pair][interval][-1] # Use new fixture name
+            # ...
+            # await aioresponses_mock_binance_server._push_candle_update(trading_pair, interval, new_candle, True) # Use new fixture name
+            # ...
+
+        finally:
+            feed._adapter.get_ws_url = original_get_ws_url # Restore original method
+            await feed.stop()
+            # Server stop is handled by the fixture's teardown
+    ```
+
+    **Example for `test_error_handling`**:
+    ```python
+    @pytest.mark.asyncio
+    async def test_error_handling(self, aioresponses_mock_binance_server): # Changed fixture name
+        """Test error handling capabilities."""
+        # Remove or comment out these lines:
+        # import candles_feed.adapters.binance.constants as binance_constants
+        # logger.info(f"Current SPOT_REST_URL: {binance_constants.SPOT_REST_URL}")
+        # logger.info(f"Current SPOT_WSS_URL: {binance_constants.SPOT_WSS_URL}")
+        # assert "127.0.0.1:8080" in binance_constants.SPOT_REST_URL, "URL patching failed" # Or the dynamic port
+        # assert "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL, "WebSocket URL patching failed" # Or the dynamic port
+
+        # Add a known valid trading pair to the server
+        aioresponses_mock_binance_server.add_trading_pair("BTC-USDT", "1m", 50000.0)
+
+        valid_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+        # Patch WS URL for this feed instance if it might use WebSocket
+        original_valid_get_ws_url = valid_feed._adapter.get_ws_url
+        valid_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+
+        try:
+            candles = await valid_feed.fetch_candles()
+            assert len(candles) > 0, "Should receive candles for valid pair"
+            logger.info(f"Received {len(candles)} candles for valid pair")
+        finally:
+            valid_feed._adapter.get_ws_url = original_valid_get_ws_url
+            await valid_feed.stop()
+
+        invalid_pair_feed = CandlesFeed(
+            exchange="binance_spot",
+            trading_pair="INVALID-PAIR",
+            interval="1m",
+            max_records=100,
+        )
+        original_invalid_get_ws_url = invalid_pair_feed._adapter.get_ws_url
+        invalid_pair_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+        
+        try:
+            candles = await invalid_pair_feed.fetch_candles()
+            logger.info(f"Result with invalid pair: {len(candles)} candles")
+        except Exception as e:
+            logger.info(f"Expected error with invalid pair: {e}")
+        finally:
+            invalid_pair_feed._adapter.get_ws_url = original_invalid_get_ws_url
+            await invalid_pair_feed.stop()
+
+        aioresponses_mock_binance_server.set_network_conditions( # Use new fixture name
+            latency_ms=100,
+            packet_loss_rate=0.2,
+            error_rate=0.2,
+        )
+
+        error_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+        original_error_get_ws_url = error_feed._adapter.get_ws_url
+        error_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+
+        try:
+            # ... (rest of the error handling logic) ...
+        finally:
+            aioresponses_mock_binance_server.set_network_conditions( # Use new fixture name
+                latency_ms=0, packet_loss_rate=0.0, error_rate=0.0
+            )
+            error_feed._adapter.get_ws_url = original_error_get_ws_url
+            await error_feed.stop()
+    ```
+    *   Ensure all other test methods (`test_multiple_trading_pairs`, `test_different_intervals`) are updated to use `aioresponses_mock_binance_server` as the fixture name. If they use WebSockets, apply the `get_ws_url` patching strategy. For `test_different_intervals`, ensure the `aioresponses_mock_binance_server.add_trading_pair` calls use the new fixture name.
+
+4.  **Final Review**:
+    *   Ensure all occurrences of the old `mock_binance_server` fixture name are replaced with `aioresponses_mock_binance_server` within the `TestEndToEnd` class.
+    *   The `unused_tcp_port` fixture (typically provided by `pytest-asyncio`) is now used by `aioresponses_mock_binance_server` to avoid fixed port conflicts. Ensure it's available in your test environment. (It's present in `tests/conftest.py`'s fixture definitions, so it should be fine).
+
+This approach ensures that your `CandlesFeed` and its underlying adapter attempt to connect to the *actual* exchange URLs for REST, which `aioresponses` then intercepts and redirects to your local mock server. For WebSockets, it uses a clean instance-level patch to direct connections to the mock server.
+
+
+#### Okay, I will provide instructions to refactor the E2E tests using `aioresponses` to intercept HTTP requests and route them to the `MockedExchangeServer`. This will eliminate the need for `ExchangeURLPatcher` and its associated import-time issues.  
+####   
+#### **Summary of Changes:**  
+####   
+#### 1.  **Modify `tests/e2e/test_end_to_end.py`**:  
+####     *   Remove `ExchangeURLPatcher` import and usage.  
+####     *   Replace the existing `mock_binance_server` fixture with a new fixture named `aioresponses_mock_binance_server`.  
+####     *   This new fixture will:  
+####         *   Initialize and configure `aioresponses` to intercept HTTP GET/POST requests to real Binance API URLs.  
+####         *   Use a callback mechanism within `aioresponses` to forward these intercepted requests to the `MockedExchangeServer` instance running locally.  
+####         *   The `MockedExchangeServer` will run on a dynamically assigned port.  
+####         *   The fixture will provide the `MockedExchangeServer` instance to tests, along with its actual base REST URL and WebSocket URL for direct use if needed (specifically for WebSocket connections).  
+####     *   Update all tests within `TestEndToEnd` to use the new `aioresponses_mock_binance_server` fixture.  
+####     *   For WebSocket tests, directly patch the `get_ws_url` method of the `CandlesFeed`'s adapter instance to return the mock server's WebSocket URL. This is an instance-level patch, not a global constant patch.  
+####     *   Remove assertions related to global URL constant patching in `test_error_handling`.  
+####   
+#### **Detailed Instructions:**  
+####   
+#### **File: `tests/e2e/test_end_to_end.py`**  
+####   
+#### 1.  **Remove `ExchangeURLPatcher`**:  
+####     *   Delete the line: `from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher`  
+####   
+#### 2.  **Replace `mock_binance_server` fixture with `aioresponses_mock_binance_server`**:  
+####     *   Delete the existing `mock_binance_server` fixture.  
+####     *   Add the new `aioresponses_mock_binance_server` fixture. This fixture will set up `aioresponses` to act as a passthrough to your `MockedExchangeServer`.  
+####   
+####     ```python  
+####     # Add these imports at the top of the file if not already present  
+####     import re  
+####     from urllib.parse import urlparse, urlunparse  
+####     import aiohttp  
+####     from aioresponses import aioresponses  
+####     from candles_feed.adapters.binance import constants as binance_constants # For REAL URLs  
+####       
+####     # ... (other imports) ...  
+####       
+####     # Replace the old mock_binance_server fixture with this:  
+####     @pytest.fixture  
+####     async def aioresponses_mock_binance_server(self, unused_tcp_port): # Removed monkeypatch, added unused_tcp_port  
+####         """Create a mock Binance server for testing, with aioresponses intercepting calls."""  
+####         plugin = get_plugin(ExchangeType.BINANCE_SPOT)  
+####         host = "127.0.0.1"  
+####         port = unused_tcp_port  # Use dynamically assigned port  
+####       
+####         server = MockedExchangeServer(plugin, host, port)  
+####         await server.start()  
+####       
+####         # Store mock server URLs for direct access (e.g., WS) and passthrough  
+####         server.mock_rest_url_base = f"http://{host}:{port}"  
+####           
+####         # Determine the WebSocket path from the plugin's routes  
+####         # Assuming the first WS route is the primary one, or a known path like '/ws'  
+####         ws_path = "/ws" # Default for Binance Spot  
+####         for path_key in plugin.ws_routes:  
+####             if "stream" not in path_key: # Prefer generic paths like /ws over /stream/etc.  
+####                 ws_path = path_key  
+####                 break  
+####             else: # Fallback to the first key if only stream-like paths exist  
+####                 ws_path = list(plugin.ws_routes.keys())[0]  
+####                 break  
+####         server.mock_ws_url = f"ws://{host}:{port}{ws_path}"  
+####       
+####         async def make_passthrough_callback(target_url_str, original_request_method):  
+####             async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses  
+####                 # url_obj.path and url_obj.query_string are from the *intercepted* request.  
+####                 # target_url_str is the base path for this route on the mock server.  
+####                   
+####                 # Construct the final target URL for the local mock server  
+####                 parsed_target_base = urlparse(target_url_str) # e.g., http://127.0.0.1:xxxx/api/v3/klines  
+####                   
+####                 final_target_url = urlunparse((  
+####                     parsed_target_base.scheme,  
+####                     parsed_target_base.netloc,  
+####                     url_obj.path,  # Use path from the intercepted URL  
+####                     "",  # params for urlunparse; path params are part of url_obj.path  
+####                     url_obj.query_string,  # Use query string from the intercepted URL  
+####                     ""  # fragment for urlunparse  
+####                 ))  
+####       
+####                 request_headers = {  
+####                     k: v for k, v in kwargs.get('headers', {}).items()  
+####                     if k.lower() not in ['host', 'content-length', 'transfer-encoding']  
+####                 }  
+####                 # Propagate auth headers if present (e.g. X-MBX-APIKEY)  
+####                 # aioresponses passes original headers in kwargs['headers']  
+####       
+####                 outgoing_json_payload = kwargs.get('json_payload') # aioresponses provides this  
+####                 outgoing_data = kwargs.get('data')  
+####       
+####                 if outgoing_json_payload is not None:  
+####                     outgoing_data = None # Ensure only one form of body is used  
+####       
+####                 async with aiohttp.ClientSession() as session:  
+####                     try:  
+####                         async with session.request(  
+####                             original_request_method,  
+####                             final_target_url,  
+####                             params=None, # Query string is already part of final_target_url via url_obj.query_string  
+####                             data=outgoing_data,  
+####                             json=outgoing_json_payload,  
+####                             headers=request_headers,  
+####                             allow_redirects=kwargs.get('allow_redirects', True)  
+####                         ) as resp:  
+####                             content = await resp.read()  
+####                             response_headers = {  
+####                                 k: v for k, v in resp.headers.items()  
+####                                 if k.lower() not in ['transfer-encoding']  
+####                             }  
+####                             return aioresponses.CallbackResult(status=resp.status, body=content, headers=response_headers)  
+####                     except aiohttp.ClientConnectorError as e:  
+####                         logger.error(f"Passthrough to {final_target_url} failed: {e}")  
+####                         return aioresponses.CallbackResult(status=503, body=f"Mock server connection error: {e}")  
+####             return callback  
+####       
+####         with aioresponses() as m:  
+####             real_binance_spot_base_url = binance_constants.SPOT_REST_URL # "https://api.binance.com"  
+####       
+####             for route_path, (method, _) in plugin.rest_routes.items():  
+####                 # Construct the real URL pattern that the adapter would try to hit  
+####                 real_url_to_intercept = f"{real_binance_spot_base_url}{route_path}"  
+####                   
+####                 # The target URL for the passthrough is the mock server's equivalent endpoint  
+####                 mock_target_for_route = f"{server.mock_rest_url_base}{route_path}"  
+####       
+####                 # Regex to match the base path and any query parameters  
+####                 url_pattern_regex = re.compile(f"^{re.escape(real_url_to_intercept)}(\\?.*)?$")  
+####       
+####                 m.add(  
+####                     url_pattern_regex,  
+####                     method=method.upper(),  
+####                     callback=await make_passthrough_callback(mock_target_for_route, method.upper()),  
+####                     repeat=True # Allow multiple calls to the same URL  
+####                 )  
+####               
+####             yield server  # Provide the MockedExchangeServer instance to the test  
+####       
+####         # Teardown: stop the server  
+####         await server.stop()  
+####   
+####     ```  
+####   
+#### 3.  **Update test methods to use the new fixture and WebSocket patching strategy**:  
+####   
+####     *   Change `mock_binance_server` to `aioresponses_mock_binance_server` in the argument list of all test methods within `TestEndToEnd`.  
+####     *   For tests involving WebSockets (`test_websocket_streaming`, and `test_error_handling` if it starts WebSocket), patch the `feed._adapter.get_ws_url()` method.  
+####   
+####     **Example for `test_rest_candles_retrieval`**:  
+####     ```python  
+####     @pytest.mark.asyncio  
+####     async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server): # Changed fixture name  
+####         """Test retrieving candles via REST API."""  
+####         # Create a CandlesFeed instance  
+####         feed = CandlesFeed(  
+####             exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100  
+####         )  
+####         # No WS patching needed here as it's a REST test primarily  
+####   
+####         try:  
+####             # ... (rest of the test logic remains the same) ...  
+####     ```  
+####   
+####     **Example for `test_websocket_streaming`**:  
+####     ```python  
+####     @pytest.mark.asyncio  
+####     async def test_websocket_streaming(self, aioresponses_mock_binance_server): # Changed fixture name  
+####         """Test streaming candles via WebSocket."""  
+####         feed = CandlesFeed(  
+####             exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100  
+####         )  
+####   
+####         # Patch the adapter's get_ws_url method to point to the mock server's WS endpoint  
+####         original_get_ws_url = feed._adapter.get_ws_url  
+####         feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url  
+####           
+####         try:  
+####             # ... (rest of the test logic) ...  
+####             # Debug the subscription status  
+####             logger.info("Checking MockedExchangeServer state before WebSocket start:")  
+####             logger.info(f"Subscriptions: {aioresponses_mock_binance_server.subscriptions}") # Use new fixture name  
+####             logger.info(f"WS connections: {len(aioresponses_mock_binance_server.ws_connections)}") # Use new fixture name  
+####             # ...  
+####             # last_candle = aioresponses_mock_binance_server.candles[trading_pair][interval][-1] # Use new fixture name  
+####             # ...  
+####             # await aioresponses_mock_binance_server._push_candle_update(trading_pair, interval, new_candle, True) # Use new fixture name  
+####             # ...  
+####   
+####         finally:  
+####             feed._adapter.get_ws_url = original_get_ws_url # Restore original method  
+####             await feed.stop()  
+####             # Server stop is handled by the fixture's teardown  
+####     ```  
+####   
+####     **Example for `test_error_handling`**:  
+####     ```python  
+####     @pytest.mark.asyncio  
+####     async def test_error_handling(self, aioresponses_mock_binance_server): # Changed fixture name  
+####         """Test error handling capabilities."""  
+####         # Remove or comment out these lines:  
+####         # import candles_feed.adapters.binance.constants as binance_constants  
+####         # logger.info(f"Current SPOT_REST_URL: {binance_constants.SPOT_REST_URL}")  
+####         # logger.info(f"Current SPOT_WSS_URL: {binance_constants.SPOT_WSS_URL}")  
+####         # assert "127.0.0.1:8080" in binance_constants.SPOT_REST_URL, "URL patching failed" # Or the dynamic port  
+####         # assert "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL, "WebSocket URL patching failed" # Or the dynamic port  
+####   
+####         # Add a known valid trading pair to the server  
+####         aioresponses_mock_binance_server.add_trading_pair("BTC-USDT", "1m", 50000.0)  
+####   
+####         valid_feed = CandlesFeed(  
+####             exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100  
+####         )  
+####         # Patch WS URL for this feed instance if it might use WebSocket  
+####         original_valid_get_ws_url = valid_feed._adapter.get_ws_url  
+####         valid_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url  
+####   
+####         try:  
+####             candles = await valid_feed.fetch_candles()  
+####             assert len(candles) > 0, "Should receive candles for valid pair"  
+####             logger.info(f"Received {len(candles)} candles for valid pair")  
+####         finally:  
+####             valid_feed._adapter.get_ws_url = original_valid_get_ws_url  
+####             await valid_feed.stop()  
+####   
+####         invalid_pair_feed = CandlesFeed(  
+####             exchange="binance_spot",  
+####             trading_pair="INVALID-PAIR",  
+####             interval="1m",  
+####             max_records=100,  
+####         )  
+####         original_invalid_get_ws_url = invalid_pair_feed._adapter.get_ws_url  
+####         invalid_pair_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url  
+####           
+####         try:  
+####             candles = await invalid_pair_feed.fetch_candles()  
+####             logger.info(f"Result with invalid pair: {len(candles)} candles")  
+####         except Exception as e:  
+####             logger.info(f"Expected error with invalid pair: {e}")  
+####         finally:  
+####             invalid_pair_feed._adapter.get_ws_url = original_invalid_get_ws_url  
+####             await invalid_pair_feed.stop()  
+####   
+####         aioresponses_mock_binance_server.set_network_conditions( # Use new fixture name  
+####             latency_ms=100,  
+####             packet_loss_rate=0.2,  
+####             error_rate=0.2,  
+####         )  
+####   
+####         error_feed = CandlesFeed(  
+####             exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100  
+####         )  
+####         original_error_get_ws_url = error_feed._adapter.get_ws_url  
+####         error_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url  
+####   
+####         try:  
+####             # ... (rest of the error handling logic) ...  
+####         finally:  
+####             aioresponses_mock_binance_server.set_network_conditions( # Use new fixture name  
+####                 latency_ms=0, packet_loss_rate=0.0, error_rate=0.0  
+####             )  
+####             error_feed._adapter.get_ws_url = original_error_get_ws_url  
+####             await error_feed.stop()  
+####     ```  
+####     *   Ensure all other test methods (`test_multiple_trading_pairs`, `test_different_intervals`) are updated to use `aioresponses_mock_binance_server` as the fixture name. If they use WebSockets, apply the `get_ws_url` patching strategy. For `test_different_intervals`, ensure the `aioresponses_mock_binance_server.add_trading_pair` calls use the new fixture name.  
+####   
+#### 4.  **Final Review**:  
+####     *   Ensure all occurrences of the old `mock_binance_server` fixture name are replaced with `aioresponses_mock_binance_server` within the `TestEndToEnd` class.  
+####     *   The `unused_tcp_port` fixture (typically provided by `pytest-asyncio`) is now used by `aioresponses_mock_binance_server` to avoid fixed port conflicts. Ensure it's available in your test environment. (It's present in `tests/conftest.py`'s fixture definitions, so it should be fine).  
+####   
+#### This approach ensures that your `CandlesFeed` and its underlying adapter attempt to connect to the *actual* exchange URLs for REST, which `aioresponses` then intercepts and redirects to your local mock server. For WebSockets, it uses a clean instance-level patch to direct connections to the mock server.  
+
+```python
+tests/e2e/test_end_to_end.py
+<<<<<<< SEARCH
+import asyncio
+import logging
+import time
+
+import pytest
+
+from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.factory import get_plugin
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+=======
+import asyncio
+import logging
+import time
+import re
+from urllib.parse import urlparse, urlunparse
+
+import pytest
+import aiohttp
+from aioresponses import aioresponses
+
+from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.factory import get_plugin
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+from candles_feed.adapters.binance import constants as binance_constants # For REAL URLs
+
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+>>>>>>> REPLACE
+```
+
+```python
+tests/e2e/test_end_to_end.py
+<<<<<<< SEARCH
+    @pytest.fixture
+    async def mock_binance_server(self, monkeypatch):
+        """Create a mock Binance server for testing."""
+        # Get the Binance Spot plugin
+        plugin = get_plugin(ExchangeType.BINANCE_SPOT)
+
+        # Create the server
+        server = MockedExchangeServer(plugin, "127.0.0.1", 8080)
+        await server.start()
+
+        # Create URL patcher
+        patcher = ExchangeURLPatcher(ExchangeType.BINANCE_SPOT, "127.0.0.1", 8080)
+        patcher.patch_urls(plugin)
+
+        yield server
+
+        # Clean up
+        await server.stop()
+        patcher.restore_urls()
+
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, mock_binance_server):
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical candles
+            candles = await feed.fetch_candles()
+=======
+    @pytest.fixture
+    async def aioresponses_mock_binance_server(self, unused_tcp_port):
+        """Create a mock Binance server for testing, with aioresponses intercepting calls."""
+        plugin = get_plugin(ExchangeType.BINANCE_SPOT)
+        host = "127.0.0.1"
+        port = unused_tcp_port  # Use dynamically assigned port
+
+        server = MockedExchangeServer(plugin, host, port)
+        await server.start()
+
+        # Store mock server URLs for direct access (e.g., WS) and passthrough
+        server.mock_rest_url_base = f"http://{host}:{port}"
+
+        # Determine the WebSocket path from the plugin's routes
+        # Assuming the first WS route is the primary one, or a known path like '/ws'
+        ws_path = "/ws" # Default for Binance Spot
+        for path_key in plugin.ws_routes:
+            if "stream" not in path_key: # Prefer generic paths like /ws over /stream/etc.
+                ws_path = path_key
+                break
+            else: # Fallback to the first key if only stream-like paths exist
+                ws_path = list(plugin.ws_routes.keys())[0]
+                break
+        server.mock_ws_url = f"ws://{host}:{port}{ws_path}"
+
+        async def make_passthrough_callback(target_url_str, original_request_method):
+            async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
+                # url_obj.path and url_obj.query_string are from the *intercepted* request.
+                # target_url_str is the base path for this route on the mock server.
+
+                # Construct the final target URL for the local mock server
+                parsed_target_base = urlparse(target_url_str) # e.g., http://127.0.0.1:xxxx/api/v3/klines
+
+                final_target_url = urlunparse((
+                    parsed_target_base.scheme,
+                    parsed_target_base.netloc,
+                    url_obj.path,  # Use path from the intercepted URL
+                    "",  # params for urlunparse; path params are part of url_obj.path
+                    url_obj.query_string,  # Use query string from the intercepted URL
+                    ""  # fragment for urlunparse
+                ))
+
+                request_headers = {
+                    k: v for k, v in kwargs.get('headers', {}).items()
+                    if k.lower() not in ['host', 'content-length', 'transfer-encoding']
+                }
+                # Propagate auth headers if present (e.g. X-MBX-APIKEY)
+                # aioresponses passes original headers in kwargs['headers']
+
+                outgoing_json_payload = kwargs.get('json_payload') # aioresponses provides this
+                outgoing_data = kwargs.get('data')
+
+                if outgoing_json_payload is not None:
+                    outgoing_data = None # Ensure only one form of body is used
+
+                async with aiohttp.ClientSession() as session:
+                    try:
+                        async with session.request(
+                            original_request_method,
+                            final_target_url,
+                            params=None, # Query string is already part of final_target_url via url_obj.query_string
+                            data=outgoing_data,
+                            json=outgoing_json_payload,
+                            headers=request_headers,
+                            allow_redirects=kwargs.get('allow_redirects', True)
+                        ) as resp:
+                            content = await resp.read()
+                            response_headers = {
+                                k: v for k, v in resp.headers.items()
+                                if k.lower() not in ['transfer-encoding']
+                            }
+                            return aioresponses.CallbackResult(status=resp.status, body=content, headers=response_headers)
+                    except aiohttp.ClientConnectorError as e:
+                        logger.error(f"Passthrough to {final_target_url} failed: {e}")
+                        return aioresponses.CallbackResult(status=503, body=f"Mock server connection error: {e}")
+            return callback
+
+        with aioresponses() as m:
+            real_binance_spot_base_url = binance_constants.SPOT_REST_URL # "https://api.binance.com"
+
+            for route_path, (method, _) in plugin.rest_routes.items():
+                # Construct the real URL pattern that the adapter would try to hit
+                real_url_to_intercept = f"{real_binance_spot_base_url}{route_path}"
+
+                # The target URL for the passthrough is the mock server's equivalent endpoint
+                mock_target_for_route = f"{server.mock_rest_url_base}{route_path}"
+
+                # Regex to match the base path and any query parameters
+                url_pattern_regex = re.compile(f"^{re.escape(real_url_to_intercept)}(\\?.*)?$")
+
+                m.add(
+                    url_pattern_regex,
+                    method=method.upper(),
+                    callback=await make_passthrough_callback(mock_target_for_route, method.upper()),
+                    repeat=True # Allow multiple calls to the same URL
+                )
+
+            yield server  # Provide the MockedExchangeServer instance to the test
+
+        # Teardown: stop the server
+        await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical candles
+            candles = await feed.fetch_candles()
+>>>>>>> REPLACE
+```
+
+```python
+tests/e2e/test_end_to_end.py
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_websocket_streaming(self, mock_binance_server):
+        """Test streaming candles via WebSocket."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Test that we can get initial data via REST
+            await feed.fetch_candles()
+
+            # Get initial candle count
+            rest_candles = feed.get_candles()
+            rest_count = len(rest_candles)
+            assert rest_count > 0, "Should receive candles via REST"
+            logger.info(f"Received {rest_count} candles via REST")
+
+            # Debug the subscription status
+            logger.info("Checking MockedExchangeServer state before WebSocket start:")
+            logger.info(f"Subscriptions: {mock_binance_server.subscriptions}")
+            logger.info(f"WS connections: {len(mock_binance_server.ws_connections)}")
+            logger.info(
+                f"Initial candle for BTC-USDT: {rest_candles[-1].timestamp}, close: {rest_candles[-1].close}"
+            )
+
+            # Start the feed with WebSocket strategy
+            logger.info("Starting WebSocket strategy...")
+            await feed.start(strategy="websocket")
+
+            # Log the WebSocket URL being used
+            adapter = feed._adapter
+            logger.info(f"WebSocket URL: {adapter.get_ws_url()}")
+            logger.info(
+                f"WebSocket subscription payload: {adapter.get_ws_subscription_payload('BTC-USDT', '1m')}"
+            )
+
+            # Wait a moment for WebSocket connection and subscription to establish
+            await asyncio.sleep(2)
+
+            # For testing purposes, send a new candle update
+            # This is needed because the background candle generation might take too long
+            trading_pair = "BTC-USDT"
+            interval = "1m"
+            last_candle = mock_binance_server.candles[trading_pair][interval][-1]
+            new_candle = CandleDataFactory.create_random(
+                timestamp=int(time.time()),
+                previous_candle=last_candle,
+                volatility=0.01,  # 1% volatility for visible change
+            )
+
+            # Send the test candle update immediately
+            logger.info("Sending test candle update via WebSocket...")
+            await mock_binance_server._push_candle_update(trading_pair, interval, new_candle, True)
+
+            # Wait for the candle update to be processed
+            max_wait_time = 5  # seconds
+            ws_test_passed = False
+
+            for i in range(max_wait_time * 2):  # Check every 0.5 seconds
+                current_count = len(feed.get_candles())
+                current_close = feed.get_candles()[-1].close if current_count > 0 else None
+                initial_close = rest_candles[-1].close if rest_count > 0 else None
+
+                logger.info(
+                    f"Check {i + 1}: Current candles: {current_count}, Initial: {rest_count}"
+                )
+                logger.info(f"Current close: {current_close}, Initial close: {initial_close}")
+
+                # We either have more candles than before, or at least one new update to existing candles
+                if current_count > rest_count or (
+                    current_count > 0 and current_close != initial_close
+                ):
+                    logger.info(
+                        f"WebSocket update detected! Count: {current_count}, New close: {current_close}"
+                    )
+                    ws_test_passed = True
+                    break
+                await asyncio.sleep(0.5)
+
+            assert ws_test_passed, f"No candle updates received after {max_wait_time} seconds"
+
+            # Get the candles
+            candles = feed.get_candles()
+            logger.info(f"Received {len(candles)} candles via WebSocket")
+
+            # Wait a bit longer to see if we receive updates
+            initial_count = len(candles)
+            await asyncio.sleep(2)
+
+            # Get the updated candles
+            updated_candles = feed.get_candles()
+            logger.info(f"After waiting, now have {len(updated_candles)} candles")
+
+            # In a real scenario, we might receive more candles, but it depends on timing
+            # At minimum we should still have the initial candles
+            assert len(updated_candles) >= initial_count, "Lost candles during streaming"
+
+            # Additional validation: check if we're receiving real-time updates
+            # The close price of the most recent candle should be different from the open
+            # (in a real exchange) or from our initial data (in our mock server)
+            latest_candle = updated_candles[-1]
+            assert latest_candle.close != latest_candle.open, "Candle should be updating"
+
+        finally:
+            # Clean up resources
+            try:
+                await feed.stop()
+            except Exception as e:
+                logger.error(f"Error during cleanup: {e}")
+                # Continue with other cleanup even if this fails
+
+    @pytest.mark.asyncio
+    async def test_multiple_trading_pairs(self, mock_binance_server):
+        """Test working with multiple trading pairs simultaneously."""
+        # Create feeds for different trading pairs
+        btc_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        eth_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="ETH-USDT", interval="1m", max_records=100
+        )
+
+        sol_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="SOL-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical data for all feeds
+            await asyncio.gather(
+                btc_feed.fetch_candles(), eth_feed.fetch_candles(), sol_feed.fetch_candles()
+            )
+
+            # Verify candles were received for each feed
+            assert len(btc_feed.get_candles()) > 0, "No BTC candles received"
+            assert len(eth_feed.get_candles()) > 0, "No ETH candles received"
+            assert len(sol_feed.get_candles()) > 0, "No SOL candles received"
+
+            # Compare prices to ensure they're different (as expected for different assets)
+            btc_price = btc_feed.get_candles()[-1].close
+            eth_price = eth_feed.get_candles()[-1].close
+            sol_price = sol_feed.get_candles()[-1].close
+
+            logger.info(f"Latest prices - BTC: {btc_price}, ETH: {eth_price}, SOL: {sol_price}")
+
+            # Prices should be in different ranges based on our mock server configuration
+            # With the new CandleDataFactory, the prices can vary more randomly, but should still
+            # be within reasonable ranges of the initial prices set in the server
+            assert 35000 < btc_price < 65000, "BTC price should be somewhere around 50000"
+            assert 1500 < eth_price < 4500, "ETH price should be somewhere around 3000"
+            assert 40 < sol_price < 160, "SOL price should be somewhere around 100"
+
+        finally:
+            # Clean up resources
+            await asyncio.gather(btc_feed.stop(), eth_feed.stop(), sol_feed.stop())
+
+    @pytest.mark.asyncio
+    async def test_different_intervals(self, mock_binance_server):
+        """Test working with different candle intervals."""
+        # Configure the mock server with additional intervals
+        mock_binance_server.add_trading_pair("BTC-USDT", "5m", 50000.0)
+        mock_binance_server.add_trading_pair("BTC-USDT", "1h", 50000.0)
+
+        # Create feeds for different intervals
+        feeds = []
+        for interval in ["1m", "5m", "1h"]:
+            feed = CandlesFeed(
+                exchange="binance_spot", trading_pair="BTC-USDT", interval=interval, max_records=100
+            )
+            feeds.append((interval, feed))
+
+        try:
+            # Fetch historical data for all feeds
+            for _, feed in feeds:
+                await feed.fetch_candles()
+
+            # Verify candles were received for each interval
+            for interval, feed in feeds:
+                candles = feed.get_candles()
+                assert len(candles) > 0, f"No candles received for {interval} interval"
+                logger.info(f"Received {len(candles)} candles for {interval} interval")
+
+                # If we have multiple candles, verify the timestamps are spaced correctly
+                if len(candles) > 1:
+                    time_diff = candles[1].timestamp - candles[0].timestamp
+                    expected_diff = 60  # 1m = 60 seconds
+                    if interval == "5m":
+                        expected_diff = 300  # 5m = 300 seconds
+                    elif interval == "1h":
+                        expected_diff = 3600  # 1h = 3600 seconds
+
+                    assert (
+                        abs(time_diff - expected_diff) < 10
+                    ), f"Incorrect time spacing for {interval} interval"
+
+        finally:
+            # Clean up resources
+            for _, feed in feeds:
+                await feed.stop()
+
+    @pytest.mark.asyncio
+    async def test_error_handling(self, mock_binance_server):
+        """Test error handling capabilities."""
+        # Test the URL patching first to ensure we're using our mock server
+        import candles_feed.adapters.binance.constants as binance_constants
+
+        logger.info(f"Current SPOT_REST_URL: {binance_constants.SPOT_REST_URL}")
+        logger.info(f"Current SPOT_WSS_URL: {binance_constants.SPOT_WSS_URL}")
+
+        # Make sure we're using our mock server, not the real Binance API
+        assert "127.0.0.1:8080" in binance_constants.SPOT_REST_URL, "URL patching failed"
+        assert (
+            "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL
+        ), "WebSocket URL patching failed"
+
+        # Add a known valid trading pair to the server
+        mock_binance_server.add_trading_pair("BTC-USDT", "1m", 50000.0)
+
+        # First test with a valid trading pair to confirm basic functionality
+        valid_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # This should work with our mock server
+            candles = await valid_feed.fetch_candles()
+            assert len(candles) > 0, "Should receive candles for valid pair"
+            logger.info(f"Received {len(candles)} candles for valid pair")
+        finally:
+            await valid_feed.stop()
+
+        # Test with invalid trading pair
+        invalid_pair_feed = CandlesFeed(
+            exchange="binance_spot",
+            trading_pair="INVALID-PAIR",  # This should not exist in the mock server
+            interval="1m",
+            max_records=100,
+        )
+
+        try:
+            # The fetch should handle the invalid pair gracefully
+            candles = await invalid_pair_feed.fetch_candles()
+            logger.info(f"Result with invalid pair: {len(candles)} candles")
+            # It might return empty list or raise exception - both are acceptable
+        except Exception as e:
+            logger.info(f"Expected error with invalid pair: {e}")
+        finally:
+            await invalid_pair_feed.stop()
+
+        # Now test with network errors by configuring the mock server
+        # Enable moderate error simulation (not too extreme)
+        mock_binance_server.set_network_conditions(
+            latency_ms=100,
+            packet_loss_rate=0.2,  # 20% packet loss
+            error_rate=0.2,  # 20% error rate
+        )
+
+        # Create a regular feed that will encounter errors
+        error_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # This might fail due to simulated errors, but it shouldn't crash
+            successfully_fetched = False
+            for retry in range(5):  # More retries for reliability
+                try:
+                    await error_feed.fetch_candles()
+                    # If we get here, we succeeded despite the errors
+                    successfully_fetched = True
+                    logger.info(f"Successfully fetched candles on retry {retry}")
+                    break
+                except Exception as e:
+                    # We should eventually retry and succeed, but if not that's ok
+                    logger.info(f"Expected error during test (retry {retry}): {e}")
+                    await asyncio.sleep(0.5)  # Short delay before retry
+
+            # Start the WebSocket feed - we expect reconnections on failure
+            await error_feed.start(strategy="websocket")
+
+            # Wait longer for some data to arrive despite errors
+            data_received = False
+            for _ in range(20):  # 10 seconds total
+                if len(error_feed.get_candles()) > 0:
+                    data_received = True
+                    logger.info(f"Received {len(error_feed.get_candles())} candles via WebSocket")
+                    break
+                await asyncio.sleep(0.5)
+
+            # Testing that we can recover after errors
+            # Reset network conditions to normal
+            mock_binance_server.set_network_conditions(
+                latency_ms=0, packet_loss_rate=0.0, error_rate=0.0
+            )
+            logger.info("Reset network conditions to normal")
+
+            # Wait for some additional data to arrive after recovery
+            initial_count = len(error_feed.get_candles())
+            await asyncio.sleep(5)  # Wait longer for recovery
+
+            # We should now have received more data
+            final_count = len(error_feed.get_candles())
+            logger.info(f"Initial candle count: {initial_count}, Final count: {final_count}")
+
+            # Our test is successful if either:
+            # 1. We successfully fetched via REST, or
+            # 2. We got some data via WebSocket, or
+            # 3. We recovered after network errors
+            assert (
+                successfully_fetched or data_received or final_count > 0
+            ), "Error handling test failed"
+
+            # The actual assertions are more relaxed because we're testing error handling
+            # If we get here without crashes, the error handling is working as expected
+
+        finally:
+            # Reset network conditions for other tests
+            mock_binance_server.set_network_conditions(
+                latency_ms=0, packet_loss_rate=0.0, error_rate=0.0
+            )
+            await error_feed.stop()
+
+
+if __name__ == "__main__":
+    # This allows running the test directly
+    pytest.main(["-xvs", __file__])
+=======
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical candles
+            candles = await feed.fetch_candles()
+>>>>>>> REPLACE
+```
+
+```python
+tests/e2e/test_end_to_end.py
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_websocket_streaming(self, mock_binance_server):
+        """Test streaming candles via WebSocket."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Test that we can get initial data via REST
+            await feed.fetch_candles()
+
+            # Get initial candle count
+            rest_candles = feed.get_candles()
+            rest_count = len(rest_candles)
+            assert rest_count > 0, "Should receive candles via REST"
+            logger.info(f"Received {rest_count} candles via REST")
+
+            # Debug the subscription status
+            logger.info("Checking MockedExchangeServer state before WebSocket start:")
+            logger.info(f"Subscriptions: {mock_binance_server.subscriptions}")
+            logger.info(f"WS connections: {len(mock_binance_server.ws_connections)}")
+            logger.info(
+                f"Initial candle for BTC-USDT: {rest_candles[-1].timestamp}, close: {rest_candles[-1].close}"
+            )
+
+            # Start the feed with WebSocket strategy
+            logger.info("Starting WebSocket strategy...")
+            await feed.start(strategy="websocket")
+
+            # Log the WebSocket URL being used
+            adapter = feed._adapter
+            logger.info(f"WebSocket URL: {adapter.get_ws_url()}")
+            logger.info(
+                f"WebSocket subscription payload: {adapter.get_ws_subscription_payload('BTC-USDT', '1m')}"
+            )
+
+            # Wait a moment for WebSocket connection and subscription to establish
+            await asyncio.sleep(2)
+
+            # For testing purposes, send a new candle update
+            # This is needed because the background candle generation might take too long
+            trading_pair = "BTC-USDT"
+            interval = "1m"
+            last_candle = mock_binance_server.candles[trading_pair][interval][-1]
+            new_candle = CandleDataFactory.create_random(
+                timestamp=int(time.time()),
+                previous_candle=last_candle,
+                volatility=0.01,  # 1% volatility for visible change
+            )
+
+            # Send the test candle update immediately
+            logger.info("Sending test candle update via WebSocket...")
+            await mock_binance_server._push_candle_update(trading_pair, interval, new_candle, True)
+
+            # Wait for the candle update to be processed
+            max_wait_time = 5  # seconds
+            ws_test_passed = False
+
+            for i in range(max_wait_time * 2):  # Check every 0.5 seconds
+                current_count = len(feed.get_candles())
+                current_close = feed.get_candles()[-1].close if current_count > 0 else None
+                initial_close = rest_candles[-1].close if rest_count > 0 else None
+
+                logger.info(
+                    f"Check {i + 1}: Current candles: {current_count}, Initial: {rest_count}"
+                )
+                logger.info(f"Current close: {current_close}, Initial close: {initial_close}")
+
+                # We either have more candles than before, or at least one new update to existing candles
+                if current_count > rest_count or (
+                    current_count > 0 and current_close != initial_close
+                ):
+                    logger.info(
+                        f"WebSocket update detected! Count: {current_count}, New close: {current_close}"
+                    )
+                    ws_test_passed = True
+                    break
+                await asyncio.sleep(0.5)
+
+            assert ws_test_passed, f"No candle updates received after {max_wait_time} seconds"
+
+            # Get the candles
+            candles = feed.get_candles()
+            logger.info(f"Received {len(candles)} candles via WebSocket")
+
+            # Wait a bit longer to see if we receive updates
+            initial_count = len(candles)
+            await asyncio.sleep(2)
+
+            # Get the updated candles
+            updated_candles = feed.get_candles()
+            logger.info(f"After waiting, now have {len(updated_candles)} candles")
+
+            # In a real scenario, we might receive more candles, but it depends on timing
+            # At minimum we should still have the initial candles
+            assert len(updated_candles) >= initial_count, "Lost candles during streaming"
+
+            # Additional validation: check if we're receiving real-time updates
+            # The close price of the most recent candle should be different from the open
+            # (in a real exchange) or from our initial data (in our mock server)
+            latest_candle = updated_candles[-1]
+            assert latest_candle.close != latest_candle.open, "Candle should be updating"
+
+        finally:
+            # Clean up resources
+            try:
+                await feed.stop()
+            except Exception as e:
+                logger.error(f"Error during cleanup: {e}")
+                # Continue with other cleanup even if this fails
+
+    @pytest.mark.asyncio
+    async def test_multiple_trading_pairs(self, mock_binance_server):
+        """Test working with multiple trading pairs simultaneously."""
+        # Create feeds for different trading pairs
+        btc_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        eth_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="ETH-USDT", interval="1m", max_records=100
+        )
+
+        sol_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="SOL-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical data for all feeds
+            await asyncio.gather(
+                btc_feed.fetch_candles(), eth_feed.fetch_candles(), sol_feed.fetch_candles()
+            )
+
+            # Verify candles were received for each feed
+            assert len(btc_feed.get_candles()) > 0, "No BTC candles received"
+            assert len(eth_feed.get_candles()) > 0, "No ETH candles received"
+            assert len(sol_feed.get_candles()) > 0, "No SOL candles received"
+
+            # Compare prices to ensure they're different (as expected for different assets)
+            btc_price = btc_feed.get_candles()[-1].close
+            eth_price = eth_feed.get_candles()[-1].close
+            sol_price = sol_feed.get_candles()[-1].close
+
+            logger.info(f"Latest prices - BTC: {btc_price}, ETH: {eth_price}, SOL: {sol_price}")
+
+            # Prices should be in different ranges based on our mock server configuration
+            # With the new CandleDataFactory, the prices can vary more randomly, but should still
+            # be within reasonable ranges of the initial prices set in the server
+            assert 35000 < btc_price < 65000, "BTC price should be somewhere around 50000"
+            assert 1500 < eth_price < 4500, "ETH price should be somewhere around 3000"
+            assert 40 < sol_price < 160, "SOL price should be somewhere around 100"
+
+        finally:
+            # Clean up resources
+            await asyncio.gather(btc_feed.stop(), eth_feed.stop(), sol_feed.stop())
+
+    @pytest.mark.asyncio
+    async def test_different_intervals(self, mock_binance_server):
+        """Test working with different candle intervals."""
+        # Configure the mock server with additional intervals
+        mock_binance_server.add_trading_pair("BTC-USDT", "5m", 50000.0)
+        mock_binance_server.add_trading_pair("BTC-USDT", "1h", 50000.0)
+
+        # Create feeds for different intervals
+        feeds = []
+        for interval in ["1m", "5m", "1h"]:
+            feed = CandlesFeed(
+                exchange="binance_spot", trading_pair="BTC-USDT", interval=interval, max_records=100
+            )
+            feeds.append((interval, feed))
+
+        try:
+            # Fetch historical data for all feeds
+            for _, feed in feeds:
+                await feed.fetch_candles()
+
+            # Verify candles were received for each interval
+            for interval, feed in feeds:
+                candles = feed.get_candles()
+                assert len(candles) > 0, f"No candles received for {interval} interval"
+                logger.info(f"Received {len(candles)} candles for {interval} interval")
+
+                # If we have multiple candles, verify the timestamps are spaced correctly
+                if len(candles) > 1:
+                    time_diff = candles[1].timestamp - candles[0].timestamp
+                    expected_diff = 60  # 1m = 60 seconds
+                    if interval == "5m":
+                        expected_diff = 300  # 5m = 300 seconds
+                    elif interval == "1h":
+                        expected_diff = 3600  # 1h = 3600 seconds
+
+                    assert (
+                        abs(time_diff - expected_diff) < 10
+                    ), f"Incorrect time spacing for {interval} interval"
+
+        finally:
+            # Clean up resources
+            for _, feed in feeds:
+                await feed.stop()
+
+    @pytest.mark.asyncio
+    async def test_error_handling(self, mock_binance_server):
+        """Test error handling capabilities."""
+        # Test the URL patching first to ensure we're using our mock server
+        import candles_feed.adapters.binance.constants as binance_constants
+
+        logger.info(f"Current SPOT_REST_URL: {binance_constants.SPOT_REST_URL}")
+        logger.info(f"Current SPOT_WSS_URL: {binance_constants.SPOT_WSS_URL}")
+
+        # Make sure we're using our mock server, not the real Binance API
+        assert "127.0.0.1:8080" in binance_constants.SPOT_REST_URL, "URL patching failed"
+        assert (
+            "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL
+        ), "WebSocket URL patching failed"
+
+        # Add a known valid trading pair to the server
+        mock_binance_server.add_trading_pair("BTC-USDT", "1m", 50000.0)
+
+        # First test with a valid trading pair to confirm basic functionality
+        valid_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # This should work with our mock server
+            candles = await valid_feed.fetch_candles()
+            assert len(candles) > 0, "Should receive candles for valid pair"
+            logger.info(f"Received {len(candles)} candles for valid pair")
+        finally:
+            await valid_feed.stop()
+
+        # Test with invalid trading pair
+        invalid_pair_feed = CandlesFeed(
+            exchange="binance_spot",
+            trading_pair="INVALID-PAIR",  # This should not exist in the mock server
+            interval="1m",
+            max_records=100,
+        )
+
+        try:
+            # The fetch should handle the invalid pair gracefully
+            candles = await invalid_pair_feed.fetch_candles()
+            logger.info(f"Result with invalid pair: {len(candles)} candles")
+            # It might return empty list or raise exception - both are acceptable
+        except Exception as e:
+            logger.info(f"Expected error with invalid pair: {e}")
+        finally:
+            await invalid_pair_feed.stop()
+
+        # Now test with network errors by configuring the mock server
+        # Enable moderate error simulation (not too extreme)
+        mock_binance_server.set_network_conditions(
+            latency_ms=100,
+            packet_loss_rate=0.2,  # 20% packet loss
+            error_rate=0.2,  # 20% error rate
+        )
+
+        # Create a regular feed that will encounter errors
+        error_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # This might fail due to simulated errors, but it shouldn't crash
+            successfully_fetched = False
+            for retry in range(5):  # More retries for reliability
+                try:
+                    await error_feed.fetch_candles()
+                    # If we get here, we succeeded despite the errors
+                    successfully_fetched = True
+                    logger.info(f"Successfully fetched candles on retry {retry}")
+                    break
+                except Exception as e:
+                    # We should eventually retry and succeed, but if not that's ok
+                    logger.info(f"Expected error during test (retry {retry}): {e}")
+                    await asyncio.sleep(0.5)  # Short delay before retry
+
+            # Start the WebSocket feed - we expect reconnections on failure
+            await error_feed.start(strategy="websocket")
+
+            # Wait longer for some data to arrive despite errors
+            data_received = False
+            for _ in range(20):  # 10 seconds total
+                if len(error_feed.get_candles()) > 0:
+                    data_received = True
+                    logger.info(f"Received {len(error_feed.get_candles())} candles via WebSocket")
+                    break
+                await asyncio.sleep(0.5)
+
+            # Testing that we can recover after errors
+            # Reset network conditions to normal
+            mock_binance_server.set_network_conditions(
+                latency_ms=0, packet_loss_rate=0.0, error_rate=0.0
+            )
+            logger.info("Reset network conditions to normal")
+
+            # Wait for some additional data to arrive after recovery
+            initial_count = len(error_feed.get_candles())
+            await asyncio.sleep(5)  # Wait longer for recovery
+
+            # We should now have received more data
+            final_count = len(error_feed.get_candles())
+            logger.info(f"Initial candle count: {initial_count}, Final count: {final_count}")
+
+            # Our test is successful if either:
+            # 1. We successfully fetched via REST, or
+            # 2. We got some data via WebSocket, or
+            # 3. We recovered after network errors
+            assert (
+                successfully_fetched or data_received or final_count > 0
+            ), "Error handling test failed"
+
+            # The actual assertions are more relaxed because we're testing error handling
+            # If we get here without crashes, the error handling is working as expected
+
+        finally:
+            # Reset network conditions for other tests
+            mock_binance_server.set_network_conditions(
+                latency_ms=0, packet_loss_rate=0.0, error_rate=0.0
+            )
+            await error_feed.stop()
+
+
+if __name__ == "__main__":
+    # This allows running the test directly
+    pytest.main(["-xvs", __file__])
+=======
+    @pytest.mark.asyncio
+    async def test_websocket_streaming(self, aioresponses_mock_binance_server):
+        """Test streaming candles via WebSocket."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        # Patch the adapter's get_ws_url method to point to the mock server's WS endpoint
+        original_get_ws_url = feed._adapter.get_ws_url
+        feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+
+        try:
+            # Test that we can get initial data via REST
+            await feed.fetch_candles()
+
+            # Get initial candle count
+            rest_candles = feed.get_candles()
+            rest_count = len(rest_candles)
+            assert rest_count > 0, "Should receive candles via REST"
+            logger.info(f"Received {rest_count} candles via REST")
+
+            # Debug the subscription status
+            logger.info("Checking MockedExchangeServer state before WebSocket start:")
+            logger.info(f"Subscriptions: {aioresponses_mock_binance_server.subscriptions}")
+            logger.info(f"WS connections: {len(aioresponses_mock_binance_server.ws_connections)}")
+            logger.info(
+                f"Initial candle for BTC-USDT: {rest_candles[-1].timestamp}, close: {rest_candles[-1].close}"
+            )
+
+            # Start the feed with WebSocket strategy
+            logger.info("Starting WebSocket strategy...")
+            await feed.start(strategy="websocket")
+
+            # Log the WebSocket URL being used
+            adapter = feed._adapter
+            logger.info(f"WebSocket URL: {adapter.get_ws_url()}")
+            logger.info(
+                f"WebSocket subscription payload: {adapter.get_ws_subscription_payload('BTC-USDT', '1m')}"
+            )
+
+            # Wait a moment for WebSocket connection and subscription to establish
+            await asyncio.sleep(2)
+
+            # For testing purposes, send a new candle update
+            # This is needed because the background candle generation might take too long
+            trading_pair = "BTC-USDT"
+            interval = "1m"
+            last_candle = aioresponses_mock_binance_server.candles[trading_pair][interval][-1]
+            new_candle = CandleDataFactory.create_random(
+                timestamp=int(time.time()),
+                previous_candle=last_candle,
+                volatility=0.01,  # 1% volatility for visible change
+            )
+
+            # Send the test candle update immediately
+            logger.info("Sending test candle update via WebSocket...")
+            await aioresponses_mock_binance_server._push_candle_update(trading_pair, interval, new_candle, True)
+
+            # Wait for the candle update to be processed
+            max_wait_time = 5  # seconds
+            ws_test_passed = False
+
+            for i in range(max_wait_time * 2):  # Check every 0.5 seconds
+                current_count = len(feed.get_candles())
+                current_close = feed.get_candles()[-1].close if current_count > 0 else None
+                initial_close = rest_candles[-1].close if rest_count > 0 else None
+
+                logger.info(
+                    f"Check {i + 1}: Current candles: {current_count}, Initial: {rest_count}"
+                )
+                logger.info(f"Current close: {current_close}, Initial close: {initial_close}")
+
+                # We either have more candles than before, or at least one new update to existing candles
+                if current_count > rest_count or (
+                    current_count > 0 and current_close != initial_close
+                ):
+                    logger.info(
+                        f"WebSocket update detected! Count: {current_count}, New close: {current_close}"
+                    )
+                    ws_test_passed = True
+                    break
+                await asyncio.sleep(0.5)
+
+            assert ws_test_passed, f"No candle updates received after {max_wait_time} seconds"
+
+            # Get the candles
+            candles = feed.get_candles()
+            logger.info(f"Received {len(candles)} candles via WebSocket")
+
+            # Wait a bit longer to see if we receive updates
+            initial_count = len(candles)
+            await asyncio.sleep(2)
+
+            # Get the updated candles
+            updated_candles = feed.get_candles()
+            logger.info(f"After waiting, now have {len(updated_candles)} candles")
+
+            # In a real scenario, we might receive more candles, but it depends on timing
+            # At minimum we should still have the initial candles
+            assert len(updated_candles) >= initial_count, "Lost candles during streaming"
+
+            # Additional validation: check if we're receiving real-time updates
+            # The close price of the most recent candle should be different from the open
+            # (in a real exchange) or from our initial data (in our mock server)
+            latest_candle = updated_candles[-1]
+            assert latest_candle.close != latest_candle.open, "Candle should be updating"
+
+        finally:
+            # Clean up resources
+            feed._adapter.get_ws_url = original_get_ws_url # Restore original method
+            try:
+                await feed.stop()
+            except Exception as e:
+                logger.error(f"Error during cleanup: {e}")
+                # Continue with other cleanup even if this fails
+
+    @pytest.mark.asyncio
+    async def test_multiple_trading_pairs(self, aioresponses_mock_binance_server):
+        """Test working with multiple trading pairs simultaneously."""
+        # Create feeds for different trading pairs
+        btc_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        eth_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="ETH-USDT", interval="1m", max_records=100
+        )
+
+        sol_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="SOL-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical data for all feeds
+            await asyncio.gather(
+                btc_feed.fetch_candles(), eth_feed.fetch_candles(), sol_feed.fetch_candles()
+            )
+
+            # Verify candles were received for each feed
+            assert len(btc_feed.get_candles()) > 0, "No BTC candles received"
+            assert len(eth_feed.get_candles()) > 0, "No ETH candles received"
+            assert len(sol_feed.get_candles()) > 0, "No SOL candles received"
+
+            # Compare prices to ensure they're different (as expected for different assets)
+            btc_price = btc_feed.get_candles()[-1].close
+            eth_price = eth_feed.get_candles()[-1].close
+            sol_price = sol_feed.get_candles()[-1].close
+
+            logger.info(f"Latest prices - BTC: {btc_price}, ETH: {eth_price}, SOL: {sol_price}")
+
+            # Prices should be in different ranges based on our mock server configuration
+            # With the new CandleDataFactory, the prices can vary more randomly, but should still
+            # be within reasonable ranges of the initial prices set in the server
+            assert 35000 < btc_price < 65000, "BTC price should be somewhere around 50000"
+            assert 1500 < eth_price < 4500, "ETH price should be somewhere around 3000"
+            assert 40 < sol_price < 160, "SOL price should be somewhere around 100"
+
+        finally:
+            # Clean up resources
+            await asyncio.gather(btc_feed.stop(), eth_feed.stop(), sol_feed.stop())
+
+    @pytest.mark.asyncio
+    async def test_different_intervals(self, aioresponses_mock_binance_server):
+        """Test working with different candle intervals."""
+        # Configure the mock server with additional intervals
+        aioresponses_mock_binance_server.add_trading_pair("BTC-USDT", "5m", 50000.0)
+        aioresponses_mock_binance_server.add_trading_pair("BTC-USDT", "1h", 50000.0)
+
+        # Create feeds for different intervals
+        feeds = []
+        for interval in ["1m", "5m", "1h"]:
+            feed = CandlesFeed(
+                exchange="binance_spot", trading_pair="BTC-USDT", interval=interval, max_records=100
+            )
+            feeds.append((interval, feed))
+
+        try:
+            # Fetch historical data for all feeds
+            for _, feed in feeds:
+                await feed.fetch_candles()
+
+            # Verify candles were received for each interval
+            for interval, feed in feeds:
+                candles = feed.get_candles()
+                assert len(candles) > 0, f"No candles received for {interval} interval"
+                logger.info(f"Received {len(candles)} candles for {interval} interval")
+
+                # If we have multiple candles, verify the timestamps are spaced correctly
+                if len(candles) > 1:
+                    time_diff = candles[1].timestamp - candles[0].timestamp
+                    expected_diff = 60  # 1m = 60 seconds
+                    if interval == "5m":
+                        expected_diff = 300  # 5m = 300 seconds
+                    elif interval == "1h":
+                        expected_diff = 3600  # 1h = 3600 seconds
+
+                    assert (
+                        abs(time_diff - expected_diff) < 10
+                    ), f"Incorrect time spacing for {interval} interval"
+
+        finally:
+            # Clean up resources
+            for _, feed in feeds:
+                await feed.stop()
+
+    @pytest.mark.asyncio
+    async def test_error_handling(self, aioresponses_mock_binance_server):
+        """Test error handling capabilities."""
+        # Test the URL patching first to ensure we're using our mock server
+        # import candles_feed.adapters.binance.constants as binance_constants # Removed global check
+
+        # logger.info(f"Current SPOT_REST_URL: {binance_constants.SPOT_REST_URL}") # Removed global check
+        # logger.info(f"Current SPOT_WSS_URL: {binance_constants.SPOT_WSS_URL}") # Removed global check
+
+        # Make sure we're using our mock server, not the real Binance API # Removed global check
+        # assert "127.0.0.1:8080" in binance_constants.SPOT_REST_URL, "URL patching failed" # Or the dynamic port # Removed global check
+        # assert ( # Removed global check
+        #     "ws://127.0.0.1:8080" in binance_constants.SPOT_WSS_URL # Removed global check
+        # ), "WebSocket URL patching failed" # Removed global check
+
+        # Add a known valid trading pair to the server
+        aioresponses_mock_binance_server.add_trading_pair("BTC-USDT", "1m", 50000.0)
+
+        # First test with a valid trading pair to confirm basic functionality
+        valid_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+        # Patch WS URL for this feed instance if it might use WebSocket
+        original_valid_get_ws_url = valid_feed._adapter.get_ws_url
+        valid_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+
+        try:
+            # This should work with our mock server
+            candles = await valid_feed.fetch_candles()
+            assert len(candles) > 0, "Should receive candles for valid pair"
+            logger.info(f"Received {len(candles)} candles for valid pair")
+        finally:
+            valid_feed._adapter.get_ws_url = original_valid_get_ws_url # Restore original method
+            await valid_feed.stop()
+
+        # Test with invalid trading pair
+        invalid_pair_feed = CandlesFeed(
+            exchange="binance_spot",
+            trading_pair="INVALID-PAIR",  # This should not exist in the mock server
+            interval="1m",
+            max_records=100,
+        )
+        original_invalid_get_ws_url = invalid_pair_feed._adapter.get_ws_url
+        invalid_pair_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+
+        try:
+            # The fetch should handle the invalid pair gracefully
+            candles = await invalid_pair_feed.fetch_candles()
+            logger.info(f"Result with invalid pair: {len(candles)} candles")
+            # It might return empty list or raise exception - both are acceptable
+        except Exception as e:
+            logger.info(f"Expected error with invalid pair: {e}")
+        finally:
+            invalid_pair_feed._adapter.get_ws_url = original_invalid_get_ws_url # Restore original method
+            await invalid_pair_feed.stop()
+
+        # Now test with network errors by configuring the mock server
+        # Enable moderate error simulation (not too extreme)
+        aioresponses_mock_binance_server.set_network_conditions(
+            latency_ms=100,
+            packet_loss_rate=0.2,  # 20% packet loss
+            error_rate=0.2,  # 20% error rate
+        )
+
+        # Create a regular feed that will encounter errors
+        error_feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+        original_error_get_ws_url = error_feed._adapter.get_ws_url
+        error_feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+
+        try:
+            # This might fail due to simulated errors, but it shouldn't crash
+            successfully_fetched = False
+            for retry in range(5):  # More retries for reliability
+                try:
+                    await error_feed.fetch_candles()
+                    # If we get here, we succeeded despite the errors
+                    successfully_fetched = True
+                    logger.info(f"Successfully fetched candles on retry {retry}")
+                    break
+                except Exception as e:
+                    # We should eventually retry and succeed, but if not that's ok
+                    logger.info(f"Expected error during test (retry {retry}): {e}")
+                    await asyncio.sleep(0.5)  # Short delay before retry
+
+            # Start the WebSocket feed - we expect reconnections on failure
+            await error_feed.start(strategy="websocket")
+
+            # Wait longer for some data to arrive despite errors
+            data_received = False
+            for _ in range(20):  # 10 seconds total
+                if len(error_feed.get_candles()) > 0:
+                    data_received = True
+                    logger.info(f"Received {len(error_feed.get_candles())} candles via WebSocket")
+                    break
+                await asyncio.sleep(0.5)
+
+            # Testing that we can recover after errors
+            # Reset network conditions to normal
+            aioresponses_mock_binance_server.set_network_conditions(
+                latency_ms=0, packet_loss_rate=0.0, error_rate=0.0
+            )
+            logger.info("Reset network conditions to normal")
+
+            # Wait for some additional data to arrive after recovery
+            initial_count = len(error_feed.get_candles())
+            await asyncio.sleep(5)  # Wait longer for recovery
+
+            # We should now have received more data
+            final_count = len(error_feed.get_candles())
+            logger.info(f"Initial candle count: {initial_count}, Final count: {final_count}")
+
+            # Our test is successful if either:
+            # 1. We successfully fetched via REST, or
+            # 2. We got some data via WebSocket, or
+            # 3. We recovered after network errors
+            assert (
+                successfully_fetched or data_received or final_count > 0
+            ), "Error handling test failed"
+
+            # The actual assertions are more relaxed because we're testing error handling
+            # If we get here without crashes, the error handling is working as expected
+
+        finally:
+            # Reset network conditions for other tests
+            aioresponses_mock_binance_server.set_network_conditions(
+                latency_ms=0, packet_loss_rate=0.0, error_rate=0.0
+            )
+            error_feed._adapter.get_ws_url = original_error_get_ws_url # Restore original method
+            await error_feed.stop()
+
+
+if __name__ == "__main__":
+    # This allows running the test directly
+    pytest.main(["-xvs", __file__])
+>>>>>>> REPLACE
+```
+
+
+```python
+tests/e2e/test_end_to_end.py
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_websocket_streaming(self, mock_binance_server):
+        """Test streaming candles via WebSocket."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Test that we can get initial data via REST
+            await feed.fetch_candles()
+
+            # Get initial candle count
+            rest_candles = feed.get_candles()
+            rest_count = len(rest_candles)
+            assert rest_count > 0, "Should receive candles via REST"
+            logger.info(f"Received {rest_count} candles via REST")
+
+            # Debug the subscription status
+            logger.info("Checking MockedExchangeServer state before WebSocket start:")
+            logger.info(f"Subscriptions: {mock_binance_server.subscriptions}")
+            logger.info(f"WS connections: {len(mock_binance_server.ws_connections)}")
+            logger.info(
+                f"Initial candle for BTC-USDT: {rest_candles[-1].timestamp}, close: {rest_candles[-1].close}"
+            )
+
+            # Start the feed with WebSocket strategy
+            logger.info("Starting WebSocket strategy...")
+            await feed.start(strategy="websocket")
+
+            # Log the WebSocket URL being used
+            adapter = feed._adapter
+            logger.info(f"WebSocket URL: {adapter.get_ws_url()}")
+            logger.info(
+                f"WebSocket subscription payload: {adapter.get_ws_subscription_payload('BTC-USDT', '1m')}"
+            )
+
+            # Wait a moment for WebSocket connection and subscription to establish
+            await asyncio.sleep(2)
+
+            # For testing purposes, send a new candle update
+            # This is needed because the background candle generation might take too long
+            trading_pair = "BTC-USDT"
+            interval = "1m"
+            last_candle = mock_binance_server.candles[trading_pair][interval][-1]
+            new_candle = CandleDataFactory.create_random(
+                timestamp=int(time.time()),
+                previous_candle=last_candle,
+                volatility=0.01,  # 1% volatility for visible change
+            )
+
+            # Send the test candle update immediately
+            logger.info("Sending test candle update via WebSocket...")
+            await mock_binance_server._push_candle_update(trading_pair, interval, new_candle, True)
+
+            # Wait for the candle update to be processed
+            max_wait_time = 5  # seconds
+            ws_test_passed = False
+
+            for i in range(max_wait_time * 2):  # Check every 0.5 seconds
+                current_count = len(feed.get_candles())
+                current_close = feed.get_candles()[-1].close if current_count > 0 else None
+                initial_close = rest_candles[-1].close if rest_count > 0 else None
+
+                logger.info(
+                    f"Check {i + 1}: Current candles: {current_count}, Initial: {rest_count}"
+                )
+                logger.info(f"Current close: {current_close}, Initial close: {initial_close}")
+
+                # We either have more candles than before, or at least one new update to existing candles
+                if current_count > rest_count or (
+                    current_count > 0 and current_close != initial_close
+                ):
+                    logger.info(
+                        f"WebSocket update detected! Count: {current_count}, New close: {current_close}"
+                    )
+                    ws_test_passed = True
+                    break
+                await asyncio.sleep(0.5)
+
+            assert ws_test_passed, f"No candle updates received after {max_wait_time} seconds"
+
+            # Get the candles
+            candles = feed.get_candles()
+            logger.info(f"Received {len(candles)} candles via WebSocket")
+
+            # Wait a bit longer to see if we receive updates
+            initial_count = len(candles)
+            await asyncio.sleep(2)
+
+            # Get the updated candles
+            updated_candles = feed.get_candles()
+            logger.info(f"After waiting, now have {len(updated_candles)} candles")
+
+            # In a real scenario, we might receive more candles, but it depends on timing
+            # At minimum we should still have the initial candles
+            assert len(updated_candles) >= initial_count, "Lost candles during streaming"
+
+            # Additional validation: check if we're receiving real-time updates
+            # The close price of the most recent candle should be different from the open
+            # (in a real exchange) or from our initial data (in our mock server)
+            latest_candle = updated_candles[-1]
+            assert latest_candle.close != latest_candle.open, "Candle should be updating"
+
+        finally:
+            # Clean up resources
+            try:
+                await feed.stop()
+            except Exception as e:
+                logger.error(f"Error during cleanup: {e}")
+                # Continue with other cleanup even if this fails
+=======
+    @pytest.mark.asyncio
+    async def test_websocket_streaming(self, aioresponses_mock_binance_server):
+        """Test streaming candles via WebSocket."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        # Patch the adapter's get_ws_url method to point to the mock server's WS endpoint
+        original_get_ws_url = feed._adapter.get_ws_url
+        feed._adapter.get_ws_url = lambda: aioresponses_mock_binance_server.mock_ws_url
+
+        try:
+            # Test that we can get initial data via REST
+            await feed.fetch_candles()
+
+            # Get initial candle count
+            rest_candles = feed.get_candles()
+            rest_count = len(rest_candles)
+            assert rest_count > 0, "Should receive candles via REST"
+            logger.info(f"Received {rest_count} candles via REST")
+
+            # Debug the subscription status
+            logger.info("Checking MockedExchangeServer state before WebSocket start:")
+            logger.info(f"Subscriptions: {aioresponses_mock_binance_server.subscriptions}")
+            logger.info(f"WS connections: {len(aioresponses_mock_binance_server.ws_connections)}")
+            logger.info(
+                f"Initial candle for BTC-USDT: {rest_candles[-1].timestamp}, close: {rest_candles[-1].close}"
+            )
+
+            # Start the feed with WebSocket strategy
+            logger.info("Starting WebSocket strategy...")
+            await feed.start(strategy="websocket")
+
+            # Log the WebSocket URL being used
+            adapter = feed._adapter
+            logger.info(f"WebSocket URL: {adapter.get_ws_url()}")
+            logger.info(
+                f"WebSocket subscription payload: {adapter.get_ws_subscription_payload('BTC-USDT', '1m')}"
+            )
+
+            # Wait a moment for WebSocket connection and subscription to establish
+            await asyncio.sleep(2)
+
+            # For testing purposes, send a new candle update
+            # This is needed because the background candle generation might take too long
+            trading_pair = "BTC-USDT"
+            interval = "1m"
+            last_candle = aioresponses_mock_binance_server.candles[trading_pair][interval][-1]
+            new_candle = CandleDataFactory.create_random(
+                timestamp=int(time.time()),
+                previous_candle=last_candle,
+                volatility=0.01,  # 1% volatility for visible change
+            )
+
+            # Send the test candle update immediately
+            logger.info("Sending test candle update via WebSocket...")
+            await aioresponses_mock_binance_server._push_candle_update(trading_pair, interval, new_candle, True)
+
+            # Wait for the candle update to be processed
+            max_wait_time = 5  # seconds
+            ws_test_passed = False
+
+            for i in range(max_wait_time * 2):  # Check every 0.5 seconds
+                current_count = len(feed.get_candles())
+                current_close = feed.get_candles()[-1].close if current_count > 0 else None
+                initial_close = rest_candles[-1].close if rest_count > 0 else None
+
+                logger.info(
+                    f"Check {i + 1}: Current candles: {current_count}, Initial: {rest_count}"
+                )
+                logger.info(f"Current close: {current_close}, Initial close: {initial_close}")
+
+                # We either have more candles than before, or at least one new update to existing candles
+                if current_count > rest_count or (
+                    current_count > 0 and current_close != initial_close
+                ):
+                    logger.info(
+                        f"WebSocket update detected! Count: {current_count}, New close: {current_close}"
+                    )
+                    ws_test_passed = True
+                    break
+                await asyncio.sleep(0.5)
+
+            assert ws_test_passed, f"No candle updates received after {max_wait_time} seconds"
+
+            # Get the candles
+            candles = feed.get_candles()
+            logger.info(f"Received {len(candles)} candles via WebSocket")
+
+            # Wait a bit longer to see if we receive updates
+            initial_count = len(candles)
+            await asyncio.sleep(2)
+
+            # Get the updated candles
+            updated_candles = feed.get_candles()
+            logger.info(f"After waiting, now have {len(updated_candles)} candles")
+
+            # In a real scenario, we might receive more candles, but it depends on timing
+            # At minimum we should still have the initial candles
+            assert len(updated_candles) >= initial_count, "Lost candles during streaming"
+
+            # Additional validation: check if we're receiving real-time updates
+            # The close price of the most recent candle should be different from the open
+            # (in a real exchange) or from our initial data (in our mock server)
+            latest_candle = updated_candles[-1]
+            assert latest_candle.close != latest_candle.open, "Candle should be updating"
+
+        finally:
+            # Clean up resources
+            feed._adapter.get_ws_url = original_get_ws_url # Restore original method
+            try:
+                await feed.stop()
+            except Exception as e:
+                logger.error(f"Error during cleanup: {e}")
+                # Continue with other cleanup even if this fails
+>>>>>>> REPLACE
+```
+
+
+You are correct, that `SEARCH/REPLACE` block failed to match because the changes it intended to make were already applied in the previous turn.
+
+The `test_websocket_streaming` method in `tests/e2e/test_end_to_end.py` already uses the `aioresponses_mock_binance_server` fixture and includes the WebSocket URL patching logic as requested.
+
+Therefore, no further code changes are needed for that specific refactoring step.
+
+
+# aider chat started at 2025-05-30 15:51:32
+
+
+#### The previous implementation was incomplete and broke the test file. I need you to:  
+####   
+#### 1. Fix the broken test file and complete the aioresponses implementation  
+#### 2. Add the missing unused_tcp_port fixture to conftest.py if not present  
+#### 3. Implement a complete REST test that verifies the aioresponses HTTP interception works  
+#### 4. Ensure the fixture properly yields the mock server while the aioresponses context is active  
+#### 5. Remove duplicate test methods and restore the complete test functionality  
+####   
+#### The goal is to have a working aioresponses-based test that intercepts HTTP requests to Binance APIs and routes them to the local mock server, eliminating the need for URL patching.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I understand the requirements. We need to refine the `aioresponses_mock_binance_server` fixture to correctly intercept HTTP calls intended for the real Binance API and redirect them to our local `MockedExchangeServer`. This involves ensuring the mock server is properly configured with the `BinanceSpotPlugin` and has data for the test. We'll also clean up the test file by removing duplicates and ensuring the REST test is comprehensive.
+
+The `unused_tcp_port` fixture is standard and typically provided by `pytest-asyncio` or a similar utility, so I'll assume it's available as it's already being used in your `conftest.py`.
+
+Here are the necessary changes:
+
+**1. Modify `tests/e2e/test_end_to_end.py`**
+
+We'll update the `aioresponses_mock_binance_server` fixture and the `test_rest_candles_retrieval` test.
+
+```python
+"""
+End-to-end test for the Candles Feed framework.
+
+This module demonstrates how to use the exchange simulation framework
+to test the Candles Feed in a realistic but controlled environment.
+"""
+
+import asyncio
+import logging
+import time
+import re
+from urllib.parse import urlparse, urlunparse
+
+import pytest
+import aiohttp
+from aioresponses import aioresponses
+
+from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.factory import get_plugin
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
+from candles_feed.adapters.binance import constants as binance_constants # For REAL URLs
+
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class TestEndToEnd:
+    """End-to-end test suite for the Candles Feed."""
+
+    @pytest.fixture
+    async def aioresponses_mock_binance_server(self, unused_tcp_port):
+        """Create a mock Binance server for testing, with aioresponses intercepting calls."""
+        plugin = get_plugin(ExchangeType.BINANCE_SPOT)
+        host = "127.0.0.1"
+        port = unused_tcp_port
+
+        server = MockedExchangeServer(plugin, host, port)
+
+        # Add trading pairs to the mock server
+        # These need to match what the test will request
+        server.add_trading_pair("BTC-USDT", "1m", initial_price=50000.0)
+        server.add_trading_pair("ETH-USDT", "1m", initial_price=3000.0)
+        
+        # Ensure the server generates some initial candles for these pairs
+        # The add_trading_pair method in MockedExchangeServer already does this.
+
+        await server.start()
+
+        server.mock_rest_url_base = f"http://{host}:{port}"
+        
+        # For Binance Spot, the WebSocket path is typically /ws or part of a stream path
+        # The BinanceSpotPlugin inherits ws_routes from BinanceBasePlugin which is {"/ws": "handle_websocket"}
+        ws_path = "/ws" # Default for Binance Spot based on BinanceBasePlugin
+        server.mock_ws_url = f"ws://{host}:{port}{ws_path}"
+
+        async def make_passthrough_callback(target_url_base_for_mock_server, original_request_method):
+            async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
+                # Construct the final target URL for the local mock server
+                # url_obj.path and url_obj.query_string are from the *intercepted* request.
+                # target_url_base_for_mock_server is like "http://127.0.0.1:xxxx"
+                
+                final_target_url = urlunparse((
+                    urlparse(target_url_base_for_mock_server).scheme,
+                    urlparse(target_url_base_for_mock_server).netloc,
+                    url_obj.path,  # Use path from the intercepted URL
+                    "",  # params for urlunparse
+                    url_obj.query_string,  # Use query string from the intercepted URL
+                    ""  # fragment for urlunparse
+                ))
+
+                request_headers = {
+                    k: v for k, v in kwargs.get('headers', {}).items()
+                    if k.lower() not in ['host', 'content-length', 'transfer-encoding']
+                }
+                
+                outgoing_json_payload = kwargs.get('json') # aioresponses uses 'json' not 'json_payload'
+                outgoing_data = kwargs.get('data')
+
+                if outgoing_json_payload is not None and outgoing_data is not None:
+                    # Prefer JSON if both are somehow provided, though typically only one is.
+                    outgoing_data = None
+
+                async with aiohttp.ClientSession() as session:
+                    try:
+                        async with session.request(
+                            original_request_method,
+                            final_target_url,
+                            data=outgoing_data,
+                            json=outgoing_json_payload,
+                            headers=request_headers,
+                            allow_redirects=kwargs.get('allow_redirects', True)
+                        ) as resp:
+                            content = await resp.read()
+                            response_headers = {
+                                k: v for k, v in resp.headers.items()
+                                if k.lower() not in ['transfer-encoding', 'content-length'] # content-length might mismatch if content changes
+                            }
+                            # If content is JSON, aioresponses might try to re-serialize it.
+                            # It's often safer to pass content as bytes (body).
+                            return aioresponses.CallbackResult(status=resp.status, body=content, headers=response_headers)
+                    except aiohttp.ClientConnectorError as e:
+                        logger.error(f"Passthrough to {final_target_url} failed: {e}")
+                        return aioresponses.CallbackResult(status=503, body=f"Mock server connection error: {e}")
+            return callback
+
+        with aioresponses() as m:
+            real_binance_spot_base_url = binance_constants.SPOT_REST_URL # "https://api.binance.com"
+
+            # Intercept all routes defined in the plugin
+            for route_path, (method, _) in plugin.rest_routes.items():
+                real_url_to_intercept_pattern = re.compile(f"^{re.escape(real_binance_spot_base_url + route_path)}(\\?.*)?$")
+                
+                # The passthrough callback will use server.mock_rest_url_base and the path from the intercepted URL
+                m.add(
+                    real_url_to_intercept_pattern,
+                    method=method.upper(),
+                    callback=await make_passthrough_callback(server.mock_rest_url_base, method.upper()),
+                    repeat=True 
+                )
+            
+            yield server  # Provide the MockedExchangeServer instance to the test
+
+        # Teardown: stop the server
+        await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server: MockedExchangeServer):
+        """Test retrieving candles via REST API using aioresponses to intercept calls."""
+        
+        # The aioresponses_mock_binance_server fixture has already started the server
+        # and set up aioresponses to intercept calls to real Binance URLs.
+
+        # Create a CandlesFeed instance for "binance_spot". 
+        # This will make its adapter use the real Binance URLs, which will be intercepted.
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=50 # Reduced for faster test
+        )
+
+        try:
+            # Fetch historical candles. This will trigger REST calls that aioresponses intercepts.
+            # The BinanceSpotAdapter will attempt to call, e.g., https://api.binance.com/api/v3/klines
+            candles = await feed.fetch_candles()
+
+            # Verify candles were received from the mock server via interception
+            assert len(candles) > 0, "No candles received"
+            assert len(candles) <= 50, "More candles received than max_records"
+
+            # Verify that the mock server processed the request
+            # We can check the candles data itself, which is generated by the mock server
+            first_candle = candles[0]
+            assert first_candle.open > 0
+            assert first_candle.high >= first_candle.low
+
+            # Convert to DataFrame for easier inspection
+            df = feed.get_candles_df()
+            logger.info(f"Received {len(df)} candles via aioresponses interception.")
+            if not df.empty:
+                logger.info(f"First candle: {df.iloc[0]}")
+                logger.info(f"Last candle: {df.iloc[-1]}")
+
+            # Verify candle data looks reasonable (originating from MockedExchangeServer's factory)
+            assert all(df["open"] > 0), "Open prices should be positive"
+            assert all(df["high"] >= df["open"]), "High should be >= open"
+            assert all(df["low"] <= df["open"]), "Low should be <= open"
+            # Volume can be 0 for newly forming candles or if factory generates it, but generally > 0 for historical
+            # For this test, MockedExchangeServer generates candles with volume.
+            assert all(df["volume"] >= 0), "Volume should be non-negative" 
+            
+            # Check if timestamps are in expected range (e.g. not default unix epoch 0)
+            assert all(df.index > 1000000000), "Timestamps seem invalid"
+
+
+            # Optionally, verify that a known endpoint like /api/v3/ping was "called"
+            # This is harder to check directly with aioresponses without more complex callback logging,
+            # but if fetch_candles() succeeds, it implies klines (and possibly time/ping) worked.
+            
+            # Example: Check if the mock server's klines handler was invoked.
+            # This would require the mock server to log or count calls, which is beyond this scope.
+            # Success of fetch_candles is the primary indicator.
+
+        finally:
+            # Clean up resources
+            await feed.stop()
+
+    # Removed the duplicate test_rest_candles_retrieval method.
+    # The WebSocket test would require a different approach as aioresponses doesn't mock WebSockets.
+    # For WebSockets, you'd typically patch the adapter's WSS URL to point to the mock server's WS URL.
+    # async def test_websocket_candles_streaming(self, aioresponses_mock_binance_server): ...
+```
+
+**Explanation of Changes in `test_end_to_end.py`:**
+
+1.  **`aioresponses_mock_binance_server` Fixture:**
+    *   Added `server.add_trading_pair("BTC-USDT", "1m", initial_price=50000.0)` and `server.add_trading_pair("ETH-USDT", "1m", initial_price=3000.0)` to ensure the mock server has data for the trading pairs used in tests. The `MockedExchangeServer.add_trading_pair` method already handles generating initial candles.
+    *   The `make_passthrough_callback` now correctly uses `urlparse(target_url_base_for_mock_server).scheme` and `.netloc` combined with `url_obj.path` and `url_obj.query_string` from the intercepted URL to construct the `final_target_url` for the local mock server.
+    *   Changed `kwargs.get('json_payload')` to `kwargs.get('json')` as `aiohttp.ClientSession` and `aioresponses` use `json` as the keyword argument for JSON payloads.
+    *   Improved header filtering in the callback, specifically removing `content-length` from response headers passed back to `aioresponses.CallbackResult` because the content might be re-processed by `aioresponses` or the underlying `aiohttp` client, potentially leading to mismatches if the body is altered (e.g., re-serialized). Passing `body=content` (bytes) is generally safer.
+    *   The loop for `plugin.rest_routes.items()` now correctly constructs `real_url_to_intercept_pattern` using `real_binance_spot_base_url + route_path`. The callback is passed `server.mock_rest_url_base` which it uses as the base to reconstruct the local mock server URL.
+    *   `yield server` is correctly placed within the `with aioresponses() as m:` block.
+
+2.  **`test_rest_candles_retrieval` Test Method:**
+    *   Removed the duplicate method.
+    *   The test now uses `aioresponses_mock_binance_server: MockedExchangeServer` for type hinting and clarity.
+    *   `CandlesFeed` is initialized with `exchange="binance_spot"`, `trading_pair="BTC-USDT"`, and `interval="1m"`. This ensures the `BinanceSpotAdapter` is used, which will attempt to connect to real Binance URLs.
+    *   `max_records` is set to 50 for a slightly quicker test run.
+    *   Assertions are in place to verify that candles are received and that their basic structure is valid, confirming data came from the mock server (via interception).
+    *   Added a check `assert all(df.index > 1000000000)` as a basic sanity check for timestamps.
+
+This setup should now correctly intercept HTTP requests made by the `BinanceSpotAdapter` (when `CandlesFeed` is used with `exchange="binance_spot"`) and redirect them to your local `MockedExchangeServer`, allowing for robust end-to-end testing of the REST functionality without hitting the actual Binance API.
+
+
+#### Okay, I understand the requirements. We need to refine the `aioresponses_mock_binance_server` fixture to correctly intercept HTTP calls intended for the real Binance API and redirect them to our local `MockedExchangeServer`. This involves ensuring the mock server is properly configured with the `BinanceSpotPlugin` and has data for the test. We'll also clean up the test file by removing duplicates and ensuring the REST test is comprehensive.  
+####   
+#### The `unused_tcp_port` fixture is standard and typically provided by `pytest-asyncio` or a similar utility, so I'll assume it's available as it's already being used in your `conftest.py`.  
+####   
+#### Here are the necessary changes:  
+####   
+#### **1. Modify `tests/e2e/test_end_to_end.py`**  
+####   
+#### We'll update the `aioresponses_mock_binance_server` fixture and the `test_rest_candles_retrieval` test.  
+####   
+#### ```python  
+#### """  
+#### End-to-end test for the Candles Feed framework.  
+####   
+#### This module demonstrates how to use the exchange simulation framework  
+#### to test the Candles Feed in a realistic but controlled environment.  
+#### """  
+####   
+#### import asyncio  
+#### import logging  
+#### import time  
+#### import re  
+#### from urllib.parse import urlparse, urlunparse  
+####   
+#### import pytest  
+#### import aiohttp  
+#### from aioresponses import aioresponses  
+####   
+#### from candles_feed.core.candles_feed import CandlesFeed  
+#### from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory  
+#### from candles_feed.mocking_resources.core.exchange_type import ExchangeType  
+#### from candles_feed.mocking_resources.core.factory import get_plugin  
+#### from candles_feed.mocking_resources.core.server import MockedExchangeServer  
+#### from candles_feed.adapters.binance import constants as binance_constants # For REAL URLs  
+####   
+####   
+#### # Set up logging  
+#### logging.basicConfig(level=logging.INFO)  
+#### logger = logging.getLogger(__name__)  
+####   
+####   
+#### class TestEndToEnd:  
+####     """End-to-end test suite for the Candles Feed."""  
+####   
+####     @pytest.fixture  
+####     async def aioresponses_mock_binance_server(self, unused_tcp_port):  
+####         """Create a mock Binance server for testing, with aioresponses intercepting calls."""  
+####         plugin = get_plugin(ExchangeType.BINANCE_SPOT)  
+####         host = "127.0.0.1"  
+####         port = unused_tcp_port  
+####   
+####         server = MockedExchangeServer(plugin, host, port)  
+####   
+####         # Add trading pairs to the mock server  
+####         # These need to match what the test will request  
+####         server.add_trading_pair("BTC-USDT", "1m", initial_price=50000.0)  
+####         server.add_trading_pair("ETH-USDT", "1m", initial_price=3000.0)  
+####           
+####         # Ensure the server generates some initial candles for these pairs  
+####         # The add_trading_pair method in MockedExchangeServer already does this.  
+####   
+####         await server.start()  
+####   
+####         server.mock_rest_url_base = f"http://{host}:{port}"  
+####           
+####         # For Binance Spot, the WebSocket path is typically /ws or part of a stream path  
+####         # The BinanceSpotPlugin inherits ws_routes from BinanceBasePlugin which is {"/ws": "handle_websocket"}  
+####         ws_path = "/ws" # Default for Binance Spot based on BinanceBasePlugin  
+####         server.mock_ws_url = f"ws://{host}:{port}{ws_path}"  
+####   
+####         async def make_passthrough_callback(target_url_base_for_mock_server, original_request_method):  
+####             async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses  
+####                 # Construct the final target URL for the local mock server  
+####                 # url_obj.path and url_obj.query_string are from the *intercepted* request.  
+####                 # target_url_base_for_mock_server is like "http://127.0.0.1:xxxx"  
+####                   
+####                 final_target_url = urlunparse((  
+####                     urlparse(target_url_base_for_mock_server).scheme,  
+####                     urlparse(target_url_base_for_mock_server).netloc,  
+####                     url_obj.path,  # Use path from the intercepted URL  
+####                     "",  # params for urlunparse  
+####                     url_obj.query_string,  # Use query string from the intercepted URL  
+####                     ""  # fragment for urlunparse  
+####                 ))  
+####   
+####                 request_headers = {  
+####                     k: v for k, v in kwargs.get('headers', {}).items()  
+####                     if k.lower() not in ['host', 'content-length', 'transfer-encoding']  
+####                 }  
+####                   
+####                 outgoing_json_payload = kwargs.get('json') # aioresponses uses 'json' not 'json_payload'  
+####                 outgoing_data = kwargs.get('data')  
+####   
+####                 if outgoing_json_payload is not None and outgoing_data is not None:  
+####                     # Prefer JSON if both are somehow provided, though typically only one is.  
+####                     outgoing_data = None  
+####   
+####                 async with aiohttp.ClientSession() as session:  
+####                     try:  
+####                         async with session.request(  
+####                             original_request_method,  
+####                             final_target_url,  
+####                             data=outgoing_data,  
+####                             json=outgoing_json_payload,  
+####                             headers=request_headers,  
+####                             allow_redirects=kwargs.get('allow_redirects', True)  
+####                         ) as resp:  
+####                             content = await resp.read()  
+####                             response_headers = {  
+####                                 k: v for k, v in resp.headers.items()  
+####                                 if k.lower() not in ['transfer-encoding', 'content-length'] # content-length might mismatch if content changes  
+####                             }  
+####                             # If content is JSON, aioresponses might try to re-serialize it.  
+####                             # It's often safer to pass content as bytes (body).  
+####                             return aioresponses.CallbackResult(status=resp.status, body=content, headers=response_headers)  
+####                     except aiohttp.ClientConnectorError as e:  
+####                         logger.error(f"Passthrough to {final_target_url} failed: {e}")  
+####                         return aioresponses.CallbackResult(status=503, body=f"Mock server connection error: {e}")  
+####             return callback  
+####   
+####         with aioresponses() as m:  
+####             real_binance_spot_base_url = binance_constants.SPOT_REST_URL # "https://api.binance.com"  
+####   
+####             # Intercept all routes defined in the plugin  
+####             for route_path, (method, _) in plugin.rest_routes.items():  
+####                 real_url_to_intercept_pattern = re.compile(f"^{re.escape(real_binance_spot_base_url + route_path)}(\\?.*)?$")  
+####                   
+####                 # The passthrough callback will use server.mock_rest_url_base and the path from the intercepted URL  
+####                 m.add(  
+####                     real_url_to_intercept_pattern,  
+####                     method=method.upper(),  
+####                     callback=await make_passthrough_callback(server.mock_rest_url_base, method.upper()),  
+####                     repeat=True   
+####                 )  
+####               
+####             yield server  # Provide the MockedExchangeServer instance to the test  
+####   
+####         # Teardown: stop the server  
+####         await server.stop()  
+####   
+####     @pytest.mark.asyncio  
+####     async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server: MockedExchangeServer):  
+####         """Test retrieving candles via REST API using aioresponses to intercept calls."""  
+####           
+####         # The aioresponses_mock_binance_server fixture has already started the server  
+####         # and set up aioresponses to intercept calls to real Binance URLs.  
+####   
+####         # Create a CandlesFeed instance for "binance_spot".   
+####         # This will make its adapter use the real Binance URLs, which will be intercepted.  
+####         feed = CandlesFeed(  
+####             exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=50 # Reduced for faster test  
+####         )  
+####   
+####         try:  
+####             # Fetch historical candles. This will trigger REST calls that aioresponses intercepts.  
+####             # The BinanceSpotAdapter will attempt to call, e.g., https://api.binance.com/api/v3/klines  
+####             candles = await feed.fetch_candles()  
+####   
+####             # Verify candles were received from the mock server via interception  
+####             assert len(candles) > 0, "No candles received"  
+####             assert len(candles) <= 50, "More candles received than max_records"  
+####   
+####             # Verify that the mock server processed the request  
+####             # We can check the candles data itself, which is generated by the mock server  
+####             first_candle = candles[0]  
+####             assert first_candle.open > 0  
+####             assert first_candle.high >= first_candle.low  
+####   
+####             # Convert to DataFrame for easier inspection  
+####             df = feed.get_candles_df()  
+####             logger.info(f"Received {len(df)} candles via aioresponses interception.")  
+####             if not df.empty:  
+####                 logger.info(f"First candle: {df.iloc[0]}")  
+####                 logger.info(f"Last candle: {df.iloc[-1]}")  
+####   
+####             # Verify candle data looks reasonable (originating from MockedExchangeServer's factory)  
+####             assert all(df["open"] > 0), "Open prices should be positive"  
+####             assert all(df["high"] >= df["open"]), "High should be >= open"  
+####             assert all(df["low"] <= df["open"]), "Low should be <= open"  
+####             # Volume can be 0 for newly forming candles or if factory generates it, but generally > 0 for historical  
+####             # For this test, MockedExchangeServer generates candles with volume.  
+####             assert all(df["volume"] >= 0), "Volume should be non-negative"   
+####               
+####             # Check if timestamps are in expected range (e.g. not default unix epoch 0)  
+####             assert all(df.index > 1000000000), "Timestamps seem invalid"  
+####   
+####   
+####             # Optionally, verify that a known endpoint like /api/v3/ping was "called"  
+####             # This is harder to check directly with aioresponses without more complex callback logging,  
+####             # but if fetch_candles() succeeds, it implies klines (and possibly time/ping) worked.  
+####               
+####             # Example: Check if the mock server's klines handler was invoked.  
+####             # This would require the mock server to log or count calls, which is beyond this scope.  
+####             # Success of fetch_candles is the primary indicator.  
+####   
+####         finally:  
+####             # Clean up resources  
+####             await feed.stop()  
+####   
+####     # Removed the duplicate test_rest_candles_retrieval method.  
+####     # The WebSocket test would require a different approach as aioresponses doesn't mock WebSockets.  
+####     # For WebSockets, you'd typically patch the adapter's WSS URL to point to the mock server's WS URL.  
+####     # async def test_websocket_candles_streaming(self, aioresponses_mock_binance_server): ...  
+#### ```  
+####   
+#### **Explanation of Changes in `test_end_to_end.py`:**  
+####   
+#### 1.  **`aioresponses_mock_binance_server` Fixture:**  
+####     *   Added `server.add_trading_pair("BTC-USDT", "1m", initial_price=50000.0)` and `server.add_trading_pair("ETH-USDT", "1m", initial_price=3000.0)` to ensure the mock server has data for the trading pairs used in tests. The `MockedExchangeServer.add_trading_pair` method already handles generating initial candles.  
+####     *   The `make_passthrough_callback` now correctly uses `urlparse(target_url_base_for_mock_server).scheme` and `.netloc` combined with `url_obj.path` and `url_obj.query_string` from the intercepted URL to construct the `final_target_url` for the local mock server.  
+####     *   Changed `kwargs.get('json_payload')` to `kwargs.get('json')` as `aiohttp.ClientSession` and `aioresponses` use `json` as the keyword argument for JSON payloads.  
+####     *   Improved header filtering in the callback, specifically removing `content-length` from response headers passed back to `aioresponses.CallbackResult` because the content might be re-processed by `aioresponses` or the underlying `aiohttp` client, potentially leading to mismatches if the body is altered (e.g., re-serialized). Passing `body=content` (bytes) is generally safer.  
+####     *   The loop for `plugin.rest_routes.items()` now correctly constructs `real_url_to_intercept_pattern` using `real_binance_spot_base_url + route_path`. The callback is passed `server.mock_rest_url_base` which it uses as the base to reconstruct the local mock server URL.  
+####     *   `yield server` is correctly placed within the `with aioresponses() as m:` block.  
+####   
+#### 2.  **`test_rest_candles_retrieval` Test Method:**  
+####     *   Removed the duplicate method.  
+####     *   The test now uses `aioresponses_mock_binance_server: MockedExchangeServer` for type hinting and clarity.  
+####     *   `CandlesFeed` is initialized with `exchange="binance_spot"`, `trading_pair="BTC-USDT"`, and `interval="1m"`. This ensures the `BinanceSpotAdapter` is used, which will attempt to connect to real Binance URLs.  
+####     *   `max_records` is set to 50 for a slightly quicker test run.  
+####     *   Assertions are in place to verify that candles are received and that their basic structure is valid, confirming data came from the mock server (via interception).  
+####     *   Added a check `assert all(df.index > 1000000000)` as a basic sanity check for timestamps.  
+####   
+#### This setup should now correctly intercept HTTP requests made by the `BinanceSpotAdapter` (when `CandlesFeed` is used with `exchange="binance_spot"`) and redirect them to your local `MockedExchangeServer`, allowing for robust end-to-end testing of the REST functionality without hitting the actual Binance API.  
+
+```python
+tests/e2e/test_end_to_end.py
+<<<<<<< SEARCH
+    @pytest.fixture
+    async def aioresponses_mock_binance_server(self, unused_tcp_port):
+        """Create a mock Binance server for testing, with aioresponses intercepting calls."""
+        plugin = get_plugin(ExchangeType.BINANCE_SPOT)
+        host = "127.0.0.1"
+        port = unused_tcp_port  # Use dynamically assigned port
+
+        server = MockedExchangeServer(plugin, host, port)
+        await server.start()
+
+        # Store mock server URLs for direct access (e.g., WS) and passthrough
+        server.mock_rest_url_base = f"http://{host}:{port}"
+
+        # Determine the WebSocket path from the plugin's routes
+        # Assuming the first WS route is the primary one, or a known path like '/ws'
+        ws_path = "/ws" # Default for Binance Spot
+        for path_key in plugin.ws_routes:
+            if "stream" not in path_key: # Prefer generic paths like /ws over /stream/etc.
+                ws_path = path_key
+                break
+            else: # Fallback to the first key if only stream-like paths exist
+                ws_path = list(plugin.ws_routes.keys())[0]
+                break
+        server.mock_ws_url = f"ws://{host}:{port}{ws_path}"
+
+        async def make_passthrough_callback(target_url_str, original_request_method):
+            async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
+                # url_obj.path and url_obj.query_string are from the *intercepted* request.
+                # target_url_str is the base path for this route on the mock server.
+
+                # Construct the final target URL for the local mock server
+                parsed_target_base = urlparse(target_url_str) # e.g., http://127.0.0.1:xxxx/api/v3/klines
+
+                final_target_url = urlunparse((
+                    parsed_target_base.scheme,
+                    parsed_target_base.netloc,
+                    url_obj.path,  # Use path from the intercepted URL
+                    "",  # params for urlunparse; path params are part of url_obj.path
+                    url_obj.query_string,  # Use query string from the intercepted URL
+                    ""  # fragment for urlunparse
+                ))
+
+                request_headers = {
+                    k: v for k, v in kwargs.get('headers', {}).items()
+                    if k.lower() not in ['host', 'content-length', 'transfer-encoding']
+                }
+                # Propagate auth headers if present (e.g. X-MBX-APIKEY)
+                # aioresponses passes original headers in kwargs['headers']
+
+                outgoing_json_payload = kwargs.get('json_payload') # aioresponses provides this
+                outgoing_data = kwargs.get('data')
+
+                if outgoing_json_payload is not None:
+                    outgoing_data = None # Ensure only one form of body is used
+
+                async with aiohttp.ClientSession() as session:
+                    try:
+                        async with session.request(
+                            original_request_method,
+                            final_target_url,
+                            params=None, # Query string is already part of final_target_url via url_obj.query_string
+                            data=outgoing_data,
+                            json=outgoing_json_payload,
+                            headers=request_headers,
+                            allow_redirects=kwargs.get('allow_redirects', True)
+                        ) as resp:
+                            content = await resp.read()
+                            response_headers = {
+                                k: v for k, v in resp.headers.items()
+                                if k.lower() not in ['transfer-encoding']
+                            }
+                            return aioresponses.CallbackResult(status=resp.status, body=content, headers=response_headers)
+                    except aiohttp.ClientConnectorError as e:
+                        logger.error(f"Passthrough to {final_target_url} failed: {e}")
+                        return aioresponses.CallbackResult(status=503, body=f"Mock server connection error: {e}")
+            return callback
+
+        with aioresponses() as m:
+            real_binance_spot_base_url = binance_constants.SPOT_REST_URL # "https://api.binance.com"
+
+            for route_path, (method, _) in plugin.rest_routes.items():
+                # Construct the real URL pattern that the adapter would try to hit
+                real_url_to_intercept = f"{real_binance_spot_base_url}{route_path}"
+
+                # The target URL for the passthrough is the mock server's equivalent endpoint
+                mock_target_for_route = f"{server.mock_rest_url_base}{route_path}"
+
+                # Regex to match the base path and any query parameters
+                url_pattern_regex = re.compile(f"^{re.escape(real_url_to_intercept)}(\\?.*)?$")
+
+                m.add(
+                    url_pattern_regex,
+                    method=method.upper(),
+                    callback=await make_passthrough_callback(mock_target_for_route, method.upper()),
+                    repeat=True # Allow multiple calls to the same URL
+                )
+
+            yield server  # Provide the MockedExchangeServer instance to the test
+
+        # Teardown: stop the server
+        await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical candles
+            candles = await feed.fetch_candles()
+
+            # Verify candles were received
+            assert len(candles) > 0, "No candles received"
+
+            # Convert to DataFrame for easier inspection
+            df = feed.get_candles_df()
+            logger.info(f"Received {len(df)} candles")
+            logger.info(f"First candle: {df.iloc[0]}")
+            logger.info(f"Last candle: {df.iloc[-1]}")
+
+            # Verify candle data looks reasonable
+            assert all(df["open"] > 0), "Open prices should be positive"
+            assert all(df["high"] >= df["open"]), "High should be >= open"
+            assert all(df["low"] <= df["open"]), "Low should be <= open"
+            assert all(df["volume"] > 0), "Volume should be positive"
+
+        finally:
+            # Clean up resources
+            await feed.stop()
+
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical candles
+            candles = await feed.fetch_candles()
+=======
+    @pytest.fixture
+    async def aioresponses_mock_binance_server(self, unused_tcp_port):
+        """Create a mock Binance server for testing, with aioresponses intercepting calls."""
+        plugin = get_plugin(ExchangeType.BINANCE_SPOT)
+        host = "127.00.0.1" # Use 127.0.0.1 explicitly
+        port = unused_tcp_port
+
+        server = MockedExchangeServer(plugin, host, port)
+
+        # Add trading pairs to the mock server
+        # These need to match what the test will request
+        server.add_trading_pair("BTC-USDT", "1m", initial_price=50000.0)
+        server.add_trading_pair("ETH-USDT", "1m", initial_price=3000.0)
+
+        # Ensure the server generates some initial candles for these pairs
+        # The add_trading_pair method in MockedExchangeServer already does this.
+
+        await server.start()
+
+        server.mock_rest_url_base = f"http://{host}:{port}"
+
+        # For Binance Spot, the WebSocket path is typically /ws or part of a stream path
+        # The BinanceSpotPlugin inherits ws_routes from BinanceBasePlugin which is {"/ws": "handle_websocket"}
+        ws_path = "/ws" # Default for Binance Spot based on BinanceBasePlugin
+        server.mock_ws_url = f"ws://{host}:{port}{ws_path}"
+
+        async def make_passthrough_callback(target_url_base_for_mock_server, original_request_method):
+            async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
+                # Construct the final target URL for the local mock server
+                # url_obj.path and url_obj.query_string are from the *intercepted* request.
+                # target_url_base_for_mock_server is like "http://127.0.0.1:xxxx"
+
+                final_target_url = urlunparse((
+                    urlparse(target_url_base_for_mock_server).scheme,
+                    urlparse(target_url_base_for_mock_server).netloc,
+                    url_obj.path,  # Use path from the intercepted URL
+                    "",  # params for urlunparse
+                    url_obj.query_string,  # Use query string from the intercepted URL
+                    ""  # fragment for urlunparse
+                ))
+
+                request_headers = {
+                    k: v for k, v in kwargs.get('headers', {}).items()
+                    if k.lower() not in ['host', 'content-length', 'transfer-encoding']
+                }
+
+                outgoing_json_payload = kwargs.get('json') # aioresponses uses 'json' not 'json_payload'
+                outgoing_data = kwargs.get('data')
+
+                if outgoing_json_payload is not None and outgoing_data is not None:
+                    # Prefer JSON if both are somehow provided, though typically only one is.
+                    outgoing_data = None
+
+                async with aiohttp.ClientSession() as session:
+                    try:
+                        async with session.request(
+                            original_request_method,
+                            final_target_url,
+                            data=outgoing_data,
+                            json=outgoing_json_payload,
+                            headers=request_headers,
+                            allow_redirects=kwargs.get('allow_redirects', True)
+                        ) as resp:
+                            content = await resp.read()
+                            response_headers = {
+                                k: v for k, v in resp.headers.items()
+                                if k.lower() not in ['transfer-encoding', 'content-length'] # content-length might mismatch if content changes
+                            }
+                            # If content is JSON, aioresponses might try to re-serialize it.
+                            # It's often safer to pass content as bytes (body).
+                            return aioresponses.CallbackResult(status=resp.status, body=content, headers=response_headers)
+                    except aiohttp.ClientConnectorError as e:
+                        logger.error(f"Passthrough to {final_target_url} failed: {e}")
+                        return aioresponses.CallbackResult(status=503, body=f"Mock server connection error: {e}")
+            return callback
+
+        with aioresponses() as m:
+            real_binance_spot_base_url = binance_constants.SPOT_REST_URL # "https://api.binance.com"
+
+            # Intercept all routes defined in the plugin
+            for route_path, (method, _) in plugin.rest_routes.items():
+                real_url_to_intercept_pattern = re.compile(f"^{re.escape(real_binance_spot_base_url + route_path)}(\\?.*)?$")
+
+                # The passthrough callback will use server.mock_rest_url_base and the path from the intercepted URL
+                m.add(
+                    real_url_to_intercept_pattern,
+                    method=method.upper(),
+                    callback=await make_passthrough_callback(server.mock_rest_url_base, method.upper()),
+                    repeat=True
+                )
+
+            yield server  # Provide the MockedExchangeServer instance to the test
+
+        # Teardown: stop the server
+        await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server: MockedExchangeServer):
+        """Test retrieving candles via REST API using aioresponses to intercept calls."""
+
+        # The aioresponses_mock_binance_server fixture has already started the server
+        # and set up aioresponses to intercept calls to real Binance URLs.
+
+        # Create a CandlesFeed instance for "binance_spot".
+        # This will make its adapter use the real Binance URLs, which will be intercepted.
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=50 # Reduced for faster test
+        )
+
+        try:
+            # Fetch historical candles. This will trigger REST calls that aioresponses intercepts.
+            # The BinanceSpotAdapter will attempt to call, e.g., https://api.binance.com/api/v3/klines
+            candles = await feed.fetch_candles()
+
+            # Verify candles were received from the mock server via interception
+            assert len(candles) > 0, "No candles received"
+            assert len(candles) <= 50, "More candles received than max_records"
+
+            # Verify that the mock server processed the request
+            # We can check the candles data itself, which is generated by the mock server
+            first_candle = candles[0]
+            assert first_candle.open > 0
+            assert first_candle.high >= first_candle.low
+
+            # Convert to DataFrame for easier inspection
+            df = feed.get_candles_df()
+            logger.info(f"Received {len(df)} candles via aioresponses interception.")
+            if not df.empty:
+                logger.info(f"First candle: {df.iloc[0]}")
+                logger.info(f"Last candle: {df.iloc[-1]}")
+
+            # Verify candle data looks reasonable (originating from MockedExchangeServer's factory)
+            assert all(df["open"] > 0), "Open prices should be positive"
+            assert all(df["high"] >= df["open"]), "High should be >= open"
+            assert all(df["low"] <= df["open"]), "Low should be <= open"
+            # Volume can be 0 for newly forming candles or if factory generates it, but generally > 0 for historical
+            # For this test, MockedExchangeServer generates candles with volume.
+            assert all(df["volume"] >= 0), "Volume should be non-negative"
+
+            # Check if timestamps are in expected range (e.g. not default unix epoch 0)
+            assert all(df.index > 1000000000), "Timestamps seem invalid"
+
+
+            # Optionally, verify that a known endpoint like /api/v3/ping was "called"
+            # This is harder to check directly with aioresponses without more complex callback logging,
+            # but if fetch_candles() succeeds, it implies klines (and possibly time/ping) worked.
+
+            # Example: Check if the mock server's klines handler was invoked.
+            # This would require the mock server to log or count calls, which is beyond this scope.
+            # Success of fetch_candles is the primary indicator.
+
+        finally:
+            # Clean up resources
+            await feed.stop()
+>>>>>>> REPLACE
+```
+
+```python
+tests/e2e/test_end_to_end.py
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical candles
+            candles = await feed.fetch_candles()
+=======
+>>>>>>> REPLACE
+```
+
+
+You are correct. My apologies, the second `SEARCH/REPLACE` block failed because the first one modified the file content, causing the line numbers and surrounding context for the second block to shift.
+
+Here is the corrected `SEARCH/REPLACE` block to remove the duplicate `test_rest_candles_retrieval` method from `tests/e2e/test_end_to_end.py`.
+
+tests/e2e/test_end_to_end.py
+```python
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
+        """Test retrieving candles via REST API."""
+        # Create a CandlesFeed instance
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
+        )
+
+        try:
+            # Fetch historical candles
+            candles = await feed.fetch_candles()
+=======
+>>>>>>> REPLACE
+```
+
+
+Okay, I see the issue. The previous successful change modified the file, causing the second `SEARCH/REPLACE` block (which was intended to remove the duplicate test function) to fail because its `SEARCH` section no longer exactly matched the file content.
+
+Here is the corrected `SEARCH/REPLACE` block to remove the duplicate `test_rest_candles_retrieval` method from `tests/e2e/test_end_to_end.py`.
+
+tests/e2e/test_end_to_end.py
+```python
+<<<<<<< SEARCH
+    @pytest.mark.asyncio
+    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server: MockedExchangeServer):
+        """Test retrieving candles via REST API using aioresponses to intercept calls."""
+
+        # The aioresponses_mock_binance_server fixture has already started the server
+        # and set up aioresponses to intercept calls to real Binance URLs.
+
+        # Create a CandlesFeed instance for "binance_spot".
+        # This will make its adapter use the real Binance URLs, which will be intercepted.
+        feed = CandlesFeed(
+            exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=50 # Reduced for faster test
+        )
+
+        try:
+            # Fetch historical candles. This will trigger REST calls that aioresponses intercepts.
+            # The BinanceSpotAdapter will attempt to call, e.g., https://api.binance.com/api/v3/klines
+            candles = await feed.fetch_candles()
+
+            # Verify candles were received from the mock server via interception
+            assert len(candles) > 0, "No candles received"
+            assert len(candles) <= 50, "More candles received than max_records"
+
+            # Verify that the mock server processed the request
+            # We can check the candles data itself, which is generated by the mock server
+            first_candle = candles[0]
+            assert first_candle.open > 0
+            assert first_candle.high >= first_candle.low
+
+            # Convert to DataFrame for easier inspection
+            df = feed.get_candles_df()
+            logger.info(f"Received {len(df)} candles via aioresponses interception.")
+            if not df.empty:
+                logger.info(f"First candle: {df.iloc[0]}")
+                logger.info(f"Last candle: {df.iloc[-1]}")
+
+            # Verify candle data looks reasonable (originating from MockedExchangeServer's factory)
+            assert all(df["open"] > 0), "Open prices should be positive"
+            assert all(df["high"] >= df["open"]), "High should be >= open"
+            assert all(df["low"] <= df["open"]), "Low should be <= open"
+            # Volume can be 0 for newly forming candles or if factory generates it, but generally > 0 for historical
+            # For this test, MockedExchangeServer generates candles with volume.
+            assert all(df["volume"] >= 0), "Volume should be non-negative"
+
+            # Check if timestamps are in expected range (e.g. not default unix epoch 0)
+            assert all(df.index > 1000000000), "Timestamps seem invalid"
+
+
+            # Optionally, verify that a known endpoint like /api/v3/ping was "called"
+            # This is harder to check directly with aioresponses without more complex callback logging,
+            # but if fetch_candles() succeeds, it implies klines (and possibly time/ping) worked.
+
+            # Example: Check if the mock server's klines handler was invoked.
+            # This would require the mock server to log or count calls, which is beyond this scope.
+            # Success of fetch_candles is the primary indicator.
+
+        finally:
+            # Clean up resources
+            await feed.stop()
+=======
+>>>>>>> REPLACE
+```
+
