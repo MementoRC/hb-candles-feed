@@ -41,7 +41,8 @@ class HybridMockedAdapter(BaseAdapter):
         self._network_config = network_config
         self._network_client = kwargs.get("network_client")
 
-    def get_trading_pair_format(self, trading_pair: str) -> str:
+    @staticmethod
+    def get_trading_pair_format(trading_pair: str) -> str:
         """Convert trading pair to exchange format.
 
         :param trading_pair: Trading pair in standard format (e.g., BTC-USDT).
@@ -112,7 +113,8 @@ class HybridMockedAdapter(BaseAdapter):
             )
         ]
 
-    def _get_rest_url(self) -> str:
+    @staticmethod
+    def _get_rest_url() -> str:
         """Get the REST API URL for candles.
 
         :returns: REST API URL.
@@ -150,7 +152,7 @@ class HybridMockedAdapter(BaseAdapter):
 
         return params
 
-    def _parse_rest_response(self, response_data: Dict[str, Any]) -> List[CandleData]:
+    def _parse_rest_response(self, response_data: dict[Any, Any] | list[Any] | None) -> List[CandleData]:
         """Process REST API response data into CandleData objects.
 
         :param response_data: Response data from the REST API.

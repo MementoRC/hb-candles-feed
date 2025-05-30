@@ -6,6 +6,7 @@ without relying on actual exchange connections.
 """
 
 import random
+from typing import Optional
 
 from candles_feed.core.candle_data import CandleData
 
@@ -20,7 +21,7 @@ class CandleDataFactory:
         base_price: float = 50000.0,
         volatility: float = 0.01,
         max_deviation: float = 0.1,  # 10% maximum deviation from initial price
-        initial_price: float = None,
+        initial_price: Optional[float] = None,
     ) -> CandleData:
         """
         Create a random candle, optionally based on a previous candle.

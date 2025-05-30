@@ -63,7 +63,8 @@ class MockedAdapter(BaseAdapter):
         """
         return list(INTERVALS.keys())
 
-    def get_trading_pair_format(self, trading_pair: str) -> str:
+    @staticmethod
+    def get_trading_pair_format(trading_pair: str) -> str:
         """
         Convert trading pair to exchange format.
 
@@ -122,7 +123,7 @@ class MockedAdapter(BaseAdapter):
         return params
 
     def parse_rest_response(
-        self, response_data: Dict[str, Any], trading_pair: str = None, interval: str = None
+        self, response_data: Dict[str, Any], trading_pair: Optional[str] = None, interval: Optional[str] = None
     ) -> List[CandleData]:
         """Alias for process_rest_response to match BaseAdapter interface.
 
@@ -139,7 +140,7 @@ class MockedAdapter(BaseAdapter):
         return self.process_rest_response(response_data, trading_pair, interval)
 
     def process_rest_response(
-        self, response_data: Dict[str, Any], trading_pair: str, interval: str
+        self, response_data: Dict[str, Any], trading_pair: Optional[str], interval: Optional[str]
     ) -> List[CandleData]:
         """
         Process REST API response data into CandleData objects.

@@ -7,6 +7,7 @@ This module provides a base implementation for exchange adapters to reduce code 
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Any, Dict
 
 from candles_feed.core.candle_data import CandleData
 
@@ -58,7 +59,7 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def parse_ws_message(self, data: dict) -> list[CandleData] | None:
+    def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
@@ -126,7 +127,7 @@ class BaseAdapter(ABC):
         if self.TIMESTAMP_UNIT.lower() == "milliseconds":
             return int(timestamp * 1000)
         if self.TIMESTAMP_UNIT == "iso8601":
-            return datetime.fromtimestamp(timestamp, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            return datetime.fromtimestamp(float(timestamp), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         raise NotImplementedError("Exchange must define TIMESTAMP_UNIT.")
 
     @staticmethod

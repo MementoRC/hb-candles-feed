@@ -14164,3 +14164,820 @@ tests/unit/mocking_resources/test_simple_mock_plugin.py
 >>>>>>> REPLACE
 ```
 
+
+# aider chat started at 2025-05-29 20:28:48
+
+
+#### Fix the mypy type errors that are causing CI failures. The main issues I can see are:  
+####   
+#### 1. In candles_feed/core/network_config.py:107 - Incompatible types in assignment (EndpointType vs str)  
+#### 2. In candles_feed/core/network_config.py:119 - Wrong type for endpoint_overrides parameter  
+#### 3. In candles_feed/adapters/base_adapter.py:129 - fromtimestamp expects float not int|float|Decimal  
+#### 4. Multiple issues with Optional types in mocking_resources files  
+#### 5. Signature incompatibilities in mocked adapter methods  
+####   
+#### Focus on the most critical errors first that are likely causing the mypy CI job to fail. Fix type annotations, optional parameters, and method signatures to match the expected types.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I've studied the change request and the current code. Here's how to modify the code to address the mypy errors:
+
+**1. File: `candles_feed/core/network_config.py`**
+
+*   **Method `hybrid`**:
+    *   The loop iterating over `endpoint_overrides.items()` needs to handle type conversions more cleanly to avoid reassigning loop variables to incompatible types and to ensure `processed_overrides` is correctly typed.
+    *   The type annotation for `**endpoint_overrides` values can be `Any` as it's checked at runtime.
+
+    ```python
+    # Within the class NetworkConfig:
+    # At line 96 (approx., start of hybrid method)
+    @classmethod
+    def hybrid(cls, **endpoint_overrides: Any) -> "NetworkConfig": # Add : Any for **endpoint_overrides values
+        """Create a hybrid configuration with specific overrides.
+
+        Example:
+            NetworkConfig.hybrid(
+                candles=NetworkEnvironment.PRODUCTION,
+                orders=NetworkEnvironment.TESTNET
+            )
+
+        :param endpoint_overrides: Keyword arguments mapping endpoint types to environments
+        :return: NetworkConfig with specified overrides
+        :raises ValueError: If an invalid endpoint type or environment is provided
+        """
+        # Convert string keys to EndpointType enum
+        processed_overrides: Dict[EndpointType, NetworkEnvironment] = {} # Explicitly type processed_overrides
+        for key_str, value_orig in endpoint_overrides.items(): # Use key_str and value_orig
+            typed_key: EndpointType
+            try:
+                typed_key = EndpointType(key_str) # Assign to new variable typed_key
+            except ValueError:
+                raise ValueError(f"Invalid endpoint type: {key_str}") from None # Use key_str in error
+
+            typed_value: NetworkEnvironment # Declare typed_value
+            if isinstance(value_orig, str): # Check value_orig type
+                try:
+                    typed_value = NetworkEnvironment(value_orig) # Assign to typed_value
+                except ValueError:
+                    raise ValueError(f"Invalid network environment: {value_orig}") from None
+            elif isinstance(value_orig, NetworkEnvironment): # Check if already NetworkEnvironment
+                typed_value = value_orig # Assign to typed_value
+            else:
+                # Handle unexpected type for value_orig
+                raise TypeError(
+                    f"Invalid value type for endpoint override: {key_str}={value_orig!r} "
+                    f"(expected str or NetworkEnvironment)"
+                )
+            processed_overrides[typed_key] = typed_value # Use typed_key and typed_value
+
+        return cls(
+            default_environment=NetworkEnvironment.PRODUCTION, # This line (approx 119) should now be fine
+            endpoint_overrides=processed_overrides,
+        )
+    ```
+
+**2. File: `candles_feed/adapters/base_adapter.py`**
+
+*   **Method `convert_timestamp_to_exchange`**:
+    *   Ensure the timestamp passed to `datetime.fromtimestamp` is a `float`.
+
+    ```python
+    # Within the class BaseAdapter:
+    # At line 129 (approx.)
+        if self.TIMESTAMP_UNIT == "iso8601":
+            return datetime.fromtimestamp(float(timestamp), UTC).strftime("%Y-%m-%dT%H:%M:%SZ") # Add float()
+    ```
+
+*   **Method `parse_ws_message`**:
+    *   Refine the type hint for the `data` parameter to be more specific, matching common usage and derived class implementations.
+
+    ```python
+    # Within the class BaseAdapter:
+    # At line 50 (approx.)
+    @abstractmethod
+    def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None: # Change data: dict to data: Dict[str, Any]
+        """Parse WebSocket message into CandleData objects.
+
+        :param data: WebSocket message
+        :returns: List of CandleData objects or None if message is not a candle update
+        :raises NotImplementedError: If WebSocket is not supported
+        """
+        pass
+    ```
+
+**3. File: `candles_feed/mocking_resources/adapter/mocked_adapter.py`**
+
+*   **Method `parse_rest_response` (signature)**:
+    *   Update parameter type hints for `trading_pair` and `interval` to `Optional[str]`.
+
+    ```python
+    # Within the class MockedAdapter:
+    # At line 96 (approx.)
+    def parse_rest_response(
+        self, response_data: Dict[str, Any], trading_pair: Optional[str] = None, interval: Optional[str] = None # Change to Optional[str]
+    ) -> List[CandleData]:
+    ```
+
+*   **Method `process_rest_response` (signature)**:
+    *   Update parameter type hints for `trading_pair` and `interval` to `Optional[str]` to match the data flow from `parse_rest_response`.
+
+    ```python
+    # Within the class MockedAdapter:
+    # At line 112 (approx.)
+    def process_rest_response(
+        self, response_data: Dict[str, Any], trading_pair: Optional[str], interval: Optional[str] # Change to Optional[str]
+    ) -> List[CandleData]:
+    ```
+
+**4. File: `candles_feed/mocking_resources/core/candle_data_factory.py`**
+
+*   **Method `create_random` (signature)**:
+    *   Update parameter type hint for `initial_price` to `Optional[float]`.
+
+    ```python
+    # Within the class CandleDataFactory:
+    # At line 15 (approx.)
+    def create_random(
+        timestamp: int,
+        previous_candle: CandleData | None = None,
+        base_price: float = 50000.0,
+        volatility: float = 0.01,
+        max_deviation: float = 0.1,  # 10% maximum deviation from initial price
+        initial_price: Optional[float] = None, # Change to Optional[float]
+    ) -> CandleData:
+    ```
+
+
+#### Okay, I've studied the change request and the current code. Here's how to modify the code to address the mypy errors:  
+####   
+#### **1. File: `candles_feed/core/network_config.py`**  
+####   
+#### *   **Method `hybrid`**:  
+####     *   The loop iterating over `endpoint_overrides.items()` needs to handle type conversions more cleanly to avoid reassigning loop variables to incompatible types and to ensure `processed_overrides` is correctly typed.  
+####     *   The type annotation for `**endpoint_overrides` values can be `Any` as it's checked at runtime.  
+####   
+####     ```python  
+####     # Within the class NetworkConfig:  
+####     # At line 96 (approx., start of hybrid method)  
+####     @classmethod  
+####     def hybrid(cls, **endpoint_overrides: Any) -> "NetworkConfig": # Add : Any for **endpoint_overrides values  
+####         """Create a hybrid configuration with specific overrides.  
+####   
+####         Example:  
+####             NetworkConfig.hybrid(  
+####                 candles=NetworkEnvironment.PRODUCTION,  
+####                 orders=NetworkEnvironment.TESTNET  
+####             )  
+####   
+####         :param endpoint_overrides: Keyword arguments mapping endpoint types to environments  
+####         :return: NetworkConfig with specified overrides  
+####         :raises ValueError: If an invalid endpoint type or environment is provided  
+####         """  
+####         # Convert string keys to EndpointType enum  
+####         processed_overrides: Dict[EndpointType, NetworkEnvironment] = {} # Explicitly type processed_overrides  
+####         for key_str, value_orig in endpoint_overrides.items(): # Use key_str and value_orig  
+####             typed_key: EndpointType  
+####             try:  
+####                 typed_key = EndpointType(key_str) # Assign to new variable typed_key  
+####             except ValueError:  
+####                 raise ValueError(f"Invalid endpoint type: {key_str}") from None # Use key_str in error  
+####   
+####             typed_value: NetworkEnvironment # Declare typed_value  
+####             if isinstance(value_orig, str): # Check value_orig type  
+####                 try:  
+####                     typed_value = NetworkEnvironment(value_orig) # Assign to typed_value  
+####                 except ValueError:  
+####                     raise ValueError(f"Invalid network environment: {value_orig}") from None  
+####             elif isinstance(value_orig, NetworkEnvironment): # Check if already NetworkEnvironment  
+####                 typed_value = value_orig # Assign to typed_value  
+####             else:  
+####                 # Handle unexpected type for value_orig  
+####                 raise TypeError(  
+####                     f"Invalid value type for endpoint override: {key_str}={value_orig!r} "  
+####                     f"(expected str or NetworkEnvironment)"  
+####                 )  
+####             processed_overrides[typed_key] = typed_value # Use typed_key and typed_value  
+####   
+####         return cls(  
+####             default_environment=NetworkEnvironment.PRODUCTION, # This line (approx 119) should now be fine  
+####             endpoint_overrides=processed_overrides,  
+####         )  
+####     ```  
+####   
+#### **2. File: `candles_feed/adapters/base_adapter.py`**  
+####   
+#### *   **Method `convert_timestamp_to_exchange`**:  
+####     *   Ensure the timestamp passed to `datetime.fromtimestamp` is a `float`.  
+####   
+####     ```python  
+####     # Within the class BaseAdapter:  
+####     # At line 129 (approx.)  
+####         if self.TIMESTAMP_UNIT == "iso8601":  
+####             return datetime.fromtimestamp(float(timestamp), UTC).strftime("%Y-%m-%dT%H:%M:%SZ") # Add float()  
+####     ```  
+####   
+#### *   **Method `parse_ws_message`**:  
+####     *   Refine the type hint for the `data` parameter to be more specific, matching common usage and derived class implementations.  
+####   
+####     ```python  
+####     # Within the class BaseAdapter:  
+####     # At line 50 (approx.)  
+####     @abstractmethod  
+####     def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None: # Change data: dict to data: Dict[str, Any]  
+####         """Parse WebSocket message into CandleData objects.  
+####   
+####         :param data: WebSocket message  
+####         :returns: List of CandleData objects or None if message is not a candle update  
+####         :raises NotImplementedError: If WebSocket is not supported  
+####         """  
+####         pass  
+####     ```  
+####   
+#### **3. File: `candles_feed/mocking_resources/adapter/mocked_adapter.py`**  
+####   
+#### *   **Method `parse_rest_response` (signature)**:  
+####     *   Update parameter type hints for `trading_pair` and `interval` to `Optional[str]`.  
+####   
+####     ```python  
+####     # Within the class MockedAdapter:  
+####     # At line 96 (approx.)  
+####     def parse_rest_response(  
+####         self, response_data: Dict[str, Any], trading_pair: Optional[str] = None, interval: Optional[str] = None # Change to Optional[str]  
+####     ) -> List[CandleData]:  
+####     ```  
+####   
+#### *   **Method `process_rest_response` (signature)**:  
+####     *   Update parameter type hints for `trading_pair` and `interval` to `Optional[str]` to match the data flow from `parse_rest_response`.  
+####   
+####     ```python  
+####     # Within the class MockedAdapter:  
+####     # At line 112 (approx.)  
+####     def process_rest_response(  
+####         self, response_data: Dict[str, Any], trading_pair: Optional[str], interval: Optional[str] # Change to Optional[str]  
+####     ) -> List[CandleData]:  
+####     ```  
+####   
+#### **4. File: `candles_feed/mocking_resources/core/candle_data_factory.py`**  
+####   
+#### *   **Method `create_random` (signature)**:  
+####     *   Update parameter type hint for `initial_price` to `Optional[float]`.  
+####   
+####     ```python  
+####     # Within the class CandleDataFactory:  
+####     # At line 15 (approx.)  
+####     def create_random(  
+####         timestamp: int,  
+####         previous_candle: CandleData | None = None,  
+####         base_price: float = 50000.0,  
+####         volatility: float = 0.01,  
+####         max_deviation: float = 0.1,  # 10% maximum deviation from initial price  
+####         initial_price: Optional[float] = None, # Change to Optional[float]  
+####     ) -> CandleData:  
+####     ```  
+
+Okay, I understand the changes. I will provide the *SEARCH/REPLACE* blocks for each modification.
+
+**1. File: `candles_feed/core/network_config.py`**
+
+*   Modify the `hybrid` method signature and its internal logic for handling `endpoint_overrides`.
+
+```python
+candles_feed/core/network_config.py
+<<<<<<< SEARCH
+    @classmethod
+    def hybrid(cls, **endpoint_overrides) -> "NetworkConfig":
+        """Create a hybrid configuration with specific overrides.
+
+        Example:
+            NetworkConfig.hybrid(
+                candles=NetworkEnvironment.PRODUCTION,
+                orders=NetworkEnvironment.TESTNET
+            )
+
+        :param endpoint_overrides: Keyword arguments mapping endpoint types to environments
+        :return: NetworkConfig with specified overrides
+        :raises ValueError: If an invalid endpoint type or environment is provided
+        """
+        # Convert string keys to EndpointType enum
+        processed_overrides = {}
+        for key, value in endpoint_overrides.items():
+            if isinstance(key, str):
+                try:
+                    key = EndpointType(key)
+                except ValueError:
+                    raise ValueError(f"Invalid endpoint type: {key}") from None
+            if isinstance(value, str):
+                try:
+                    value = NetworkEnvironment(value)
+                except ValueError:
+                    raise ValueError(f"Invalid network environment: {value}") from None
+            processed_overrides[key] = value
+
+        return cls(
+            default_environment=NetworkEnvironment.PRODUCTION,
+            endpoint_overrides=processed_overrides,
+        )
+=======
+    @classmethod
+    def hybrid(cls, **endpoint_overrides: Any) -> "NetworkConfig": # Add : Any for **endpoint_overrides values
+        """Create a hybrid configuration with specific overrides.
+
+        Example:
+            NetworkConfig.hybrid(
+                candles=NetworkEnvironment.PRODUCTION,
+                orders=NetworkEnvironment.TESTNET
+            )
+
+        :param endpoint_overrides: Keyword arguments mapping endpoint types to environments
+        :return: NetworkConfig with specified overrides
+        :raises ValueError: If an invalid endpoint type or environment is provided
+        """
+        # Convert string keys to EndpointType enum
+        processed_overrides: Dict[EndpointType, NetworkEnvironment] = {} # Explicitly type processed_overrides
+        for key_str, value_orig in endpoint_overrides.items(): # Use key_str and value_orig
+            typed_key: EndpointType
+            try:
+                typed_key = EndpointType(key_str) # Assign to new variable typed_key
+            except ValueError:
+                raise ValueError(f"Invalid endpoint type: {key_str}") from None # Use key_str in error
+
+            typed_value: NetworkEnvironment # Declare typed_value
+            if isinstance(value_orig, str): # Check value_orig type
+                try:
+                    typed_value = NetworkEnvironment(value_orig) # Assign to typed_value
+                except ValueError:
+                    raise ValueError(f"Invalid network environment: {value_orig}") from None
+            elif isinstance(value_orig, NetworkEnvironment): # Check if already NetworkEnvironment
+                typed_value = value_orig # Assign to typed_value
+            else:
+                # Handle unexpected type for value_orig
+                raise TypeError(
+                    f"Invalid value type for endpoint override: {key_str}={value_orig!r} "
+                    f"(expected str or NetworkEnvironment)"
+                )
+            processed_overrides[typed_key] = typed_value # Use typed_key and typed_value
+
+        return cls(
+            default_environment=NetworkEnvironment.PRODUCTION,
+            endpoint_overrides=processed_overrides,
+        )
+>>>>>>> REPLACE
+```
+
+**2. File: `candles_feed/adapters/base_adapter.py`**
+
+*   In `convert_timestamp_to_exchange`, cast `timestamp` to `float` before passing to `datetime.fromtimestamp`.
+
+```python
+candles_feed/adapters/base_adapter.py
+<<<<<<< SEARCH
+            return int(timestamp * 1000)
+        if self.TIMESTAMP_UNIT == "iso8601":
+            return datetime.fromtimestamp(timestamp, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        raise NotImplementedError("Exchange must define TIMESTAMP_UNIT.")
+=======
+            return int(timestamp * 1000)
+        if self.TIMESTAMP_UNIT == "iso8601":
+            return datetime.fromtimestamp(float(timestamp), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        raise NotImplementedError("Exchange must define TIMESTAMP_UNIT.")
+>>>>>>> REPLACE
+```
+
+*   In `parse_ws_message` signature, change `data: dict` to `data: Dict[str, Any]`.
+
+```python
+candles_feed/adapters/base_adapter.py
+<<<<<<< SEARCH
+    @abstractmethod
+    def parse_ws_message(self, data: dict) -> list[CandleData] | None:
+        """Parse WebSocket message into CandleData objects.
+=======
+    @abstractmethod
+    def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None:
+        """Parse WebSocket message into CandleData objects.
+>>>>>>> REPLACE
+```
+
+**3. File: `candles_feed/mocking_resources/adapter/mocked_adapter.py`**
+
+*   Update `parse_rest_response` signature parameter types for `trading_pair` and `interval` to `Optional[str]`.
+
+```python
+candles_feed/mocking_resources/adapter/mocked_adapter.py
+<<<<<<< SEARCH
+    def parse_rest_response(
+        self, response_data: Dict[str, Any], trading_pair: str = None, interval: str = None
+    ) -> List[CandleData]:
+        """Alias for process_rest_response to match BaseAdapter interface.
+=======
+    def parse_rest_response(
+        self, response_data: Dict[str, Any], trading_pair: Optional[str] = None, interval: Optional[str] = None
+    ) -> List[CandleData]:
+        """Alias for process_rest_response to match BaseAdapter interface.
+>>>>>>> REPLACE
+```
+
+*   Update `process_rest_response` signature parameter types for `trading_pair` and `interval` to `Optional[str]`.
+
+```python
+candles_feed/mocking_resources/adapter/mocked_adapter.py
+<<<<<<< SEARCH
+    def process_rest_response(
+        self, response_data: Dict[str, Any], trading_pair: str, interval: str
+    ) -> List[CandleData]:
+        """
+        Process REST API response data into CandleData objects.
+=======
+    def process_rest_response(
+        self, response_data: Dict[str, Any], trading_pair: Optional[str], interval: Optional[str]
+    ) -> List[CandleData]:
+        """
+        Process REST API response data into CandleData objects.
+>>>>>>> REPLACE
+```
+
+**4. File: `candles_feed/mocking_resources/core/candle_data_factory.py`**
+
+*   Update `create_random` signature parameter type for `initial_price` to `Optional[float]`.
+
+```python
+candles_feed/mocking_resources/core/candle_data_factory.py
+<<<<<<< SEARCH
+        base_price: float = 50000.0,
+        volatility: float = 0.01,
+        max_deviation: float = 0.1,  # 10% maximum deviation from initial price
+        initial_price: float = None,
+    ) -> CandleData:
+        """
+=======
+        base_price: float = 50000.0,
+        volatility: float = 0.01,
+        max_deviation: float = 0.1,  # 10% maximum deviation from initial price
+        initial_price: Optional[float] = None,
+    ) -> CandleData:
+        """
+>>>>>>> REPLACE
+```
+
+>  
+> # Fix any errors below, if possible.  
+>  
+> ## Running: /home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/bin/python3 -m flake8 --select=E9,F821,F823,F831,F406,F407,F701,F702,F704,F706 --show-source --isolated candles_feed/adapters/base_adapter.py  
+>  
+> candles_feed/adapters/base_adapter.py:61:38: F821 undefined name 'Dict'  
+> def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None:  
+> ^  
+> candles_feed/adapters/base_adapter.py:61:48: F821 undefined name 'Any'  
+> def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None:  
+> ^  
+>  
+> ## See relevant line below marked with █.  
+>  
+> candles_feed/adapters/base_adapter.py:  
+> ...⋮...  
+> 14│class BaseAdapter(ABC):  
+> 15│    """Base class for exchange adapters with common functionality.  
+> 16│  
+> 17│    This abstract base class provides timestamp handling utilities and defines  
+> 18│    the required interface methods for all exchange adapters.  
+> ...⋮...  
+> 58│        pass  
+> 59│  
+> 60│    @abstractmethod  
+> 61█    def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None:  
+> 62│        """Parse WebSocket message into CandleData objects.  
+> 63│  
+> 64│        :param data: WebSocket message  
+> ...⋮...  
+>  
+>  
+> # Fix any errors below, if possible.  
+>  
+> ## Running: /home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/bin/python3 -m flake8 --select=E9,F821,F823,F831,F406,F407,F701,F702,F704,F706 --show-source --isolated candles_feed/mocking_resources/core/candle_data_factory.py  
+>  
+> candles_feed/mocking_resources/core/candle_data_factory.py:23:24: F821 undefined name 'Optional'  
+> initial_price: Optional[float] = None,  
+> ^  
+>  
+> ## See relevant line below marked with █.  
+>  
+> candles_feed/mocking_resources/core/candle_data_factory.py:  
+> ...⋮...  
+> 13│class CandleDataFactory:  
+> 14│    """Factory class for generating realistic candle data for testing."""  
+> 15│  
+> 16│    @staticmethod  
+> 17│    def create_random(  
+> 18│        timestamp: int,  
+> 19│        previous_candle: CandleData | None = None,  
+> 20│        base_price: float = 50000.0,  
+> 21│        volatility: float = 0.01,  
+> 22│        max_deviation: float = 0.1,  # 10% maximum deviation from initial price  
+> 23█        initial_price: Optional[float] = None,  
+> 24│    ) -> CandleData:  
+> 25│        """  
+> 26│        Create a random candle, optionally based on a previous candle.  
+> 27│  
+> ...⋮...  
+>  
+>  
+> # Fix any errors below, if possible.  
+>  
+> ## Running: /home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/bin/python3 -m flake8 --select=E9,F821,F823,F831,F406,F407,F701,F702,F704,F706 --show-source --isolated candles_feed/core/network_config.py  
+>  
+> candles_feed/core/network_config.py:89:43: F821 undefined name 'Any'  
+> def hybrid(cls, **endpoint_overrides: Any) -> "NetworkConfig": # Add : Any for **endpoint_overrides values  
+> ^  
+>  
+> ## See relevant line below marked with █.  
+>  
+> candles_feed/core/network_config.py:  
+> ...⋮...  
+> 29│class NetworkConfig:  
+> 30│    """Configuration for network endpoints.  
+> 31│  
+> 32│    This class allows configuring which network environment (production or testnet)  
+> 33│    to use for each type of endpoint.  
+> ...⋮...  
+> 86│        return cls(default_environment=NetworkEnvironment.TESTNET)  
+> 87│  
+> 88│    @classmethod  
+> 89█    def hybrid(cls, **endpoint_overrides: Any) -> "NetworkConfig": # Add : Any for **endpoint_overrides values  
+> 90│        """Create a hybrid configuration with specific overrides.  
+> 91│  
+> 92│        Example:  
+> ...⋮...  
+>  
+> Attempt to fix lint errors? (Y)es/(N)o [Yes]: y  
+
+Okay, I will add the missing imports to resolve these `F821 undefined name` errors.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+candles_feed/adapters/base_adapter.py
+<<<<<<< SEARCH
+from abc import ABC, abstractmethod
+from datetime import UTC, datetime
+from decimal import Decimal
+
+from candles_feed.core.candle_data import CandleData
+=======
+from abc import ABC, abstractmethod
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Any, Dict
+
+from candles_feed.core.candle_data import CandleData
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/mocking_resources/core/candle_data_factory.py
+<<<<<<< SEARCH
+"""
+import random
+
+from candles_feed.core.candle_data import CandleData
+=======
+"""
+import random
+from typing import Optional
+
+from candles_feed.core.candle_data import CandleData
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/core/network_config.py
+<<<<<<< SEARCH
+"""
+
+from enum import Enum
+from typing import Dict, Optional
+
+
+class EndpointType(Enum):
+=======
+"""
+
+from enum import Enum
+from typing import Any, Dict, Optional
+
+
+class EndpointType(Enum):
+>>>>>>> REPLACE
+```
+
+
+You are correct. The previous `SEARCH` block for `candles_feed/mocking_resources/core/candle_data_factory.py` did not include the full module docstring, causing the mismatch.
+
+Here is the corrected `SEARCH/REPLACE` block:
+
+```python
+candles_feed/mocking_resources/core/candle_data_factory.py
+<<<<<<< SEARCH
+"""
+Factory for generating candle data for testing purposes.
+
+This module provides utilities to create realistic candle data for testing
+without relying on actual exchange connections.
+"""
+
+import random
+
+from candles_feed.core.candle_data import CandleData
+=======
+"""
+Factory for generating candle data for testing purposes.
+
+This module provides utilities to create realistic candle data for testing
+without relying on actual exchange connections.
+"""
+
+import random
+from typing import Optional
+
+from candles_feed.core.candle_data import CandleData
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 20:30:51
+
+
+#### Fix the method signature incompatibility in MockedAdapter. The get_trading_pair_format method should be a @staticmethod to match the BaseAdapter interface, not an instance method. This is causing mypy errors about signature incompatibility with the supertype.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will make `get_trading_pair_format` a static method in `MockedAdapter`.
+
+This involves adding the `@staticmethod` decorator and removing `self` from its parameters.
+
+```python
+candles_feed/mocking_resources/adapter/mocked_adapter.py
+<<<<<<< SEARCH
+        return list(INTERVALS.keys())
+
+    def get_trading_pair_format(self, trading_pair: str) -> str:
+        """
+        Convert trading pair to exchange format.
+=======
+        return list(INTERVALS.keys())
+
+    @staticmethod
+    def get_trading_pair_format(trading_pair: str) -> str:
+        """
+        Convert trading pair to exchange format.
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 20:31:04
+
+
+#### Fix the method signature incompatibilities in HybridMockedAdapter. Based on the mypy errors, it has similar issues to MockedAdapter:  
+####   
+#### 1. get_trading_pair_format should be @staticmethod to match BaseAdapter  
+#### 2. _get_rest_url should be @staticmethod to match BaseAdapter    
+#### 3. _parse_rest_response has wrong parameter type (should accept dict[Any, Any] | list[Any] | None)  
+####   
+#### Fix these method signatures to match the supertype BaseAdapter.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will make the following changes to `candles_feed/mocking_resources/adapter/hybrid_mocked_adapter.py`:
+1. Add the `@staticmethod` decorator to the `get_trading_pair_format` method.
+2. Add the `@staticmethod` decorator to the `_get_rest_url` method.
+3. Update the type hint for the `response_data` parameter in the `_parse_rest_response` method to `dict[Any, Any] | list[Any] | None`.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+candles_feed/mocking_resources/adapter/hybrid_mocked_adapter.py
+<<<<<<< SEARCH
+        self._network_config = network_config
+        self._network_client = kwargs.get("network_client")
+
+    def get_trading_pair_format(self, trading_pair: str) -> str:
+        """Convert trading pair to exchange format.
+
+        :param trading_pair: Trading pair in standard format (e.g., BTC-USDT).
+=======
+        self._network_config = network_config
+        self._network_client = kwargs.get("network_client")
+
+    @staticmethod
+    def get_trading_pair_format(trading_pair: str) -> str:
+        """Convert trading pair to exchange format.
+
+        :param trading_pair: Trading pair in standard format (e.g., BTC-USDT).
+>>>>>>> REPLACE
+```
+
+```python
+        ]
+
+    def _get_rest_url(self) -> str:
+        """Get the REST API URL for candles.
+
+        :returns: REST API URL.
+        """
+        return f"{SPOT_REST_URL}{REST_CANDLES_ENDPOINT}"
+
+    def _get_rest_params(
+=======
+        ]
+
+    @staticmethod
+    def _get_rest_url() -> str:
+        """Get the REST API URL for candles.
+
+        :returns: REST API URL.
+        """
+        return f"{SPOT_REST_URL}{REST_CANDLES_ENDPOINT}"
+
+    def _get_rest_params(
+>>>>>>> REPLACE
+```
+
+```python
+        return params
+
+    def _parse_rest_response(self, response_data: Dict[str, Any]) -> List[CandleData]:
+        """Process REST API response data into CandleData objects.
+
+        :param response_data: Response data from the REST API.
+=======
+        return params
+
+    def _parse_rest_response(self, response_data: Dict[Any, Any] | List[Any] | None) -> List[CandleData]:
+        """Process REST API response data into CandleData objects.
+
+        :param response_data: Response data from the REST API.
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-29 20:31:20
+
+
+#### Continue fixing the remaining method signature issues in HybridMockedAdapter:  
+####   
+#### 1. _get_rest_url should be @staticmethod to match BaseAdapter supertype  
+#### 2. _parse_rest_response parameter type should be "dict[Any, Any] | list[Any] | None" to match the supertype  
+####   
+#### These are causing mypy override errors.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will make those changes to `candles_feed/mocking_resources/adapter/hybrid_mocked_adapter.py`.
+
+1.  Add `@staticmethod` decorator to `_get_rest_url`.
+2.  Update the type hint for the `response_data` parameter in `_parse_rest_response`.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+candles_feed/mocking_resources/adapter/hybrid_mocked_adapter.py
+<<<<<<< SEARCH
+        ]
+
+    def _get_rest_url(self) -> str:
+        """Get the REST API URL for candles.
+
+        :returns: REST API URL.
+=======
+        ]
+
+    @staticmethod
+    def _get_rest_url() -> str:
+        """Get the REST API URL for candles.
+
+        :returns: REST API URL.
+>>>>>>> REPLACE
+```
+
+```python
+candles_feed/mocking_resources/adapter/hybrid_mocked_adapter.py
+<<<<<<< SEARCH
+        return params
+
+    def _parse_rest_response(self, response_data: Dict[str, Any]) -> List[CandleData]:
+        """Process REST API response data into CandleData objects.
+
+        :param response_data: Response data from the REST API.
+=======
+        return params
+
+    def _parse_rest_response(self, response_data: dict[Any, Any] | list[Any] | None) -> List[CandleData]:
+        """Process REST API response data into CandleData objects.
+
+        :param response_data: Response data from the REST API.
+>>>>>>> REPLACE
+```
+
