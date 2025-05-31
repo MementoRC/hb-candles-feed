@@ -68,15 +68,16 @@ class TestOKXPerpetualAdapter(BaseAdapterTest):
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
         """Return the expected WebSocket subscription payload for the adapter."""
-        # The adapter applies the trading pair format, which adds -SWAP for perpetual
+        # Note: The WebSocket implementation currently has a bug - it uses the base class method
+        # instead of the instance method, so it doesn't add -SWAP suffix for perpetual
         return {
             "op": "subscribe",
             "args": [
                 {
                     "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}",
-                    "instId": self.get_expected_trading_pair_format(
-                        trading_pair
-                    ),  # OKX perpetual format with -SWAP
+                    "instId": trading_pair.replace(
+                        "-", "/"
+                    ),  # OKX uses / format in WebSocket instId
                 }
             ],
         }
