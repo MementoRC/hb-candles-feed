@@ -121,24 +121,32 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         }
         return params
 
-    def _parse_rest_response(self, data: list) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict[Any, Any] | list[Any] | None) -> list[CandleData]:
         """Parse CCXT OHLCV response into CandleData objects.
 
         :param data: CCXT OHLCV response
         :returns: List of CandleData objects
         """
         candles: list[CandleData] = []
+        if data is None:
+            return candles
+
+        # CCXT returns a list of OHLCV data
+        if not isinstance(data, list):
+            return candles
+
         for row in data:
-            candles.append(
-                CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
-                    open=row[1],
-                    high=row[2],
-                    low=row[3],
-                    close=row[4],
-                    volume=row[5],
+            if isinstance(row, list) and len(row) >= 6:
+                candles.append(
+                    CandleData(
+                        timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
+                        open=row[1],
+                        high=row[2],
+                        low=row[3],
+                        close=row[4],
+                        volume=row[5],
+                    )
                 )
-            )
         return candles
 
     def fetch_rest_candles_synchronous(

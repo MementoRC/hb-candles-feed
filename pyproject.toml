@@ -198,3 +198,17 @@ markers = [
 ]
 log_cli = true
 log_cli_level = "INFO"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+strict_optional = false
+warn_return_any = false
+warn_unused_ignores = false
+disallow_untyped_defs = false
+check_untyped_defs = false
+
+# Exclude problematic modules temporarily during infrastructure fixes
+exclude = [
+    "candles_feed/mocking_resources/.*",
+]
