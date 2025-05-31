@@ -51,9 +51,9 @@ class TestAscendExSpotAdapter(BaseAdapterTest):
             "symbol": self.get_expected_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "n": limit,
-            "to": end_time * 1000,  # Convert to milliseconds
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
-        # AscendEx doesn't use startTime in its API
+        # AscendEx doesn't use startTime in its API, and 'to' (end_time) is also excluded by protocol.
         return params
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):

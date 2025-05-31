@@ -56,7 +56,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
             "symbol": self.get_expected_trading_pair_format(trading_pair),
             "granularity": perp_interval,
             "from": start_time * 1000,  # KuCoin uses milliseconds
-            "to": end_time * 1000,  # KuCoin uses milliseconds
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
         # Perpetual doesn't use limit parameter
         return params

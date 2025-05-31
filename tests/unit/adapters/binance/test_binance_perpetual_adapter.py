@@ -52,7 +52,7 @@ class TestBinancePerpetualAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "startTime": start_time * 1000,  # Convert to milliseconds
-            "endTime": end_time * 1000,  # Convert to milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):

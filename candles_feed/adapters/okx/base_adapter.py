@@ -79,9 +79,9 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         # OKX uses after and before parameters with timestamps
         params: dict[str, str | int] = {  # type: ignore
-            "instId": OKXBaseAdapter.get_trading_pair_format(
+            "instId": self.get_trading_pair_format(
                 trading_pair
-            ),  # OKX uses / in path, not params for symbol
+            ),  # OKX format (spot uses BTC-USDT, perpetual uses BTC-USDT-SWAP)
             "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
         }

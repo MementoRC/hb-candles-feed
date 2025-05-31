@@ -53,7 +53,7 @@ class TestBybitPerpetualAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "start": start_time * 1000,  # Convert to milliseconds
-            "end": end_time * 1000,  # Convert to milliseconds
+            # "end": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
             "category": "linear",  # Bybit specific
         }
 

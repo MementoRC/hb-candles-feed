@@ -25404,3 +25404,352 @@ candles_feed/adapters/mexc/spot_adapter.py
 >>>>>>> REPLACE
 ```
 
+
+# aider chat started at 2025-05-31 09:05:15
+
+> Warning: it's best to only add files that need changes to the chat.  
+> https://aider.chat/docs/troubleshooting/edit-errors.html  
+
+#### I need to fix test failures caused by the removal of the `end_time` parameter from adapter method signatures. The issue is that tests are still expecting `end_time` parameters but the main protocol no longer supports them.  
+####   
+#### Please update all adapter test files that extend BaseAdapterTest to remove endTime/end_time parameters from their get_expected_rest_params_full methods. Keep the method signature the same (still accept end_time parameter) but don't include endTime/end_time in the returned dictionary.  
+####   
+#### The pattern to fix is:  
+#### - Find `get_expected_rest_params_full` methods  
+#### - Remove any "endTime", "end_time", or similar end time parameters from the returned dictionary  
+#### - Add a comment explaining why it's excluded  
+####   
+#### Files to update are in tests/unit/adapters/ and include all exchange adapters like binance, okx, kucoin, etc.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I understand the request. I will update the `get_expected_rest_params_full` method in all specified adapter test files. The `end_time` related parameter will be removed from the returned dictionary, and a comment will be added to explain its exclusion, while the method signature will retain the `end_time` parameter.
+
+Here are the proposed changes:
+
+```python
+tests/unit/adapters/okx/test_okx_spot_adapter.py
+<<<<<<< SEARCH
+        return {
+            "instId": trading_pair.replace("-", "/"),
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "after": start_time * 1000,  # Convert to milliseconds
+            "before": end_time * 1000,  # Convert to milliseconds
+        }
+=======
+        return {
+            "instId": trading_pair.replace("-", "/"),
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "after": start_time * 1000,  # Convert to milliseconds
+            # "before": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/okx/test_okx_perpetual_adapter.py
+<<<<<<< SEARCH
+        return {
+            "instId": trading_pair.replace("-", "/"),
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "after": start_time * 1000,  # Convert to milliseconds
+            "before": end_time * 1000,  # Convert to milliseconds
+        }
+=======
+        return {
+            "instId": trading_pair.replace("-", "/"),
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "after": start_time * 1000,  # Convert to milliseconds
+            # "before": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_spot_adapter.py
+<<<<<<< SEARCH
+        return {
+            "granularity": INTERVALS[interval],
+            "start": start_time,  # Coinbase uses seconds, not milliseconds
+            "end": end_time,  # Coinbase uses seconds, not milliseconds
+        }
+=======
+        return {
+            "granularity": INTERVALS[interval],
+            "start": start_time,  # Coinbase uses seconds, not milliseconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/gate_io/test_gate_io_spot_adapter.py
+<<<<<<< SEARCH
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            "to": end_time,  # Gate.io uses seconds
+        }
+=======
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/binance/test_binance_perpetual_adapter.py
+<<<<<<< SEARCH
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time * 1000,  # Convert to milliseconds
+            "endTime": end_time * 1000,  # Convert to milliseconds
+        }
+=======
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time * 1000,  # Convert to milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/bybit/test_bybit_spot_adapter.py
+<<<<<<< SEARCH
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "start": start_time * 1000,  # Convert to milliseconds
+            "end": end_time * 1000,  # Convert to milliseconds
+            "category": "spot",  # Bybit specific
+        }
+=======
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "start": start_time * 1000,  # Convert to milliseconds
+            # "end": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            "category": "spot",  # Bybit specific
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/bybit/test_bybit_perpetual_adapter.py
+<<<<<<< SEARCH
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "start": start_time * 1000,  # Convert to milliseconds
+            "end": end_time * 1000,  # Convert to milliseconds
+            "category": "linear",  # Bybit specific
+        }
+=======
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "start": start_time * 1000,  # Convert to milliseconds
+            # "end": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            "category": "linear",  # Bybit specific
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/gate_io/test_gate_io_perpetual_adapter.py
+<<<<<<< SEARCH
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            "to": end_time,  # Gate.io uses seconds
+        }
+=======
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kucoin/test_kucoin_spot_adapter.py
+<<<<<<< SEARCH
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "type": interval,
+            "limit": limit,
+            "startAt": start_time * 1000,  # KuCoin uses milliseconds
+            "endAt": end_time * 1000,  # KuCoin uses milliseconds
+        }
+=======
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "type": interval,
+            "limit": limit,
+            "startAt": start_time * 1000,  # KuCoin uses milliseconds
+            # "endAt": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/hyperliquid/test_hyperliquid_perpetual_adapter.py
+<<<<<<< SEARCH
+        params = self.get_expected_rest_params_minimal(trading_pair, interval)
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                "endTime": end_time,
+            }
+        )
+        return params
+=======
+        params = self.get_expected_rest_params_minimal(trading_pair, interval)
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                # "endTime": end_time, # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            }
+        )
+        return params
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/mexc/test_mexc_perpetual_adapter.py
+<<<<<<< SEARCH
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
+            "size": limit,
+            "start": start_time,  # MEXC perpetual uses seconds
+            "end": end_time,  # MEXC perpetual uses seconds
+        }
+=======
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
+            "size": limit,
+            "start": start_time,  # MEXC perpetual uses seconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kraken/test_kraken_spot_adapter.py
+<<<<<<< SEARCH
+        params = {
+            "pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
+            "since": start_time,  # Kraken uses seconds
+        }
+        # Note: Kraken API ignores limit parameter, but we include it in the test
+        return params
+=======
+        params = {
+            "pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
+            "since": start_time,  # Kraken uses seconds
+            # end_time is not supported by Kraken for this endpoint and also excluded
+            # as end_time is no longer part of the fetch_rest_candles protocol.
+        }
+        # Note: Kraken API ignores limit parameter, but we include it in the test
+        return params
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kucoin/test_kucoin_perpetual_adapter.py
+<<<<<<< SEARCH
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "granularity": perp_interval,
+            "from": start_time * 1000,  # KuCoin uses milliseconds
+            "to": end_time * 1000,  # KuCoin uses milliseconds
+        }
+        # Perpetual doesn't use limit parameter
+        return params
+=======
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "granularity": perp_interval,
+            "from": start_time * 1000,  # KuCoin uses milliseconds
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # Perpetual doesn't use limit parameter
+        return params
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/mexc/test_mexc_spot_adapter.py
+<<<<<<< SEARCH
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": interval,
+            "limit": limit,
+            "startTime": start_time * 1000,  # MEXC uses milliseconds
+            "endTime": end_time * 1000,  # MEXC uses milliseconds
+        }
+=======
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": interval,
+            "limit": limit,
+            "startTime": start_time * 1000,  # MEXC uses milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": limit,
+            "to": end_time * 1000,  # Convert to milliseconds
+        }
+        # AscendEx doesn't use startTime in its API
+        return params
+=======
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": limit,
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # AscendEx doesn't use startTime in its API, and 'to' (end_time) is also excluded by protocol.
+        return params
+>>>>>>> REPLACE
+```
+

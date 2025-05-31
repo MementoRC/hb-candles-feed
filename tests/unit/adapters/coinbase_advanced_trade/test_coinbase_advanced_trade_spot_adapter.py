@@ -50,7 +50,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
         return {
             "granularity": INTERVALS[interval],
             "start": start_time,  # Coinbase uses seconds, not milliseconds
-            "end": end_time,  # Coinbase uses seconds, not milliseconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):

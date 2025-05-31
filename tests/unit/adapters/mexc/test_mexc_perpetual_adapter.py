@@ -55,7 +55,7 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
             "size": limit,
             "start": start_time,  # MEXC perpetual uses seconds
-            "end": end_time,  # MEXC perpetual uses seconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):

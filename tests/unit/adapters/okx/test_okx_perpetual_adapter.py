@@ -42,36 +42,41 @@ class TestOKXPerpetualAdapter(BaseAdapterTest):
 
     def get_expected_rest_params_minimal(self, trading_pair, interval):
         """Return the expected minimal REST params for the adapter."""
-        # For minimal params, we don't need to add -SWAP suffix as the adapter will do that
-        # The adapter uses the original trading_pair format for parameter generation
+        # The adapter applies the trading pair format, which adds -SWAP for perpetual
         return {
-            "instId": trading_pair.replace("-", "/"),  # OKX uses / in API calls
+            "instId": self.get_expected_trading_pair_format(
+                trading_pair
+            ),  # OKX perpetual format with -SWAP
             "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
 
     def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
         """Return the expected full REST params for the adapter."""
-        # OKX uses after and before parameters with timestamps
-        # The adapter uses the original trading_pair format for parameter generation
+        # OKX uses before parameter with timestamps for historical data
+        # The adapter applies the trading pair format, which adds -SWAP for perpetual
         return {
-            "instId": trading_pair.replace("-", "/"),
+            "instId": self.get_expected_trading_pair_format(
+                trading_pair
+            ),  # OKX perpetual format with -SWAP
             "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
-            "after": start_time * 1000,  # Convert to milliseconds
-            "before": end_time * 1000,  # Convert to milliseconds
+            "before": start_time
+            * 1000,  # Convert to milliseconds - OKX uses "before" for historical data
+            # "after": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
         """Return the expected WebSocket subscription payload for the adapter."""
-        # For WebSocket, we don't add -SWAP suffix as the adapter will do that
-        # The adapter uses the original trading_pair format for subscription payload
+        # The adapter applies the trading pair format, which adds -SWAP for perpetual
         return {
             "op": "subscribe",
             "args": [
                 {
                     "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}",
-                    "instId": trading_pair.replace("-", "/"),
+                    "instId": self.get_expected_trading_pair_format(
+                        trading_pair
+                    ),  # OKX perpetual format with -SWAP
                 }
             ],
         }

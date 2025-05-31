@@ -55,7 +55,7 @@ class TestHyperliquidPerpetualAdapter(BaseAdapterTest):
             {
                 "limit": limit,
                 "startTime": start_time,
-                "endTime": end_time,
+                # "endTime": end_time, # Excluded: end_time is no longer part of the fetch_rest_candles protocol
             }
         )
         return params

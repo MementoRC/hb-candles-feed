@@ -53,7 +53,7 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
             "type": interval,
             "limit": limit,
             "startAt": start_time * 1000,  # KuCoin uses milliseconds
-            "endAt": end_time * 1000,  # KuCoin uses milliseconds
+            # "endAt": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):

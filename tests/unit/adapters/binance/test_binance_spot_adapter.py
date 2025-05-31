@@ -52,7 +52,7 @@ class TestBinanceSpotAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "startTime": start_time * 1000,  # Convert to milliseconds
-            "endTime": end_time * 1000,  # Convert to milliseconds
+            # Note: endTime excluded as the protocol doesn't support it
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):

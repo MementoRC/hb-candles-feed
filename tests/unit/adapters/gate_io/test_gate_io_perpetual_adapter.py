@@ -54,7 +54,7 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "from": start_time,  # Gate.io uses seconds
-            "to": end_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
