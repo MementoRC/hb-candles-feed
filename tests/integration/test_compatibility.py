@@ -299,7 +299,7 @@ class TestCompatibilityWithOriginal:
             mock_rest_strategy.poll_once.reset_mock()
 
             # Call get_historical_candles
-            historical_df = await feed.get_historical_candles(1609459000, 1609459300, 10)
+            historical_df = await feed.get_historical_candles(1609459000, 1609459300)
 
             # Verify the method was called with proper parameters
             mock_rest_strategy.poll_once.assert_called_once()

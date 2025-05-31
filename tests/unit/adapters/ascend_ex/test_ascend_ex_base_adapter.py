@@ -59,9 +59,9 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
             "symbol": self.get_expected_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "n": limit,
-            "to": end_time * 1000,  # Convert to milliseconds
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
-        # AscendEx doesn't use startTime in its API
+        # AscendEx doesn't use startTime or endTime in its API based on new protocol
         return params
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -136,16 +136,13 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
 
     def test_ascendex_rest_params_unique_format(self, adapter):
         """Test AscendEx-specific REST parameter format."""
-        # AscendEx uses 'n' instead of 'limit' and 'to' instead of 'endTime'
-        params = adapter._get_rest_params(
-            trading_pair="BTC-USDT", interval="1m", end_time=1622592000, limit=100
-        )
+        # AscendEx uses 'n' instead of 'limit' (end_time no longer supported by protocol)
+        params = adapter._get_rest_params(trading_pair="BTC-USDT", interval="1m", limit=100)
 
         assert "n" in params
         assert params["n"] == 100
-        assert "to" in params
-        assert params["to"] == 1622592000 * 1000
         assert "startTime" not in params  # AscendEx doesn't use startTime
+        assert "to" not in params  # AscendEx doesn't use end_time per protocol
 
     def test_ascendex_ws_subscription_format(self, adapter):
         """Test AscendEx-specific websocket subscription format."""
