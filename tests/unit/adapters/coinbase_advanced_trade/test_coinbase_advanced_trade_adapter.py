@@ -44,23 +44,22 @@ class TestCoinbaseAdvancedTradeSpotAdapter:
         """Test REST params with minimal parameters."""
         params = self.adapter._get_rest_params(self.trading_pair, self.interval)
 
-        assert params["granularity"] == INTERVALS[self.interval]
+        assert params["granularity"] == str(INTERVALS[self.interval])
         assert "start" not in params
         assert "end" not in params
 
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
 
         params = self.adapter._get_rest_params(
-            self.trading_pair, self.interval, start_time=start_time, end_time=end_time
+            self.trading_pair, self.interval, start_time=start_time
         )
 
-        assert params["granularity"] == INTERVALS[self.interval]
-        assert params["start"] == start_time
-        assert params["end"] == end_time
+        assert params["granularity"] == str(INTERVALS[self.interval])
+        assert params["start"] == str(start_time)
         # Coinbase doesn't use a limit parameter
+        # "end" parameter is no longer part of the protocol
 
     def test_parse_rest_response(self, candlestick_response_coinbase):
         """Test parsing REST API response."""

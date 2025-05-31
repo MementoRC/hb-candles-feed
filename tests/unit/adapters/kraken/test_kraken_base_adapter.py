@@ -76,13 +76,15 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         # Kraken only supports 'since' parameter, not 'to' or 'limit'
         params = {
             "pair": self.get_expected_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
             "since": start_time,  # Kraken uses seconds
+            # end_time is not supported by Kraken for this endpoint and also excluded
+            # as end_time is no longer part of the fetch_rest_candles protocol.
         }
         # Note: Kraken API ignores limit parameter, but we include it in the test
         return params

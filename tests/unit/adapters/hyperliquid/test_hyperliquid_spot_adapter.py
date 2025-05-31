@@ -48,14 +48,14 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
             "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         params = self.get_expected_rest_params_minimal(trading_pair, interval)
         params.update(
             {
                 "limit": limit,
                 "startTime": start_time,
-                "endTime": end_time,
+                # "endTime": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
             }
         )
         return params

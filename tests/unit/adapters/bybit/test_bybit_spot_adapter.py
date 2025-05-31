@@ -47,7 +47,7 @@ class TestBybitSpotAdapter(BaseAdapterTest):
             "category": "spot",  # Bybit specific
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         return {
             "symbol": self.get_expected_trading_pair_format(trading_pair),
@@ -203,15 +203,14 @@ class TestBybitSpotAdapter(BaseAdapterTest):
     def test_get_rest_params_full(self, adapter, trading_pair, interval):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
         expected_params = self.get_expected_rest_params_full(
-            trading_pair, interval, start_time, end_time, limit
+            trading_pair, interval, start_time, limit
         )
 
         actual_params = adapter._get_rest_params(
-            trading_pair, interval, start_time=start_time, end_time=end_time, limit=limit
+            trading_pair, interval, start_time=start_time, limit=limit
         )
 
         for key, value in expected_params.items():

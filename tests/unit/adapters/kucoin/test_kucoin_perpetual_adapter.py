@@ -48,7 +48,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
             "granularity": perp_interval,
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
         # KuCoin perpetual uses from/to instead of startAt/endAt for timestamps

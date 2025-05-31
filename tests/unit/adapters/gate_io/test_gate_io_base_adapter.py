@@ -62,14 +62,14 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
             "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         return {
             "currency_pair": self.get_expected_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "from": start_time,  # Gate.io uses seconds
-            "to": end_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -161,16 +161,13 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
 
         # Test with full parameters
         start_time = 1622505600
-        end_time = 1622592000
         limit = 500
-        params = adapter._get_rest_params(
-            "ETH-USDT", "5m", start_time=start_time, end_time=end_time, limit=limit
-        )
+        params = adapter._get_rest_params("ETH-USDT", "5m", start_time=start_time, limit=limit)
         assert params["currency_pair"] == "ETH_USDT"
         assert params["interval"] == "5m"
         assert params["limit"] == limit
         assert params["from"] == start_time
-        assert params["to"] == end_time
+        assert "to" not in params  # end_time is no longer supported
 
     def test_candle_data_field_mapping(self, adapter):
         """Test mapping of raw API data to CandleData fields."""

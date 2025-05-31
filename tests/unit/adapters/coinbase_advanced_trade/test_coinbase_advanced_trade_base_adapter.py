@@ -68,16 +68,16 @@ class TestCoinbaseAdvancedTradeBaseAdapter(BaseAdapterTest):
     def get_expected_rest_params_minimal(self, trading_pair, interval):
         """Return the expected minimal REST params for the adapter."""
         return {
-            "granularity": INTERVALS[interval],
+            "granularity": str(INTERVALS[interval]),
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         # Coinbase does not use the limit parameter
         return {
-            "granularity": INTERVALS[interval],
-            "start": start_time,  # Coinbase uses seconds, not milliseconds
-            "end": end_time,  # Coinbase uses seconds, not milliseconds
+            "granularity": str(INTERVALS[interval]),
+            "start": str(start_time),  # Coinbase uses seconds, not milliseconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):

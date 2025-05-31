@@ -18,6 +18,10 @@ class TestCCXTBaseAdapter:
         exchange_name = "binance"
         market_type = "spot"
 
+        def _get_rest_url(self) -> str:
+            """Get REST API URL for testing."""
+            return "https://api.binance.com/api/v3/klines"
+
     @patch("ccxt.binance")
     def test_init_creates_exchange(self, mock_binance):
         """Test initialization creates CCXT exchange instance."""
@@ -54,12 +58,11 @@ class TestCCXTBaseAdapter:
         # Setup
         adapter = self.MockCCXTAdapter()
 
-        # Test with all parameters
+        # Test with all parameters (end_time no longer supported by protocol)
         result = adapter._get_rest_params(
             trading_pair="BTC-USDT",
             interval="1m",
             start_time=1620000000,
-            end_time=1620100000,
             limit=100,
         )
 

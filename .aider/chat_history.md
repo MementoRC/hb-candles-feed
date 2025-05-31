@@ -25753,3 +25753,1070 @@ tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
 >>>>>>> REPLACE
 ```
 
+
+# aider chat started at 2025-05-31 10:47:17
+
+
+#### Fix the end_time parameter issues in the adapter test files. The problem is that these test files are still calling _get_rest_params with end_time parameter, but the adapter methods no longer accept this parameter.  
+####   
+#### Please update the following test methods in these files:  
+####   
+#### 1. tests/unit/adapters/binance/test_binance_base_adapter.py - test_get_rest_params_full method  
+#### 2. tests/unit/adapters/bybit/test_bybit_base_adapter.py - test_get_rest_params_full method    
+#### 3. tests/unit/adapters/bybit/test_bybit_spot_adapter.py - get_expected_rest_params_full method  
+####   
+#### For each file:  
+#### - Remove the end_time parameter from the _get_rest_params method call  
+#### - Remove any assertions related to end_time parameters (like "endTime" or "end")  
+#### - Keep all other parameters and assertions as they are  
+#### - Make sure the test logic remains sound  
+####   
+#### The pattern should be:  
+#### - Remove `end_time=end_time` from the method call  
+#### - Remove assertions like `assert params["endTime"] == end_time * 1000`  
+#### - Keep start_time, limit, and other parameters as they are  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will update the specified test methods to remove the `end_time` parameter and related assertions from the calls to `_get_rest_params`.
+
+Here are the changes:
+
+For `tests/unit/adapters/binance/test_binance_base_adapter.py`:
+1.  In `test_get_rest_params_full`, the call to `self.adapter._get_rest_params` will be updated to exclude `end_time=end_time`.
+2.  The assertion `assert params["endTime"] == end_time * 1000` will be replaced with `assert "endTime" not in params`.
+
+```python
+tests/unit/adapters/binance/test_binance_base_adapter.py
+<<<<<<< SEARCH
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
+        )
+
+        assert params["symbol"] == "BTCUSDT"
+        assert params["interval"] == self.interval
+        assert params["limit"] == limit
+        assert params["startTime"] == start_time * 1000  # Should be in milliseconds
+        assert params["endTime"] == end_time * 1000  # Should be in milliseconds
+=======
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time, limit=limit
+        )
+
+        assert params["symbol"] == "BTCUSDT"
+        assert params["interval"] == self.interval
+        assert params["limit"] == limit
+        assert params["startTime"] == start_time * 1000  # Should be in milliseconds
+        assert "endTime" not in params
+>>>>>>> REPLACE
+```
+
+For `tests/unit/adapters/bybit/test_bybit_base_adapter.py`:
+1.  In `test_get_rest_params_full`, the call to `self.adapter._get_rest_params` will be updated to exclude `end_time=end_time`.
+2.  The assertion `assert params["end"] == end_time * 1000` will be replaced with `assert "end" not in params`.
+
+```python
+tests/unit/adapters/bybit/test_bybit_base_adapter.py
+<<<<<<< SEARCH
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
+        )
+
+        assert params["symbol"] == "BTCUSDT"
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
+        assert params["limit"] == limit
+        assert params["category"] == "test"  # From our concrete implementation
+        assert params["start"] == start_time * 1000  # Should be in milliseconds
+        assert params["end"] == end_time * 1000  # Should be in milliseconds
+=======
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time, limit=limit
+        )
+
+        assert params["symbol"] == "BTCUSDT"
+        assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
+        assert params["limit"] == limit
+        assert params["category"] == "test"  # From our concrete implementation
+        assert params["start"] == start_time * 1000  # Should be in milliseconds
+        assert "end" not in params
+>>>>>>> REPLACE
+```
+
+For `tests/unit/adapters/bybit/test_bybit_spot_adapter.py`:
+1.  The signature of `get_expected_rest_params_full` will be updated to remove the `end_time` parameter.
+2.  In `test_get_rest_params_full`:
+    *   The `end_time` variable definition will be removed.
+    *   The call to `self.get_expected_rest_params_full` will be updated to exclude `end_time`.
+    *   The call to `adapter._get_rest_params` will be updated to exclude `end_time=end_time`.
+
+```python
+tests/unit/adapters/bybit/test_bybit_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/bybit/test_bybit_spot_adapter.py
+<<<<<<< SEARCH
+    def test_get_rest_params_full(self, adapter, trading_pair, interval):
+        """Test REST params with all parameters."""
+        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
+        limit = 500
+
+        expected_params = self.get_expected_rest_params_full(
+=======
+    def test_get_rest_params_full(self, adapter, trading_pair, interval):
+        """Test REST params with all parameters."""
+        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
+        limit = 500
+
+        expected_params = self.get_expected_rest_params_full(
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/bybit/test_bybit_spot_adapter.py
+<<<<<<< SEARCH
+        expected_params = self.get_expected_rest_params_full(
+            trading_pair, interval, start_time, end_time, limit
+        )
+
+        actual_params = adapter._get_rest_params(
+=======
+        expected_params = self.get_expected_rest_params_full(
+            trading_pair, interval, start_time, limit
+        )
+
+        actual_params = adapter._get_rest_params(
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/bybit/test_bybit_spot_adapter.py
+<<<<<<< SEARCH
+        actual_params = adapter._get_rest_params(
+            trading_pair, interval, start_time=start_time, end_time=end_time, limit=limit
+        )
+
+        for key, value in expected_params.items():
+=======
+        actual_params = adapter._get_rest_params(
+            trading_pair, interval, start_time=start_time, limit=limit
+        )
+
+        for key, value in expected_params.items():
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-31 10:49:47
+
+
+#### Fix the remaining adapter test files that have end_time parameter issues. Based on the test failures, I need to fix several files:  
+####   
+#### 1. **Coinbase Advanced Trade files**: Remove end_time parameter from _get_rest_params calls  
+#### 2. **Gate.io, Kucoin, OKX base adapter files**: Update get_expected_rest_params_full method signatures to match the new protocol (remove end_time parameter)  
+####   
+#### For each failing test file, please:  
+####   
+#### 1. **For standalone test files** (like coinbase_advanced_trade_adapter.py):  
+####    - Remove `end_time=end_time` from _get_rest_params calls  
+####    - Remove `end_time` variable declarations if they're not used elsewhere  
+####    - Remove assertions related to end_time parameters  
+####   
+#### 2. **For BaseAdapterTest subclasses**:  
+####    - Update `get_expected_rest_params_full` method signature to remove `end_time` parameter: `def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):`  
+####    - Remove any end_time related parameters from the returned dictionary  
+####    - Add comments explaining the exclusion like: `# "end": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol`  
+####   
+#### The failing files are:  
+#### - tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_adapter.py  
+#### - tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_base_adapter.py    
+#### - tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_spot_adapter.py  
+#### - tests/unit/adapters/gate_io/test_gate_io_base_adapter.py  
+#### - tests/unit/adapters/kucoin/test_kucoin_base_adapter.py  
+#### - tests/unit/adapters/okx/test_okx_base_adapter.py  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will help you fix the `end_time` parameter issues in your test files.
+
+Here's the plan:
+
+1.  **For `tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_adapter.py`**:
+    *   In the `test_get_rest_params_full` method, I'll remove the `end_time` variable declaration and its usage in the `_get_rest_params` call and the subsequent assertion.
+2.  **For `tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_base_adapter.py`**:
+    *   I'll update the `get_expected_rest_params_full` method signature to remove `end_time`.
+    *   I'll remove the `"end"` key from the returned dictionary and add a comment indicating its exclusion.
+3.  **For `tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_spot_adapter.py`**:
+    *   I'll update the `get_expected_rest_params_full` method signature to remove `end_time`. The comment for exclusion is already present.
+4.  **For `tests/unit/adapters/gate_io/test_gate_io_base_adapter.py`**:
+    *   I'll update the `get_expected_rest_params_full` method signature to remove `end_time`.
+    *   I'll comment out the `"to"` key in the returned dictionary and add a comment indicating its exclusion.
+5.  **For `tests/unit/adapters/kucoin/test_kucoin_base_adapter.py`**:
+    *   I'll update the `get_expected_rest_params_full` method signature to remove `end_time`.
+    *   I'll comment out the `"endAt"` key in the returned dictionary and add a comment indicating its exclusion.
+6.  **For `tests/unit/adapters/okx/test_okx_base_adapter.py`**:
+    *   I'll update the `get_expected_rest_params_full` method signature to remove `end_time`.
+    *   I'll comment out the `"before"` key in the returned dictionary and add a comment indicating its exclusion.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```python
+tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_adapter.py
+<<<<<<< SEARCH
+    def test_get_rest_params_full(self):
+        """Test REST params with all parameters."""
+        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
+        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
+
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time, end_time=end_time
+        )
+
+        assert params["granularity"] == INTERVALS[self.interval]
+        assert params["start"] == start_time
+        assert params["end"] == end_time
+        # Coinbase doesn't use a limit parameter
+
+    def test_parse_rest_response(self, candlestick_response_coinbase):
+=======
+    def test_get_rest_params_full(self):
+        """Test REST params with all parameters."""
+        start_time = 1622505600  # 2021-06-01 00:00:00 UTC
+
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time
+        )
+
+        assert params["granularity"] == INTERVALS[self.interval]
+        assert params["start"] == start_time
+        # Coinbase doesn't use a limit parameter
+        # "end" parameter is no longer part of the protocol
+
+    def test_parse_rest_response(self, candlestick_response_coinbase):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_base_adapter.py
+<<<<<<< SEARCH
+            "granularity": INTERVALS[interval],
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Coinbase does not use the limit parameter
+        return {
+            "granularity": INTERVALS[interval],
+            "start": start_time,  # Coinbase uses seconds, not milliseconds
+            "end": end_time,  # Coinbase uses seconds, not milliseconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+            "granularity": INTERVALS[interval],
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Coinbase does not use the limit parameter
+        return {
+            "granularity": INTERVALS[interval],
+            "start": start_time,  # Coinbase uses seconds, not milliseconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/coinbase_advanced_trade/test_coinbase_advanced_trade_spot_adapter.py
+<<<<<<< SEARCH
+            "granularity": INTERVALS[interval],
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Coinbase does not use the limit parameter
+        return {
+            "granularity": INTERVALS[interval],
+            "start": start_time,  # Coinbase uses seconds, not milliseconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+            "granularity": INTERVALS[interval],
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Coinbase does not use the limit parameter
+        return {
+            "granularity": INTERVALS[interval],
+            "start": start_time,  # Coinbase uses seconds, not milliseconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/gate_io/test_gate_io_base_adapter.py
+<<<<<<< SEARCH
+            "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            "to": end_time,  # Gate.io uses seconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+            "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kucoin/test_kucoin_base_adapter.py
+<<<<<<< SEARCH
+            "type": interval,
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "type": interval,
+            "limit": limit,
+            "startAt": start_time * 1000,  # KuCoin uses milliseconds
+            "endAt": end_time * 1000,  # KuCoin uses milliseconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+            "type": interval,
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "type": interval,
+            "limit": limit,
+            "startAt": start_time * 1000,  # KuCoin uses milliseconds
+            # "endAt": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/okx/test_okx_base_adapter.py
+<<<<<<< SEARCH
+            "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # OKX uses after and before parameters with timestamps
+        return {
+            "instId": trading_pair.replace("-", "/"),
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "after": start_time * 1000,  # Convert to milliseconds
+            "before": end_time * 1000,  # Convert to milliseconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+            "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        }
+
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # OKX uses after and before parameters with timestamps
+        return {
+            "instId": trading_pair.replace("-", "/"),
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "after": start_time * 1000,  # Convert to milliseconds
+            # "before": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+
+# aider chat started at 2025-05-31 10:52:06
+
+> Warning: it's best to only add files that need changes to the chat.  
+> https://aider.chat/docs/troubleshooting/edit-errors.html  
+
+#### Update all the remaining adapter test files that still have the old `get_expected_rest_params_full` method signature. I need to:  
+####   
+#### 1. Change the method signature from `get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit)` to `get_expected_rest_params_full(self, trading_pair, interval, start_time, limit)`  
+#### 2. Remove any end_time related parameters from the returned dictionary  
+#### 3. Add comments explaining the exclusion like: `# "end": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol`  
+####   
+#### The files to update are:  
+#### - tests/unit/adapters/binance/test_binance_perpetual_adapter.py  
+#### - tests/unit/adapters/binance/test_binance_spot_adapter.py    
+#### - tests/unit/adapters/bybit/test_bybit_perpetual_adapter.py  
+#### - tests/unit/adapters/gate_io/test_gate_io_perpetual_adapter.py  
+#### - tests/unit/adapters/gate_io/test_gate_io_spot_adapter.py  
+#### - tests/unit/adapters/hyperliquid/test_hyperliquid_base_adapter.py  
+#### - tests/unit/adapters/hyperliquid/test_hyperliquid_perpetual_adapter.py  
+#### - tests/unit/adapters/hyperliquid/test_hyperliquid_spot_adapter.py  
+#### - tests/unit/adapters/kraken/test_kraken_base_adapter.py  
+#### - tests/unit/adapters/kraken/test_kraken_spot_adapter.py  
+#### - tests/unit/adapters/kucoin/test_kucoin_perpetual_adapter.py  
+#### - tests/unit/adapters/kucoin/test_kucoin_spot_adapter.py  
+#### - tests/unit/adapters/mexc/test_mexc_base_adapter.py  
+#### - tests/unit/adapters/mexc/test_mexc_perpetual_adapter.py  
+#### - tests/unit/adapters/mexc/test_mexc_spot_adapter.py  
+#### - tests/unit/adapters/okx/test_okx_perpetual_adapter.py  
+#### - tests/unit/adapters/okx/test_okx_spot_adapter.py  
+#### - tests/unit/adapters/ascend_ex/test_ascend_ex_base_adapter.py  
+#### - tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py  
+####   
+#### For each file, update the method signature and remove end_time related dictionary entries.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I understand the request. I will update the `get_expected_rest_params_full` method in the specified files to change its signature, remove any `end_time` related parameters from the returned dictionary, and add a comment explaining the exclusion as per your instructions.
+
+Here are the proposed changes:
+
+```python
+tests/unit/adapters/binance/test_binance_perpetual_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time * 1000,  # Convert to milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time * 1000,  # Convert to milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/binance/test_binance_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time * 1000,  # Convert to milliseconds
+            # Note: endTime excluded as the protocol doesn't support it
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time * 1000,  # Convert to milliseconds
+            # Note: endTime excluded as the protocol doesn't support it
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/bybit/test_bybit_perpetual_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "start": start_time * 1000,  # Convert to milliseconds
+            # "end": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            "category": "linear",  # Bybit specific
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "start": start_time * 1000,  # Convert to milliseconds
+            # "end": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            "category": "linear",  # Bybit specific
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/gate_io/test_gate_io_perpetual_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/gate_io/test_gate_io_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "from": start_time,  # Gate.io uses seconds
+            # "to": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/hyperliquid/test_hyperliquid_base_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "type": "candles",
+            "coin": self.get_expected_trading_pair_format(trading_pair),
+            "resolution": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time,  # Hyperliquid uses seconds
+            "endTime": end_time,  # Hyperliquid uses seconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "type": "candles",
+            "coin": self.get_expected_trading_pair_format(trading_pair),
+            "resolution": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "startTime": start_time,  # Hyperliquid uses seconds
+            # "endTime": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/hyperliquid/test_hyperliquid_perpetual_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = self.get_expected_rest_params_minimal(trading_pair, interval)
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                # "endTime": end_time, # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            }
+        )
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = self.get_expected_rest_params_minimal(trading_pair, interval)
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                # "endTime": end_time, # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            }
+        )
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/hyperliquid/test_hyperliquid_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = self.get_expected_rest_params_minimal(trading_pair, interval)
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                "endTime": end_time,
+            }
+        )
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = self.get_expected_rest_params_minimal(trading_pair, interval)
+        params.update(
+            {
+                "limit": limit,
+                "startTime": start_time,
+                # "endTime": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            }
+        )
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kraken/test_kraken_base_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Kraken only supports 'since' parameter, not 'to' or 'limit'
+        params = {
+            "pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
+            "since": start_time,  # Kraken uses seconds
+        }
+        # Note: Kraken API ignores limit parameter, but we include it in the test
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Kraken only supports 'since' parameter, not 'to' or 'limit'
+        params = {
+            "pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
+            "since": start_time,  # Kraken uses seconds
+            # end_time is not supported by Kraken for this endpoint and also excluded
+            # as end_time is no longer part of the fetch_rest_candles protocol.
+        }
+        # Note: Kraken API ignores limit parameter, but we include it in the test
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kraken/test_kraken_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Kraken only supports 'since' parameter, not 'to' or 'limit'
+        params = {
+            "pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
+            "since": start_time,  # Kraken uses seconds
+            # end_time is not supported by Kraken for this endpoint and also excluded
+            # as end_time is no longer part of the fetch_rest_candles protocol.
+        }
+        # Note: Kraken API ignores limit parameter, but we include it in the test
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # Kraken only supports 'since' parameter, not 'to' or 'limit'
+        params = {
+            "pair": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
+            "since": start_time,  # Kraken uses seconds
+            # end_time is not supported by Kraken for this endpoint and also excluded
+            # as end_time is no longer part of the fetch_rest_candles protocol.
+        }
+        # Note: Kraken API ignores limit parameter, but we include it in the test
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kucoin/test_kucoin_perpetual_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+        # KuCoin perpetual uses from/to instead of startAt/endAt for timestamps
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "granularity": perp_interval,
+            "from": start_time * 1000,  # KuCoin uses milliseconds
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # Perpetual doesn't use limit parameter
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
+        # KuCoin perpetual uses from/to instead of startAt/endAt for timestamps
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "granularity": perp_interval,
+            "from": start_time * 1000,  # KuCoin uses milliseconds
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # Perpetual doesn't use limit parameter
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/kucoin/test_kucoin_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "type": interval,
+            "limit": limit,
+            "startAt": start_time * 1000,  # KuCoin uses milliseconds
+            # "endAt": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "type": interval,
+            "limit": limit,
+            "startAt": start_time * 1000,  # KuCoin uses milliseconds
+            # "endAt": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/mexc/test_mexc_base_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": interval,
+            "limit": limit,
+            "startTime": start_time * 1000,  # MEXC uses milliseconds
+            "endTime": end_time * 1000,  # MEXC uses milliseconds
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": interval,
+            "limit": limit,
+            "startTime": start_time * 1000,  # MEXC uses milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/mexc/test_mexc_perpetual_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
+            "size": limit,
+            "start": start_time,  # MEXC perpetual uses seconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_PERPETUAL_FORMAT.get(interval),
+            "size": limit,
+            "start": start_time,  # MEXC perpetual uses seconds
+            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/mexc/test_mexc_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": interval,
+            "limit": limit,
+            "startTime": start_time * 1000,  # MEXC uses milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        return {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": interval,
+            "limit": limit,
+            "startTime": start_time * 1000,  # MEXC uses milliseconds
+            # "endTime": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/okx/test_okx_perpetual_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # OKX uses before parameter with timestamps for historical data
+        # The adapter applies the trading pair format, which adds -SWAP for perpetual
+        return {
+            "instId": self.get_expected_trading_pair_format(
+                trading_pair
+            ),  # OKX perpetual format with -SWAP
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "before": start_time
+            * 1000,  # Convert to milliseconds - OKX uses "before" for historical data
+            # "after": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # OKX uses before parameter with timestamps for historical data
+        # The adapter applies the trading pair format, which adds -SWAP for perpetual
+        return {
+            "instId": self.get_expected_trading_pair_format(
+                trading_pair
+            ),  # OKX perpetual format with -SWAP
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "before": start_time
+            * 1000,  # Convert to milliseconds - OKX uses "before" for historical data
+            # "after": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/okx/test_okx_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # OKX uses before parameter with timestamps for historical data
+        return {
+            "instId": trading_pair,  # OKX uses - format in instId
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "before": start_time
+            * 1000,  # Convert to milliseconds - OKX uses "before" for historical data
+            # "after": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        # OKX uses before parameter with timestamps for historical data
+        return {
+            "instId": trading_pair,  # OKX uses - format in instId
+            "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "limit": limit,
+            "before": start_time
+            * 1000,  # Convert to milliseconds - OKX uses "before" for historical data
+            # "after": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_base_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": limit,
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # AscendEx doesn't use startTime or endTime in its API based on new protocol
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": limit,
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # AscendEx doesn't use startTime or endTime in its API based on new protocol
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+
+```python
+tests/unit/adapters/ascend_ex/test_ascend_ex_spot_adapter.py
+<<<<<<< SEARCH
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": limit,
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # AscendEx doesn't use startTime in its API, and 'to' (end_time) is also excluded by protocol.
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+=======
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
+        """Return the expected full REST params for the adapter."""
+        params = {
+            "symbol": self.get_expected_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
+            "n": limit,
+            # "to": end_time * 1000,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+        }
+        # AscendEx doesn't use startTime in its API, and 'to' (end_time) is also excluded by protocol.
+        return params
+
+    def get_expected_ws_subscription_payload(self, trading_pair, interval):
+>>>>>>> REPLACE
+```
+

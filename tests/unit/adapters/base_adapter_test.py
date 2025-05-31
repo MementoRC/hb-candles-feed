@@ -82,10 +82,11 @@ class BaseAdapterTest(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter.
 
         This method must be implemented by concrete adapter test classes.
+        Note: end_time parameter has been removed as it's no longer part of the protocol.
         """
         pass
 
@@ -143,11 +144,10 @@ class BaseAdapterTest(abc.ABC):
     def test_get_rest_params_full(self, adapter, trading_pair, interval):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
         expected_params = self.get_expected_rest_params_full(
-            trading_pair, interval, start_time, end_time, limit
+            trading_pair, interval, start_time, limit
         )
 
         # Call without end_time as the protocol doesn't support it

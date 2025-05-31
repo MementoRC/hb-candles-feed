@@ -55,18 +55,17 @@ class TestBinanceBaseAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
         params = self.adapter._get_rest_params(
-            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
+            self.trading_pair, self.interval, start_time=start_time, limit=limit
         )
 
         assert params["symbol"] == "BTCUSDT"
         assert params["interval"] == self.interval
         assert params["limit"] == limit
         assert params["startTime"] == start_time * 1000  # Should be in milliseconds
-        assert params["endTime"] == end_time * 1000  # Should be in milliseconds
+        assert "endTime" not in params
 
     def test_parse_rest_response(self, candlestick_response_binance):
         """Test parsing REST API response."""

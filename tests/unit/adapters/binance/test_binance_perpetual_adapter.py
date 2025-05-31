@@ -45,7 +45,7 @@ class TestBinancePerpetualAdapter(BaseAdapterTest):
             "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         return {
             "symbol": self.get_expected_trading_pair_format(trading_pair),

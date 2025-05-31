@@ -52,20 +52,20 @@ class TestOKXBaseAdapter(BaseAdapterTest):
     def get_expected_rest_params_minimal(self, trading_pair, interval):
         """Return the expected minimal REST params for the adapter."""
         return {
-            "instId": trading_pair.replace("-", "/"),  # OKX uses / in API calls
+            "instId": trading_pair,  # OKX base adapter preserves trading pair format
             "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
-        # OKX uses after and before parameters with timestamps
+        # OKX uses before parameter with timestamps (start_time means "before this timestamp")
         return {
-            "instId": trading_pair.replace("-", "/"),
+            "instId": trading_pair,  # OKX base adapter preserves trading pair format
             "bar": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
-            "after": start_time * 1000,  # Convert to milliseconds
-            "before": end_time * 1000,  # Convert to milliseconds
+            "before": start_time * 1000,  # Convert to milliseconds
+            # Note: OKX uses 'before' for start_time in the base adapter implementation
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -75,7 +75,7 @@ class TestOKXBaseAdapter(BaseAdapterTest):
             "args": [
                 {
                     "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}",
-                    "instId": trading_pair.replace("-", "/"),
+                    "instId": trading_pair,  # OKX base adapter preserves trading pair format
                 }
             ],
         }

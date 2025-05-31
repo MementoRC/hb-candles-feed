@@ -59,7 +59,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
             "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
 
-    def get_expected_rest_params_full(self, trading_pair, interval, start_time, end_time, limit):
+    def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         return {
             "type": "candles",
@@ -67,7 +67,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
             "resolution": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "startTime": start_time,  # Hyperliquid uses seconds
-            "endTime": end_time,  # Hyperliquid uses seconds
+            # "endTime": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
