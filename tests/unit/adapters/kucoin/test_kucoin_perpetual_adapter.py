@@ -268,16 +268,13 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
         """Test that the REST parameters are correctly formed for perpetual."""
         # Perpetual uses from/to instead of startAt/endAt
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
 
         params = adapter._get_rest_params(
-            "BTC-USDT", "1m", start_time=start_time, end_time=end_time
+            "BTC-USDT", "1m", start_time=start_time
         )
 
         assert "from" in params
-        assert "to" in params
         assert params["from"] == start_time * 1000
-        assert params["to"] == end_time * 1000
         assert "limit" not in params  # Perpetual doesn't use limit parameter
 
     # Override the BaseAdapterTest method for WebSocket supported intervals

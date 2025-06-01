@@ -42,7 +42,7 @@ class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
         if hasattr(self, "network_config") and hasattr(self, "_bypass_network_selection"):
             if getattr(self, "_bypass_network_selection", False):
                 return self._get_production_rest_url()
-            elif self.network_config.is_testnet_for(EndpointType.CANDLES):
+            elif self.network_config and self.network_config.is_testnet_for(EndpointType.CANDLES):
                 return self._get_testnet_rest_url()
 
         # Default to production URL
@@ -59,7 +59,7 @@ class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
         # Logic from TestnetSupportMixin's _get_ws_url
         if getattr(self, "_bypass_network_selection", False):
             return self._get_production_ws_url()
-        elif self.network_config.is_testnet_for(EndpointType.CANDLES):
+        elif self.network_config and self.network_config.is_testnet_for(EndpointType.CANDLES):
             return self._get_testnet_ws_url()
         return self._get_production_ws_url()
 

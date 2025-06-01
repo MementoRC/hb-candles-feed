@@ -23,7 +23,11 @@ class TestBinanceSpotAdapter(BaseAdapterTest):
 
     def create_adapter(self):
         """Create an instance of the adapter to test."""
-        return BinanceSpotAdapter()
+        # Create adapter with explicit None network_config to ensure clean state
+        adapter = BinanceSpotAdapter(network_config=None)
+        # Ensure no residual network config from previous tests
+        adapter.network_config = None
+        return adapter
 
     def get_expected_trading_pair_format(self, trading_pair):
         """Return the expected trading pair format for the adapter."""
