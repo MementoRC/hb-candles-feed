@@ -628,6 +628,7 @@ class TestCompatibilityWithOriginal:
         # Mock network client
         mock_network_client = MagicMock()
         mock_network_client.close = AsyncMock()
+        mock_network_client.__aexit__ = AsyncMock()
 
         # Patch dependencies
         with patch(
@@ -660,12 +661,12 @@ class TestCompatibilityWithOriginal:
             await feed.stop()
             assert not feed._active, "Feed should not be active after stop"
             mock_ws_strategy.stop.assert_called_once(), "WebSocket strategy stop should be called"
-            mock_network_client.close.assert_called_once(), "Network client close should be called"
+            mock_network_client.__aexit__.assert_called_once(), "Network client __aexit__ should be called"
 
             # Reset mocks
             mock_ws_strategy.start.reset_mock()
             mock_ws_strategy.stop.reset_mock()
-            mock_network_client.close.reset_mock()
+            mock_network_client.__aexit__.reset_mock()
 
             # Test REST strategy
             await feed.start(strategy="polling")
@@ -676,7 +677,7 @@ class TestCompatibilityWithOriginal:
             await feed.stop()
             assert not feed._active, "Feed should not be active after stop"
             mock_rest_strategy.stop.assert_called_once(), "REST strategy stop should be called"
-            mock_network_client.close.assert_called_once(), "Network client close should be called"
+            mock_network_client.__aexit__.assert_called_once(), "Network client __aexit__ should be called"
 
 
 class TestCandlesFeedWithHummingbotComponents:

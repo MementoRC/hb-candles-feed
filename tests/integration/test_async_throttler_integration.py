@@ -5,7 +5,6 @@ This module provides comprehensive testing of the integration between
 candles-feed and Hummingbot's rate limiting and network components.
 """
 
-import asyncio
 import json
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -69,7 +68,7 @@ class TestAsyncThrottlerIntegration:
             async with await adapter.execute_task("api_calls"):
                 pass
 
-        total_time = time.time() - start_time
+        time.time() - start_time
 
         # Should have logged all 3 tasks
         assert len(rate_limited_throttler.task_logs) == 3

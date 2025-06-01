@@ -4,7 +4,7 @@ CCXT base adapter for the Candle Feed framework.
 This module provides a base implementation for exchange adapters using CCXT.
 """
 
-from typing import Any, Dict, List, Literal
+from typing import Any, Literal
 
 import ccxt  # type: ignore
 

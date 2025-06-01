@@ -27255,3 +27255,555 @@ These changes should address the "Unclosed client session" warnings related to t
 > raise exceptions.DefaultCredentialsError(_CLOUD_SDK_MISSING_CREDENTIALS)
 > google.auth.exceptions.DefaultCredentialsError: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information.
 > Open URL for more info? (Y)es/(N)o/(D)on't ask again [Yes]: y
+
+# aider chat started at 2025-06-01 14:17:40
+
+> Warning: it's best to only add files that need changes to the chat.  
+> https://aider.chat/docs/troubleshooting/edit-errors.html  
+
+#### Fix all F401 unused import violations found by ruff check. Based on the ruff output, I need to remove these unused imports:  
+####   
+#### 1. Remove unused imports from typing module in various adapter files:  
+####    - `typing.List`, `typing.Dict`, `typing.Any`, `typing.Optional`   
+####    - These should be replaced with modern Python 3.12+ syntax: `list[T]`, `dict[K,V]`, `T | None`  
+####   
+#### 2. Fix specific files with unused imports:  
+####    - candles_feed/adapters/ascend_ex/base_adapter.py: Remove `typing.List`  
+####    - candles_feed/adapters/binance/base_adapter.py: Remove `typing.Any`, `typing.Dict`, `typing.List`  
+####    - candles_feed/adapters/bybit/base_adapter.py: Remove `typing.Any`, `typing.Dict`, `typing.List`  
+####    - candles_feed/adapters/ccxt/ccxt_base_adapter.py: Remove `typing.Dict`, `typing.List`  
+####    - candles_feed/adapters/coinbase_advanced_trade/base_adapter.py: Remove `typing.Any`, `typing.Dict`, `typing.List`, `typing.Optional`  
+####    - candles_feed/adapters/gate_io/base_adapter.py: Remove `typing.Any`, `typing.Dict`, `typing.List`  
+####    - candles_feed/adapters/hyperliquid/base_adapter.py: Remove `typing.Any`, `typing.Dict`, `typing.List`  
+####    - candles_feed/adapters/kraken/base_adapter.py: Remove `typing.Any`, `typing.Dict`, `typing.List`, `typing.Optional`  
+####    - candles_feed/adapters/okx/base_adapter.py: Remove `typing.Any`, `typing.Dict`, `typing.List`  
+####    - candles_feed/adapters/protocols.py: Remove `typing.Dict`, `typing.List`  
+####    - candles_feed/mocking_resources/core/factory.py: Remove `typing.Any`  
+####    - tests/integration/test_async_throttler_integration.py: Remove `asyncio` import and `total_time` variable  
+####   
+#### Follow these rules:  
+#### 1. Only remove imports that are actually unused (don't break existing code)  
+#### 2. Use modern Python 3.12+ type annotations where applicable  
+#### 3. Keep other typing imports that are actually used (like `TYPE_CHECKING`, `Protocol`, etc.)  
+#### 4. Remove unused variables like `total_time` in the test file  
+#### 5. Ensure all files still work correctly after changes  
+####   
+#### Verify the changes work by checking that ruff no longer reports F401 and E9 errors on these files.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+Okay, I will remove the specified unused imports and update the type hints accordingly.
+
+**File: candles_feed/adapters/ascend_ex/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/ascend_ex/base_adapter.py
++++ b/candles_feed/adapters/ascend_ex/base_adapter.py
+@@ -4,7 +4,6 @@
+ """
+ 
+ from abc import abstractmethod
+-from typing import List
+ 
+ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+ from candles_feed.adapters.base_adapter import BaseAdapter
+
+```
+
+**File: candles_feed/adapters/binance/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/binance/base_adapter.py
++++ b/candles_feed/adapters/binance/base_adapter.py
+@@ -4,7 +4,6 @@
+ to reduce code duplication across spot and perpetual markets.
+ """
+ 
+-from typing import Any, Dict, List
+ from abc import abstractmethod
+ 
+ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+
+```
+
+**File: candles_feed/adapters/bybit/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/bybit/base_adapter.py
++++ b/candles_feed/adapters/bybit/base_adapter.py
+@@ -4,7 +4,6 @@
+ to reduce code duplication across spot and perpetual markets.
+ """
+ 
+-from typing import Any, Dict, List
+ from abc import abstractmethod
+ 
+ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+
+```
+
+**File: candles_feed/adapters/ccxt/ccxt_base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/ccxt/ccxt_base_adapter.py
++++ b/candles_feed/adapters/ccxt/ccxt_base_adapter.py
+@@ -4,7 +4,7 @@
+ This module provides a base implementation for exchange adapters using CCXT.
+ """
+ 
+-from typing import Any, Dict, List, Literal
++from typing import Any, Literal
+ 
+ import ccxt  # type: ignore
+ 
+```
+
+**File: candles_feed/adapters/coinbase_advanced_trade/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/coinbase_advanced_trade/base_adapter.py
++++ b/candles_feed/adapters/coinbase_advanced_trade/base_adapter.py
+@@ -4,7 +4,6 @@
+ Coinbase Advanced Trade adapter for the Candle Feed framework.
+ """
+ 
+-from typing import Any, Dict, List, Optional
+ from abc import abstractmethod
+ from typing import Any
+ 
+
+```
+
+**File: candles_feed/adapters/gate_io/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/gate_io/base_adapter.py
++++ b/candles_feed/adapters/gate_io/base_adapter.py
+@@ -4,7 +4,6 @@
+ to reduce code duplication across spot and perpetual markets.
+ """
+ 
+-from typing import Any, Dict, List
+ from abc import abstractmethod
+ 
+ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
+
+```
+
+**File: candles_feed/adapters/hyperliquid/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/hyperliquid/base_adapter.py
++++ b/candles_feed/adapters/hyperliquid/base_adapter.py
+@@ -4,7 +4,6 @@
+ to reduce code duplication across spot and perpetual markets.
+ """
+ 
+-from typing import Any, Dict, List
+ from abc import abstractmethod
+ from typing import Any
+ 
+
+```
+
+**File: candles_feed/adapters/kraken/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/kraken/base_adapter.py
++++ b/candles_feed/adapters/kraken/base_adapter.py
+@@ -4,7 +4,6 @@
+ Kraken spot exchange adapter for the Candle Feed framework.
+ """
+ 
+-from typing import Any, Dict, List, Optional
+ from abc import abstractmethod
+ from typing import Any
+ 
+
+```
+
+**File: candles_feed/adapters/okx/base_adapter.py**
+
+```diff
+--- a/candles_feed/adapters/okx/base_adapter.py
++++ b/candles_feed/adapters/okx/base_adapter.py
+@@ -4,7 +4,6 @@
+ to reduce code duplication across spot and perpetual markets.
+ """
+ 
+-from typing import Any, Dict, List
+ from abc import abstractmethod
+ from typing import Any
+ 
+
+```
+
+**File: candles_feed/adapters/protocols.py**
+
+```diff
+--- a/candles_feed/adapters/protocols.py
++++ b/candles_feed/adapters/protocols.py
+@@ -1,4 +1,4 @@
+-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, TypeVar, runtime_checkable
++from typing import TYPE_CHECKING, Any, Optional, Protocol, TypeVar, runtime_checkable
+ 
+ from candles_feed.core.candle_data import CandleData
+ 
+
+```
+
+**File: candles_feed/mocking_resources/core/factory.py**
+
+```diff
+--- a/candles_feed/mocking_resources/core/factory.py
++++ b/candles_feed/mocking_resources/core/factory.py
+@@ -4,7 +4,7 @@
+ 
+ import importlib
+ import logging
+-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar
++from typing import TYPE_CHECKING, List, Optional, Tuple, TypeVar
+ 
+ from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+ 
+
+```
+
+**File: tests/integration/test_async_throttler_integration.py**
+
+```diff
+--- a/tests/integration/test_async_throttler_integration.py
++++ b/tests/integration/test_async_throttler_integration.py
+@@ -7,7 +7,6 @@
+ import time
+ from unittest.mock import AsyncMock, MagicMock, patch
+ 
+-import asyncio
+ import json
+ import pytest
+ 
+@@ -68,13 +67,11 @@
+ 
+         # Execute multiple tasks rapidly
+         start_time = time.time()
+-        
+         for i in range(3):
+             async with await adapter.execute_task("api_calls"):
+                 pass
+ 
+-        total_time = time.time() - start_time
+-
++        time.time() - start_time
+         # Should have logged all 3 tasks
+         assert len(rate_limited_throttler.task_logs) == 3
+         assert all(log[0] == "api_calls" for log in rate_limited_throttler.task_logs)
+
+```
+
+> Warning: it's best to only add files that need changes to the chat.  
+> https://aider.chat/docs/troubleshooting/edit-errors.html  
+
+#### Okay, I will remove the specified unused imports and update the type hints accordingly.  
+####   
+#### **File: candles_feed/adapters/ascend_ex/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/ascend_ex/base_adapter.py  
+#### +++ b/candles_feed/adapters/ascend_ex/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  """  
+####    
+####  from abc import abstractmethod  
+#### -from typing import List  
+####    
+####  from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter  
+####  from candles_feed.adapters.base_adapter import BaseAdapter  
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/binance/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/binance/base_adapter.py  
+#### +++ b/candles_feed/adapters/binance/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  to reduce code duplication across spot and perpetual markets.  
+####  """  
+####    
+#### -from typing import Any, Dict, List  
+####  from abc import abstractmethod  
+####    
+####  from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter  
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/bybit/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/bybit/base_adapter.py  
+#### +++ b/candles_feed/adapters/bybit/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  to reduce code duplication across spot and perpetual markets.  
+####  """  
+####    
+#### -from typing import Any, Dict, List  
+####  from abc import abstractmethod  
+####    
+####  from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter  
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/ccxt/ccxt_base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/ccxt/ccxt_base_adapter.py  
+#### +++ b/candles_feed/adapters/ccxt/ccxt_base_adapter.py  
+#### @@ -4,7 +4,7 @@  
+####  This module provides a base implementation for exchange adapters using CCXT.  
+####  """  
+####    
+#### -from typing import Any, Dict, List, Literal  
+#### +from typing import Any, Literal  
+####    
+####  import ccxt  # type: ignore  
+####    
+#### ```  
+####   
+#### **File: candles_feed/adapters/coinbase_advanced_trade/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/coinbase_advanced_trade/base_adapter.py  
+#### +++ b/candles_feed/adapters/coinbase_advanced_trade/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  Coinbase Advanced Trade adapter for the Candle Feed framework.  
+####  """  
+####    
+#### -from typing import Any, Dict, List, Optional  
+####  from abc import abstractmethod  
+####  from typing import Any  
+####    
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/gate_io/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/gate_io/base_adapter.py  
+#### +++ b/candles_feed/adapters/gate_io/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  to reduce code duplication across spot and perpetual markets.  
+####  """  
+####    
+#### -from typing import Any, Dict, List  
+####  from abc import abstractmethod  
+####    
+####  from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter  
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/hyperliquid/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/hyperliquid/base_adapter.py  
+#### +++ b/candles_feed/adapters/hyperliquid/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  to reduce code duplication across spot and perpetual markets.  
+####  """  
+####    
+#### -from typing import Any, Dict, List  
+####  from abc import abstractmethod  
+####  from typing import Any  
+####    
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/kraken/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/kraken/base_adapter.py  
+#### +++ b/candles_feed/adapters/kraken/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  Kraken spot exchange adapter for the Candle Feed framework.  
+####  """  
+####    
+#### -from typing import Any, Dict, List, Optional  
+####  from abc import abstractmethod  
+####  from typing import Any  
+####    
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/okx/base_adapter.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/okx/base_adapter.py  
+#### +++ b/candles_feed/adapters/okx/base_adapter.py  
+#### @@ -4,7 +4,6 @@  
+####  to reduce code duplication across spot and perpetual markets.  
+####  """  
+####    
+#### -from typing import Any, Dict, List  
+####  from abc import abstractmethod  
+####  from typing import Any  
+####    
+####   
+#### ```  
+####   
+#### **File: candles_feed/adapters/protocols.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/adapters/protocols.py  
+#### +++ b/candles_feed/adapters/protocols.py  
+#### @@ -1,4 +1,4 @@  
+#### -from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, TypeVar, runtime_checkable  
+#### +from typing import TYPE_CHECKING, Any, Optional, Protocol, TypeVar, runtime_checkable  
+####    
+####  from candles_feed.core.candle_data import CandleData  
+####    
+####   
+#### ```  
+####   
+#### **File: candles_feed/mocking_resources/core/factory.py**  
+####   
+#### ```diff  
+#### --- a/candles_feed/mocking_resources/core/factory.py  
+#### +++ b/candles_feed/mocking_resources/core/factory.py  
+#### @@ -4,7 +4,7 @@  
+####    
+####  import importlib  
+####  import logging  
+#### -from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar  
+#### +from typing import TYPE_CHECKING, List, Optional, Tuple, TypeVar  
+####    
+####  from candles_feed.mocking_resources.core.exchange_type import ExchangeType  
+####    
+####   
+#### ```  
+####   
+#### **File: tests/integration/test_async_throttler_integration.py**  
+####   
+#### ```diff  
+#### --- a/tests/integration/test_async_throttler_integration.py  
+#### +++ b/tests/integration/test_async_throttler_integration.py  
+#### @@ -7,7 +7,6 @@  
+####  import time  
+####  from unittest.mock import AsyncMock, MagicMock, patch  
+####    
+#### -import asyncio  
+####  import json  
+####  import pytest  
+####    
+#### @@ -68,13 +67,11 @@  
+####    
+####          # Execute multiple tasks rapidly  
+####          start_time = time.time()  
+#### -          
+####          for i in range(3):  
+####              async with await adapter.execute_task("api_calls"):  
+####                  pass  
+####    
+#### -        total_time = time.time() - start_time  
+#### -  
+#### +        time.time() - start_time  
+####          # Should have logged all 3 tasks  
+####          assert len(rate_limited_throttler.task_logs) == 3  
+####          assert all(log[0] == "api_calls" for log in rate_limited_throttler.task_logs)  
+####   
+#### ```  
+> litellm.APIConnectionError: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information.  
+> Traceback (most recent call last):  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/main.py", line 2499, in completion  
+> model_response = vertex_chat_completion.completion(  # type: ignore  
+> ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/gemini/vertex_and_google_ai_studio_gemini.py", line 1429, in completion  
+> _auth_header, vertex_project = self._ensure_access_token(  
+> ^^^^^^^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 135, in _ensure_access_token  
+> return self.get_access_token(  
+> ^^^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 293, in get_access_token  
+> raise e  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 286, in get_access_token  
+> _credentials, credential_project_id = self.load_auth(  
+> ^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 95, in load_auth  
+> creds, creds_project_id = google_auth.default(  
+> ^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/google/auth/_default.py", line 685, in default  
+> raise exceptions.DefaultCredentialsError(_CLOUD_SDK_MISSING_CREDENTIALS)  
+> google.auth.exceptions.DefaultCredentialsError: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information.  
+> Open URL for more info? (Y)es/(N)o/(D)on't ask again [Yes]: y  
+
+# aider chat started at 2025-06-01 14:32:23
+
+
+#### The e2e test is failing because aioresponses is intercepting the passthrough requests to the local mock server, creating a circular dependency. The issue is in the test_end_to_end.py file where aioresponses intercepts ALL HTTP requests, including the ones meant for the local mock server.  
+####   
+#### The problem is on line 129 where `with aioresponses() as m:` creates a context that intercepts ALL HTTP requests. When the callback tries to make a request to the local mock server (localhost:port), aioresponses intercepts it again and throws a connection refused error.  
+####   
+#### Fix this by:  
+#### 1. Configuring aioresponses to NOT intercept localhost/127.0.0.1 requests  
+#### 2. Use the `passthrough` parameter in aioresponses to allow localhost requests to pass through  
+#### 3. Alternatively, configure the aioresponses instance to exclude localhost patterns  
+####   
+#### The specific change needed is on line 129 in the `aioresponses_mock_binance_server` fixture where we create the aioresponses context manager. We need to allow passthrough for localhost requests.  
+####   
+#### Look at the aioresponses documentation and fix this by allowing localhost/127.0.0.1 requests to pass through to the actual local mock server.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+```diff
+--- a/tests/e2e/test_end_to_end.py
++++ b/tests/e2e/test_end_to_end.py
+@@ -126,7 +126,7 @@
+ 
+                 return callback
+ 
+-            with aioresponses() as m:
++            with aioresponses(passthrough=["127.0.0.1", "localhost"]) as m:
+                 real_binance_spot_base_url = binance_constants.SPOT_REST_URL
+ 
+                 for route_path, (method, _) in plugin.rest_routes.items():
+
+```
+
+
+#### ```diff  
+#### --- a/tests/e2e/test_end_to_end.py  
+#### +++ b/tests/e2e/test_end_to_end.py  
+#### @@ -126,7 +126,7 @@  
+####    
+####                  return callback  
+####    
+#### -            with aioresponses() as m:  
+#### +            with aioresponses(passthrough=["127.0.0.1", "localhost"]) as m:  
+####                  real_binance_spot_base_url = binance_constants.SPOT_REST_URL  
+####    
+####                  for route_path, (method, _) in plugin.rest_routes.items():  
+####   
+#### ```  
+> litellm.APIConnectionError: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information.  
+> Traceback (most recent call last):  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/main.py", line 2499, in completion  
+> model_response = vertex_chat_completion.completion(  # type: ignore  
+> ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/gemini/vertex_and_google_ai_studio_gemini.py", line 1429, in completion  
+> _auth_header, vertex_project = self._ensure_access_token(  
+> ^^^^^^^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 135, in _ensure_access_token  
+> return self.get_access_token(  
+> ^^^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 293, in get_access_token  
+> raise e  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 286, in get_access_token  
+> _credentials, credential_project_id = self.load_auth(  
+> ^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/litellm/llms/vertex_ai/vertex_llm_base.py", line 95, in load_auth  
+> creds, creds_project_id = google_auth.default(  
+> ^^^^^^^^^^^^^^^^^^^^  
+> File "/home/memento/ClaudeCode/git_servers/src/aider-mcp-server/.venv/lib/python3.12/site-packages/google/auth/_default.py", line 685, in default  
+> raise exceptions.DefaultCredentialsError(_CLOUD_SDK_MISSING_CREDENTIALS)  
+> google.auth.exceptions.DefaultCredentialsError: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information.  
+> Open URL for more info? (Y)es/(N)o/(D)on't ask again [Yes]: y  

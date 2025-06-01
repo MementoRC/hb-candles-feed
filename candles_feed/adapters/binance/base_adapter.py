@@ -6,7 +6,6 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
-from typing import Any, Dict, List
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter

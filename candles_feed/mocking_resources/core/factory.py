@@ -4,7 +4,7 @@ Server factory for creating mock exchange servers.
 
 import importlib
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypeVar
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar
 
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 

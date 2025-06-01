@@ -3,7 +3,6 @@ Kraken spot exchange adapter for the Candle Feed framework.
 """
 
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter

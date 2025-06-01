@@ -126,7 +126,7 @@ class TestEndToEnd:
 
                 return callback
 
-            with aioresponses() as m:
+            with aioresponses(passthrough=["http://127.0.0.1"]) as m:
                 real_binance_spot_base_url = binance_constants.SPOT_REST_URL
 
                 for route_path, (method, _) in plugin.rest_routes.items():
