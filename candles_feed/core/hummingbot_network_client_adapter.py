@@ -103,14 +103,14 @@ class HummingbotThrottlerAdapter(AsyncThrottlerProtocol):
         """
         self._throttler = throttler
 
-    async def execute_task(self, limit_id: str, weight: int = 1) -> None:
+    async def execute_task(self, limit_id: str, weight: int = 1):
         """Execute a task respecting rate limits.
 
         :param limit_id: The rate limit identifier
         :param weight: The weight of the task (default: 1)
+        :return: Async context manager for rate limiting
         """
-        async with self._throttler.execute_task(limit_id=limit_id):
-            pass  # The context manager handles the rate limiting
+        return await self._throttler.execute_task(limit_id=limit_id)
 
 
 class HummingbotNetworkClient(NetworkClientProtocol):
@@ -172,18 +172,20 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         )
         cleaned_data = None if data is None else {k: v for k, v in data.items() if v is not None}
 
-        try:
-            response = await self._rest_assistant.call(
-                url=url,
-                params=cleaned_params,
-                data=json.dumps(cleaned_data) if cleaned_data else None,
-                headers=headers,
-                method=method,
-            )
-            return await response.json()
-        except Exception as e:
-            self._logger.error(f"REST request to {url} failed: {e}")
-            raise
+        # Use throttler for rate limiting
+        async with await self._throttler_adapter.execute_task("api_request"):
+            try:
+                response = await self._rest_assistant.call(
+                    url=url,
+                    params=cleaned_params,
+                    data=json.dumps(cleaned_data) if cleaned_data else None,
+                    headers=headers,
+                    method=method,
+                )
+                return await response.json()
+            except Exception as e:
+                self._logger.error(f"REST request to {url} failed: {e}")
+                raise
 
     async def establish_ws_connection(self, url: str) -> WSAssistant:
         """Establish a WebSocket connection using Hummingbot's WS assistant.

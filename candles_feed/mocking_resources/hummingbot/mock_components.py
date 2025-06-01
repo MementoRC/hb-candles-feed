@@ -38,12 +38,13 @@ class MockAsyncThrottler:
 
         :param limit_id: The rate limit identifier.
         """
-
-        # Just a pass-through context manager for testing
+        # Create a context manager instance with access to self
+        throttler_instance = self
+        
         class MockContext:
             async def __aenter__(self):
                 # Log the task for testing assertions
-                self.task_logs.append((limit_id, asyncio.get_event_loop().time()))
+                throttler_instance.task_logs.append((limit_id, asyncio.get_event_loop().time()))
                 return None
 
             async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -92,7 +93,10 @@ class MockRESTConnection:
         )
 
         # Return the pre-configured response for this URL if available
-        response_data_val: Dict[str, Any] = self.responses.get(url, {"status": "ok"})
+        if url not in self.responses:
+            raise ValueError(f"No mock response configured for URL: {url}")
+        
+        response_data_val: Dict[str, Any] = self.responses[url]
 
         # Create a mock response object
         class MockResponse:
