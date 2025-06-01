@@ -12,7 +12,7 @@ from urllib.parse import urlparse, urlunparse
 
 import aiohttp
 import pytest
-from aioresponses import aioresponses, CallbackResult
+from aioresponses import CallbackResult, aioresponses
 
 from candles_feed.adapters.binance import constants as binance_constants  # For REAL URLs
 from candles_feed.core.candles_feed import CandlesFeed
@@ -56,6 +56,7 @@ class TestEndToEnd:
 
         # Create a single ClientSession for all passthrough requests within this fixture instance
         async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
+
             async def make_passthrough_callback(
                 target_url_base_for_mock_server, original_request_method
             ):  # shared_client_session_for_passthrough is captured from the outer scope
@@ -100,7 +101,8 @@ class TestEndToEnd:
                             response_headers = {
                                 k: v
                                 for k, v in resp.headers.items()
-                                if k.lower() not in [
+                                if k.lower()
+                                not in [
                                     "transfer-encoding",
                                     "content-length",
                                 ]
@@ -114,7 +116,10 @@ class TestEndToEnd:
                             status=503, body=f"Mock server connection error: {str(e)}"
                         )
                     except Exception as e:
-                        logger.error(f"Unexpected error during passthrough to {final_target_url}: {e}", exc_info=True)
+                        logger.error(
+                            f"Unexpected error during passthrough to {final_target_url}: {e}",
+                            exc_info=True,
+                        )
                         return CallbackResult(
                             status=500, body=f"Unexpected mock server error: {str(e)}"
                         )
@@ -131,7 +136,7 @@ class TestEndToEnd:
                     m.add(
                         real_url_to_intercept_pattern,
                         method=method.upper(),
-                        callback=await make_passthrough_callback( # This will use the captured shared session
+                        callback=await make_passthrough_callback(  # This will use the captured shared session
                             server.mock_rest_url_base, method.upper()
                         ),
                         repeat=True,

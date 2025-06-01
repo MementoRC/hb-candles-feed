@@ -198,16 +198,15 @@ class SimpleWSAssistant(WSAssistant):
 
 async def cleanup_unclosed_sessions():
     """Defensive cleanup of any unclosed sessions.
-    
+
     This function can be called during shutdown or testing to ensure
     no aiohttp sessions are left unclosed.
     """
+    import contextlib
+
     sessions_to_close = list(_ACTIVE_SESSIONS)
     for session in sessions_to_close:
         if not session.closed:
-            try:
+            with contextlib.suppress(Exception):
                 await session.close()
-            except Exception:
-                # Ignore errors during cleanup
-                pass
     _ACTIVE_SESSIONS.clear()
