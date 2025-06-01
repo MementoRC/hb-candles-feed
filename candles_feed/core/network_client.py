@@ -12,7 +12,7 @@ import aiohttp
 from candles_feed.core.protocols import Logger, WSAssistant
 
 # Global registry to track unclosed sessions for defensive cleanup
-_ACTIVE_SESSIONS = weakref.WeakSet()
+_ACTIVE_SESSIONS: weakref.WeakSet[aiohttp.ClientSession] = weakref.WeakSet()
 
 
 class NetworkClient:
