@@ -76,6 +76,7 @@ class CandlesFeed:
         self._network_client = NetworkClientFactory.create_client(
             hummingbot_components=hummingbot_components, logger=self.logger
         )
+        self._network_client_context_entered = False
         self._data_processor = DataProcessor()
 
         # Strategy attributes
@@ -122,6 +123,11 @@ class CandlesFeed:
         """
         if self._active:
             return
+
+        # Ensure network client is properly initialized
+        if not self._network_client_context_entered:
+            await self._network_client.__aenter__()
+            self._network_client_context_entered = True
 
         self.logger.debug(f"Starting candles feed for {self.trading_pair} on {self.exchange}")
 
@@ -175,8 +181,10 @@ class CandlesFeed:
         elif self._rest_strategy:
             await self._rest_strategy.stop()
 
-        # Clean up network client resources
-        await self._network_client.close()
+        # Clean up network client resources using context manager pattern
+        if self._network_client_context_entered:
+            await self._network_client.__aexit__(None, None, None)
+            self._network_client_context_entered = False
 
         self._active = False
 
@@ -232,6 +240,11 @@ class CandlesFeed:
         :param limit: Maximum number of candles to fetch
         :return: List of candle data
         """
+        # Ensure network client is properly initialized for one-off requests
+        if not self._network_client_context_entered:
+            await self._network_client.__aenter__()
+            self._network_client_context_entered = True
+
         # Use REST polling regardless of current strategy
         strategy = self._rest_strategy or self._create_rest_strategy()
 

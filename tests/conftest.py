@@ -13,7 +13,7 @@ from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.collection_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.data_processor import DataProcessor
-from candles_feed.core.network_client import NetworkClient
+from candles_feed.core.network_client import NetworkClient, cleanup_unclosed_sessions
 from candles_feed.core.protocols import WSAssistant
 from candles_feed.mocking_resources import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
@@ -26,6 +26,15 @@ def configure_logging():
     logging.basicConfig(
         level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
+
+
+# Add cleanup fixture for aiohttp sessions
+@pytest.fixture(scope="function", autouse=True)
+async def cleanup_aiohttp_sessions():
+    """Automatically cleanup any unclosed aiohttp sessions after each test."""
+    yield  # Run the test
+    # Clean up any unclosed sessions after each test
+    await cleanup_unclosed_sessions()
 
 
 # Remove the custom event_loop fixture to avoid the deprecation warning

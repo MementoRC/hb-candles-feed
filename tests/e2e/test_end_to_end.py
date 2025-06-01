@@ -12,7 +12,7 @@ from urllib.parse import urlparse, urlunparse
 
 import aiohttp
 import pytest
-from aioresponses import aioresponses
+from aioresponses import aioresponses, CallbackResult
 
 from candles_feed.adapters.binance import constants as binance_constants  # For REAL URLs
 from candles_feed.core.candles_feed import CandlesFeed
@@ -54,45 +54,41 @@ class TestEndToEnd:
         ws_path = "/ws"  # Default for Binance Spot based on BinanceBasePlugin
         server.mock_ws_url = f"ws://{host}:{port}{ws_path}"
 
-        async def make_passthrough_callback(
-            target_url_base_for_mock_server, original_request_method
-        ):
-            async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
-                # Construct the final target URL for the local mock server
-                # url_obj.path and url_obj.query_string are from the *intercepted* request.
-                # target_url_base_for_mock_server is like "http://127.0.0.1:xxxx"
-
-                final_target_url = urlunparse(
-                    (
-                        urlparse(target_url_base_for_mock_server).scheme,
-                        urlparse(target_url_base_for_mock_server).netloc,
-                        url_obj.path,  # Use path from the intercepted URL
-                        "",  # params for urlunparse
-                        url_obj.query_string,  # Use query string from the intercepted URL
-                        "",  # fragment for urlunparse
+        # Create a single ClientSession for all passthrough requests within this fixture instance
+        async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
+            async def make_passthrough_callback(
+                target_url_base_for_mock_server, original_request_method
+            ):  # shared_client_session_for_passthrough is captured from the outer scope
+                async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
+                    # Construct the final target URL for the local mock server
+                    final_target_url = urlunparse(
+                        (
+                            urlparse(target_url_base_for_mock_server).scheme,
+                            urlparse(target_url_base_for_mock_server).netloc,
+                            url_obj.path,  # Use path from the intercepted URL
+                            "",  # params for urlunparse
+                            url_obj.query_string,  # Use query string from the intercepted URL
+                            "",  # fragment for urlunparse
+                        )
                     )
-                )
 
-                request_headers = {}
-                if kwargs.get("headers"):
-                    request_headers = {
-                        k: v
-                        for k, v in kwargs["headers"].items()
-                        if k.lower() not in ["host", "content-length", "transfer-encoding"]
-                    }
+                    request_headers = {}
+                    if kwargs.get("headers"):
+                        request_headers = {
+                            k: v
+                            for k, v in kwargs["headers"].items()
+                            if k.lower() not in ["host", "content-length", "transfer-encoding"]
+                        }
 
-                outgoing_json_payload = kwargs.get(
-                    "json"
-                )  # aioresponses uses 'json' not 'json_payload'
-                outgoing_data = kwargs.get("data")
+                    outgoing_json_payload = kwargs.get("json")
+                    outgoing_data = kwargs.get("data")
 
-                if outgoing_json_payload is not None and outgoing_data is not None:
-                    # Prefer JSON if both are somehow provided, though typically only one is.
-                    outgoing_data = None
+                    if outgoing_json_payload is not None and outgoing_data is not None:
+                        outgoing_data = None  # Prefer JSON if both are somehow provided
 
-                async with aiohttp.ClientSession() as session:
+                    # Use the shared_client_session_for_passthrough
                     try:
-                        async with session.request(
+                        async with shared_client_session_for_passthrough.request(
                             original_request_method,
                             final_target_url,
                             data=outgoing_data,
@@ -104,47 +100,44 @@ class TestEndToEnd:
                             response_headers = {
                                 k: v
                                 for k, v in resp.headers.items()
-                                if k.lower()
-                                not in [
+                                if k.lower() not in [
                                     "transfer-encoding",
                                     "content-length",
-                                ]  # content-length might mismatch if content changes
+                                ]
                             }
-                            # If content is JSON, aioresponses might try to re-serialize it.
-                            # It's often safer to pass content as bytes (body).
-                            return aioresponses.CallbackResult(
+                            return CallbackResult(
                                 status=resp.status, body=content, headers=response_headers
                             )
                     except aiohttp.ClientConnectorError as e:
                         logger.error(f"Passthrough to {final_target_url} failed: {e}")
-                        return aioresponses.CallbackResult(
-                            status=503, body=f"Mock server connection error: {e}"
+                        return CallbackResult(
+                            status=503, body=f"Mock server connection error: {str(e)}"
+                        )
+                    except Exception as e:
+                        logger.error(f"Unexpected error during passthrough to {final_target_url}: {e}", exc_info=True)
+                        return CallbackResult(
+                            status=500, body=f"Unexpected mock server error: {str(e)}"
                         )
 
-            return callback
+                return callback
 
-        with aioresponses() as m:
-            real_binance_spot_base_url = (
-                binance_constants.SPOT_REST_URL
-            )  # "https://api.binance.com"
+            with aioresponses() as m:
+                real_binance_spot_base_url = binance_constants.SPOT_REST_URL
 
-            # Intercept all routes defined in the plugin
-            for route_path, (method, _) in plugin.rest_routes.items():
-                real_url_to_intercept_pattern = re.compile(
-                    f"^{re.escape(real_binance_spot_base_url + route_path)}(\\?.*)?$"
-                )
-
-                # The passthrough callback will use server.mock_rest_url_base and the path from the intercepted URL
-                m.add(
-                    real_url_to_intercept_pattern,
-                    method=method.upper(),
-                    callback=await make_passthrough_callback(
-                        server.mock_rest_url_base, method.upper()
-                    ),
-                    repeat=True,
-                )
-
-            yield server  # Provide the MockedExchangeServer instance to the test
+                for route_path, (method, _) in plugin.rest_routes.items():
+                    real_url_to_intercept_pattern = re.compile(
+                        f"^{re.escape(real_binance_spot_base_url + route_path)}(\\?.*)?$"
+                    )
+                    m.add(
+                        real_url_to_intercept_pattern,
+                        method=method.upper(),
+                        callback=await make_passthrough_callback( # This will use the captured shared session
+                            server.mock_rest_url_base, method.upper()
+                        ),
+                        repeat=True,
+                    )
+                yield server  # Provide the MockedExchangeServer instance to the test
+        # shared_client_session_for_passthrough is automatically closed here by its `async with`
 
         # Teardown: stop the server
         await server.stop()

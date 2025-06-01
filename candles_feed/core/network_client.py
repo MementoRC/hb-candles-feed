@@ -4,11 +4,15 @@ Network communication client for the Candle Feed framework.
 
 import json
 import logging
+import weakref
 from typing import Any, cast
 
 import aiohttp
 
 from candles_feed.core.protocols import Logger, WSAssistant
+
+# Global registry to track unclosed sessions for defensive cleanup
+_ACTIVE_SESSIONS = weakref.WeakSet()
 
 
 class NetworkClient:
@@ -30,6 +34,8 @@ class NetworkClient:
         """Ensure aiohttp session exists."""
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
+            # Track session for defensive cleanup
+            _ACTIVE_SESSIONS.add(self._session)
 
     async def close(self):
         """Close the client session.
@@ -39,6 +45,8 @@ class NetworkClient:
         """
         if self._session and not self._session.closed:
             await self._session.close()
+            # Remove from tracking set if still there
+            _ACTIVE_SESSIONS.discard(self._session)
             self._session = None
 
     async def __aenter__(self):
@@ -186,3 +194,20 @@ class SimpleWSAssistant(WSAssistant):
         :return: Async iterator for messages
         """
         return self.iter_messages()
+
+
+async def cleanup_unclosed_sessions():
+    """Defensive cleanup of any unclosed sessions.
+    
+    This function can be called during shutdown or testing to ensure
+    no aiohttp sessions are left unclosed.
+    """
+    sessions_to_close = list(_ACTIVE_SESSIONS)
+    for session in sessions_to_close:
+        if not session.closed:
+            try:
+                await session.close()
+            except Exception:
+                # Ignore errors during cleanup
+                pass
+    _ACTIVE_SESSIONS.clear()
