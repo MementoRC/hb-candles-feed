@@ -240,9 +240,9 @@ class TestMockedPlugin:
 
         # Check the calls to send_json
         calls = mock_ws_instance.send_json.call_args_list
-        assert len(calls) == 2, (
-            "Expected two messages: subscription confirmation and one candle update."
-        )
+        assert (
+            len(calls) == 2
+        ), "Expected two messages: subscription confirmation and one candle update."
 
         # First call: subscription success
         assert calls[0][0][0] == expected_subscription_success
