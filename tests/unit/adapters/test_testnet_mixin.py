@@ -36,6 +36,14 @@ class TestnetMockAdapter(TestnetSupportMixin, MockAdapter):
     parent class's __init__.
     """
 
+    def _get_production_rest_url(self):
+        """Production REST URL."""
+        return "https://production-api.com/v1/endpoint"
+
+    def _get_production_ws_url(self):
+        """Production WebSocket URL."""
+        return "wss://production-ws.com/ws"
+
     def _get_testnet_rest_url(self):
         """Testnet REST URL."""
         return "https://testnet-api.com/v1/endpoint"
@@ -203,6 +211,14 @@ class TestTestnetSupportMixin:
             def supports_testnet(self):
                 """Report that testnet is not supported."""
                 return False
+
+            def _get_production_rest_url(self):
+                """Production REST URL."""
+                return "https://production-api.com/v1/endpoint"
+
+            def _get_production_ws_url(self):
+                """Production WebSocket URL."""
+                return "wss://production-ws.com/ws"
 
             def _get_testnet_rest_url(self):
                 """Return production URL instead of raising error."""
