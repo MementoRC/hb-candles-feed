@@ -199,6 +199,9 @@ class TestProtocolConformance:
         class TestCCXTAdapter(CCXTBaseAdapter):
             exchange_name = "binance"
 
+            def _get_rest_url(self) -> str:
+                return "https://test.example.com/api"
+
         # Patch ccxt.binance to avoid actual API calls
         with patch("ccxt.binance") as _:
             # Create an instance

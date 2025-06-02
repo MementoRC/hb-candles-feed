@@ -75,7 +75,7 @@ class TestOKXBaseAdapter(BaseAdapterTest):
             "args": [
                 {
                     "channel": f"candle{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}",
-                    "instId": trading_pair,  # OKX base adapter preserves trading pair format
+                    "instId": trading_pair.replace("-", "/"),  # OKX WebSocket uses / format
                 }
             ],
         }
