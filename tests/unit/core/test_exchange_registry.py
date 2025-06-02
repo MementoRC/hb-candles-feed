@@ -23,18 +23,18 @@ class TestExchangeRegistry:
             def get_trading_pair_format(self, trading_pair):
                 return trading_pair
 
-            def get_rest_url(self):
+            def _get_rest_url(self):
                 return "https://test.com/api"
 
             def get_ws_url(self):
                 return "wss://test.com/ws"
 
-            def get_rest_params(
+            def _get_rest_params(
                 self, trading_pair, interval, start_time=None, end_time=None, limit=None
             ):
                 return {"symbol": trading_pair, "interval": interval}
 
-            def parse_rest_response(self, data):
+            def _parse_rest_response(self, data):
                 return []
 
             def get_ws_subscription_payload(self, trading_pair, interval):
@@ -94,18 +94,18 @@ class TestExchangeRegistry:
             def get_trading_pair_format(self, trading_pair):
                 return trading_pair
 
-            def get_rest_url(self):
+            def _get_rest_url(self):
                 return "https://test.com/api"
 
             def get_ws_url(self):
                 return "wss://test.com/ws"
 
-            def get_rest_params(
+            def _get_rest_params(
                 self, trading_pair, interval, start_time=None, end_time=None, limit=None
             ):
                 return {"symbol": trading_pair, "interval": interval}
 
-            def parse_rest_response(self, data):
+            def _parse_rest_response(self, data):
                 return []
 
             def get_ws_subscription_payload(self, trading_pair, interval):
