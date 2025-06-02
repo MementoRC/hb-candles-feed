@@ -269,9 +269,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
         # Perpetual uses from/to instead of startAt/endAt
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
 
-        params = adapter._get_rest_params(
-            "BTC-USDT", "1m", start_time=start_time
-        )
+        params = adapter._get_rest_params("BTC-USDT", "1m", start_time=start_time)
 
         assert "from" in params
         assert params["from"] == start_time * 1000

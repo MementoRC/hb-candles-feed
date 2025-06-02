@@ -530,13 +530,13 @@ class MockedPlugin(ExchangePlugin):
                                     ][interval_str]
                                     if candles_list:
                                         current_candle_obj: CandleData = candles_list[-1]
-                                        message_dict: Dict[
-                                            str, Any
-                                        ] = self.format_ws_candle_message(
-                                            candle=current_candle_obj,
-                                            trading_pair=normalized_pair_str,
-                                            interval=interval_str,
-                                            is_final=True,
+                                        message_dict: Dict[str, Any] = (
+                                            self.format_ws_candle_message(
+                                                candle=current_candle_obj,
+                                                trading_pair=normalized_pair_str,
+                                                interval=interval_str,
+                                                is_final=True,
+                                            )
                                         )
                                         # Delay sending initial data to ensure subscription confirmation is processed first
                                         await asyncio.sleep(0.1)
@@ -573,9 +573,9 @@ class MockedPlugin(ExchangePlugin):
                                         del server.subscriptions[subscription_key_str]
 
                             # Send unsubscription success response
-                            unsub_success_response: Dict[
-                                str, Any
-                            ] = self.create_ws_subscription_success(data_dict, subscriptions_list)
+                            unsub_success_response: Dict[str, Any] = (
+                                self.create_ws_subscription_success(data_dict, subscriptions_list)
+                            )
                             await ws.send_json(unsub_success_response)
 
                     except json.JSONDecodeError:

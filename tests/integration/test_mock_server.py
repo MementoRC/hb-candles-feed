@@ -191,21 +191,21 @@ class TestMockServer:
                         # Mock server can change price significantly over time
                         # Just verify the price is a reasonable value > 0
                         if pair == "BTCUSDT":
-                            assert (
-                                10000.0 <= latest_price <= 100000.0
-                            ), f"BTC price {latest_price} out of reasonable range"
+                            assert 10000.0 <= latest_price <= 100000.0, (
+                                f"BTC price {latest_price} out of reasonable range"
+                            )
                         elif pair == "ETHUSDT":
-                            assert (
-                                1000.0 <= latest_price <= 10000.0
-                            ), f"ETH price {latest_price} out of reasonable range"
+                            assert 1000.0 <= latest_price <= 10000.0, (
+                                f"ETH price {latest_price} out of reasonable range"
+                            )
                         elif pair == "SOLUSDT":
-                            assert (
-                                10.0 <= latest_price <= 1000.0
-                            ), f"SOL price {latest_price} out of reasonable range"
+                            assert 10.0 <= latest_price <= 1000.0, (
+                                f"SOL price {latest_price} out of reasonable range"
+                            )
                         elif pair == "DOGEUSDT":
-                            assert (
-                                0.01 <= latest_price <= 10.0
-                            ), f"DOGE price {latest_price} out of reasonable range"
+                            assert 0.01 <= latest_price <= 10.0, (
+                                f"DOGE price {latest_price} out of reasonable range"
+                            )
                         else:
                             assert latest_price > 0, f"Price for {pair} should be positive"
 

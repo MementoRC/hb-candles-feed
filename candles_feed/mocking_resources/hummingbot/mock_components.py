@@ -40,7 +40,7 @@ class MockAsyncThrottler:
         """
         # Create a context manager instance with access to self
         throttler_instance = self
-        
+
         class MockContext:
             async def __aenter__(self):
                 # Log the task for testing assertions
@@ -95,7 +95,7 @@ class MockRESTConnection:
         # Return the pre-configured response for this URL if available
         if url not in self.responses:
             raise ValueError(f"No mock response configured for URL: {url}")
-        
+
         response_data_val: Dict[str, Any] = self.responses[url]
 
         # Create a mock response object
