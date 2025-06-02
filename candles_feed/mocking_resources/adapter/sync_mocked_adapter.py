@@ -212,11 +212,11 @@ class SyncMockedAdapter(BaseAdapter, SyncOnlyAdapter):
         current_time_sec: int = start_time or 1620000000  # Example timestamp
         interval_seconds: int = INTERVALS.get(interval, 60)
 
-        # 'limit' is now guaranteed to be an int by the signature
-        # actual_limit = limit if limit is not None else 500
+        # Handle None limit by using default value
+        actual_limit = limit if limit is not None else 500
 
         candle_payloads: List[Dict[str, Any]] = []
-        for i in range(limit):  # Use the direct limit
+        for i in range(actual_limit):
             timestamp_sec: int = current_time_sec + (i * interval_seconds)
             candle_payloads.append(
                 {

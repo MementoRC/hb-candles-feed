@@ -98,7 +98,7 @@ class WebSocketStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit if limit is not None else 500,
+                    limit=limit,
                     network_client=self.network_client,
                 )
             elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
@@ -109,7 +109,7 @@ class WebSocketStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit if limit is not None else 500,
+                    limit=limit,
                 )
             else:
                 raise NotImplementedError(
@@ -290,7 +290,7 @@ class RESTPollingStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit if limit is not None else 500,
+                    limit=limit,
                     network_client=self.network_client,
                 )
             elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
@@ -301,7 +301,7 @@ class RESTPollingStrategy:
                     trading_pair=self.trading_pair,
                     interval=self.interval,
                     start_time=start_time,
-                    limit=limit if limit is not None else 500,
+                    limit=limit,
                 )
             else:
                 raise NotImplementedError(
