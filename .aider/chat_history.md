@@ -27854,3 +27854,42 @@ Okay, I will remove the specified unused imports and update the type hints accor
 > Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
 > Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
 > Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+# aider chat started at 2025-06-02 09:49:08
+
+
+#### Fix the OKX WebSocket subscription test failure. The issue is that the test expects "BTC-USDT" format in the instId field, but the OKX adapter's `get_ws_subscription_payload` method converts it to "BTC/USDT" format (replacing "-" with "/").  
+####   
+#### In the test file `tests/unit/adapters/okx/test_okx_base_adapter.py`, update the `get_expected_ws_subscription_payload` method to match what the adapter actually produces by converting the trading pair from "BTC-USDT" to "BTC/USDT" format.  
+####   
+#### Also fix the CCXT adapter test by adding the missing `_get_rest_url()` method to the `TestCCXTAdapter` class in `tests/unit/adapters/test_adapter_protocol_conformance.py`.  
+####   
+#### These are the specific fixes needed:  
+#### 1. In OKX test: Change `"instId": trading_pair` to `"instId": trading_pair.replace("-", "/")`   
+#### 2. In CCXT test: Add `def _get_rest_url(self): return "https://test.example.com/api"` to the TestCCXTAdapter class  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
+
+# aider chat started at 2025-06-02 11:18:17
+
+
+#### Fix the URL patching issue in the E2E tests that's causing Binance adapter unit tests to fail when run as part of the full test suite.  
+####   
+#### The problem is that the `aioresponses` fixture in `tests/e2e/test_end_to_end.py` is creating global URL interception that persists across tests, causing Binance adapter URLs to be redirected to localhost instead of production URLs.  
+####   
+#### The issues are:  
+#### 1. The `aioresponses` context manager in the fixture is intercepting ALL Binance URLs globally  
+#### 2. The fixture is not properly isolated per test, causing side effects  
+#### 3. Unit tests that expect production URLs get localhost URLs due to this global interception  
+####   
+#### Please fix this by:  
+#### 1. Ensuring the `aioresponses` fixture is properly scoped and cleaned up after each test  
+#### 2. Making sure URL interception only applies to the specific E2E tests that need it  
+#### 3. Adding proper test isolation to prevent interference with unit tests  
+#### 4. Consider using session-scoped fixtures or proper teardown to avoid side effects  
+####   
+#### The goal is to make sure that when unit tests run, they get the real production URLs they expect, while E2E tests still get the mock server URLs they need.  
+> Tags cache error: no such column: "size" - should this be a string literal in single-quotes?  
+> Unable to use tags cache at /home/memento/ClaudeCode/candles-feed/hummingbot/sub-packages/candles-feed/.aider.tags.cache.v4, falling back to memory cache  
+> Cache recreation error: no such column: "size" - should this be a string literal in single-quotes?  
