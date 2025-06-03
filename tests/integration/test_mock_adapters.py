@@ -28,6 +28,7 @@ from candles_feed.mocking_resources.adapter import (
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 class TestMockAdaptersWithStrategies:
     """Test how mock adapters interact with collection strategies."""
 

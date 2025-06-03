@@ -12,6 +12,7 @@ from candles_feed.mocking_resources.core.factory import get_plugin
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
 
+@pytest.mark.integration
 class TestMockPluginIntegration:
     """Test the MockedPlugin integration with MockedExchangeServer."""
 

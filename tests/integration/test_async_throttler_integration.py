@@ -26,6 +26,7 @@ from candles_feed.mocking_resources.hummingbot.mock_components import (
 )
 
 
+@pytest.mark.integration
 class TestAsyncThrottlerIntegration:
     """Test AsyncThrottler integration and rate limiting behavior."""
 
@@ -120,6 +121,7 @@ class TestAsyncThrottlerIntegration:
                 pass
 
 
+@pytest.mark.integration
 class TestWebAssistantsFactoryIntegration:
     """Test WebAssistantsFactory integration and network operations."""
 
@@ -254,6 +256,7 @@ class TestWebAssistantsFactoryIntegration:
         assert not configured_factory.ws_connection.connected
 
 
+@pytest.mark.integration
 class TestHummingbotNetworkClientIntegration:
     """Test HummingbotNetworkClient integration with all components."""
 
@@ -374,6 +377,7 @@ class TestHummingbotNetworkClientIntegration:
                 await client.get_rest_data("https://api.unknown.com/invalid")
 
 
+@pytest.mark.integration
 class TestNetworkClientFactory:
     """Test NetworkClientFactory component selection logic."""
 
@@ -422,6 +426,7 @@ class TestNetworkClientFactory:
             assert isinstance(client, NetworkClient)
 
 
+@pytest.mark.integration
 class TestWSAssistantAdapter:
     """Test HummingbotWSAssistantAdapter functionality."""
 

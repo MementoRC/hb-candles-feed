@@ -14,6 +14,7 @@ from candles_feed.core.candles_feed import CandlesFeed  # noqa: F401, used in sk
 from candles_feed.core.network_config import NetworkConfig, NetworkEnvironment
 
 
+@pytest.mark.integration
 class TestNetworkConfigWithMixin:
     """Integration tests for NetworkConfig with TestnetSupportMixin."""
 

@@ -34,6 +34,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.integration
 class TestMockServer:
     """Integration tests for the mock exchange server with different plugins."""
 

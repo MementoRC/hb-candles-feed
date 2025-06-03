@@ -35,6 +35,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.integration
 class TestCompatibilityWithOriginal:
     """Tests for compatibility between new and original implementations."""
 
@@ -686,6 +687,7 @@ class TestCompatibilityWithOriginal:
             )
 
 
+@pytest.mark.integration
 class TestCandlesFeedWithHummingbotComponents:
     """Tests for compatibility with Hummingbot components."""
 
