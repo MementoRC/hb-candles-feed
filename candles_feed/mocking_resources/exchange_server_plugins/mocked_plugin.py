@@ -627,7 +627,7 @@ class MockedPlugin(ExchangePlugin):
         )  # Already int or None from parse_rest_candles_params
 
         limit_int: int = (
-            limit_val if limit_val is not None else 100
+            limit_val if limit_val is not None else 1000
         )  # Default if not provided or invalid
 
         # Find the trading pair in our list

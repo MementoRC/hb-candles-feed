@@ -71,6 +71,7 @@ def _get_plugin_from_registry(exchange_type: ExchangeType) -> "Optional[Exchange
         ExchangeType.HYPERLIQUID_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.spot_plugin.HyperliquidSpotPlugin",
         ExchangeType.HYPERLIQUID_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.perpetual_plugin.HyperliquidPerpetualPlugin",
         ExchangeType.ASCEND_EX_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.ascend_ex.spot_plugin.AscendExSpotPlugin",
+        ExchangeType.MOCK: "candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.MockedPlugin",
     }
 
     # Check if we have a mapping for this exchange type
