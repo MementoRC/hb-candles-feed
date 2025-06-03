@@ -33,6 +33,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.integration
 class TestCandlesFeedIntegration:
     """Integration test suite for the CandlesFeed class using the mock server architecture."""
 

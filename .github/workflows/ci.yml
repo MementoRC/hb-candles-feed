@@ -28,10 +28,15 @@ jobs:
           pixi install # This will install dependencies based on pyproject.toml and create/use pixi.lock
           pixi run pip install -e .
 
-      - name: Run tests with coverage
+      - name: Run unit tests with coverage
         run: |
-          # Ensure pytest is run from the pixi environment and generates coverage.xml
-          pixi run pytest tests --cov=candles_feed --cov-report=xml:coverage.xml
+          # Run unit tests first to avoid URL patching pollution from integration tests
+          pixi run pytest tests -m "not integration" --cov=candles_feed --cov-report=xml:coverage.xml
+          
+      - name: Run integration tests separately
+        run: |
+          # Run integration tests separately to prevent URL patching pollution
+          pixi run pytest tests -m "integration" --cov=candles_feed --cov-append
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
