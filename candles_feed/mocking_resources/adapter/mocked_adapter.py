@@ -176,7 +176,7 @@ class MockedAdapter(BaseAdapter):
         """
         if data is None:
             return []
-        
+
         # Delegate to existing parse_rest_response method
         return self.parse_rest_response(data)
 

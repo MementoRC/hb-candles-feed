@@ -114,12 +114,20 @@ class TestTestnetSupportMixin:
     def test_bypass_network_selection(self):
         """Test that _bypass_network_selection works correctly."""
         adapter = TestnetMockAdapter(network_config=NetworkConfig.testnet())
-        assert adapter._get_rest_url() == "https://testnet-api.com/v1/endpoint"
 
-        # Enable bypass
-        adapter._bypass_network_selection = True
-        assert adapter._get_rest_url() == "https://production-api.com/v1/endpoint"
-        assert adapter._get_ws_url() == "wss://production-ws.com/ws"
+        # Save original bypass state for cleanup
+        original_bypass = getattr(adapter, "_bypass_network_selection", False)
+
+        try:
+            assert adapter._get_rest_url() == "https://testnet-api.com/v1/endpoint"
+
+            # Enable bypass
+            adapter._bypass_network_selection = True
+            assert adapter._get_rest_url() == "https://production-api.com/v1/endpoint"
+            assert adapter._get_ws_url() == "wss://production-ws.com/ws"
+        finally:
+            # Restore original bypass state to prevent test pollution
+            adapter._bypass_network_selection = original_bypass
 
     def test_supports_testnet(self):
         """Test supports_testnet method."""

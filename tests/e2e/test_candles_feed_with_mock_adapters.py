@@ -8,14 +8,13 @@ import asyncio
 
 import pytest
 
-from candles_feed.core.candles_feed import CandlesFeed
-from candles_feed.core.network_client import NetworkClient
-
 # Import mock adapters to trigger their registration
 import candles_feed.mocking_resources.adapter.async_mocked_adapter  # noqa: F401
 import candles_feed.mocking_resources.adapter.hybrid_mocked_adapter  # noqa: F401
 import candles_feed.mocking_resources.adapter.mocked_adapter  # noqa: F401
 import candles_feed.mocking_resources.adapter.sync_mocked_adapter  # noqa: F401
+from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed.core.network_client import NetworkClient
 
 
 @pytest.mark.asyncio

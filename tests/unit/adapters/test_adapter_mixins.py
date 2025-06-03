@@ -770,15 +770,22 @@ class TestTestnetSupportMixin:
         # Create a testnet adapter
         adapter = self.TestAdapter(network_config=NetworkConfig.testnet())
 
-        # Normally it would return testnet URLs
-        assert adapter._get_rest_url() == adapter.testnet_rest_url
+        # Save original bypass state for cleanup
+        original_bypass = getattr(adapter, "_bypass_network_selection", False)
 
-        # Enable the bypass flag
-        adapter._bypass_network_selection = True
+        try:
+            # Normally it would return testnet URLs
+            assert adapter._get_rest_url() == adapter.testnet_rest_url
 
-        # Now it should return production URLs despite testnet config
-        assert adapter._get_rest_url() == adapter.prod_rest_url
-        assert adapter._get_ws_url() == adapter.prod_ws_url
+            # Enable the bypass flag
+            adapter._bypass_network_selection = True
+
+            # Now it should return production URLs despite testnet config
+            assert adapter._get_rest_url() == adapter.prod_rest_url
+            assert adapter._get_ws_url() == adapter.prod_ws_url
+        finally:
+            # Restore original bypass state to prevent test pollution
+            adapter._bypass_network_selection = original_bypass
 
     def test_supports_testnet(self):
         """Test that supports_testnet returns appropriate values."""

@@ -481,7 +481,7 @@ class MockedPlugin(ExchangePlugin):
                                     "type": "subscribe_result",
                                     "status": "success",
                                     "subscriptions": [
-                                        {"symbol": pair_str, "interval_str": interval_str_val}
+                                        {"symbol": pair_str, "interval": interval_str_val}
                                         for pair_str, interval_str_val in subscriptions_list
                                     ],
                                 }

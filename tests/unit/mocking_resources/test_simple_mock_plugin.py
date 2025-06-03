@@ -250,8 +250,13 @@ class TestMockedPlugin:
         assert calls[1][0][0] == expected_candle_update
 
         # 4. Verify server state (connection and subscription tracking)
-        assert mock_ws_instance in mock_server.ws_connections
+        # The plugin creates its own WebSocketResponse instance, so check that a connection was added
+        assert len(mock_server.ws_connections) == 1
+
         # Subscription key uses the normalized pair ("BTC-USDT")
         subscription_key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
         assert subscription_key in mock_server.subscriptions
-        assert mock_ws_instance in mock_server.subscriptions[subscription_key]
+
+        # Check that the actual WebSocket instance created by the plugin is in subscriptions
+        actual_ws_instance = next(iter(mock_server.ws_connections))
+        assert actual_ws_instance in mock_server.subscriptions[subscription_key]

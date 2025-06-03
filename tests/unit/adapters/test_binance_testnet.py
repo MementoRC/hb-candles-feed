@@ -108,15 +108,22 @@ class TestBinanceSpotAdapterTestnet:
         """Test that bypass_network_selection forces production URLs."""
         adapter = BinanceSpotAdapter(network_config=NetworkConfig.testnet())
 
-        # Normally should return testnet URLs
-        assert adapter._get_rest_url() == f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+        # Save original bypass state for cleanup
+        original_bypass = getattr(adapter, "_bypass_network_selection", False)
 
-        # Enable bypass
-        adapter._bypass_network_selection = True
+        try:
+            # Normally should return testnet URLs
+            assert adapter._get_rest_url() == f"{SPOT_TESTNET_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
-        # Should now return production URLs
-        assert adapter._get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
-        assert adapter._get_ws_url() == SPOT_WSS_URL
+            # Enable bypass
+            adapter._bypass_network_selection = True
+
+            # Should now return production URLs
+            assert adapter._get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+            assert adapter._get_ws_url() == SPOT_WSS_URL
+        finally:
+            # Restore original bypass state to prevent test pollution
+            adapter._bypass_network_selection = original_bypass
 
     def test_endpoint_specific_urls(self):
         """Test URL selection based on specific endpoint types."""
