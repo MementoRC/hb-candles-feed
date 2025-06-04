@@ -33,7 +33,9 @@ async def validate_network_client_factory():
 
     # Test fallback to standalone NetworkClient
     standalone_client = NetworkClientFactory.create_client()
-    assert isinstance(standalone_client, NetworkClient), "Should fallback to standalone NetworkClient"
+    assert isinstance(standalone_client, NetworkClient), (
+        "Should fallback to standalone NetworkClient"
+    )
     logger.info("✅ NetworkClientFactory correctly falls back to standalone implementation")
 
     # Test with Hummingbot components
@@ -43,11 +45,17 @@ async def validate_network_client_factory():
         hummingbot_client = NetworkClientFactory.create_client(
             hummingbot_components=mock_components
         )
-        assert isinstance(hummingbot_client, HummingbotNetworkClient), "Should create HummingbotNetworkClient"
-        logger.info("✅ NetworkClientFactory correctly creates HummingbotNetworkClient when components available")
+        assert isinstance(hummingbot_client, HummingbotNetworkClient), (
+            "Should create HummingbotNetworkClient"
+        )
+        logger.info(
+            "✅ NetworkClientFactory correctly creates HummingbotNetworkClient when components available"
+        )
 
     # Test partial components (should fallback)
-    partial_components = {"throttler": mock_components["throttler"]}  # Missing web_assistants_factory
+    partial_components = {
+        "throttler": mock_components["throttler"]
+    }  # Missing web_assistants_factory
     fallback_client = NetworkClientFactory.create_client(hummingbot_components=partial_components)
     assert isinstance(fallback_client, NetworkClient), "Should fallback with partial components"
     logger.info("✅ NetworkClientFactory correctly falls back with partial components")
@@ -83,8 +91,12 @@ async def validate_rate_limiting_delegation():
 
             # Verify throttler was called
             throttler_logs = mock_components["throttler"].task_logs
-            assert len(throttler_logs) == 3, f"Expected 3 throttler calls, got {len(throttler_logs)}"
-            assert all(log[0] == "api_request" for log in throttler_logs), "All calls should use 'api_request' limit ID"
+            assert len(throttler_logs) == 3, (
+                f"Expected 3 throttler calls, got {len(throttler_logs)}"
+            )
+            assert all(log[0] == "api_request" for log in throttler_logs), (
+                "All calls should use 'api_request' limit ID"
+            )
 
             logger.info("✅ Rate limiting delegation working correctly")
 
@@ -95,9 +107,7 @@ async def validate_adapter_delegation():
 
     # Create mock components
     mock_components = create_mock_hummingbot_components(
-        rest_responses={
-            "https://test.example.com/api": {"data": "test response"}
-        }
+        rest_responses={"https://test.example.com/api": {"data": "test response"}}
     )
 
     with patch("candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True):
@@ -106,12 +116,16 @@ async def validate_adapter_delegation():
             exchange="binance_spot",
             trading_pair="BTC-USDT",
             interval="1m",
-            hummingbot_components=mock_components
+            hummingbot_components=mock_components,
         )
 
         # Verify the correct network client type was created
-        assert isinstance(feed._network_client, HummingbotNetworkClient), "CandlesFeed should use HummingbotNetworkClient"
-        logger.info("✅ CandlesFeed correctly uses HummingbotNetworkClient when components provided")
+        assert isinstance(feed._network_client, HummingbotNetworkClient), (
+            "CandlesFeed should use HummingbotNetworkClient"
+        )
+        logger.info(
+            "✅ CandlesFeed correctly uses HummingbotNetworkClient when components provided"
+        )
 
         # Test delegation through adapter
         async with feed._network_client:
@@ -135,8 +149,10 @@ async def validate_error_propagation():
             class FailingContext:
                 async def __aenter__(self):
                     raise RuntimeError("Simulated throttler failure")
+
                 async def __aexit__(self, exc_type, exc_val, exc_tb):
                     return None
+
             return FailingContext()
 
     mock_components = create_mock_hummingbot_components()
@@ -212,6 +228,7 @@ async def main():
     except Exception as e:
         logger.error(f"❌ Validation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
