@@ -2,6 +2,7 @@
 Unit tests for MockedPlugin.
 """
 
+import contextlib
 import json
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -158,7 +159,7 @@ class TestMockedPlugin:
         # Set up async iteration properly - yield message then wait indefinitely
         # We'll cancel this by stopping the async iteration after we verify the state
         message_yielded = False
-        
+
         async def mock_receive_messages():
             nonlocal message_yielded
             yield Mock(
@@ -217,25 +218,23 @@ class TestMockedPlugin:
         # Call the method under test in a task so we can inspect state while it's running
         import asyncio
         handler_task = asyncio.create_task(self.plugin.handle_websocket(mock_server, mock_request))
-        
+
         # Wait for the message to be processed and subscription to be added
         for _ in range(50):  # Wait up to 5 seconds
             await asyncio.sleep(0.1)
             if message_yielded and len(mock_ws_instance.send_json.call_args_list) >= 2:
                 break
-        
+
         # Capture the subscription state while the connection is still "active"
         # (before canceling the task, which triggers cleanup)
         subscription_key = self.plugin.create_ws_subscription_key("BTC-USDT", "1m")
         subscription_exists = subscription_key in mock_server.subscriptions
         subscription_count = len(mock_server.subscriptions.get(subscription_key, set()))
-        
+
         # Cancel the handler task
         handler_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await handler_task
-        except asyncio.CancelledError:
-            pass
 
         # --- Assertions ---
 
@@ -284,6 +283,6 @@ class TestMockedPlugin:
         # 4. Verify server state (subscription tracking)
         # Subscription key uses the normalized pair ("BTC-USDT")
         assert subscription_exists, f"Subscription key {subscription_key} was not found in server.subscriptions"
-        
+
         # Verify that subscription tracking is working properly
         assert subscription_count == 1, f"Expected 1 subscription, got {subscription_count}"
