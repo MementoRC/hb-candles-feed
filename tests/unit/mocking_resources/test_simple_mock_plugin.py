@@ -217,6 +217,7 @@ class TestMockedPlugin:
 
         # Call the method under test in a task so we can inspect state while it's running
         import asyncio
+
         handler_task = asyncio.create_task(self.plugin.handle_websocket(mock_server, mock_request))
 
         # Wait for the message to be processed and subscription to be added
@@ -282,7 +283,9 @@ class TestMockedPlugin:
 
         # 4. Verify server state (subscription tracking)
         # Subscription key uses the normalized pair ("BTC-USDT")
-        assert subscription_exists, f"Subscription key {subscription_key} was not found in server.subscriptions"
+        assert subscription_exists, (
+            f"Subscription key {subscription_key} was not found in server.subscriptions"
+        )
 
         # Verify that subscription tracking is working properly
         assert subscription_count == 1, f"Expected 1 subscription, got {subscription_count}"
