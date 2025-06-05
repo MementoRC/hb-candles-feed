@@ -87,10 +87,28 @@ class TestCandlesFeedIntegration:
             feed._adapter._bypass_network_selection = True
             logging.info("TestnetSupportMixin detected, enabling bypass mode")
 
-        # For Binance adapters, modify class methods as they are defined as @staticmethod
-        adapter_class._get_rest_url = lambda cls=None: mock_server.rest_url_override
+        # For Binance adapters, modify class methods preserving their original signature
+        # Check if methods are static methods or instance methods using inspect
+        import inspect
+
+        # Handle REST URL method
+        rest_static = isinstance(
+            inspect.getattr_static(adapter_class, "_get_rest_url"), staticmethod
+        )
+        if rest_static:
+            adapter_class._get_rest_url = lambda: mock_server.rest_url_override
+        else:
+            adapter_class._get_rest_url = lambda self: mock_server.rest_url_override
+
+        # Handle WebSocket URL method
         if hasattr(adapter_class, "_get_ws_url"):
-            adapter_class._get_ws_url = lambda cls=None: mock_server.ws_url_override
+            ws_static = isinstance(
+                inspect.getattr_static(adapter_class, "_get_ws_url"), staticmethod
+            )
+            if ws_static:
+                adapter_class._get_ws_url = lambda: mock_server.ws_url_override
+            else:
+                adapter_class._get_ws_url = lambda self: mock_server.ws_url_override
 
         return original_methods
 

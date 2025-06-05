@@ -309,9 +309,9 @@ class TestBinanceSpotAdapter:
 
         # Validate candles
         assert len(candles) > 0, "Should fetch at least one candle"
-        assert all(
-            isinstance(candle, CandleData) for candle in candles
-        ), "All should be CandleData objects"
+        assert all(isinstance(candle, CandleData) for candle in candles), (
+            "All should be CandleData objects"
+        )
 
         # Verify candle structure
         first_candle = candles[0]
@@ -390,9 +390,9 @@ class TestBinanceSpotAdapter:
                 time_diff = candles[1].timestamp - candles[0].timestamp
                 expected_seconds = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600}
                 # Allow some tolerance for timing
-                assert (
-                    abs(time_diff - expected_seconds[interval]) <= 10
-                ), f"Interval {interval} timing should be consistent"
+                assert abs(time_diff - expected_seconds[interval]) <= 10, (
+                    f"Interval {interval} timing should be consistent"
+                )
 
             logger.info(f"  Binance {interval}: Fetched {len(candles)} candles")
 
@@ -415,9 +415,9 @@ class TestBinanceSpotAdapter:
             )
         except Exception as e:
             # Should be a handled exception, not a crash
-            assert isinstance(
-                e, (ConnectionError, TimeoutError, Exception)
-            ), "Should be a handled exception"
+            assert isinstance(e, (ConnectionError, TimeoutError, Exception)), (
+                "Should be a handled exception"
+            )
             logger.info(f"  Binance error handled gracefully: {type(e).__name__}")
 
         # The fixture's teardown will handle restarting/stopping the server cleanly for subsequent tests.
@@ -513,9 +513,9 @@ class TestCoinbaseAdvancedTradeAdapter:
         candles = await coinbase_candles_feed.fetch_candles(limit=20)
 
         assert len(candles) > 0, "Should fetch candles from Coinbase"
-        assert all(
-            isinstance(candle, CandleData) for candle in candles
-        ), "All should be CandleData objects"
+        assert all(isinstance(candle, CandleData) for candle in candles), (
+            "All should be CandleData objects"
+        )
 
         # Verify Coinbase-specific data quality
         for candle in candles[:3]:  # Check first few candles
@@ -586,9 +586,9 @@ class TestCoinbaseAdvancedTradeAdapter:
             try:
                 await coinbase_candles_feed.fetch_candles(limit=10)
             except Exception as e:
-                assert "Rate limit" in str(e) or isinstance(
-                    e, Exception
-                ), "Should handle rate limit errors"
+                assert "Rate limit" in str(e) or isinstance(e, Exception), (
+                    "Should handle rate limit errors"
+                )
                 logger.info("  Coinbase rate limit error handled")
 
 
@@ -659,9 +659,9 @@ class TestBybitSpotAdapter:
         candles = await bybit_candles_feed.fetch_candles(limit=15)
 
         assert len(candles) > 0, "Should fetch candles from Bybit"
-        assert all(
-            isinstance(candle, CandleData) for candle in candles
-        ), "All should be CandleData objects"
+        assert all(isinstance(candle, CandleData) for candle in candles), (
+            "All should be CandleData objects"
+        )
 
         # Verify Bybit data structure
         first_candle = candles[0]
@@ -683,10 +683,10 @@ class TestBybitSpotAdapter:
         with patch.object(adapter_class, "_get_ws_url", return_value=mock_ws_url):
             # Start WebSocket strategy
             await bybit_candles_feed.start(strategy="websocket")
-            
+
             # Wait briefly for connection and potential data
             await asyncio.sleep(1.0)
-            
+
             # Attempt to fetch some candles to verify the stream is working
             # This tests that the WebSocket connection was established successfully
             try:
@@ -696,7 +696,7 @@ class TestBybitSpotAdapter:
             except Exception as e:
                 # WebSocket connectivity issues are acceptable for this test
                 logger.info(f"Bybit WebSocket test: Connection test completed ({type(e).__name__})")
-            
+
             await bybit_candles_feed.stop()
 
         # The test passes if the WebSocket strategy can be started and stopped without crashing
@@ -814,17 +814,17 @@ class TestCrossAdapterCompatibility:
 
                 # All should be CandleData instances
                 assert isinstance(candle, CandleData), f"{adapter_name} should return CandleData"
-                assert type(candle) is type(
-                    reference_candle
-                ), "All adapters should return same type"
+                assert type(candle) is type(reference_candle), (
+                    "All adapters should return same type"
+                )
 
                 # All should have same common attributes
                 common_attrs = ["timestamp", "open", "high", "low", "close", "volume"]
                 for attr in common_attrs:
                     assert hasattr(candle, attr), f"{adapter_name} candle missing attribute: {attr}"
-                    assert (
-                        getattr(candle, attr) is not None
-                    ), f"{adapter_name} candle attribute {attr} is None"
+                    assert getattr(candle, attr) is not None, (
+                        f"{adapter_name} candle attribute {attr} is None"
+                    )
 
                 logger.info(f"  {adapter_name} format matches {reference_adapter}")
 
@@ -970,9 +970,9 @@ class TestCrossAdapterCompatibility:
                             )
                         except Exception as e:
                             # Should be a handled exception, not a crash
-                            assert isinstance(
-                                e, Exception
-                            ), f"{exchange} should handle errors gracefully"
+                            assert isinstance(e, Exception), (
+                                f"{exchange} should handle errors gracefully"
+                            )
                             logger.info(f"  {exchange}: Error handled - {type(e).__name__} - {e}")
 
                 await server.stop()
