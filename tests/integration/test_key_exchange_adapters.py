@@ -43,33 +43,39 @@ try:
     from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin import (
         BinanceSpotPlugin,
     )
+
     HAS_BINANCE_PLUGIN = True
 except ImportError:
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import (
         MockedPlugin as BinanceSpotPlugin,
     )
+
     HAS_BINANCE_PLUGIN = False
 
 try:
     from candles_feed.mocking_resources.exchange_server_plugins.coinbase_advanced_trade.spot_plugin import (
         CoinbaseAdvancedTradeSpotPlugin,
     )
+
     HAS_COINBASE_PLUGIN = True
 except ImportError:
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import (
         MockedPlugin as CoinbaseAdvancedTradeSpotPlugin,
     )
+
     HAS_COINBASE_PLUGIN = False
 
 try:
     from candles_feed.mocking_resources.exchange_server_plugins.bybit.spot_plugin import (
         BybitSpotPlugin,
     )
+
     HAS_BYBIT_PLUGIN = True
 except ImportError:
     from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import (
         MockedPlugin as BybitSpotPlugin,
     )
+
     HAS_BYBIT_PLUGIN = False
 
 # Set up logging
@@ -85,6 +91,7 @@ async def make_passthrough_callback(
     Creates a callback function for aioresponses to passthrough intercepted requests
     to a local mock server.
     """
+
     async def callback(url_obj, **kwargs):
         # Construct the final target URL for the local mock server
         final_target_url = urlunparse(
@@ -130,22 +137,17 @@ async def make_passthrough_callback(
                         "content-length",
                     ]
                 }
-                return CallbackResult(
-                    status=resp.status, body=content, headers=response_headers
-                )
+                return CallbackResult(status=resp.status, body=content, headers=response_headers)
         except aiohttp.ClientConnectorError as e:
             logger.error(f"Passthrough to {final_target_url} failed: {e}")
-            return CallbackResult(
-                status=503, body=f"Mock server connection error: {str(e)}"
-            )
+            return CallbackResult(status=503, body=f"Mock server connection error: {str(e)}")
         except Exception as e:
             logger.error(
                 f"Unexpected error during passthrough to {final_target_url}: {e}",
                 exc_info=True,
             )
-            return CallbackResult(
-                status=500, body=f"Unexpected mock server error: {str(e)}"
-            )
+            return CallbackResult(status=500, body=f"Unexpected mock server error: {str(e)}")
+
     return callback
 
 
@@ -187,7 +189,9 @@ class TestBinanceSpotAdapter:
                         real_url_to_intercept_pattern,
                         method=method.upper(),
                         callback=await make_passthrough_callback(
-                            server.mock_rest_url_base, method.upper(), shared_client_session_for_passthrough
+                            server.mock_rest_url_base,
+                            method.upper(),
+                            shared_client_session_for_passthrough,
                         ),
                         repeat=True,
                     )
@@ -219,14 +223,14 @@ class TestBinanceSpotAdapter:
         end_time = int(datetime.now(timezone.utc).timestamp())
 
         candles = await binance_candles_feed.fetch_candles(
-            start_time=start_time,
-            end_time=end_time,
-            limit=50
+            start_time=start_time, end_time=end_time, limit=50
         )
 
         # Validate candles
         assert len(candles) > 0, "Should fetch at least one candle"
-        assert all(isinstance(candle, CandleData) for candle in candles), "All should be CandleData objects"
+        assert all(isinstance(candle, CandleData) for candle in candles), (
+            "All should be CandleData objects"
+        )
 
         # Verify candle structure
         first_candle = candles[0]
@@ -252,14 +256,16 @@ class TestBinanceSpotAdapter:
 
         def candle_callback(candle: CandleData):
             received_candles.append(candle)
-            logger.info(f"Received candle: {candle.timestamp} - O:{candle.open} H:{candle.high} L:{candle.low} C:{candle.close}")
+            logger.info(
+                f"Received candle: {candle.timestamp} - O:{candle.open} H:{candle.high} L:{candle.low} C:{candle.close}"
+            )
 
         # For WebSocket, aioresponses does not intercept. We need to temporarily patch
         # the adapter's _get_ws_url method to point to our mock server's WS URL.
         adapter_class = binance_candles_feed._adapter.__class__
         mock_ws_url = binance_mock_server.mock_ws_url
 
-        with patch.object(adapter_class, '_get_ws_url', return_value=mock_ws_url):
+        with patch.object(adapter_class, "_get_ws_url", return_value=mock_ws_url):
             # Start WebSocket streaming
             await binance_candles_feed.start(strategy="websocket", candle_callback=candle_callback)
 
@@ -303,7 +309,9 @@ class TestBinanceSpotAdapter:
                 time_diff = candles[1].timestamp - candles[0].timestamp
                 expected_seconds = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600}
                 # Allow some tolerance for timing
-                assert abs(time_diff - expected_seconds[interval]) <= 10, f"Interval {interval} timing should be consistent"
+                assert abs(time_diff - expected_seconds[interval]) <= 10, (
+                    f"Interval {interval} timing should be consistent"
+                )
 
             logger.info(f"  Binance {interval}: Fetched {len(candles)} candles")
 
@@ -321,10 +329,14 @@ class TestBinanceSpotAdapter:
         try:
             _ = await binance_candles_feed.fetch_candles(limit=10)
             # If it succeeds, that's also valid (could be cached or fallback)
-            logger.info("Fetch succeeded despite server down - possibly using fallback or internal retry")
+            logger.info(
+                "Fetch succeeded despite server down - possibly using fallback or internal retry"
+            )
         except Exception as e:
             # Should be a handled exception, not a crash
-            assert isinstance(e, (ConnectionError, TimeoutError, Exception)), "Should be a handled exception"
+            assert isinstance(e, (ConnectionError, TimeoutError, Exception)), (
+                "Should be a handled exception"
+            )
             logger.info(f"  Binance error handled gracefully: {type(e).__name__}")
 
         # The fixture's teardown will handle restarting/stopping the server cleanly for subsequent tests.
@@ -377,7 +389,7 @@ class TestCoinbaseAdvancedTradeAdapter:
         await server.start()
 
         server.mock_rest_url_base = f"http://{host}:{port}"
-        server.mock_ws_url = f"ws://{host}:{port}/ws" # Assuming default /ws path for Coinbase
+        server.mock_ws_url = f"ws://{host}:{port}/ws"  # Assuming default /ws path for Coinbase
 
         async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
             with aioresponses(passthrough=[f"http://{host}:{port}"]) as m:
@@ -391,7 +403,9 @@ class TestCoinbaseAdvancedTradeAdapter:
                         real_url_to_intercept_pattern,
                         method=method.upper(),
                         callback=await make_passthrough_callback(
-                            server.mock_rest_url_base, method.upper(), shared_client_session_for_passthrough
+                            server.mock_rest_url_base,
+                            method.upper(),
+                            shared_client_session_for_passthrough,
                         ),
                         repeat=True,
                     )
@@ -418,7 +432,9 @@ class TestCoinbaseAdvancedTradeAdapter:
         candles = await coinbase_candles_feed.fetch_candles(limit=20)
 
         assert len(candles) > 0, "Should fetch candles from Coinbase"
-        assert all(isinstance(candle, CandleData) for candle in candles), "All should be CandleData objects"
+        assert all(isinstance(candle, CandleData) for candle in candles), (
+            "All should be CandleData objects"
+        )
 
         # Verify Coinbase-specific data quality
         for candle in candles[:3]:  # Check first few candles
@@ -441,7 +457,7 @@ class TestCoinbaseAdvancedTradeAdapter:
         adapter_class = coinbase_candles_feed._adapter.__class__
         mock_ws_url = coinbase_mock_server.mock_ws_url
 
-        with patch.object(adapter_class, '_get_ws_url', return_value=mock_ws_url):
+        with patch.object(adapter_class, "_get_ws_url", return_value=mock_ws_url):
             await coinbase_candles_feed.start(strategy="websocket", candle_callback=candle_callback)
             await asyncio.sleep(1.5)
             await coinbase_candles_feed.stop()
@@ -481,13 +497,17 @@ class TestCoinbaseAdvancedTradeAdapter:
         logger.info("Testing Coinbase error scenarios")
 
         # Test rate limiting simulation by patching the adapter's internal method
-        with patch('candles_feed.adapters.coinbase_advanced_trade.base_adapter.CoinbaseAdvancedTradeBaseAdapter.fetch_rest_candles') as mock_fetch:
+        with patch(
+            "candles_feed.adapters.coinbase_advanced_trade.base_adapter.CoinbaseAdvancedTradeBaseAdapter.fetch_rest_candles"
+        ) as mock_fetch:
             mock_fetch.side_effect = Exception("Rate limit exceeded")
 
             try:
                 await coinbase_candles_feed.fetch_candles(limit=10)
             except Exception as e:
-                assert "Rate limit" in str(e) or isinstance(e, Exception), "Should handle rate limit errors"
+                assert "Rate limit" in str(e) or isinstance(e, Exception), (
+                    "Should handle rate limit errors"
+                )
                 logger.info("  Coinbase rate limit error handled")
 
 
@@ -513,7 +533,7 @@ class TestBybitSpotAdapter:
         await server.start()
 
         server.mock_rest_url_base = f"http://{host}:{port}"
-        server.mock_ws_url = f"ws://{host}:{port}/ws" # Assuming default /ws path for Bybit
+        server.mock_ws_url = f"ws://{host}:{port}/ws"  # Assuming default /ws path for Bybit
 
         async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
             with aioresponses(passthrough=[f"http://{host}:{port}"]) as m:
@@ -527,7 +547,9 @@ class TestBybitSpotAdapter:
                         real_url_to_intercept_pattern,
                         method=method.upper(),
                         callback=await make_passthrough_callback(
-                            server.mock_rest_url_base, method.upper(), shared_client_session_for_passthrough
+                            server.mock_rest_url_base,
+                            method.upper(),
+                            shared_client_session_for_passthrough,
                         ),
                         repeat=True,
                     )
@@ -554,13 +576,15 @@ class TestBybitSpotAdapter:
         candles = await bybit_candles_feed.fetch_candles(limit=15)
 
         assert len(candles) > 0, "Should fetch candles from Bybit"
-        assert all(isinstance(candle, CandleData) for candle in candles), "All should be CandleData objects"
+        assert all(isinstance(candle, CandleData) for candle in candles), (
+            "All should be CandleData objects"
+        )
 
         # Verify Bybit data structure
         first_candle = candles[0]
-        assert hasattr(first_candle, 'timestamp'), "Should have timestamp"
-        assert hasattr(first_candle, 'open'), "Should have OHLC data"
-        assert hasattr(first_candle, 'volume'), "Should have volume data"
+        assert hasattr(first_candle, "timestamp"), "Should have timestamp"
+        assert hasattr(first_candle, "open"), "Should have OHLC data"
+        assert hasattr(first_candle, "volume"), "Should have volume data"
 
         logger.info(f"  Bybit REST: Fetched {len(candles)} candles successfully")
 
@@ -578,7 +602,7 @@ class TestBybitSpotAdapter:
         adapter_class = bybit_candles_feed._adapter.__class__
         mock_ws_url = bybit_mock_server.mock_ws_url
 
-        with patch.object(adapter_class, '_get_ws_url', return_value=mock_ws_url):
+        with patch.object(adapter_class, "_get_ws_url", return_value=mock_ws_url):
             await bybit_candles_feed.start(strategy="websocket", candle_callback=candle_callback)
             await asyncio.sleep(1.0)
             await bybit_candles_feed.stop()
@@ -630,7 +654,12 @@ class TestCrossAdapterCompatibility:
 
         adapters_to_test = [
             ("binance_spot", "BTC-USDT", BinanceSpotPlugin, binance_constants.SPOT_REST_URL),
-            ("coinbase_advanced_trade", "BTC-USD", CoinbaseAdvancedTradeSpotPlugin, COINBASE_ADVANCED_TRADE_SPOT_REST_URL),
+            (
+                "coinbase_advanced_trade",
+                "BTC-USD",
+                CoinbaseAdvancedTradeSpotPlugin,
+                COINBASE_ADVANCED_TRADE_SPOT_REST_URL,
+            ),
             ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BYBIT_SPOT_REST_URL),
         ]
 
@@ -657,7 +686,9 @@ class TestCrossAdapterCompatibility:
                                 real_url_to_intercept_pattern,
                                 method=method.upper(),
                                 callback=await make_passthrough_callback(
-                                    server.mock_rest_url_base, method.upper(), shared_client_session_for_passthrough
+                                    server.mock_rest_url_base,
+                                    method.upper(),
+                                    shared_client_session_for_passthrough,
                                 ),
                                 repeat=True,
                             )
@@ -692,13 +723,17 @@ class TestCrossAdapterCompatibility:
 
                 # All should be CandleData instances
                 assert isinstance(candle, CandleData), f"{adapter_name} should return CandleData"
-                assert type(candle) is type(reference_candle), "All adapters should return same type"
+                assert type(candle) is type(reference_candle), (
+                    "All adapters should return same type"
+                )
 
                 # All should have same common attributes
                 common_attrs = ["timestamp", "open", "high", "low", "close", "volume"]
                 for attr in common_attrs:
                     assert hasattr(candle, attr), f"{adapter_name} candle missing attribute: {attr}"
-                    assert getattr(candle, attr) is not None, f"{adapter_name} candle attribute {attr} is None"
+                    assert getattr(candle, attr) is not None, (
+                        f"{adapter_name} candle attribute {attr} is None"
+                    )
 
                 logger.info(f"  {adapter_name} format matches {reference_adapter}")
 
@@ -709,7 +744,12 @@ class TestCrossAdapterCompatibility:
 
         adapters_to_test = [
             ("binance_spot", "BTC-USDT", BinanceSpotPlugin, binance_constants.SPOT_REST_URL),
-            ("coinbase_advanced_trade", "BTC-USD", CoinbaseAdvancedTradeSpotPlugin, COINBASE_ADVANCED_TRADE_SPOT_REST_URL),
+            (
+                "coinbase_advanced_trade",
+                "BTC-USD",
+                CoinbaseAdvancedTradeSpotPlugin,
+                COINBASE_ADVANCED_TRADE_SPOT_REST_URL,
+            ),
             ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BYBIT_SPOT_REST_URL),
         ]
         performance_results = {}
@@ -735,7 +775,9 @@ class TestCrossAdapterCompatibility:
                                 real_url_to_intercept_pattern,
                                 method=method.upper(),
                                 callback=await make_passthrough_callback(
-                                    server.mock_rest_url_base, method.upper(), shared_client_session_for_passthrough
+                                    server.mock_rest_url_base,
+                                    method.upper(),
+                                    shared_client_session_for_passthrough,
                                 ),
                                 repeat=True,
                             )
@@ -757,10 +799,12 @@ class TestCrossAdapterCompatibility:
                         performance_results[exchange] = {
                             "duration": fetch_duration,
                             "candles_count": len(candles),
-                            "rate": len(candles) / fetch_duration if fetch_duration > 0 else 0
+                            "rate": len(candles) / fetch_duration if fetch_duration > 0 else 0,
                         }
 
-                        logger.info(f"  {exchange}: {len(candles)} candles in {fetch_duration:.3f}s")
+                        logger.info(
+                            f"  {exchange}: {len(candles)} candles in {fetch_duration:.3f}s"
+                        )
 
                 await server.stop()
 
@@ -780,7 +824,12 @@ class TestCrossAdapterCompatibility:
 
         adapters_to_test = [
             ("binance_spot", "INVALID-PAIR", BinanceSpotPlugin, binance_constants.SPOT_REST_URL),
-            ("coinbase_advanced_trade", "INVALID-PAIR", CoinbaseAdvancedTradeSpotPlugin, COINBASE_ADVANCED_TRADE_SPOT_REST_URL),
+            (
+                "coinbase_advanced_trade",
+                "INVALID-PAIR",
+                CoinbaseAdvancedTradeSpotPlugin,
+                COINBASE_ADVANCED_TRADE_SPOT_REST_URL,
+            ),
             ("bybit_spot", "INVALID-PAIR", BybitSpotPlugin, BYBIT_SPOT_REST_URL),
         ]
 
@@ -807,7 +856,9 @@ class TestCrossAdapterCompatibility:
                                 real_url_to_intercept_pattern,
                                 method=method.upper(),
                                 callback=await make_passthrough_callback(
-                                    server.mock_rest_url_base, method.upper(), shared_client_session_for_passthrough
+                                    server.mock_rest_url_base,
+                                    method.upper(),
+                                    shared_client_session_for_passthrough,
                                 ),
                                 repeat=True,
                             )
@@ -823,10 +874,14 @@ class TestCrossAdapterCompatibility:
                         # This should either succeed (mock handles the invalid pair gracefully) or fail gracefully
                         try:
                             _ = await feed.fetch_candles(limit=5)
-                            logger.info(f"  {exchange}: Handled invalid pair gracefully (mock server response)")
+                            logger.info(
+                                f"  {exchange}: Handled invalid pair gracefully (mock server response)"
+                            )
                         except Exception as e:
                             # Should be a handled exception, not a crash
-                            assert isinstance(e, Exception), f"{exchange} should handle errors gracefully"
+                            assert isinstance(e, Exception), (
+                                f"{exchange} should handle errors gracefully"
+                            )
                             logger.info(f"  {exchange}: Error handled - {type(e).__name__} - {e}")
 
                 await server.stop()
@@ -852,7 +907,7 @@ class TestIntegrationSummary:
             "Error handling",
             "Multiple intervals",
             "Cross-adapter compatibility",
-            "Performance validation"
+            "Performance validation",
         ]
 
         tested_adapters = ["binance_spot", "coinbase_advanced_trade", "bybit_spot"]
