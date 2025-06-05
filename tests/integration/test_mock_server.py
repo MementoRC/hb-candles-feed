@@ -231,8 +231,8 @@ class TestMockServer:
         # Set moderate error conditions to make the test more reliable
         standalone_mock_server.set_network_conditions(
             latency_ms=50,
-            packet_loss_rate=0.3,  # 30% packet loss
-            error_rate=0.3,  # 30% error responses
+            packet_loss_rate=0.2,  # 20% packet loss
+            error_rate=0.2,  # 20% error responses
         )
 
         # Test with error conditions
@@ -240,8 +240,8 @@ class TestMockServer:
             success_count = 0
             error_count = 0
 
-            # Make multiple requests to test error scenarios
-            for _ in range(10):
+            # Make more requests to reduce flakiness
+            for _ in range(20):
                 try:
                     async with session.get(
                         f"{mock_server_url}/api/v3/klines",
@@ -259,9 +259,10 @@ class TestMockServer:
 
                 await asyncio.sleep(0.1)
 
-            # With 50% error rate, we expect some requests to succeed and some to fail
-            assert success_count > 0, "All requests failed, but some should succeed"
-            assert error_count > 0, "All requests succeeded, but some should fail"
+            # With 20% error rate and 20 requests, we expect some requests to succeed and some to fail
+            # Allow for some flexibility in a CI environment
+            assert success_count > 0, f"All {error_count} requests failed, but some should succeed with 20% error rate"
+            assert error_count > 0, f"All {success_count} requests succeeded, but some should fail with 20% error rate"
 
         # Reset network conditions
         standalone_mock_server.set_network_conditions(
