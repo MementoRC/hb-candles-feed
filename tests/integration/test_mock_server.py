@@ -261,8 +261,12 @@ class TestMockServer:
 
             # With 20% error rate and 20 requests, we expect some requests to succeed and some to fail
             # Allow for some flexibility in a CI environment
-            assert success_count > 0, f"All {error_count} requests failed, but some should succeed with 20% error rate"
-            assert error_count > 0, f"All {success_count} requests succeeded, but some should fail with 20% error rate"
+            assert success_count > 0, (
+                f"All {error_count} requests failed, but some should succeed with 20% error rate"
+            )
+            assert error_count > 0, (
+                f"All {success_count} requests succeeded, but some should fail with 20% error rate"
+            )
 
         # Reset network conditions
         standalone_mock_server.set_network_conditions(
