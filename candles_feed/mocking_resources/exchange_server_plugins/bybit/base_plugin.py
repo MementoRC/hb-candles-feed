@@ -36,6 +36,31 @@ class BybitBasePlugin(ExchangePlugin, ABC):
         """
         super().__init__(exchange_type, adapter_class)
 
+    @staticmethod
+    def _interval_to_seconds(interval: str) -> int:
+        """
+        Convert interval string to seconds.
+
+        :param interval: The interval string.
+        :returns: The interval in seconds.
+        :raises ValueError: If the interval unit is unknown.
+        """
+        unit = interval[-1]
+        value = int(interval[:-1])
+
+        if unit == "s":
+            return value
+        elif unit == "m":
+            return value * 60
+        elif unit == "h":
+            return value * 60 * 60
+        elif unit == "d":
+            return value * 24 * 60 * 60
+        elif unit == "w":
+            return value * 7 * 24 * 60 * 60
+        else:
+            raise ValueError(f"Unknown interval unit: {unit}")
+
     @property
     def rest_url(self) -> str:
         """
@@ -274,3 +299,138 @@ class BybitBasePlugin(ExchangePlugin, ABC):
                 "time": int(server._time() * 1000),
             }
         )
+
+    async def handle_klines(self, server, request):
+        """
+        Handle candle data request for Bybit.
+
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: JSON response with candle data.
+        """
+        await server._simulate_network_conditions()
+
+        client_ip = request.remote
+        if not server._check_rate_limit(client_ip, "rest"):
+            return web.json_response(
+                {"retCode": 10004, "retMsg": "Rate limit exceeded"}, status=429
+            )
+
+        # Parse parameters using our plugin method
+        params = self.parse_rest_candles_params(request)
+
+        symbol = params.get("symbol")
+        interval = params.get("interval")
+        start_time = params.get("start_time")
+        end_time = params.get("end_time")
+        limit = params.get("limit", 200)
+
+        if not symbol or not interval:
+            return web.json_response(
+                {"retCode": 10001, "retMsg": "Missing required parameters"}, status=400
+            )
+
+        # Find the trading pair in our list (convert BTCUSDT to BTC-USDT)
+        trading_pair = None
+        for pair in server.candles:
+            if pair.replace("-", "") == symbol:
+                trading_pair = pair
+                break
+
+        if not trading_pair:
+            return web.json_response(
+                {"retCode": 10001, "retMsg": f"Invalid symbol: {symbol}"}, status=400
+            )
+
+        # Convert exchange format interval back to standard format
+        standard_interval = None
+        for std_int, exch_int in INTERVAL_TO_EXCHANGE_FORMAT.items():
+            if exch_int == interval:
+                standard_interval = std_int
+                break
+
+        if not standard_interval:
+            return web.json_response(
+                {"retCode": 10001, "retMsg": f"Invalid interval: {interval}"}, status=400
+            )
+
+        # Check if we have this interval
+        if standard_interval not in server.candles.get(trading_pair, {}):
+            return web.json_response(
+                {"retCode": 10001, "retMsg": f"Invalid interval: {standard_interval}"}, status=400
+            )
+
+        # Get the candles using the standard interval format
+        candles = server.candles[trading_pair][standard_interval]
+
+        # Filter by time if specified
+        if start_time:
+            start_time = int(start_time)
+            candles = [c for c in candles if c.timestamp_ms >= start_time]
+
+        if end_time:
+            end_time = int(end_time)
+            candles = [c for c in candles if c.timestamp_ms <= end_time]
+
+        # Apply limit
+        candles = candles[-limit:] if limit > 0 else candles
+
+        # Format response using our plugin method
+        response = self.format_rest_candles(candles, trading_pair, standard_interval)
+        return web.json_response(response)
+
+    async def handle_instruments(self, server, request):
+        """
+        Handle instruments info request for Bybit.
+
+        :param server: The mock server instance.
+        :param request: The web request.
+        :returns: JSON response with instruments info.
+        """
+        await server._simulate_network_conditions()
+
+        client_ip = request.remote
+        if not server._check_rate_limit(client_ip, "rest"):
+            return web.json_response(
+                {"retCode": 10004, "retMsg": "Rate limit exceeded"}, status=429
+            )
+
+        # Create instruments info from our trading pairs
+        instruments = []
+        for trading_pair in server.candles:
+            symbol = trading_pair.replace("-", "")
+            instruments.append(
+                {
+                    "symbol": symbol,
+                    "baseCoin": trading_pair.split("-")[0],
+                    "quoteCoin": trading_pair.split("-")[1],
+                    "status": "Trading",
+                    "minOrderQty": "0.001",
+                    "maxOrderQty": "1000000",
+                    "tickSize": "0.01",
+                    "priceScale": 2,
+                    "qtyScale": 3,
+                }
+            )
+
+        return web.json_response(
+            {
+                "retCode": 0,
+                "retMsg": "OK",
+                "result": {
+                    "category": "spot",
+                    "list": instruments,
+                },
+                "time": int(server._time() * 1000),
+            }
+        )
+
+    async def handle_websocket(self, server, websocket, path):
+        """
+        Handle WebSocket connection for Bybit.
+
+        :param server: The mock server instance.
+        :param websocket: The WebSocket connection.
+        :param path: The WebSocket path.
+        """
+        await server._handle_websocket_connection(websocket, self)
