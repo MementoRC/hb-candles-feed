@@ -60,6 +60,8 @@ nav:
       - Quick Start: getting_started/quick_start.md
       - Architecture: getting_started/architecture.md
       - Hummingbot Integration: getting_started/hummingbot_integration.md
+      - Migration Guide: getting_started/migration_guide.md
+      - Troubleshooting: getting_started/troubleshooting.md
       - Compatibility: getting_started/compatibility.md
   - Adapters:
       - Overview: adapters/overview.md
@@ -79,7 +81,12 @@ nav:
       - Simple Usage: examples/simple_usage.md
       - Binance Spot Example: examples/binance_spot_example.md
       - Mock Server Example: examples/mock_server_example.md
+      - Adapter Composition: examples/adapter_composition.md
+      - Hummingbot Integration: examples/hummingbot_integration.md
   - API Reference:
       - Core Components: api_reference/core.md
+      - Exchange Adapters: api_reference/adapters.md
+      - Mocking Resources: api_reference/mocking.md
   - Development:
       - Coding Standards: development/coding_standards.md
+      - Adapter Mixins: development/adapter_mixins.md
