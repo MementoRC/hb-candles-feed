@@ -37,6 +37,77 @@ async def cleanup_aiohttp_sessions():
     await cleanup_unclosed_sessions()
 
 
+# Add URL pollution prevention fixture
+@pytest.fixture(scope="function", autouse=True)
+def prevent_url_pollution():
+    """Prevent URL pollution between tests by preserving adapter class methods."""
+    # Store original methods for key adapter classes
+    original_methods = {}
+
+    # Try to import adapter classes - only process those that can be imported
+    adapter_classes = []
+
+    try:
+        from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+
+        adapter_classes.append(BinanceSpotAdapter)
+    except ImportError:
+        pass
+
+    try:
+        from candles_feed.adapters.binance.perpetual_adapter import BinancePerpetualAdapter
+
+        adapter_classes.append(BinancePerpetualAdapter)
+    except ImportError:
+        pass
+
+    # Store original methods along with their static/instance nature
+    import inspect
+
+    for adapter_class in adapter_classes:
+        if hasattr(adapter_class, "_get_rest_url"):
+            rest_method = adapter_class._get_rest_url
+            rest_is_static = isinstance(
+                inspect.getattr_static(adapter_class, "_get_rest_url"), staticmethod
+            )
+
+            ws_method = getattr(adapter_class, "_get_ws_url", None)
+            ws_is_static = False
+            if ws_method:
+                ws_is_static = isinstance(
+                    inspect.getattr_static(adapter_class, "_get_ws_url"), staticmethod
+                )
+
+            original_methods[adapter_class] = {
+                "rest_url": rest_method,
+                "rest_is_static": rest_is_static,
+                "ws_url": ws_method,
+                "ws_is_static": ws_is_static,
+            }
+
+    yield  # Run the test
+
+    # Restore original methods after the test, preserving static/instance nature
+    for adapter_class, methods in original_methods.items():
+        if "rest_url" in methods and methods["rest_url"]:
+            rest_method = methods["rest_url"]
+            if methods.get("rest_is_static", False):
+                # Restore as static method
+                adapter_class._get_rest_url = staticmethod(rest_method)
+            else:
+                # Restore as instance method
+                adapter_class._get_rest_url = rest_method
+
+        if "ws_url" in methods and methods["ws_url"]:
+            ws_method = methods["ws_url"]
+            if methods.get("ws_is_static", False):
+                # Restore as static method
+                adapter_class._get_ws_url = staticmethod(ws_method)
+            else:
+                # Restore as instance method
+                adapter_class._get_ws_url = ws_method
+
+
 # Remove the custom event_loop fixture to avoid the deprecation warning
 # pytest-asyncio now provides this functionality natively
 

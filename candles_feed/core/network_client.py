@@ -5,10 +5,11 @@ Network communication client for the Candle Feed framework.
 import json
 import logging
 import weakref
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import aiohttp
 
+from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import Logger, WSAssistant
 
 # Global registry to track unclosed sessions for defensive cleanup
@@ -19,26 +20,58 @@ class NetworkClient:
     """Handles network communication with exchanges.
 
     This class provides methods for communicating with exchange APIs,
-    handling both REST and WebSocket connections.
+    handling both REST and WebSocket connections with optimized connection pooling.
     """
 
-    def __init__(self, logger: Logger | None = None):
+    def __init__(self, config: Optional[NetworkConfig] = None, logger: Logger | None = None):
         """Initialize the NetworkClient.
 
+        :param config: Network configuration for connection pooling and timeouts
         :param logger: Logger instance
         """
         self.logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
+        self.config = config or NetworkConfig()
         self._session: aiohttp.ClientSession | None = None
+        self._connector: aiohttp.TCPConnector | None = None
 
     async def _ensure_session(self):
-        """Ensure aiohttp session exists."""
+        """Ensure aiohttp session exists with optimized connection pooling."""
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
+            # Create optimized TCP connector for connection pooling
+            if self._connector is None or self._connector.closed:
+                self._connector = aiohttp.TCPConnector(
+                    limit=self.config.max_connections_per_host * 4,  # Total pool size
+                    limit_per_host=self.config.max_connections_per_host,
+                    keepalive_timeout=30,
+                    enable_cleanup_closed=True,
+                    ttl_dns_cache=300,  # DNS cache for 5 minutes
+                    use_dns_cache=True,
+                )
+
+            # Create timeout configuration
+            timeout = aiohttp.ClientTimeout(
+                total=self.config.rest_api_timeout,
+                connect=min(10.0, self.config.rest_api_timeout / 2),
+                sock_read=self.config.rest_api_timeout,
+                sock_connect=min(5.0, self.config.rest_api_timeout / 4),
+            )
+
+            # Create session with optimized settings
+            self._session = aiohttp.ClientSession(
+                connector=self._connector,
+                timeout=timeout,
+                headers={
+                    "User-Agent": "Candles-Feed/1.0",
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip, deflate",
+                },
+            )
+
             # Track session for defensive cleanup
             _ACTIVE_SESSIONS.add(self._session)
 
     async def close(self):
-        """Close the client session.
+        """Close the client session and connector.
 
         Should be called when the network client is no longer needed
         to properly clean up resources.
@@ -48,6 +81,10 @@ class NetworkClient:
             # Remove from tracking set if still there
             _ACTIVE_SESSIONS.discard(self._session)
             self._session = None
+
+        if self._connector and not self._connector.closed:
+            await self._connector.close()
+            self._connector = None
 
     async def __aenter__(self):
         """Async context manager enter method."""
@@ -100,6 +137,25 @@ class NetworkClient:
         except Exception as e:
             self.logger.error(f"REST request failed: {e}")
             raise
+
+    def get_connection_pool_stats(self) -> dict[str, Any]:
+        """Get connection pool statistics for performance monitoring.
+
+        :return: Dictionary with connection pool statistics
+        """
+        if not self._connector:
+            return {"status": "not_initialized"}
+
+        stats = {
+            "total_connections": len(self._connector._conns),
+            "available_connections": sum(len(conns) for conns in self._connector._conns.values()),
+            "connector_closed": self._connector.closed,
+            "keepalive_timeout": getattr(self._connector, "_keepalive_timeout", None),
+            "limit": getattr(self._connector, "_limit", None),
+            "limit_per_host": getattr(self._connector, "_limit_per_host", None),
+        }
+
+        return stats
 
     async def establish_ws_connection(self, url: str) -> WSAssistant:
         """Establish a websocket connection.
