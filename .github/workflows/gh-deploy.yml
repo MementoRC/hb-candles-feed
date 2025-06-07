@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'docs/**'
-      - 'mkdocs.yml'
+      - '../../mkdocs.saved.yml'
       - '.github/workflows/docs.yml'
 
 jobs:

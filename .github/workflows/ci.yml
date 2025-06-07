@@ -15,29 +15,28 @@ jobs:
         python-version: ["3.10"]
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          auto-update-conda: true
-          auto-activate-base: true
-      
-      - name: Install dependencies
-        run: |
-          conda install -c conda-forge hatch
 
-      - name: Run tests
-        run: |
-          hatch run test
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
 
-      - name: Run coverage
+      - name: Install project dependencies (using Pixi)
         run: |
-          hatch run test --cov=candles-feed
+          pixi install # This will install dependencies based on pyproject.toml and create/use pixi.lock
+          pixi run pip install -e .
+
+      - name: Run unit tests with coverage
+        run: |
+          # Run unit tests first to avoid URL patching pollution from integration tests
+          pixi run pytest tests -m "not integration" --cov=candles_feed --cov-report=xml:coverage.xml
+          
+      - name: Run integration tests separately
+        run: |
+          # Run integration tests separately to prevent URL patching pollution
+          pixi run pytest tests -m "integration" --cov=candles_feed --cov-append
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -49,26 +48,23 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: "3.10"
-          auto-update-conda: true
-          auto-activate-base: true
-      
-      - name: Install dependencies
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+
+      - name: Install project dependencies (using Pixi)
         run: |
-          conda install -c conda-forge hatch
+          pixi install # This will install dependencies based on pyproject.toml
+          pixi run pip install -e .
 
       - name: Format and lint with ruff
         run: |
-          hatch run CI:check
+          pixi run ci-check
 
       - name: Type check with mypy
         run: |
-          hatch run CI:hints
+          pixi run ci-hints

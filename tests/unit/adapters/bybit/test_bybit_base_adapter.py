@@ -2,31 +2,26 @@
 Unit tests for the BybitBaseAdapter class.
 """
 
-from unittest.mock import MagicMock
-
-import pytest
-
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
-    CANDLES_ENDPOINT,
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    REST_URL,
+    SPOT_CANDLES_ENDPOINT,
+    SPOT_REST_URL,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
 class ConcreteBybitAdapter(BybitBaseAdapter):
     """Concrete implementation of BybitBaseAdapter for testing."""
 
     @staticmethod
-    def get_rest_url() -> str:
-        return f"{REST_URL}{CANDLES_ENDPOINT}"
-        
+    def _get_rest_url() -> str:
+        return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
+
     @staticmethod
-    def get_ws_url() -> str:
+    def _get_ws_url() -> str:
         return "wss://test.bybit.com/ws"
 
     def get_category_param(self) -> str | None:
@@ -55,11 +50,11 @@ class TestBybitBaseAdapter:
 
     def test_get_rest_url(self):
         """Test REST URL retrieval."""
-        assert ConcreteBybitAdapter.get_rest_url() == f"{REST_URL}{CANDLES_ENDPOINT}"
+        assert ConcreteBybitAdapter._get_rest_url() == f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+        params = self.adapter._get_rest_params(self.trading_pair, self.interval)
 
         assert params["symbol"] == "BTCUSDT"
         assert params["interval"] == INTERVAL_TO_EXCHANGE_FORMAT.get(self.interval, self.interval)
@@ -71,11 +66,10 @@ class TestBybitBaseAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
-        params = self.adapter.get_rest_params(
-            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time, limit=limit
         )
 
         assert params["symbol"] == "BTCUSDT"
@@ -83,11 +77,11 @@ class TestBybitBaseAdapter:
         assert params["limit"] == limit
         assert params["category"] == "test"  # From our concrete implementation
         assert params["start"] == start_time * 1000  # Should be in milliseconds
-        assert params["end"] == end_time * 1000  # Should be in milliseconds
+        assert "end" not in params
 
     def test_parse_rest_response(self, candlestick_response_bybit):
         """Test parsing REST API response."""
-        candles = self.adapter.parse_rest_response(candlestick_response_bybit)
+        candles = self.adapter._parse_rest_response(candlestick_response_bybit)
 
         # Verify response parsing
         assert len(candles) == 2
@@ -103,7 +97,7 @@ class TestBybitBaseAdapter:
 
     def test_parse_rest_response_none(self):
         """Test parsing None REST API response."""
-        candles = self.adapter.parse_rest_response(None)
+        candles = self.adapter._parse_rest_response(None)
         assert candles == []
 
     def test_get_ws_subscription_payload(self):

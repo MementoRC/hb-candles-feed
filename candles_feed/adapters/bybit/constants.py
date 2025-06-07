@@ -3,8 +3,8 @@ Common constants for Bybit adapters.
 """
 
 # API URLs - Common
-REST_URL = "https://api.bybit.com"
-CANDLES_ENDPOINT = "/v5/market/kline"
+SPOT_REST_URL = "https://api.bybit.com"
+SPOT_CANDLES_ENDPOINT = "/v5/market/kline"
 SERVER_TIME_ENDPOINT = "/v5/market/time"
 HEALTH_CHECK_ENDPOINT = SERVER_TIME_ENDPOINT
 
@@ -12,7 +12,9 @@ HEALTH_CHECK_ENDPOINT = SERVER_TIME_ENDPOINT
 SPOT_WSS_URL = "wss://stream.bybit.com/v5/public/spot"
 
 # API URLs - Perpetual
-PERP_WSS_URL = "wss://stream.bybit.com/v5/public/linear"
+PERPETUAL_REST_URL = "https://api.bybit.com"
+PERPETUAL_CANDLES_ENDPOINT = "/v5/market/kline"
+PERPETUAL_WSS_URL = "wss://stream.bybit.com/v5/public/linear"
 
 # API rate limits
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000

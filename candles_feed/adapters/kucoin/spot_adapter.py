@@ -2,14 +2,15 @@
 KuCoin spot exchange adapter for the Candle Feed framework.
 """
 
-from candles_feed.adapters.kucoin.constants import (
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.exchange_registry import ExchangeRegistry
+
+from .base_adapter import KucoinBaseAdapter
+from .constants import (
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
     SPOT_WSS_URL,
 )
-from candles_feed.adapters.kucoin.base_adapter import KucoinBaseAdapter
-from candles_feed.core.candle_data import CandleData
-from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
 @ExchangeRegistry.register("kucoin_spot")
@@ -17,37 +18,35 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
     """KuCoin spot exchange adapter."""
 
     @staticmethod
-    def get_rest_url() -> str:
+    def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
-        :return: REST API URL
+        :returns: REST API URL
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     @staticmethod
-    def get_ws_url() -> str:
-        """Get WebSocket URL.
+    def _get_ws_url() -> str:
+        """Get WebSocket URL (internal implementation).
 
-        :return: WebSocket URL
+        :returns: WebSocket URL
         """
         return SPOT_WSS_URL
 
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
-    ) -> dict[str, str | int]:
+        limit: int = 500,
+    ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
-        :return: Dictionary of parameters for REST API request
+        :returns: Dictionary of parameters for REST API request
         """
         # KuCoin uses startAt and endAt parameters with unix timestamps
         params: dict[str, str | int] = {"symbol": trading_pair, "type": interval}
@@ -55,19 +54,23 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         if start_time:
             params["startAt"] = self.convert_timestamp_to_exchange(start_time)
 
-        if end_time:
-            params["endAt"] = self.convert_timestamp_to_exchange(end_time)
-
-        if limit:
-            params["limit"] = limit
+        # KuCoin Spot API for klines does not seem to directly support a 'limit' parameter
+        # when 'startAt' and 'endAt' are used. It returns data within the range.
+        # The public API docs mention 'limit' for other endpoints, but for klines,
+        # it's usually about the time range.
+        # If 'limit' is to be used, it might be for requests *without* startAt/endAt,
+        # or the API might have changed. The original code included `if limit: params["limit"] = limit`.
+        # Assuming this is still valid for KuCoin Spot if `limit` is provided.
+        # Since `limit` is now `int = 500`, it will always be an int.
+        params["limit"] = limit
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
-        :return: List of CandleData objects
+        :returns: List of CandleData objects
         """
         # KuCoin candle format:
         # [
@@ -102,7 +105,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
             for row in candle_data:
                 candles.append(
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            row[0]
+                        ),  # Already in seconds
                         open=float(row[1]),
                         high=float(row[3]),  # In test fixture: index 3 is high
                         low=float(row[4]),  # In test fixture: index 4 is low
@@ -118,7 +123,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
             for row in data.get("data", []):
                 candles.append(
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            row[0]
+                        ),  # Already in seconds
                         open=float(row[1]),
                         high=float(row[2]),
                         low=float(row[3]),
@@ -135,7 +142,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
-        :return: List of CandleData objects or None if message is not a candle update
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         # KuCoin websocket message format:
         # {
@@ -170,7 +177,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
                 # Based on test_parse_ws_message_valid in test_kucoin_spot_adapter.py
                 return [
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            candle_data[0]
+                        ),  # Already in seconds
                         open=float(candle_data[1]),
                         high=float(candle_data[3]),  # In test fixture: index 3 is high
                         low=float(candle_data[4]),  # In test fixture: index 4 is low
@@ -183,7 +192,9 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
                 # Standard Kucoin message format
                 return [
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            candle_data[0]
+                        ),  # Already in seconds
                         open=float(candle_data[1]),
                         high=float(candle_data[2]),
                         low=float(candle_data[3]),

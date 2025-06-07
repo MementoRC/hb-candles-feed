@@ -2,14 +2,17 @@
 Network communication client for the Candle Feed framework.
 """
 
-import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional
+import weakref
+from typing import Any, cast
 
 import aiohttp
 
 from candles_feed.core.protocols import Logger, WSAssistant
+
+# Global registry to track unclosed sessions for defensive cleanup
+_ACTIVE_SESSIONS: weakref.WeakSet[aiohttp.ClientSession] = weakref.WeakSet()
 
 
 class NetworkClient:
@@ -24,13 +27,15 @@ class NetworkClient:
 
         :param logger: Logger instance
         """
-        self.logger: Logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
         self._session: aiohttp.ClientSession | None = None
 
     async def _ensure_session(self):
         """Ensure aiohttp session exists."""
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
+            # Track session for defensive cleanup
+            _ACTIVE_SESSIONS.add(self._session)
 
     async def close(self):
         """Close the client session.
@@ -40,6 +45,8 @@ class NetworkClient:
         """
         if self._session and not self._session.closed:
             await self._session.close()
+            # Remove from tracking set if still there
+            _ACTIVE_SESSIONS.discard(self._session)
             self._session = None
 
     async def __aenter__(self):
@@ -183,7 +190,23 @@ class SimpleWSAssistant(WSAssistant):
         """Return self as an async iterator.
 
         This method is required for the async iterator protocol.
-        
+
         :return: Async iterator for messages
         """
         return self.iter_messages()
+
+
+async def cleanup_unclosed_sessions():
+    """Defensive cleanup of any unclosed sessions.
+
+    This function can be called during shutdown or testing to ensure
+    no aiohttp sessions are left unclosed.
+    """
+    import contextlib
+
+    sessions_to_close = list(_ACTIVE_SESSIONS)
+    for session in sessions_to_close:
+        if not session.closed:
+            with contextlib.suppress(Exception):
+                await session.close()
+    _ACTIVE_SESSIONS.clear()

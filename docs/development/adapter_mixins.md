@@ -1,6 +1,6 @@
 # Exchange Adapter Mixins
 
-This document explains the mixin-based composition pattern used in the candles-feed package for creating exchange adapters. 
+This document explains the mixin-based composition pattern used in the candles-feed package for creating exchange adapters.
 
 ## Introduction to the Mixin Pattern
 
@@ -45,15 +45,15 @@ class ExchangeAdapter(
     SomeResponseMixin
 ):
     """Exchange adapter documentation."""
-    
+
     def get_rest_url(self) -> str:
         """Return REST API URL."""
         return "https://api.exchange.com"
-        
+
     def get_ws_url(self) -> str:
         """Return WebSocket URL."""
         return "wss://ws.exchange.com"
-        
+
     # Additional exchange-specific methods
 ```
 
@@ -137,10 +137,10 @@ class BinanceSpotAdapter(
     BinanceArrayResponseMixin
 ):
     """Binance spot markets adapter."""
-    
+
     def get_rest_url(self) -> str:
         return "https://api.binance.com"
-        
+
     def get_ws_url(self) -> str:
         return "wss://stream.binance.com:9443/ws"
 ```
@@ -158,13 +158,13 @@ class OKXSpotAdapter(
     OKXObjectResponseMixin
 ):
     """OKX spot markets adapter."""
-    
+
     def get_rest_url(self) -> str:
         return "https://www.okx.com"
-        
+
     def get_ws_url(self) -> str:
         return "wss://ws.okx.com:8443/ws/v5/public"
-        
+
     def get_inst_type(self) -> str:
         return "SPOT"
 ```

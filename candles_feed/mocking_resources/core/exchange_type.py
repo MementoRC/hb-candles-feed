@@ -14,6 +14,7 @@ class ExchangeType(Enum):
     implementation in the candles feed package.
     """
 
+    MOCK = "mock"
     BINANCE_SPOT = "binance_spot"
     BINANCE_PERPETUAL = "binance_perpetual"
     BYBIT_SPOT = "bybit_spot"

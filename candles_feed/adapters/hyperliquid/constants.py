@@ -7,10 +7,18 @@ REST_URL = "https://api.hyperliquid.xyz/info"
 WSS_URL = "wss://api.hyperliquid.xyz/ws"
 
 # API URLs - Spot
+SPOT_REST_URL = REST_URL
 SPOT_WSS_URL = WSS_URL
+SPOT_CANDLES_ENDPOINT = ""  # HyperLiquid uses a single endpoint
 
 # API URLs - Perpetual
-PERP_WSS_URL = WSS_URL
+PERPETUAL_REST_URL = REST_URL
+PERPETUAL_WSS_URL = WSS_URL
+PERPETUAL_CANDLES_ENDPOINT = ""  # HyperLiquid uses a single endpoint
+
+# Alias for backward compatibility
+PERP_WSS_URL = PERPETUAL_WSS_URL
+PERP_REST_URL = PERPETUAL_REST_URL
 
 # Health check constants
 HEALTH_CHECK_PAYLOAD = {"type": "spotMeta"}

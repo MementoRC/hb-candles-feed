@@ -24,7 +24,7 @@ graph TD
     C --> D[Define Constants]
     D --> E[Register with ExchangeRegistry]
     E --> F[Adapter Available for Use]
-    
+
     style E fill:#f96,stroke:#333,stroke-width:2px
 ```
 
@@ -78,7 +78,7 @@ classDiagram
         +get_supported_intervals() Dict[str, int]
         +get_ws_supported_intervals() List[str]
     }
-    
+
     class YourExchangeAdapter {
         +get_trading_pair_format(trading_pair: str) str
         +get_rest_url() str
@@ -90,7 +90,7 @@ classDiagram
         +get_supported_intervals() Dict[str, int]
         +get_ws_supported_intervals() List[str]
     }
-    
+
     BaseAdapter <|-- YourExchangeAdapter
 ```
 

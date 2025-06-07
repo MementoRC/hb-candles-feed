@@ -17,20 +17,20 @@ graph TD
     A --> E[Usage Examples]
 
     B --> F[MockedCandleFeedServer]
-    
+
     D --> G[Exchange Plugins]
     D --> H[Network Conditions]
     D --> I[Data Generation]
-    
+
     G --> J[Binance Spot Plugin]
     G --> K[Other Exchange Plugins]
-    
+
     C --> L[Random Data Generation]
     C --> M[Realistic Price Movement]
-    
+
     E --> N[Example Scripts]
     E --> O[Test Cases]
-    
+
     style K fill:#f96
 ```
 
@@ -85,11 +85,29 @@ This testing framework is designed for:
 2. **Adapter Developers**: For developing and testing new exchange adapters
 3. **Client Application Developers**: For testing applications built with candles-feed
 
+## Integration Test Suite
+
+The candles-feed package includes a comprehensive integration test suite that verifies the interaction between components:
+
+### Core Integration Tests
+
+- **CandlesFeed Integration Tests**: Test the CandlesFeed framework with mock servers, covering REST polling, WebSocket strategies, multiple feeds, different intervals, and error handling.
+
+### Mock Server Tests
+
+- **Mock Server Tests**: Verify the mock server infrastructure, including REST endpoints, WebSocket connections, and candle data generation.
+- **AIOHTTP Client Tests**: Demonstrate using aiohttp TestClient with the mock server for testing REST endpoints without starting actual servers.
+
+### Adapter Integration Tests
+
+- **Mock Adapters Tests**: Test mock adapters with both direct server communication (REST and WebSocket) and collection strategies (polling and WebSocket subscription).
+
 ## Getting Started
 
 To get started with the testing resources:
 
 1. See the [Mock Server](mock_server.md) documentation for setting up a test server
 2. Check out the [Examples](../examples/mock_server_example.md) section for practical demonstrations
+3. Explore the integration tests in the `tests/integration` directory for examples of how to use the testing components
 
 Additional documentation will be added in future updates.

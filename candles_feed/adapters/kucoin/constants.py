@@ -2,8 +2,6 @@
 Common constants for KuCoin adapters.
 """
 
-from typing import Dict
-
 # API URLs
 REST_BASE_URL = "https://api.kucoin.com"
 WSS_BASE_URL = "wss://ws-api.kucoin.com"

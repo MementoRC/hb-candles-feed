@@ -2,26 +2,23 @@
 Unit tests for the BinanceBaseAdapter class.
 """
 
-from unittest.mock import MagicMock
-
-import pytest
-
 from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
 from candles_feed.adapters.binance.constants import (
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
 class ConcreteBinanceAdapter(BinanceBaseAdapter):
     """Concrete implementation of BinanceBaseAdapter for testing."""
 
-    def get_rest_url(self) -> str:
+    @staticmethod
+    def _get_rest_url() -> str:
         return "https://test.binance.com/api/v3/klines"
 
-    def get_ws_url(self) -> str:
+    @staticmethod
+    def _get_ws_url() -> str:
         return "wss://test.binance.com/ws"
 
 
@@ -47,7 +44,7 @@ class TestBinanceBaseAdapter:
 
     def test_get_rest_params_minimal(self):
         """Test REST params with minimal parameters."""
-        params = self.adapter.get_rest_params(self.trading_pair, self.interval)
+        params = self.adapter._get_rest_params(self.trading_pair, self.interval)
 
         assert params["symbol"] == "BTCUSDT"
         assert params["interval"] == self.interval
@@ -58,22 +55,21 @@ class TestBinanceBaseAdapter:
     def test_get_rest_params_full(self):
         """Test REST params with all parameters."""
         start_time = 1622505600  # 2021-06-01 00:00:00 UTC
-        end_time = 1622592000  # 2021-06-02 00:00:00 UTC
         limit = 500
 
-        params = self.adapter.get_rest_params(
-            self.trading_pair, self.interval, start_time=start_time, end_time=end_time, limit=limit
+        params = self.adapter._get_rest_params(
+            self.trading_pair, self.interval, start_time=start_time, limit=limit
         )
 
         assert params["symbol"] == "BTCUSDT"
         assert params["interval"] == self.interval
         assert params["limit"] == limit
         assert params["startTime"] == start_time * 1000  # Should be in milliseconds
-        assert params["endTime"] == end_time * 1000  # Should be in milliseconds
+        assert "endTime" not in params
 
     def test_parse_rest_response(self, candlestick_response_binance):
         """Test parsing REST API response."""
-        candles = self.adapter.parse_rest_response(candlestick_response_binance)
+        candles = self.adapter._parse_rest_response(candlestick_response_binance)
 
         # Verify response parsing
         assert len(candles) == 2
@@ -104,7 +100,7 @@ class TestBinanceBaseAdapter:
 
     def test_parse_rest_response_none(self):
         """Test parsing None REST API response."""
-        candles = self.adapter.parse_rest_response(None)
+        candles = self.adapter._parse_rest_response(None)
         assert candles == []
 
     def test_get_ws_subscription_payload(self):
@@ -159,6 +155,12 @@ class TestBinanceBaseAdapter:
         assert intervals["1h"] == 3600
         assert "1d" in intervals
         assert intervals["1d"] == 86400
+
+    def test_get_ws_url_calls_implementation(self):
+        """Test that get_ws_url calls the _get_ws_url implementation."""
+        # Verify that the public get_ws_url method correctly calls the private implementation
+        assert self.adapter.get_ws_url() == "wss://test.binance.com/ws"
+        assert self.adapter.get_ws_url() == ConcreteBinanceAdapter._get_ws_url()
 
     def test_get_ws_supported_intervals(self):
         """Test getting WebSocket supported intervals."""

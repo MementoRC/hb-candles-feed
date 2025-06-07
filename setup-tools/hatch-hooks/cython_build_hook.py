@@ -42,11 +42,9 @@ def compile_cython_modules(modules, build_dir):
 
     # Make sure Cython is installed
     try:
-        import Cython
-        import numpy as np
-        from Cython.Build import cythonize
+        import cython  # noqa
     except ImportError:
-        print("Cython or NumPy not found, skipping Cython compilation")
+        print("Cython not found, skipping Cython compilation")
         return
 
     # Compile each module

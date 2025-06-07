@@ -4,15 +4,16 @@ KuCoin perpetual exchange adapter for the Candle Feed framework.
 
 import time
 
-from candles_feed.adapters.kucoin.constants import (
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.exchange_registry import ExchangeRegistry
+
+from .base_adapter import KucoinBaseAdapter
+from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     PERPETUAL_CANDLES_ENDPOINT,
     PERPETUAL_REST_URL,
     PERPETUAL_WSS_URL,
 )
-from candles_feed.adapters.kucoin.base_adapter import KucoinBaseAdapter
-from candles_feed.core.candle_data import CandleData
-from candles_feed.core.exchange_registry import ExchangeRegistry
 
 
 @ExchangeRegistry.register("kucoin_perpetual")
@@ -20,37 +21,41 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
     """KuCoin perpetual exchange adapter."""
 
     @staticmethod
-    def get_rest_url() -> str:
+    def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
-        :return: REST API URL
+        :returns: REST API URL
         """
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
     @staticmethod
-    def get_ws_url() -> str:
+    def _get_ws_url() -> str:
         """Get WebSocket URL.
 
-        :return: WebSocket URL
+        :returns: WebSocket URL
         """
         return PERPETUAL_WSS_URL
 
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
-    ) -> dict[str, str | int]:
+        limit: int = 500,  # KuCoin Futures API doesn't seem to have a direct 'limit' for klines.
+        # It uses 'from' and 'to' for range.
+        # The base signature has 'limit', so we accept it.
+        # This implementation might ignore 'limit' if the API doesn't support it.
+        # Or, it might try to calculate 'to' based on 'start_time' and 'limit',
+        # but that's more complex and not in original code.
+        # For now, just match signature. The 'limit' param will be unused here.
+    ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
-        :param limit: Maximum number of candles to return
-        :return: Dictionary of parameters for REST API request
+        :param limit: Maximum number of candles to return (may not be used by this specific API endpoint)
+        :returns: Dictionary of parameters for REST API request
         """
         # KuCoin Futures uses different API parameters
         params: dict[str, str | int] = {
@@ -61,16 +66,18 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         if start_time:
             params["from"] = self.convert_timestamp_to_exchange(start_time)
 
-        if end_time:
-            params["to"] = self.convert_timestamp_to_exchange(end_time)
+        # 'limit' from base signature is not directly used by KuCoin Futures kline endpoint.
+        # It primarily uses 'from' and 'to'.
+        # If 'limit' needs to be implemented, logic to calculate 'to' or chunk requests would be needed.
+        # Original code did not use 'limit' for this adapter.
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
-        :return: List of CandleData objects
+        :returns: List of CandleData objects
         """
         # KuCoin Futures candle format:
         # {
@@ -118,7 +125,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
-        :return: WebSocket subscription payload
+        :returns: WebSocket subscription payload
         """
         # Futures uses a different topic format
         perp_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
@@ -134,7 +141,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
-        :return: List of CandleData objects or None if message is not a candle update
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         # KuCoin Futures websocket message format:
         # {
@@ -172,7 +179,9 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
             if len(candle_data) >= 7:
                 return [
                     CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Already in seconds
+                        timestamp_raw=self.ensure_timestamp_in_seconds(
+                            candle_data[0]
+                        ),  # Already in seconds
                         open=float(candle_data[1]),
                         high=float(candle_data[3]),  # Different order in perpetual
                         low=float(candle_data[4]),

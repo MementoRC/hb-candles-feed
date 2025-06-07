@@ -2,6 +2,8 @@
 
 The Candles Feed framework can be used both as a standalone package and as an integrated component within Hummingbot. This guide explains how to use Candles Feed with Hummingbot's networking components.
 
+> **Note:** For details on compatibility with the original `CandlesBase` implementation, see the [Compatibility Guide](compatibility.md).
+
 ## Overview
 
 Candles Feed provides a seamless integration path with Hummingbot through adapter components that:
@@ -45,7 +47,7 @@ class MyStrategy:
             throttler=self._throttler,
             connections_factory=self._connections_factory
         )
-        
+
         # Create a CandlesFeed instance that uses Hummingbot's components
         self._candles_feed = create_candles_feed_with_hummingbot(
             exchange="binance_spot",
@@ -54,15 +56,15 @@ class MyStrategy:
             throttler=self._throttler,
             web_assistants_factory=self._web_assistants_factory
         )
-    
+
     async def start(self, ...):
         # Start the feed
         await self._candles_feed.start()
-        
+
     async def stop(self, ...):
         # Stop the feed
         await self._candles_feed.stop()
-        
+
     def process_candles(self):
         # Get candles as DataFrame
         df = self._candles_feed.get_candles_df()

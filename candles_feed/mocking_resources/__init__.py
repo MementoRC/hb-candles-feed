@@ -5,20 +5,16 @@ This module provides tools and utilities for testing the candles feed package in
 including mock exchange servers and fixtures.
 """
 
-from candles_feed.mocking_resources.core import *
-from candles_feed.mocking_resources.exchanges import *
 from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
-
-# Import core components for easy access
-from candles_feed.mocking_resources.core.exchange_type import ExchangeType
-from candles_feed.mocking_resources.core.server import MockedExchangeServer
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
-from candles_feed.mocking_resources.core.factory import create_mock_server_for_exchange
+from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.factory import create_mock_server
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
 __all__ = [
     "CandleDataFactory",
     "ExchangeType",
     "MockedExchangeServer",
     "ExchangePlugin",
-    "create_mock_server_for_exchange",
+    "create_mock_server",
 ]

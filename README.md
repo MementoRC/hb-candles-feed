@@ -104,7 +104,7 @@ async def main():
     # List available components
     components = get_available_components()
     print(f"Available components: {components}")
-    
+
     # Create a component
     if "example_component" in components:
         component = registry.create_component(
@@ -112,14 +112,14 @@ async def main():
             "my_instance",
             {"setting": "value"}
         )
-        
+
         # Initialize and start the component
         await component.initialize()
         await component.start()
-        
+
         # Use the component
         # ...
-        
+
         # Stop when done
         await component.stop()
 
@@ -157,7 +157,7 @@ candles-feed/
 The essential files are:
 - pyproject.toml (primary configuration)
 - candles_feed/ (package code)
-- setup-tools/hatch-hooks/ (Cython integration) 
+- setup-tools/hatch-hooks/ (Cython integration)
 - setup-dev-env.sh (environment setup)
 
 Files like setup.py are kept for maximum compatibility but are optional with modern Python packaging.

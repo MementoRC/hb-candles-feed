@@ -2,18 +2,18 @@
 MEXC perpetual exchange adapter for the Candle Feed framework.
 """
 
-
 import contextlib
-from candles_feed.adapters.mexc.base_adapter import MEXCBaseAdapter
-from candles_feed.adapters.mexc.constants import (
-    INTERVAL_TO_PERPETUAL_FORMAT,
-    PERP_CANDLES_ENDPOINT,
-    PERP_KLINE_TOPIC,
-    PERP_REST_URL,
-    PERP_WSS_URL,
-)
+
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+
+from .base_adapter import MEXCBaseAdapter
+from .constants import (
+    INTERVAL_TO_PERPETUAL_FORMAT,
+    PERPETUAL_KLINE_TOPIC,
+    PERPETUAL_REST_URL,
+    PERPETUAL_WSS_URL,
+)
 
 
 @ExchangeRegistry.register("mexc_perpetual")
@@ -21,54 +21,52 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
     """MEXC perpetual exchange adapter."""
 
     TIMESTAMP_UNIT = "seconds"
-    
+
     @staticmethod
-    def get_rest_url() -> str:
+    def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
-        :return: REST API URL
+        :returns: REST API URL
         """
-        return PERP_REST_URL
+        return PERPETUAL_REST_URL
 
     @staticmethod
-    def get_ws_url() -> str:
+    def _get_ws_url() -> str:
         """Get WebSocket URL.
 
-        :return: WebSocket URL
+        :returns: WebSocket URL
         """
-        return PERP_WSS_URL
+        return PERPETUAL_WSS_URL
 
     def get_kline_topic(self) -> str:
         """Get WebSocket kline topic prefix.
 
-        :return: Kline topic prefix string
+        :returns: Kline topic prefix string
         """
-        return PERP_KLINE_TOPIC
+        return PERPETUAL_KLINE_TOPIC
 
     def get_interval_format(self, interval: str) -> str:
         """Get exchange-specific interval format.
 
         :param interval: Standard interval format
-        :return: Exchange-specific interval format
+        :returns: Exchange-specific interval format
         """
         return INTERVAL_TO_PERPETUAL_FORMAT.get(interval, interval)
 
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = None,
-    ) -> dict[str, str | int]:
+        limit: int = 500,
+    ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
-        :return: Dictionary of parameters for REST API request
+        :returns: Dictionary of parameters for REST API request
         """
         # MEXC Contract API uses different parameter names
         params: dict[str, str | int] = {
@@ -76,21 +74,19 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
             "interval": self.get_interval_format(interval),
         }
 
-        if limit:
-            params["size"] = limit
+        # limit is now an int with a default. MEXC Perpetual uses "size".
+        params["size"] = limit
 
         if start_time:
             params["start"] = self.convert_timestamp_to_exchange(start_time)
-        if end_time:
-            params["end"] = self.convert_timestamp_to_exchange(end_time)
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
-        :return: List of CandleData objects
+        :returns: List of CandleData objects
         """
         if (
             data is None
@@ -140,7 +136,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
-        :return: List of CandleData objects or None if message is not a candle update
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         if data is None:
             return None

@@ -6,18 +6,21 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 import time
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 
+from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.kucoin.constants import (
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.protocols import NetworkClientProtocol
+
+from .constants import (
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
-class KucoinBaseAdapter(BaseAdapter, ABC):
+class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Base class for KuCoin exchange adapters.
 
     This class provides shared functionality for KuCoin spot and perpetual adapters.
@@ -26,50 +29,97 @@ class KucoinBaseAdapter(BaseAdapter, ABC):
 
     TIMESTAMP_UNIT: str = "milliseconds"
 
+    @abstractmethod
+    def _get_rest_url(self) -> str:
+        """Get REST API URL for candles.
+
+        :returns: REST API URL
+        """
+        pass
+
+    @abstractmethod
+    def _get_ws_url(self) -> str:
+        """Get WebSocket URL (internal implementation).
+
+        :returns: WebSocket URL
+        """
+        pass
+
+    def get_ws_url(self) -> str:
+        """Get WebSocket URL.
+
+        :returns: WebSocket URL
+        """
+        return self._get_ws_url()
+
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
         :param trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
-        :return: Trading pair in KuCoin format (e.g., "BTC-USDT" - same format)
+        :returns: Trading pair in KuCoin format (e.g., "BTC-USDT" - same format)
         """
         return trading_pair
 
     @abstractmethod
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
-        :return: Dictionary of parameters for REST API request
+        :returns: Dictionary of parameters for REST API request
         """
         pass
 
     @abstractmethod
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
-        :return: List of CandleData objects
+        :returns: List of CandleData objects
         """
         pass
+
+    async def fetch_rest_candles(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: int | None = None,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        network_client: NetworkClientProtocol | None = None,
+    ) -> list[CandleData]:
+        """Fetch candles from REST API asynchronously.
+
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds
+        :param limit: Maximum number of candles to return
+        :param network_client: Network client to use for API requests
+        :returns: List of CandleData objects
+        """
+        return await AsyncOnlyAdapter._fetch_rest_candles(
+            adapter_implementation=self,
+            trading_pair=trading_pair,
+            interval=interval,
+            start_time=start_time,
+            limit=limit,
+            network_client=network_client,
+        )
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
-        :return: WebSocket subscription payload
+        :returns: WebSocket subscription payload
         """
         # KuCoin requires obtaining a token first, and has a specific topic format
         # Here's the subscription format once the token is obtained
@@ -86,22 +136,20 @@ class KucoinBaseAdapter(BaseAdapter, ABC):
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
-        :return: List of CandleData objects or None if message is not a candle update
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         pass
 
-    @staticmethod
-    def get_supported_intervals() -> dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
-        :return: Dictionary mapping interval strings to their duration in seconds
+        :returns: Dictionary mapping interval strings to their duration in seconds
         """
         return INTERVALS
 
-    @staticmethod
-    def get_ws_supported_intervals() -> list[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
-        :return: List of interval strings supported by WebSocket API
+        :returns: List of interval strings supported by WebSocket API
         """
         return WS_INTERVALS

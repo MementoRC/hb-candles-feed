@@ -6,7 +6,7 @@ import time
 import unittest
 
 from candles_feed.core.candle_data import CandleData
-from mocking_resources.core.candle_data_factory import CandleDataFactory
+from candles_feed.mocking_resources.core.candle_data_factory import CandleDataFactory
 
 
 class TestCandleData(unittest.TestCase):

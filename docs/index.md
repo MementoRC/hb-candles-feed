@@ -19,14 +19,14 @@ Welcome to the Candles Feed documentation! This framework provides a modular, pl
 graph LR
     Client[Client Application] --> CandlesFeed
     CandlesFeed --> ExchangeAdapter
-    
+
     subgraph "Core Components"
         CandlesFeed
         NetworkStrategy
         DataProcessor
         ExchangeRegistry
     end
-    
+
     subgraph "Exchange Adapters"
         ExchangeAdapter
         BinanceAdapter
@@ -37,11 +37,11 @@ graph LR
         BybitAdapter
         NewExchangeAdapter[New Exchange...]
     end
-    
+
     ExchangeRegistry --> ExchangeAdapter
     CandlesFeed --> NetworkStrategy
     CandlesFeed --> DataProcessor
-    
+
     class NewExchangeAdapter fill:#f96;
 ```
 
@@ -66,6 +66,8 @@ This documentation is organized into the following sections:
 - [Installation](getting_started/installation.md): How to install and set up the framework
 - [Quick Start](getting_started/quick_start.md): Simple examples to get you started
 - [Architecture](getting_started/architecture.md): Understanding the framework design
+- [Hummingbot Integration](getting_started/hummingbot_integration.md): Using with Hummingbot
+- [Compatibility](getting_started/compatibility.md): Compatibility with original implementation
 
 ### Adapters
 - [Overview](adapters/overview.md): Introduction to exchange adapters

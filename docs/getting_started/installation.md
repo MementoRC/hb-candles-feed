@@ -100,21 +100,21 @@ If you encounter issues during installation, try the following:
    ```
    ERROR: Could not find a version that satisfies the requirement hummingbot-candles-feed
    ```
-   
+
    Solution: The package might not be available on PyPI yet. Try installing from source.
 
 2. **Dependency conflicts**:
    ```
    ERROR: Cannot install hummingbot-candles-feed due to package conflicts
    ```
-   
+
    Solution: Use a virtual environment to avoid conflicts with existing packages.
 
 3. **Permission errors**:
    ```
    ERROR: Could not install packages due to an EnvironmentError: [Errno 13] Permission denied
    ```
-   
+
    Solution: Use `pip install --user` or consider using a virtual environment.
 
 ### Getting Help

@@ -17,21 +17,21 @@ The Candles Feed framework was designed with the following principles in mind:
 ```mermaid
 graph TD
     Client[Client Application] --> CandlesFeed
-    
+
     subgraph "Core Framework"
         CandlesFeed --> |manages| DataProcessor
         CandlesFeed --> |uses| NetworkStrategy
         CandlesFeed --> |interacts with| ExchangeRegistry
-        
+
         NetworkStrategy --> |implements| WebSocketStrategy
         NetworkStrategy --> |implements| RESTPollingStrategy
-        
+
         WebSocketStrategy --> |uses| NetworkClient
         RESTPollingStrategy --> |uses| NetworkClient
-        
+
         ExchangeRegistry --> |maintains| AdapterRegistry
     end
-    
+
     subgraph "Exchange Adapters"
         AdapterRegistry --> |contains| BaseAdapter
         BaseAdapter --> |implements| BinanceAdapter
@@ -40,13 +40,13 @@ graph TD
         BaseAdapter --> |implements| KrakenAdapter
         BaseAdapter --> |implements| OtherAdapters[Other Exchange Adapters...]
     end
-    
+
     subgraph "Data Model"
         DataProcessor --> |creates/manages| CandleData
         WebSocketStrategy --> |produces| CandleData
         RESTPollingStrategy --> |produces| CandleData
     end
-    
+
     style OtherAdapters fill:#f96
 ```
 
@@ -109,18 +109,18 @@ sequenceDiagram
     participant Strategy as NetworkStrategy
     participant Adapter
     participant Exchange
-    
+
     Client->>CandlesFeed: create(exchange, pair, interval)
     CandlesFeed->>CandlesFeed: get adapter from registry
-    
+
     Client->>CandlesFeed: start()
     CandlesFeed->>CandlesFeed: select appropriate strategy
-    
+
     alt WebSocket Strategy
         CandlesFeed->>Strategy: start WebSocket connection
         Strategy->>Adapter: get websocket URL and payload
         Strategy->>Exchange: connect & subscribe
-        
+
         loop While running
             Exchange->>Strategy: send updates
             Strategy->>Adapter: parse message
@@ -128,7 +128,7 @@ sequenceDiagram
         end
     else REST Polling Strategy
         CandlesFeed->>Strategy: start polling
-        
+
         loop At interval
             Strategy->>Adapter: get REST URL and params
             Strategy->>Exchange: HTTP request
@@ -137,10 +137,10 @@ sequenceDiagram
             Strategy->>CandlesFeed: update candle data
         end
     end
-    
+
     Client->>CandlesFeed: get_candles()
     CandlesFeed->>Client: return candle data
-    
+
     Client->>CandlesFeed: stop()
     CandlesFeed->>Strategy: stop
     Strategy->>Exchange: disconnect (if WebSocket)

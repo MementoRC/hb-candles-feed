@@ -46,11 +46,11 @@ class BinanceSpotAdapter(
     BinanceArrayResponseMixin
 ):
     """Binance spot markets adapter."""
-    
+
     def get_rest_url(self) -> str:
         """Return REST API URL for Binance Spot."""
         return "https://api.binance.com"
-        
+
     def get_ws_url(self) -> str:
         """Return WebSocket URL for Binance Spot."""
         return "wss://stream.binance.com:9443/ws"
@@ -81,15 +81,15 @@ class BybitPerpetualAdapter(
     BybitObjectResponseMixin
 ):
     """Bybit perpetual markets adapter."""
-    
+
     def get_rest_url(self) -> str:
         """Return REST API URL for Bybit Perpetual."""
         return "https://api.bybit.com"
-        
+
     def get_ws_url(self) -> str:
         """Return WebSocket URL for Bybit Perpetual."""
         return "wss://stream.bybit.com/v5/public/linear"
-        
+
     def get_category_param(self) -> str:
         """Return category parameter for Bybit Perpetual."""
         return "linear"
@@ -118,15 +118,15 @@ class OKXSpotAdapter(
     OKXObjectResponseMixin
 ):
     """OKX spot markets adapter."""
-    
+
     def get_rest_url(self) -> str:
         """Return REST API URL for OKX Spot."""
         return "https://www.okx.com"
-        
+
     def get_ws_url(self) -> str:
         """Return WebSocket URL for OKX Spot."""
         return "wss://ws.okx.com:8443/ws/v5/public"
-        
+
     def get_inst_type(self) -> str:
         """Return instrument type for OKX Spot."""
         return "SPOT"
@@ -155,15 +155,15 @@ class GateIoSpotAdapter(
     BinanceArrayResponseMixin
 ):
     """Gate.io spot markets adapter."""
-    
+
     def get_rest_url(self) -> str:
         """Return REST API URL for Gate.io Spot."""
         return "https://api.gateio.ws"
-        
+
     def get_ws_url(self) -> str:
         """Return WebSocket URL for Gate.io Spot."""
         return "wss://api.gateio.ws/ws/v4/"
-        
+
     def get_channel_name(self) -> str:
         """Return channel name for Gate.io Spot."""
         return "spot.candlesticks"
@@ -191,15 +191,15 @@ class CoinbaseAdvancedTradeAdapter(
     CoinbaseObjectResponseMixin
 ):
     """Coinbase Advanced Trade adapter."""
-    
+
     def get_rest_url(self) -> str:
         """Return REST API URL for Coinbase Advanced Trade."""
         return "https://api.exchange.coinbase.com"
-        
+
     def get_ws_url(self) -> str:
         """Return WebSocket URL for Coinbase Advanced Trade."""
         return "wss://advanced-trade-ws.coinbase.com"
-        
+
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Coinbase has a unique subscription format."""
         return {

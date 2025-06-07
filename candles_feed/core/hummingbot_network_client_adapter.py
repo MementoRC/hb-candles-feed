@@ -7,7 +7,7 @@ Hummingbot's WebAssistantsFactory and AsyncThrottler when available.
 
 import json
 import logging
-from typing import Any, AsyncContextManager, Optional, cast
+from typing import Any, Optional, cast
 
 from candles_feed.core.protocols import (
     AsyncThrottlerProtocol,
@@ -27,7 +27,6 @@ try:
     HUMMINGBOT_AVAILABLE = True
 except ImportError:
     # Define placeholder types for type checking
-    from typing import Any
 
     WebAssistantsFactory = Any
     RESTAssistant = Any
@@ -46,7 +45,7 @@ class HummingbotWSAssistantAdapter(WSAssistant):
         :param logger: Logger instance
         """
         self._ws = ws_assistant
-        self._logger = logger or logging.getLogger(__name__)
+        self._logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
 
     async def connect(self) -> None:
         """Connect to WebSocket."""
@@ -104,14 +103,14 @@ class HummingbotThrottlerAdapter(AsyncThrottlerProtocol):
         """
         self._throttler = throttler
 
-    async def execute_task(self, limit_id: str, weight: int = 1) -> None:
+    async def execute_task(self, limit_id: str, weight: int = 1):
         """Execute a task respecting rate limits.
 
         :param limit_id: The rate limit identifier
         :param weight: The weight of the task (default: 1)
+        :return: Async context manager for rate limiting
         """
-        async with self._throttler.execute_task(limit_id=limit_id):
-            pass  # The context manager handles the rate limiting
+        return await self._throttler.execute_task(limit_id=limit_id)
 
 
 class HummingbotNetworkClient(NetworkClientProtocol):
@@ -139,7 +138,7 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         self._throttler = throttler
         self._web_assistants_factory = web_assistants_factory
         self._throttler_adapter = HummingbotThrottlerAdapter(throttler)
-        self._logger = logger or logging.getLogger(__name__)
+        self._logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
         self._rest_assistant: Optional[RESTAssistant] = None
 
     async def _ensure_rest_assistant(self):
@@ -165,6 +164,7 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         :return: REST API response
         """
         await self._ensure_rest_assistant()
+        assert self._rest_assistant is not None, "REST assistant not initialized"
 
         # Clean params and data, removing None values
         cleaned_params = (
@@ -172,18 +172,20 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         )
         cleaned_data = None if data is None else {k: v for k, v in data.items() if v is not None}
 
-        try:
-            response = await self._rest_assistant.call(
-                url=url,
-                params=cleaned_params,
-                data=json.dumps(cleaned_data) if cleaned_data else None,
-                headers=headers,
-                method=method,
-            )
-            return await response.json()
-        except Exception as e:
-            self._logger.error(f"REST request to {url} failed: {e}")
-            raise
+        # Use throttler for rate limiting
+        async with await self._throttler_adapter.execute_task("api_request"):
+            try:
+                response = await self._rest_assistant.call(
+                    url=url,
+                    params=cleaned_params,
+                    data=json.dumps(cleaned_data) if cleaned_data else None,
+                    headers=headers,
+                    method=method,
+                )
+                return await response.json()
+            except Exception as e:
+                self._logger.error(f"REST request to {url} failed: {e}")
+                raise
 
     async def establish_ws_connection(self, url: str) -> WSAssistant:
         """Establish a WebSocket connection using Hummingbot's WS assistant.

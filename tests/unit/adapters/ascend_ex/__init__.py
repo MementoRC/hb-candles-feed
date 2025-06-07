@@ -1,0 +1,3 @@
+"""
+AscendEx adapter tests package.
+"""

@@ -1,23 +1,50 @@
 """
 Kraken spot exchange adapter for the Candle Feed framework.
 """
+
 from abc import abstractmethod
 
+from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.kraken.constants import (
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.protocols import NetworkClientProtocol
+
+from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
-class KrakenBaseAdapter(BaseAdapter):
+class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Kraken spot exchange adapter."""
 
     TIMESTAMP_UNIT: str = "seconds"
-    
+
+    @abstractmethod
+    def _get_rest_url(self) -> str:
+        """Get REST API URL for candles.
+
+        :returns: REST API URL
+        """
+        pass
+
+    @abstractmethod
+    def _get_ws_url(self) -> str:
+        """Get WebSocket URL.
+
+        :returns: WebSocket URL
+        """
+        pass
+
+    def get_ws_url(self) -> str:
+        """Get WebSocket URL.
+
+        :returns: WebSocket URL
+        """
+        return self._get_ws_url()
+
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
@@ -42,53 +69,35 @@ class KrakenBaseAdapter(BaseAdapter):
 
         return base + quote
 
-    @staticmethod
-    @abstractmethod
-    def get_rest_url() -> str:
-        """Get REST API URL for candles.
-
-        :returns: REST API URL
-        """
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def get_ws_url() -> str:
-        """Get WebSocket URL.
-
-        :returns: WebSocket URL
-        """
-        pass
-
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-    ) -> dict:
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,  # limit is part of signature, not used by Kraken OHLC
+    ) -> dict[str, str | int]:
         """Get parameters for REST API request.
 
-        :param trading_pair: Trading pair.
-        :param interval: Candle interval.
-        :param start_time: Start time in seconds.
-        :param end_time: End time in seconds.
-        :param limit: Maximum number of candles to return.
-        :returns: Dictionary of parameters for REST API request.
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds (used for 'since' parameter)
+        :param limit: Maximum number of candles to return (not directly used by Kraken OHLC API for this call)
+        :returns: Dictionary of parameters for REST API request
         """
         # Kraken uses 'pair', 'interval' in minutes, and 'since' parameter
-        params = {
-            "pair": self.get_trading_pair_format(trading_pair),
-            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
+        params: dict[str, str | int] = {  # type: ignore
+            "pair": KrakenBaseAdapter.get_trading_pair_format(trading_pair),
+            "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(
+                interval, "1"
+            ),  # Default to 1m, ensure string
         }
 
         if start_time:
-            params["since"] = self.convert_timestamp_to_exchange(start_time)
+            params["since"] = self.convert_timestamp_to_exchange(start_time)  # type: ignore
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response.
@@ -115,46 +124,93 @@ class KrakenBaseAdapter(BaseAdapter):
         #   }
         # }
 
-        candles = []
-        # Extract the actual data, which is under the pair name
-        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+        parsed_candles: list[CandleData] = []
 
-        for key, pair_data in data.get("result", {}).items():
-            if isinstance(pair_data, list) and key != "last":
-                for row in pair_data:
-                    # Handle test fixture format which might not have all fields
-                    timestamp = self.ensure_timestamp_in_seconds(row[0])
-                    open_price = float(row[1])
-                    high = float(row[2])
-                    low = float(row[3])
-                    close = float(row[4])
+        # Handle None data
+        if data is None:
+            return parsed_candles
+
+        # Extract the actual data, which is under the pair name
+        if not isinstance(data, dict) or "result" not in data:
+            return parsed_candles
+
+        result_data = data["result"]
+        if not isinstance(result_data, dict):
+            return parsed_candles
+
+        for key, pair_data in result_data.items():
+            if (
+                isinstance(pair_data, list) and key != "last"
+            ):  # "last" contains the timestamp of the last trade
+                for row_data in pair_data:
+                    if not isinstance(row_data, list) or len(row_data) < 5:  # Basic OHLC + time
+                        continue
+
+                    timestamp = self.ensure_timestamp_in_seconds(row_data[0])
+                    open_price = float(row_data[1])
+                    high_price = float(row_data[2])
+                    low_price = float(row_data[3])
+                    close_price = float(row_data[4])
+
+                    volume: float = 0.0
+                    quote_volume: float = 0.0
+                    n_trades: int = 0
 
                     # Handle different row formats - real API vs test fixture
-                    if len(row) >= 8:
-                        # Standard format with all fields
-                        vwap = float(row[5])
-                        volume = float(row[6])
-                        n_trades = int(row[7])
+                    if len(row_data) >= 8:  # Standard format with all fields
+                        # VWAP is row_data[5]
+                        volume = float(row_data[6])
+                        n_trades = int(row_data[7])
+                        # Quote asset volume can be derived if VWAP is used, or might be directly available
+                        # For simplicity, if not directly given, it might be approximated or left as 0
+                        # Kraken's OHLC 'volume' is base asset volume. VWAP * volume = quote asset volume
+                        vwap = float(row_data[5])
                         quote_volume = volume * vwap
-                    else:
-                        # Test fixture format with fewer fields
-                        volume = float(row[5])
-                        quote_volume = float(row[6]) if len(row) > 6 else 0.0
-                        n_trades = 0  # Default when not provided in fixture
+                    elif len(row_data) >= 6:  # Test fixture format with fewer fields
+                        volume = float(row_data[5])
+                        # Fixture might have quote_volume at index 6
+                        quote_volume = float(row_data[6]) if len(row_data) > 6 else 0.0
+                        # n_trades defaults to 0 for fixture if not provided
 
-                    candles.append(
+                    parsed_candles.append(
                         CandleData(
                             timestamp_raw=timestamp,
                             open=open_price,
-                            high=high,
-                            low=low,
-                            close=close,
+                            high=high_price,
+                            low=low_price,
+                            close=close_price,
                             volume=volume,
                             quote_asset_volume=quote_volume,
                             n_trades=n_trades,
                         )
                     )
-        return candles
+        return parsed_candles
+
+    async def fetch_rest_candles(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: int | None = None,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        network_client: NetworkClientProtocol | None = None,
+    ) -> list[CandleData]:
+        """Fetch candles from REST API asynchronously.
+
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds
+        :param limit: Maximum number of candles to return
+        :param network_client: Network client to use for API requests
+        :returns: List of CandleData objects
+        """
+        return await AsyncOnlyAdapter._fetch_rest_candles(
+            adapter_implementation=self,
+            trading_pair=trading_pair,
+            interval=interval,
+            start_time=start_time,
+            limit=limit,
+            network_client=network_client,
+        )
 
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
@@ -165,11 +221,11 @@ class KrakenBaseAdapter(BaseAdapter):
         """
         # Kraken WebSocket subscription format:
         return {
-            "name": "subscribe",
-            "reqid": 1,
-            "pair": [self.get_trading_pair_format(trading_pair)],
-            "subscription": {
-                "name": "ohlc",
+            "name": "subscribe",  # type: ignore
+            "reqid": 1,  # type: ignore
+            "pair": [KrakenBaseAdapter.get_trading_pair_format(trading_pair)],  # type: ignore
+            "subscription": {  # type: ignore
+                "name": "ohlc",  # type: ignore
                 "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, 1),  # Default to 1m
             },
         }
@@ -206,53 +262,63 @@ class KrakenBaseAdapter(BaseAdapter):
             isinstance(data, dict)
             and "channelName" in data
             and data["channelName"] == "ohlc-1"
-            and "data" in data
-            and isinstance(data["data"], list)
+            and "data" in data  # type: ignore
+            and isinstance(data["data"], list)  # type: ignore
         ):
-            candle_lists = data["data"]
-            candles = []
+            candle_lists_payload = data["data"]  # type: ignore
+            parsed_candles: list[CandleData] = []
 
-            for candle_row in candle_lists:
-                # The test fixture format has a different order
-                # [timestamp, open, close, high, low, close, volume, end_time, amount]
-                candles.append(
-                    CandleData(
-                        timestamp_raw=self.ensure_timestamp_in_seconds(candle_row[0]),  # Time in seconds
-                        open=float(candle_row[1]),
-                        high=float(candle_row[3]),  # High is at index 3 in test fixture
-                        low=float(candle_row[4]),  # Low is at index 4 in test fixture
-                        close=float(candle_row[2]),  # Close is at index 2 in test fixture
-                        volume=float(candle_row[6]),
-                        quote_asset_volume=float(candle_row[8]) if len(candle_row) > 8 else 0.0,
-                        n_trades=0,  # Not provided in test fixture
+            for candle_row_payload in candle_lists_payload:
+                if (
+                    isinstance(candle_row_payload, list) and len(candle_row_payload) >= 7
+                ):  # Ensure enough elements
+                    # The test fixture format has a different order
+                    # [timestamp, open, close, high, low, close, volume, end_time, amount]
+                    parsed_candles.append(
+                        CandleData(
+                            timestamp_raw=self.ensure_timestamp_in_seconds(
+                                candle_row_payload[0]
+                            ),  # Time in seconds
+                            open=float(candle_row_payload[1]),
+                            high=float(candle_row_payload[3]),  # High is at index 3 in test fixture
+                            low=float(candle_row_payload[4]),  # Low is at index 4 in test fixture
+                            close=float(
+                                candle_row_payload[2]
+                            ),  # Close is at index 2 in test fixture
+                            volume=float(candle_row_payload[6]),
+                            quote_asset_volume=float(candle_row_payload[8])
+                            if len(candle_row_payload) > 8
+                            else 0.0,
+                            n_trades=0,  # Not provided in test fixture
+                        )
                     )
-                )
-            return candles
+            return parsed_candles
 
         # Check if this is a standard Kraken candle update (array with 4 elements, channel name starting with "ohlc-")
         if (
             isinstance(data, list)
             and len(data) == 4
-            and isinstance(data[2], str)
+            and isinstance(data[2], str)  # Channel name
             and data[2].startswith("ohlc-")
-            and isinstance(data[1], list)
-            and len(data[1]) >= 8
+            and isinstance(data[1], list)  # Candle data list
+            and len(data[1]) >= 8  # Enough elements for a candle
         ):
-            candle_data = data[1]
+            candle_payload = data[1]
             return [
                 CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(candle_data[0]),  # Time in seconds
-                    open=float(candle_data[2]),
-                    high=float(candle_data[3]),
-                    low=float(candle_data[4]),
-                    close=float(candle_data[5]),
-                    volume=float(candle_data[7]),
-                    quote_asset_volume=float(candle_data[7])
-                    * float(candle_data[6]),  # Volume * VWAP
-                    n_trades=int(candle_data[8]) if len(candle_data) > 8 else 0,
+                    timestamp_raw=self.ensure_timestamp_in_seconds(
+                        candle_payload[0]  # type: ignore
+                    ),  # Time in seconds
+                    open=float(candle_payload[2]),  # type: ignore
+                    high=float(candle_payload[3]),  # type: ignore
+                    low=float(candle_payload[4]),  # type: ignore
+                    close=float(candle_payload[5]),  # type: ignore
+                    volume=float(candle_payload[7]),  # type: ignore
+                    quote_asset_volume=float(candle_payload[7])  # type: ignore
+                    * float(candle_payload[6]),  # Volume * VWAP # type: ignore
+                    n_trades=int(candle_payload[8]) if len(candle_payload) > 8 else 0,  # type: ignore
                 )
             ]
-
         return None
 
     def get_supported_intervals(self) -> dict[str, int]:

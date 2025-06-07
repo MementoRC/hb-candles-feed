@@ -6,6 +6,7 @@ without relying on actual exchange connections.
 """
 
 import random
+from typing import Optional
 
 from candles_feed.core.candle_data import CandleData
 
@@ -19,6 +20,8 @@ class CandleDataFactory:
         previous_candle: CandleData | None = None,
         base_price: float = 50000.0,
         volatility: float = 0.01,
+        max_deviation: float = 0.1,  # 10% maximum deviation from initial price
+        initial_price: Optional[float] = None,
     ) -> CandleData:
         """
         Create a random candle, optionally based on a previous candle.
@@ -27,15 +30,26 @@ class CandleDataFactory:
         :param previous_candle: Previous candle to base price movements on.
         :param base_price: Base price if no previous candle is provided.
         :param volatility: Price volatility as a decimal percentage (0.01 = 1%).
+        :param max_deviation: Maximum allowed deviation from initial price.
+        :param initial_price: Initial price to constrain deviation.
         :returns: A new CandleData instance with random but realistic values.
         """
         if previous_candle:
             # Base the new candle on the previous close price
             base_price = previous_candle.close
 
+        # Set initial price reference if not already set
+        if initial_price is None:
+            initial_price = base_price
+
         # Generate price movement
         price_change = (random.random() - 0.5) * 2 * volatility * base_price
         close_price = base_price + price_change
+
+        # Constrain the close price to stay within max_deviation of initial_price
+        min_allowed = initial_price * (1 - max_deviation)
+        max_allowed = initial_price * (1 + max_deviation)
+        close_price = max(min_allowed, min(max_allowed, close_price))
 
         # Create a realistic OHLC pattern
         price_range = abs(price_change) * 1.5
@@ -76,6 +90,7 @@ class CandleDataFactory:
         start_price: float = 50000.0,
         trend: float = 0.001,
         volatility: float = 0.005,
+        max_deviation: float = 0.1,  # 10% maximum deviation from initial price
     ) -> list[CandleData]:
         """
         Create a series of candles with an underlying trend.
@@ -86,6 +101,7 @@ class CandleDataFactory:
         :param start_price: Starting price.
         :param trend: Price trend as a decimal percentage per candle (0.001 = 0.1%).
         :param volatility: Random price volatility as a decimal percentage (0.005 = 0.5%).
+        :param max_deviation: Maximum allowed deviation from initial price.
         :returns: List of CandleData instances with a trending price pattern.
         """
         candles: list[CandleData] = []
@@ -94,35 +110,41 @@ class CandleDataFactory:
         for i in range(count):
             timestamp = start_timestamp + (i * interval_seconds)
 
-            # Add trend component
-            trend_factor = 1.0 + trend
+            # Add trend component (but reduced to minimize deviation)
+            trend_factor = 1.0 + (trend / 10)  # Reduce trend impact
             current_price *= trend_factor
 
-            # Create candle with current base price
+            # Create candle with current base price, but constrained by initial price
             previous_candle = candles[-1] if candles else None
             candle = CandleDataFactory.create_random(
                 timestamp=timestamp,
                 previous_candle=previous_candle,
                 base_price=current_price,
                 volatility=volatility,
+                max_deviation=max_deviation,
+                initial_price=start_price,  # Use start_price to constrain
             )
             candles.append(candle)
 
-            # Update price for next iteration
+            # Update price for next iteration (but constrained)
             current_price = candle.close
 
         return candles
 
     @staticmethod
     def create_price_event(
-        candles: list[CandleData], event_index: int, event_magnitude: float = 0.05
+        candles: list[CandleData],
+        event_index: int,
+        event_magnitude: float = 0.03,
+        max_deviation: float = 0.05,
     ) -> list[CandleData]:
         """
         Create a significant price event (spike or drop) at a specific index.
 
         :param candles: Existing list of candles to modify.
         :param event_index: Index at which to create the price event.
-        :param event_magnitude: Size of price change as a decimal percentage (0.05 = 5%).
+        :param event_magnitude: Size of price change as a decimal percentage (0.03 = 3%).
+        :param max_deviation: Maximum allowed deviation from initial price.
         :returns: Modified list of candles with the price event.
         """
         if not candles or event_index >= len(candles):
@@ -130,15 +152,26 @@ class CandleDataFactory:
 
         # Determine if it's a price spike (positive) or drop (negative)
         is_spike = random.random() > 0.5
-        magnitude = event_magnitude if is_spike else -event_magnitude
+        magnitude = min(
+            event_magnitude, max_deviation / 2
+        )  # Limit magnitude to half of max_deviation
+        magnitude = magnitude if is_spike else -magnitude
 
         # Get the candle to modify
         candle = candles[event_index]
         base_price = candle.open
 
-        # Calculate the new price after the event
+        # Get the initial price (first candle's open)
+        initial_price = candles[0].open if candles else base_price
+
+        # Calculate the new price after the event, but constrain it
         event_change = base_price * magnitude
         new_close = base_price + event_change
+
+        # Ensure we stay within acceptable limits from the initial price
+        min_allowed = initial_price * (1 - max_deviation)
+        max_allowed = initial_price * (1 + max_deviation)
+        new_close = max(min_allowed, min(max_allowed, new_close))
 
         # Create new high/low values
         new_high = max(candle.high, new_close, base_price)
@@ -200,6 +233,7 @@ class CandleDataFactory:
             start_price=initial_price,
             trend=trend,
             volatility=0.005,
+            max_deviation=0.05,  # 5% maximum deviation to keep closer to initial price
         )
 
         # Add some price events (1-3 significant moves)
@@ -208,9 +242,12 @@ class CandleDataFactory:
             # Don't place events too close to the start or end
             buffer = max(5, count // 10)
             event_index = random.randint(buffer, count - buffer - 1)
-            event_magnitude = 0.02 + (random.random() * 0.08)  # 2% to 10% price event
+            event_magnitude = 0.01 + (random.random() * 0.02)  # 1% to 3% price event (reduced)
             candles = CandleDataFactory.create_price_event(
-                candles=candles, event_index=event_index, event_magnitude=event_magnitude
+                candles=candles,
+                event_index=event_index,
+                event_magnitude=event_magnitude,
+                max_deviation=0.05,  # 5% maximum deviation
             )
 
         return candles

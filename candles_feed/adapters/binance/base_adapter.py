@@ -4,19 +4,23 @@ Base Binance adapter implementation for the Candle Feed framework.
 This module provides a base implementation for Binance-based exchange adapters
 to reduce code duplication across spot and perpetual markets.
 """
-from abc import ABC, abstractmethod
 
+from abc import abstractmethod
+
+from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
-from candles_feed.adapters.binance.constants import (
+from candles_feed.core.candle_data import CandleData
+from candles_feed.core.protocols import NetworkClientProtocol
+
+from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
 )
-from candles_feed.core.candle_data import CandleData
 
 
-class BinanceBaseAdapter(BaseAdapter, ABC):
+class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Base class for Binance exchange adapters.
 
     This class provides shared functionality for Binance spot and perpetual adapters.
@@ -24,50 +28,53 @@ class BinanceBaseAdapter(BaseAdapter, ABC):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
-    
-    @staticmethod
+
     @abstractmethod
-    def get_rest_url() -> str:
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
-        
-        :return: REST API URL
+
+        :returns: REST API URL
         """
         pass
-        
-    @staticmethod
+
     @abstractmethod
-    def get_ws_url() -> str:
-        """Get WebSocket URL.
-        
-        :return: WebSocket URL
+    def _get_ws_url(self) -> str:
+        """Get WebSocket URL (internal implementation).
+
+        :returns: WebSocket URL
         """
         pass
+
+    def get_ws_url(self) -> str:
+        """Get WebSocket URL.
+
+        :returns: WebSocket URL
+        """
+        return self._get_ws_url()
 
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
         :param trading_pair: Trading pair in standard format (e.g., "BTC-USDT")
-        :return: Trading pair in Binance format (e.g., "BTCUSDT")
+        :returns: Trading pair in Binance format (e.g., "BTCUSDT")
         """
         return trading_pair.replace("-", "")
 
-    def get_rest_params(
+    def _get_rest_params(
         self,
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        end_time: int | None = None,
-        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict:
         """Get parameters for REST API request.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
         :param start_time: Start time in seconds
-        :param end_time: End time in seconds
         :param limit: Maximum number of candles to return
-        :return: Dictionary of parameters for REST API request
+        :returns: Dictionary of parameters for REST API request
         """
         params = {
             "symbol": self.get_trading_pair_format(trading_pair),
@@ -77,16 +84,14 @@ class BinanceBaseAdapter(BaseAdapter, ABC):
 
         if start_time:
             params["startTime"] = self.convert_timestamp_to_exchange(start_time)
-        if end_time:
-            params["endTime"] = self.convert_timestamp_to_exchange(end_time)
 
         return params
 
-    def parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
+    def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
-        :return: List of CandleData objects
+        :returns: List of CandleData objects
         """
         # Binance candle format:
         # [
@@ -109,7 +114,8 @@ class BinanceBaseAdapter(BaseAdapter, ABC):
         if data is None:
             return []
 
-        candles = []
+        candles: list[CandleData] = []
+        assert isinstance(data, list), f"Unexpected data type: {type(data)}"
         candles.extend(
             CandleData(
                 timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
@@ -127,16 +133,44 @@ class BinanceBaseAdapter(BaseAdapter, ABC):
         )
         return candles
 
+    async def fetch_rest_candles(
+        self,
+        trading_pair: str,
+        interval: str,
+        start_time: int | None = None,
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        network_client: NetworkClientProtocol | None = None,
+    ) -> list[CandleData]:
+        """Fetch candles from REST API asynchronously.
+
+        :param trading_pair: Trading pair
+        :param interval: Candle interval
+        :param start_time: Start time in seconds
+        :param limit: Maximum number of candles to return
+        :param network_client: Network client to use for API requests
+        :returns: List of CandleData objects
+        """
+        return await AsyncOnlyAdapter._fetch_rest_candles(
+            adapter_implementation=self,
+            trading_pair=trading_pair,
+            interval=interval,
+            start_time=start_time,
+            limit=limit,
+            network_client=network_client,
+        )
+
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
-        :return: WebSocket subscription payload
+        :returns: WebSocket subscription payload
         """
         return {
             "method": "SUBSCRIBE",
-            "params": [f"{self.get_trading_pair_format(trading_pair).lower()}@kline_{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}"],
+            "params": [
+                f"{self.get_trading_pair_format(trading_pair).lower()}@kline_{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}"
+            ],
             "id": 1,
         }
 
@@ -144,7 +178,7 @@ class BinanceBaseAdapter(BaseAdapter, ABC):
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
-        :return: List of CandleData objects or None if message is not a candle update
+        :returns: List of CandleData objects or None if message is not a candle update
         """
         # Binance WS candle format:
         # {
@@ -176,32 +210,34 @@ class BinanceBaseAdapter(BaseAdapter, ABC):
             return None
 
         if data.get("e") == "kline":
-            return [
-                CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(data["k"]["t"]),
-                    open=float(data["k"]["o"]),
-                    high=float(data["k"]["h"]),
-                    low=float(data["k"]["l"]),
-                    close=float(data["k"]["c"]),
-                    volume=float(data["k"]["v"]),
-                    quote_asset_volume=float(data["k"]["q"]),
-                    n_trades=int(data["k"]["n"]),
-                    taker_buy_base_volume=float(data["k"]["V"]),
-                    taker_buy_quote_volume=float(data["k"]["Q"]),
-                )
-            ]
+            kline_data = data.get("k")
+            if isinstance(kline_data, dict):
+                return [
+                    CandleData(
+                        timestamp_raw=self.ensure_timestamp_in_seconds(kline_data["t"]),
+                        open=float(kline_data["o"]),
+                        high=float(kline_data["h"]),
+                        low=float(kline_data["l"]),
+                        close=float(kline_data["c"]),
+                        volume=float(kline_data["v"]),
+                        quote_asset_volume=float(kline_data["q"]),
+                        n_trades=int(kline_data["n"]),
+                        taker_buy_base_volume=float(kline_data["V"]),
+                        taker_buy_quote_volume=float(kline_data["Q"]),
+                    )
+                ]
         return None
 
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
-        :return: Dictionary mapping interval strings to their duration in seconds
+        :returns: Dictionary mapping interval strings to their duration in seconds
         """
         return INTERVALS
 
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
-        :return: List of interval strings supported by WebSocket API
+        :returns: List of interval strings supported by WebSocket API
         """
         return WS_INTERVALS

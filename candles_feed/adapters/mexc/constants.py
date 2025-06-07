@@ -9,10 +9,16 @@ SPOT_CANDLES_ENDPOINT = "/api/v3/klines"
 SPOT_KLINE_TOPIC = "spot@public.kline."
 
 # API URLs - Perpetual
-PERP_REST_URL = "https://contract.mexc.com"
-PERP_CANDLES_ENDPOINT = "/api/v1/contract/kline"
-PERP_WSS_URL = "wss://contract.mexc.com/ws"
-PERP_KLINE_TOPIC = "contract@kline."
+PERPETUAL_REST_URL = "https://contract.mexc.com"
+PERPETUAL_CANDLES_ENDPOINT = "/api/v1/contract/kline"
+PERPETUAL_WSS_URL = "wss://contract.mexc.com/ws"
+PERPETUAL_KLINE_TOPIC = "contract@kline."
+
+# Legacy compatibility constants
+PERP_REST_URL = PERPETUAL_REST_URL
+PERP_CANDLES_ENDPOINT = PERPETUAL_CANDLES_ENDPOINT
+PERP_WSS_URL = PERPETUAL_WSS_URL
+PERP_KLINE_TOPIC = PERPETUAL_KLINE_TOPIC
 
 # API endpoints
 HEALTH_CHECK_ENDPOINT = "/api/v3/ping"

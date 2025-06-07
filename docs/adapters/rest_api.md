@@ -33,15 +33,15 @@ Let's look at each in detail:
 ```python
 def get_rest_url(self) -> str:
     """Get REST API URL for candles.
-    
+
     Returns:
         REST API URL
     """
     # For most exchanges, this is a simple concatenation
     return f"{REST_URL}{CANDLES_ENDPOINT}"
-    
+
     # Some exchanges might require path parameters in the URL
-    # Example: return f"{REST_URL}{CANDLES_ENDPOINT}".format(product_id=some_id)
+    # Example: return f"{REST_URL}{SPOT_CANDLES_ENDPOINT}".format(product_id=some_id)
 ```
 
 ### 2. Implementing `get_rest_params()`
@@ -49,11 +49,11 @@ def get_rest_url(self) -> str:
 This method creates the parameter dictionary for REST API requests:
 
 ```python
-def get_rest_params(self, 
-                  trading_pair: str, 
-                  interval: str, 
-                  start_time: Optional[int] = None, 
-                  end_time: Optional[int] = None, 
+def get_rest_params(self,
+                  trading_pair: str,
+                  interval: str,
+                  start_time: Optional[int] = None,
+                  end_time: Optional[int] = None,
                   limit: Optional[int] = None) -> dict:
     """Get parameters for REST API request."""
     # Basic parameters needed for most exchanges
@@ -62,20 +62,20 @@ def get_rest_params(self,
         "interval": self._convert_interval_to_exchange_format(interval),
         "limit": limit or MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
     }
-    
+
     # Handle timestamps according to exchange requirements
     if start_time is not None:
         # Some exchanges require milliseconds
         params["startTime"] = start_time * 1000  # Convert to milliseconds
         # Or some might use a different parameter name
         # params["from"] = start_time
-        
+
     if end_time is not None:
         # Some exchanges require milliseconds
         params["endTime"] = end_time * 1000  # Convert to milliseconds
         # Or some might use a different parameter name
         # params["to"] = end_time
-        
+
     return params
 ```
 
@@ -87,11 +87,11 @@ This method parses the exchange's response into standardized `CandleData` object
 def parse_rest_response(self, data: dict) -> List[CandleData]:
     """Parse REST API response into CandleData objects."""
     candles = []
-    
+
     # Extract data based on exchange's response format
     # This will vary significantly between exchanges
     response_data = data.get("candles", [])  # Adjust key based on exchange's format
-    
+
     for item in response_data:
         # For array-based responses
         if isinstance(item, list):
@@ -108,7 +108,7 @@ def parse_rest_response(self, data: dict) -> List[CandleData]:
                 taker_buy_base_volume=float(item[8]) if len(item) > 8 else 0.0,
                 taker_buy_quote_volume=float(item[9]) if len(item) > 9 else 0.0
             ))
-        
+
         # For object-based responses
         elif isinstance(item, dict):
             # Adjust keys based on exchange's format
@@ -124,7 +124,7 @@ def parse_rest_response(self, data: dict) -> List[CandleData]:
                 taker_buy_base_volume=float(item.get("takerBuyVolume", 0)),
                 taker_buy_quote_volume=float(item.get("takerBuyQuoteVolume", 0))
             ))
-    
+
     return candles
 ```
 
@@ -141,7 +141,7 @@ graph TD
     A[Timestamp Formats] --> B[Seconds]
     A --> C[Milliseconds]
     A --> D[ISO 8601]
-    
+
     B --> B1["start: 1625097600"]
     C --> C1["startTime: 1625097600000"]
     D --> D1["start_time: '2021-07-01T00:00:00Z'"]
@@ -225,16 +225,16 @@ Implement robust error handling in your REST API methods:
 def parse_rest_response(self, data: dict) -> List[CandleData]:
     """Parse REST API response into CandleData objects."""
     candles = []
-    
+
     # Check for error response
     if "error" in data and data["error"]:
         error_msg = data.get("message", "Unknown error")
         raise ValueError(f"Exchange error: {error_msg}")
-    
+
     # Check if data is in expected format
     if "candles" not in data:
         raise ValueError(f"Unexpected response format: {data}")
-    
+
     # Parse candles with validation
     for item in data["candles"]:
         try:
@@ -249,7 +249,7 @@ def parse_rest_response(self, data: dict) -> List[CandleData]:
         except (ValueError, TypeError) as e:
             # Log error but continue processing
             logger.warning(f"Error parsing candle data: {e}, data: {item}")
-    
+
     return candles
 ```
 
@@ -285,7 +285,7 @@ Example test:
 def test_parse_rest_response():
     """Test parsing REST response."""
     adapter = YourExchangeAdapter()
-    
+
     # Sample response data
     response = {
         "candles": [
@@ -299,9 +299,9 @@ def test_parse_rest_response():
             }
         ]
     }
-    
+
     candles = adapter.parse_rest_response(response)
-    
+
     assert len(candles) == 1
     assert candles[0].timestamp == 1625097600
     assert candles[0].open == 34500.5
