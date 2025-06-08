@@ -219,9 +219,9 @@ def profile_performance(operation_name: str = None, enable_memory: bool = True) 
             return result
 
         if asyncio.iscoroutinefunction(func):
-            return cast(F, async_wrapper)
+            return cast("F", async_wrapper)
         else:
-            return cast(F, wrapper)
+            return cast("F", wrapper)
 
     return decorator
 
