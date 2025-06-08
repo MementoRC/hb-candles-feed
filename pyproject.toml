@@ -211,6 +211,7 @@ markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "e2e: marks tests as end-to-end tests",
     "asyncio: marks tests as asyncio tests",
+    "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
 ]
 log_cli = true
 log_cli_level = "INFO"

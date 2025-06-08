@@ -17,6 +17,7 @@ from candles_feed.core.network_client import NetworkClient
 from candles_feed.mocking_resources.adapter.mocked_adapter import MockedAdapter
 
 
+@pytest.mark.benchmark
 class TestCandleDataBenchmarks:
     """Benchmark tests for CandleData operations."""
 
@@ -71,6 +72,7 @@ class TestCandleDataBenchmarks:
         assert len(result) == 10
 
 
+@pytest.mark.benchmark
 class TestDataProcessorBenchmarks:
     """Benchmark tests for DataProcessor operations."""
 
@@ -99,6 +101,7 @@ class TestDataProcessorBenchmarks:
         assert all(isinstance(candle, CandleData) for candle in result)
 
 
+@pytest.mark.benchmark
 class TestNetworkClientBenchmarks:
     """Benchmark tests for NetworkClient operations."""
 
@@ -122,6 +125,7 @@ class TestNetworkClientBenchmarks:
         assert isinstance(result, dict)
 
 
+@pytest.mark.benchmark
 class TestMetricsBenchmarks:
     """Benchmark tests for metrics collection performance."""
 
@@ -163,6 +167,7 @@ class TestMetricsBenchmarks:
         assert result_tracker.collector.metrics.total_requests == 50
 
 
+@pytest.mark.benchmark
 class TestAdapterBenchmarks:
     """Benchmark tests for adapter operations."""
 
@@ -176,6 +181,7 @@ class TestAdapterBenchmarks:
         assert adapter is not None
 
 
+@pytest.mark.benchmark
 class TestIntegrationBenchmarks:
     """Benchmark tests for integrated operations."""
 
@@ -197,6 +203,7 @@ class TestIntegrationBenchmarks:
         assert result == 200  # 10 collectors * 20 requests each
 
 
+@pytest.mark.benchmark
 @pytest.mark.benchmark
 class TestPerformanceRegression:
     """Performance regression detection tests."""

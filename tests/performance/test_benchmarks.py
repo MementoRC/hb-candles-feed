@@ -23,6 +23,7 @@ from candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin 
 from candles_feed.utils.profiling import BenchmarkSuite, PerformanceProfiler, profile_performance
 
 
+@pytest.mark.benchmark
 class TestNetworkClientPerformance:
     """Performance tests for NetworkClient connection pooling and optimization."""
 
@@ -56,9 +57,9 @@ class TestNetworkClientPerformance:
             avg_subsequent_time = sum(subsequent_times) / len(subsequent_times)
 
             # Connection reuse should make subsequent requests faster
-            assert avg_subsequent_time < first_request_time, (
-                f"Connection pooling ineffective: first={first_request_time:.3f}s, avg={avg_subsequent_time:.3f}s"
-            )
+            assert (
+                avg_subsequent_time < first_request_time
+            ), f"Connection pooling ineffective: first={first_request_time:.3f}s, avg={avg_subsequent_time:.3f}s"
 
             # Verify connection pool statistics
             stats = network_client.get_connection_pool_stats()
@@ -99,12 +100,12 @@ class TestNetworkClientPerformance:
             )
 
             # Performance targets from PRD
-            assert result.avg_latency_ms < 100, (
-                f"Average latency too high: {result.avg_latency_ms:.2f}ms"
-            )
-            assert result.p95_latency_ms < 200, (
-                f"P95 latency too high: {result.p95_latency_ms:.2f}ms"
-            )
+            assert (
+                result.avg_latency_ms < 100
+            ), f"Average latency too high: {result.avg_latency_ms:.2f}ms"
+            assert (
+                result.p95_latency_ms < 200
+            ), f"P95 latency too high: {result.p95_latency_ms:.2f}ms"
             assert result.success_rate > 0.95, f"Success rate too low: {result.success_rate:.1%}"
 
         finally:
@@ -112,6 +113,7 @@ class TestNetworkClientPerformance:
             await server.stop()
 
 
+@pytest.mark.benchmark
 class TestDataProcessorPerformance:
     """Performance tests for optimized data processing operations."""
 
@@ -150,9 +152,9 @@ class TestDataProcessorPerformance:
         metrics = profiler.get_metrics_summary()
 
         # Performance targets
-        assert metrics["avg_duration_ms"] < 50, (
-            f"Sanitization too slow: {metrics['avg_duration_ms']:.2f}ms"
-        )
+        assert (
+            metrics["avg_duration_ms"] < 50
+        ), f"Sanitization too slow: {metrics['avg_duration_ms']:.2f}ms"
         assert len(result) > 700, f"Too many candles filtered out: {len(result)} remaining"
 
         # Verify correctness
@@ -224,11 +226,12 @@ class TestDataProcessorPerformance:
         metrics = profiler.get_metrics_summary()
 
         # All operations should be fast
-        assert metrics["avg_duration_ms"] < 5, (
-            f"Candle processing too slow: {metrics['avg_duration_ms']:.2f}ms"
-        )
+        assert (
+            metrics["avg_duration_ms"] < 5
+        ), f"Candle processing too slow: {metrics['avg_duration_ms']:.2f}ms"
 
 
+@pytest.mark.benchmark
 class TestAdapterPerformance:
     """Performance tests for adapter implementations."""
 
@@ -300,13 +303,14 @@ class TestAdapterPerformance:
         # Memory per candle should be reasonable (adjusted for test environment)
         for measurement in memory_measurements:
             memory_per_100_candles = (measurement["memory_mb"] / measurement["candle_count"]) * 100
-            assert memory_per_100_candles < 500, (
-                f"Memory per 100 candles too high: {memory_per_100_candles:.1f}MB at {measurement['candle_count']} candles"
-            )
+            assert (
+                memory_per_100_candles < 500
+            ), f"Memory per 100 candles too high: {memory_per_100_candles:.1f}MB at {measurement['candle_count']} candles"
 
         await network_client.close()
 
 
+@pytest.mark.benchmark
 class TestIntegrationPerformance:
     """End-to-end performance tests."""
 
@@ -341,15 +345,15 @@ class TestIntegrationPerformance:
         )
 
         # Should handle concurrent load efficiently
-        assert result.avg_latency_ms < 100, (
-            f"Concurrent performance too slow: {result.avg_latency_ms:.2f}ms"
-        )
-        assert result.success_rate > 0.95, (
-            f"Success rate too low under load: {result.success_rate:.1%}"
-        )
-        assert result.memory_peak_mb < 300, (
-            f"Memory usage too high under load: {result.memory_peak_mb:.1f}MB"
-        )
+        assert (
+            result.avg_latency_ms < 100
+        ), f"Concurrent performance too slow: {result.avg_latency_ms:.2f}ms"
+        assert (
+            result.success_rate > 0.95
+        ), f"Success rate too low under load: {result.success_rate:.1%}"
+        assert (
+            result.memory_peak_mb < 300
+        ), f"Memory usage too high under load: {result.memory_peak_mb:.1f}MB"
 
         # Check connection pool efficiency
         stats = network_client.get_connection_pool_stats()
@@ -389,17 +393,17 @@ class TestIntegrationPerformance:
             if i % 10 == 0:
                 current_memory = profiler._get_memory_usage()
                 memory_growth = current_memory - initial_memory
-                assert memory_growth < 50, (
-                    f"Potential memory leak detected: {memory_growth:.1f}MB growth"
-                )
+                assert (
+                    memory_growth < 50
+                ), f"Potential memory leak detected: {memory_growth:.1f}MB growth"
 
         final_memory = profiler._get_memory_usage()
         total_growth = final_memory - initial_memory
 
         # Memory growth should be minimal under sustained load
-        assert total_growth < 100, (
-            f"Memory leak detected: {total_growth:.1f}MB growth over 50 operations"
-        )
+        assert (
+            total_growth < 100
+        ), f"Memory leak detected: {total_growth:.1f}MB growth over 50 operations"
 
         await network_client.close()
 

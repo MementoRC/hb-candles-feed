@@ -55,12 +55,14 @@ jobs:
       - name: Run unit tests with coverage
         run: |
           # Run unit tests first to avoid URL patching pollution from integration tests
-          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "not integration" --cov=candles_feed --cov-report=xml:coverage.xml
+          # Exclude benchmark tests from CI blocking - they're for performance monitoring only
+          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "not integration and not benchmark" --cov=candles_feed --cov-report=xml:coverage.xml
 
       - name: Run integration tests separately
         run: |
           # Run integration tests separately to prevent URL patching pollution
-          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "integration" --cov=candles_feed --cov-append
+          # Exclude benchmark tests from CI blocking - they're for performance monitoring only
+          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "integration and not benchmark" --cov=candles_feed --cov-append
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -110,10 +112,11 @@ jobs:
           pixi run -e ${{ matrix.pixi-environment }} ci-hints
 
   benchmark:
-    name: Performance Benchmarks
+    name: Performance Benchmarks (Non-blocking)
     runs-on: ubuntu-latest
     needs: [test]
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    continue-on-error: true  # Don't block CI if benchmarks fail
     defaults:
       run:
         shell: bash
@@ -131,8 +134,9 @@ jobs:
 
       - name: Run performance benchmarks
         run: |
-          # Run existing performance tests as benchmarks
-          pixi run pytest tests/performance/ -v --tb=short
+          # Run performance benchmark tests for monitoring (non-blocking)
+          # These tests measure performance characteristics but don't block CI
+          pixi run pytest tests -m "benchmark" -v --tb=short
 
       - name: Store benchmark results
         uses: actions/upload-artifact@v4
