@@ -150,10 +150,11 @@ class TestPerformanceTracker:
         """Test request tracking with exception."""
         tracker = PerformanceTracker()
 
-        with pytest.raises(ValueError):
-            with tracker.track_request("GET", "/api/v1/klines"):
-                raise ValueError("Test error")
+        # Verify exception is raised and metrics are recorded
+        with pytest.raises(ValueError, match="Test error"), tracker.track_request("GET", "/api/v1/klines"):
+            raise ValueError("Test error")
 
+        # Verify metrics were recorded despite the exception
         assert tracker.collector.metrics.total_requests == 1
         assert tracker.collector.metrics.failed_requests == 1
 
