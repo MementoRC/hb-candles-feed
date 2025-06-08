@@ -9,9 +9,9 @@ import json
 import logging
 import sys
 import time
-from typing import Any, ClassVar, Protocol
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, ClassVar, Protocol
 
 
 class LogLevel(Enum):

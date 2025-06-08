@@ -29,9 +29,7 @@ class TestNetworkClientPerformance:
     @pytest.mark.asyncio
     async def test_connection_pool_reuse(self):
         """Test that connection pooling reduces connection establishment overhead."""
-        config = NetworkConfig(
-            max_connections_per_host=10, connection_pool_size=50, enable_connection_pooling=True
-        )
+        config = NetworkConfig(connection_pool_size=50, enable_connection_pooling=True)
 
         network_client = NetworkClient(config)
 
@@ -76,7 +74,7 @@ class TestNetworkClientPerformance:
     @pytest.mark.asyncio
     async def test_concurrent_request_performance(self):
         """Test performance under concurrent load."""
-        config = NetworkConfig(max_connections_per_host=20, rest_api_timeout=10.0)
+        config = NetworkConfig(rest_api_timeout=10.0)
 
         network_client = NetworkClient(config)
         plugin = BinanceSpotPlugin()
@@ -315,7 +313,7 @@ class TestIntegrationPerformance:
     @pytest.mark.asyncio
     async def test_multiple_adapters_concurrent(self):
         """Test performance with multiple adapters running concurrently."""
-        config = NetworkConfig(max_connections_per_host=50, connection_pool_size=200)
+        config = NetworkConfig(connection_pool_size=200)
 
         network_client = NetworkClient(config)
 

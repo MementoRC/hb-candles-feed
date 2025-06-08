@@ -7,12 +7,12 @@ import logging
 import time
 
 from candles_feed.core.monitoring import (
+    JSONFormatter,
     LogContext,
     LogLevel,
     MonitoringConfig,
     MonitoringManager,
     StructuredLogger,
-    JSONFormatter,
 )
 
 

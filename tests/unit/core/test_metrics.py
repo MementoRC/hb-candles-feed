@@ -3,15 +3,16 @@ Unit tests for metrics collection and performance tracking.
 """
 
 import asyncio
-import pytest
 import time
+
+import pytest
 
 from candles_feed.core.metrics import (
     MetricsCollector,
     OperationalMetrics,
     PerformanceTracker,
-    track_operation,
     track_async_operation,
+    track_operation,
 )
 
 
