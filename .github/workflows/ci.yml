@@ -40,7 +40,7 @@ jobs:
           pixi install -e ${{ matrix.pixi-environment }}
           echo "Python version check:"
           pixi run -e ${{ matrix.pixi-environment }} python --version
-          pixi run -e ${{ matrix.pixi-environment }} python -c "import sys; print(f'Python executable: {sys.executable}')"
+          pixi run -e ${{ matrix.pixi-environment }} python -c "import sys; print('Python executable:', sys.executable)"
           pixi run -e ${{ matrix.pixi-environment }} pip install -e . --verbose
 
       - name: Run unit tests with coverage
