@@ -13,7 +13,7 @@ import time
 import tracemalloc
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
 
 import psutil
 
@@ -77,8 +77,8 @@ class PerformanceProfiler:
         :param metadata: Additional metadata to record
         """
         start_time = time.perf_counter()
-        start_memory = 0
-        peak_memory = 0
+        start_memory = 0.0
+        peak_memory = 0.0
 
         if self.enable_memory_tracking:
             start_memory = self._get_memory_usage()
@@ -97,7 +97,7 @@ class PerformanceProfiler:
             end_time = time.perf_counter()
             duration_ms = (end_time - start_time) * 1000
 
-            current_memory = 0
+            current_memory = 0.0
             if self.enable_memory_tracking:
                 current_memory = self._get_memory_usage()
                 peak_memory = max(start_memory, current_memory)
@@ -176,7 +176,7 @@ class PerformanceProfiler:
         gc.collect()
 
 
-def profile_performance(operation_name: str = None, enable_memory: bool = True):
+def profile_performance(operation_name: str = None, enable_memory: bool = True) -> Callable[[F], F]:
     """Decorator for profiling function performance.
 
     :param operation_name: Name for the operation (defaults to function name)
@@ -218,7 +218,10 @@ def profile_performance(operation_name: str = None, enable_memory: bool = True):
 
             return result
 
-        return async_wrapper if asyncio.iscoroutinefunction(func) else wrapper
+        if asyncio.iscoroutinefunction(func):
+            return cast(F, async_wrapper)
+        else:
+            return cast(F, wrapper)
 
     return decorator
 
