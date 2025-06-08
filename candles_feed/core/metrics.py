@@ -50,9 +50,7 @@ class OperationalMetrics:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert metrics to dictionary for export."""
-        return {
-            field_name: getattr(self, field_name) for field_name in self.__dataclass_fields__
-        }
+        return {field_name: getattr(self, field_name) for field_name in self.__dataclass_fields__}
 
 
 class MetricsCollector:
