@@ -136,17 +136,53 @@ jobs:
           pixi install
           pixi run pip install -e .
 
+      - name: Create benchmark results directory
+        run: |
+          mkdir -p benchmark-results
+
       - name: Run performance benchmarks
         run: |
           # Run performance benchmark tests for monitoring (non-blocking)
           # These tests measure performance characteristics but don't block CI
-          pixi run pytest tests -m "benchmark" -v --tb=short
+          # Capture JSON output for performance trend analysis
+          pixi run pytest tests -m "benchmark" -v --tb=short \
+            --benchmark-json=benchmark-results/benchmark-results.json \
+            --benchmark-sort=mean
+
+      - name: Generate benchmark summary
+        if: always()
+        run: |
+          if [ -f benchmark-results/benchmark-results.json ]; then
+            echo "## Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
+            echo "Benchmark completed successfully. Results stored as artifacts." >> $GITHUB_STEP_SUMMARY
+            
+            # Extract key metrics for summary
+            python3 -c "
+            import json
+            import sys
+            try:
+                with open('benchmark-results/benchmark-results.json', 'r') as f:
+                    data = json.load(f)
+                benchmarks = data.get('benchmarks', [])
+                print(f'Total benchmarks: {len(benchmarks)}')
+                if benchmarks:
+                    fastest = min(benchmarks, key=lambda x: x['stats']['mean'])
+                    slowest = max(benchmarks, key=lambda x: x['stats']['mean'])
+                    print(f'Fastest test: {fastest[\"name\"]} ({fastest[\"stats\"][\"mean\"]:.2f}μs)')
+                    print(f'Slowest test: {slowest[\"name\"]} ({slowest[\"stats\"][\"mean\"]:.2f}μs)')
+            except Exception as e:
+                print(f'Error processing benchmark results: {e}')
+            " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Benchmark results file not found" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Store benchmark results
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: benchmark-results
+          name: benchmark-results-${{ github.run_id }}
           path: |
+            benchmark-results/
             tests/performance/
-            .pytest_cache/
           retention-days: 30
