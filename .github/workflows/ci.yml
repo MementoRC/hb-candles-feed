@@ -38,13 +38,16 @@ jobs:
       - name: Install project dependencies (using Pixi)
         run: |
           pixi install -e ${{ matrix.pixi-environment }}
-          pixi run -e ${{ matrix.pixi-environment }} pip install -e .
+          echo "Python version check:"
+          pixi run -e ${{ matrix.pixi-environment }} python --version
+          pixi run -e ${{ matrix.pixi-environment }} python -c "import sys; print(f'Python executable: {sys.executable}')"
+          pixi run -e ${{ matrix.pixi-environment }} pip install -e . --verbose
 
       - name: Run unit tests with coverage
         run: |
           # Run unit tests first to avoid URL patching pollution from integration tests
           pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "not integration" --cov=candles_feed --cov-report=xml:coverage.xml
-          
+
       - name: Run integration tests separately
         run: |
           # Run integration tests separately to prevent URL patching pollution
@@ -85,7 +88,10 @@ jobs:
       - name: Install project dependencies (using Pixi)
         run: |
           pixi install -e ${{ matrix.pixi-environment }}
-          pixi run -e ${{ matrix.pixi-environment }} pip install -e .
+          echo "Python version check:"
+          pixi run -e ${{ matrix.pixi-environment }} python --version
+          pixi run -e ${{ matrix.pixi-environment }} python -c "import sys; print(f'Python executable: {sys.executable}')"
+          pixi run -e ${{ matrix.pixi-environment }} pip install -e . --verbose
 
       - name: Format and lint with ruff
         run: |
