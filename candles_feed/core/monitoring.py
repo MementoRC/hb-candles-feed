@@ -192,15 +192,15 @@ class MonitoringProtocol(Protocol):
 
     def log_event(self, event: str, context: dict[str, Any]) -> None:
         """Log an operational event."""
-        ...
+        pass
 
     def record_metric(self, name: str, value: float, tags: dict[str, str] | None = None) -> None:
         """Record a metric value."""
-        ...
+        pass
 
     def get_health_status(self) -> dict[str, Any]:
         """Get current health status."""
-        ...
+        pass
 
 
 class MonitoringManager:
