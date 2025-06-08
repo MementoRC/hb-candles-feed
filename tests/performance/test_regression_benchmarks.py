@@ -143,16 +143,18 @@ class TestMetricsBenchmarks:
 
     def test_performance_tracker_benchmark(self, benchmark):
         """Benchmark performance tracker context managers."""
-        tracker = PerformanceTracker()
-
+        
         def track_operations():
+            # Create fresh tracker for each benchmark run
+            tracker = PerformanceTracker()
             # Simulate tracking 50 operations
             for i in range(50):
                 with tracker.track_request("GET", f"/api/endpoint/{i}"):
                     time.sleep(0.001)  # Simulate small work
+            return tracker
 
-        benchmark(track_operations)
-        assert tracker.collector.metrics.total_requests == 50
+        result_tracker = benchmark(track_operations)
+        assert result_tracker.collector.metrics.total_requests == 50
 
 
 class TestAdapterBenchmarks:
