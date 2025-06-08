@@ -2,7 +2,7 @@
 Tests for the base adapter functionality.
 """
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -135,7 +135,7 @@ class TestTimestampConversion:
         adapter = self.MockAdapter()
         result = adapter.ensure_timestamp_in_seconds(None)
         # Should be close to now
-        now = int(datetime.now(UTC).timestamp())
+        now = int(datetime.now(timezone.utc).timestamp())
         assert abs(result - now) < 10
 
     def test_convert_timestamp_iso8601(self):
