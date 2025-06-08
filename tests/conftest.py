@@ -52,14 +52,14 @@ def prevent_url_pollution():
 
         adapter_classes.append(BinanceSpotAdapter)
     except ImportError:
-        pass
+        logging.debug("BinanceSpotAdapter could not be imported. Skipping.")
 
     try:
         from candles_feed.adapters.binance.perpetual_adapter import BinancePerpetualAdapter
 
         adapter_classes.append(BinancePerpetualAdapter)
     except ImportError:
-        pass
+        logging.debug("BinancePerpetualAdapter could not be imported. Skipping.")
 
     # Store original methods along with their static/instance nature
     import inspect
