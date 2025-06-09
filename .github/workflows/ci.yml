@@ -123,11 +123,13 @@ jobs:
 
       - name: Install Pixi
         uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          environments: default
 
       - name: Install project dependencies (using Pixi)
         run: |
-          pixi install
-          pixi run pip install -e .
+          pixi install -e default
+          pixi run -e default pip install -e . --verbose
 
       - name: Create benchmark results directory
         run: |
@@ -138,7 +140,7 @@ jobs:
           # Run performance benchmark tests for monitoring (non-blocking)
           # These tests measure performance characteristics but don't block CI
           # Capture JSON output for performance trend analysis
-          pixi run pytest tests -m "benchmark" -v --tb=short \
+          pixi run -e default pytest tests -m "benchmark" -v --tb=short \
             --benchmark-json=benchmark-results/benchmark-results.json \
             --benchmark-sort=mean
 
