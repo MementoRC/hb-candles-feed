@@ -48,7 +48,7 @@ jobs:
         ports:
           - 8080:8080
         options: >-
-          --health-cmd "curl -f http://localhost:8080/health || exit 1"
+          --health-cmd "curl -f http://localhost:8080/ || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
@@ -94,7 +94,7 @@ jobs:
             # Wait for Redis
             timeout 30 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done' || echo "Redis not available, continuing without it"
             # Wait for WebSocket echo server
-            timeout 30 bash -c 'until curl -f http://localhost:8080/health; do sleep 1; done' || echo "WebSocket echo server not available, continuing without it"
+            timeout 30 bash -c 'until curl -f http://localhost:8080/; do sleep 1; done' || echo "WebSocket echo server not available, continuing without it"
             echo "Service containers ready (or timeout reached)"
           fi
 
