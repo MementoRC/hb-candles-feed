@@ -86,6 +86,8 @@ jobs:
           # Wait for service containers to be ready (Ubuntu only)
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
             echo "Waiting for service containers to be ready..."
+            # Install redis-tools for health checks
+            sudo apt-get update && sudo apt-get install -y redis-tools
             # Wait for Redis
             timeout 30 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done' || echo "Redis not available, continuing without it"
             # Give WebSocket echo server a moment to start (no health check)
