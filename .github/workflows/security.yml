@@ -119,3 +119,24 @@ jobs:
           echo "::error::One or more security scans failed. Please review the results."
           exit 1
         fi
+
+  # Summary job that reports overall security workflow status
+  security-status:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: [codeql, dependency-scan, secrets-scan, security-summary]
+    if: always()
+    steps:
+      - name: Report Security Status
+        run: |
+          # Check if all security jobs passed
+          if [[ "${{ needs.codeql.result }}" == "success" && "${{ needs.dependency-scan.result }}" == "success" && "${{ needs.secrets-scan.result }}" == "success" ]]; then
+            echo "✅ All Security Scanning jobs passed"
+            exit 0
+          else
+            echo "❌ Some Security Scanning jobs failed"
+            echo "CodeQL result: ${{ needs.codeql.result }}"
+            echo "Dependency scan result: ${{ needs.dependency-scan.result }}"
+            echo "Secrets scan result: ${{ needs.secrets-scan.result }}"
+            exit 1
+          fi
