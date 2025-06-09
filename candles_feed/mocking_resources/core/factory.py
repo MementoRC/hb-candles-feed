@@ -125,14 +125,14 @@ MockExchangeServerType = TypeVar("MockExchangeServerType", bound="MockedExchange
 def create_mock_server(
     exchange_type: ExchangeType,
     host: str = "127.0.0.1",
-    port: int = 8080,
+    port: int = 8082,
     trading_pairs: Optional[List[Tuple[str, str, float]]] = None,
 ) -> Optional[MockExchangeServerType]:
     """Create a mock exchange server.
 
     :param exchange_type: The type of exchange to mock
     :param host: The host to bind to (Default value = "127.0.0.1")
-    :param port: The port to bind to (Default value = 8080)
+    :param port: The port to bind to (Default value = 8082)
     :param trading_pairs: Optional list of trading pairs to initialize
                     Each tuple contains (symbol, interval, initial_price) (Default value = None)
     :returns: A configured MockedExchangeServer instance, or None if the plugin
