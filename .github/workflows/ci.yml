@@ -152,17 +152,7 @@ jobs:
             echo "Benchmark completed successfully. Results stored as artifacts." >> $GITHUB_STEP_SUMMARY
 
             # Extract key metrics for summary
-            python3 -c "
-            import json
-            data = json.load(open('benchmark-results/benchmark-results.json'))
-            benchmarks = data.get('benchmarks', [])
-            print(f'Total benchmarks: {len(benchmarks)}')
-            if benchmarks:
-                fastest = min(benchmarks, key=lambda x: x['stats']['mean'])
-                slowest = max(benchmarks, key=lambda x: x['stats']['mean'])
-                print(f'Fastest test: {fastest[\"name\"]} ({fastest[\"stats\"][\"mean\"]:.2f}μs)')
-                print(f'Slowest test: {slowest[\"name\"]} ({slowest[\"stats\"][\"mean\"]:.2f}μs)')
-            " >> $GITHUB_STEP_SUMMARY
+            python3 -c "import json; data=json.load(open('benchmark-results/benchmark-results.json')); benchmarks=data.get('benchmarks',[]); print(f'Total benchmarks: {len(benchmarks)}'); print(f'Fastest test: {min(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"name\"]} ({min(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"stats\"][\"mean\"]:.2f}μs)') if benchmarks else None; print(f'Slowest test: {max(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"name\"]} ({max(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"stats\"][\"mean\"]:.2f}μs)') if benchmarks else None" >> $GITHUB_STEP_SUMMARY
           else
             echo "Benchmark results file not found" >> $GITHUB_STEP_SUMMARY
           fi
