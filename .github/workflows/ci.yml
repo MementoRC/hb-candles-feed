@@ -30,6 +30,29 @@ jobs:
           - os: macos-latest
             python-version: "3.12"
             pixi-environment: "py312"
+
+    # Service containers for enhanced integration testing (Ubuntu only)
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      websocket-echo:
+        image: jmalloc/echo-server:latest
+        ports:
+          - 8080:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+
     defaults:
       run:
         shell: bash
@@ -56,9 +79,25 @@ jobs:
           pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "not integration and not benchmark" --cov=candles_feed --cov-report=xml:coverage.xml
 
       - name: Run integration tests separately
+        env:
+          # Service container connection details (available on Ubuntu runners only)
+          REDIS_URL: redis://localhost:6379
+          WEBSOCKET_ECHO_URL: ws://localhost:8080
+          TEST_WITH_SERVICES: ${{ matrix.os == 'ubuntu-latest' && 'true' || 'false' }}
         run: |
           # Run integration tests separately to prevent URL patching pollution
           # Exclude benchmark tests from CI blocking - they're for performance monitoring only
+
+          # Wait for service containers to be ready (Ubuntu only)
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            echo "Waiting for service containers to be ready..."
+            # Wait for Redis
+            timeout 30 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done' || echo "Redis not available, continuing without it"
+            # Wait for WebSocket echo server
+            timeout 30 bash -c 'until curl -f http://localhost:8080/health; do sleep 1; done' || echo "WebSocket echo server not available, continuing without it"
+            echo "Service containers ready (or timeout reached)"
+          fi
+
           pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "integration and not benchmark" --cov=candles_feed --cov-append
 
       - name: Upload coverage to Codecov
