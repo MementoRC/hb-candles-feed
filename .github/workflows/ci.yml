@@ -11,7 +11,6 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.optional || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -31,12 +30,6 @@ jobs:
           - os: macos-latest
             python-version: "3.12"
             pixi-environment: "py312"
-          
-          # Windows: Optional due to GitHub Actions host environment issues
-          - os: windows-latest
-            python-version: "3.12"
-            pixi-environment: "py312"
-            optional: true
     defaults:
       run:
         shell: bash
