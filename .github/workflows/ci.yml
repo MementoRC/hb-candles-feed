@@ -47,11 +47,6 @@ jobs:
         image: jmalloc/echo-server:latest
         ports:
           - 8080:8080
-        options: >-
-          --health-cmd "curl -f http://localhost:8080/ || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
 
     defaults:
       run:
@@ -93,8 +88,8 @@ jobs:
             echo "Waiting for service containers to be ready..."
             # Wait for Redis
             timeout 30 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done' || echo "Redis not available, continuing without it"
-            # Wait for WebSocket echo server
-            timeout 30 bash -c 'until curl -f http://localhost:8080/; do sleep 1; done' || echo "WebSocket echo server not available, continuing without it"
+            # Give WebSocket echo server a moment to start (no health check)
+            sleep 5
             echo "Service containers ready (or timeout reached)"
           fi
 
