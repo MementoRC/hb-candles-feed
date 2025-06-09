@@ -151,23 +151,25 @@ jobs:
             echo "## Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
             echo "Benchmark completed successfully. Results stored as artifacts." >> $GITHUB_STEP_SUMMARY
             
-            # Extract key metrics for summary
-            python3 -c "
-            import json
-            import sys
-            try:
-                with open('benchmark-results/benchmark-results.json', 'r') as f:
-                    data = json.load(f)
-                benchmarks = data.get('benchmarks', [])
-                print(f'Total benchmarks: {len(benchmarks)}')
-                if benchmarks:
-                    fastest = min(benchmarks, key=lambda x: x['stats']['mean'])
-                    slowest = max(benchmarks, key=lambda x: x['stats']['mean'])
-                    print(f'Fastest test: {fastest[\"name\"]} ({fastest[\"stats\"][\"mean\"]:.2f}μs)')
-                    print(f'Slowest test: {slowest[\"name\"]} ({slowest[\"stats\"][\"mean\"]:.2f}μs)')
-            except Exception as e:
-                print(f'Error processing benchmark results: {e}')
-            " >> $GITHUB_STEP_SUMMARY
+            # Extract key metrics for summary using a temporary script
+            cat > benchmark_summary.py << 'EOF'
+import json
+import sys
+try:
+    with open('benchmark-results/benchmark-results.json', 'r') as f:
+        data = json.load(f)
+    benchmarks = data.get('benchmarks', [])
+    print(f'Total benchmarks: {len(benchmarks)}')
+    if benchmarks:
+        fastest = min(benchmarks, key=lambda x: x['stats']['mean'])
+        slowest = max(benchmarks, key=lambda x: x['stats']['mean'])
+        print(f'Fastest test: {fastest["name"]} ({fastest["stats"]["mean"]:.2f}μs)')
+        print(f'Slowest test: {slowest["name"]} ({slowest["stats"]["mean"]:.2f}μs)')
+except Exception as e:
+    print(f'Error processing benchmark results: {e}')
+EOF
+            python3 benchmark_summary.py >> $GITHUB_STEP_SUMMARY
+            rm benchmark_summary.py
           else
             echo "Benchmark results file not found" >> $GITHUB_STEP_SUMMARY
           fi
