@@ -10,7 +10,7 @@ environments:
         memory: "256Mi"
         cpu: "100m"
       limits:
-        memory: "512Mi" 
+        memory: "512Mi"
         cpu: "500m"
     environment_variables:
       ENVIRONMENT: "staging"
@@ -35,7 +35,7 @@ environments:
         latency_p95: "500ms"
         memory_usage: "80%"
     deployment_strategy: "rolling"
-    
+
   production:
     name: "production"
     url: "https://candles-feed.example.com"
@@ -90,7 +90,7 @@ quality_gates:
   performance_score_threshold: 85
   security_scan_required: true
   license_compliance_required: true
-  
+
   blocking_conditions:
     - test_failures
     - coverage_below_threshold
@@ -108,20 +108,20 @@ pipeline:
       - integration
       - performance
       - e2e
-  
+
   security_scans:
     - dependency_vulnerabilities
     - static_code_analysis
     - license_compliance
     - secret_detection
     - container_scanning
-  
+
   performance_benchmarks:
     - api_latency
     - memory_usage
     - connection_pooling
     - throughput
-  
+
   deployment_triggers:
     staging:
       branches: ["develop", "development"]
@@ -136,23 +136,23 @@ monitoring:
   metrics:
     collection_interval: 15
     retention_days: 90
-    
+
   alerts:
     high_error_rate:
       condition: "error_rate > threshold"
       duration: "5m"
       severity: "critical"
-      
+
     high_latency:
       condition: "p95_latency > threshold"
-      duration: "2m" 
+      duration: "2m"
       severity: "warning"
-      
+
     memory_usage:
       condition: "memory_usage > threshold"
       duration: "5m"
       severity: "warning"
-      
+
     deployment_failure:
       condition: "deployment_failed"
       duration: "immediate"
@@ -165,16 +165,16 @@ rollback:
     - health_check_failure
     - performance_degradation
     - error_rate_spike
-  
+
   automated:
     enable: true
     timeout_minutes: 10
     retry_attempts: 3
-    
+
   manual:
     enable: true
     approval_required: true
-    
+
   validation:
     post_rollback_tests: true
     health_check_timeout: 300
@@ -185,15 +185,15 @@ notifications:
   deployment_success:
     channels: ["team-slack"]
     message_template: "✅ {environment} deployment successful - {version}"
-    
+
   deployment_failure:
     channels: ["team-slack", "ops-team"]
     message_template: "❌ {environment} deployment failed - {version}"
-    
+
   rollback_executed:
     channels: ["team-slack", "ops-team", "on-call"]
     message_template: "🔙 Rollback executed for {environment} - {reason}"
-    
+
   quality_gate_failure:
     channels: ["team-slack"]
     message_template: "🚨 Quality gate failure - {gate_type} - {details}"

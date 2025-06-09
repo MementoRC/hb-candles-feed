@@ -382,7 +382,9 @@ class TestEnhancedDependencyManagement:
 
             # Network simulation is probabilistic, so we just log the behavior
             # The important thing is that the test doesn't crash under these conditions
-            logger.info(f"Network simulation results: {failure_count}/{max_failure_attempts} failures observed")
+            logger.info(
+                f"Network simulation results: {failure_count}/{max_failure_attempts} failures observed"
+            )
 
             # Step 3: Gradually improve conditions and test recovery
             recovery_stages = [

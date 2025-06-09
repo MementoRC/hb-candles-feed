@@ -61,83 +61,83 @@ jobs:
           from locust.log import setup_logging
           import json
           import os
-          
+
           from candles_feed.mocking_resources.core.server import MockedExchangeServer
           from candles_feed.mocking_resources import ExchangeType
-          
-          
+
+
           class CandlesFeedUser(HttpUser):
               """Simulated user for candles-feed load testing."""
               wait_time = between(0.1, 0.5)
-              
+
               def on_start(self):
                   """Initialize user session."""
                   self.trading_pairs = ["BTC-USDT", "ETH-USDT", "ADA-USDT", "DOT-USDT"]
                   self.intervals = ["1m", "5m", "15m", "1h"]
-              
+
               @task(10)
               def get_ping(self):
                   """Test basic connectivity."""
                   self.client.get("/api/v3/ping")
-              
+
               @task(20)
               def get_klines(self):
                   """Test klines endpoint with various parameters."""
                   import random
-                  
+
                   params = {
                       "symbol": random.choice(self.trading_pairs).replace("-", ""),
                       "interval": random.choice(self.intervals),
                       "limit": random.choice([10, 50, 100, 500])
                   }
-                  
+
                   self.client.get("/api/v3/klines", params=params)
-              
+
               @task(5)
               def get_server_time(self):
                   """Test server time endpoint."""
                   self.client.get("/api/v3/time")
-          
-          
+
+
           def run_load_test():
               """Run the load test with mock server."""
               setup_logging("INFO", None)
-              
+
               # Configuration from environment
               duration = int(os.getenv('LOAD_TEST_DURATION', '60'))
               users = int(os.getenv('LOAD_TEST_USERS', '10'))
               spawn_rate = min(users, 5)  # Spawn up to 5 users per second
-              
+
               print(f"Starting load test: {users} users for {duration} seconds")
-              
+
               # Start mock server
               mock_server = MockedExchangeServer(
                   exchange_type=ExchangeType.BINANCE_SPOT,
                   host="127.0.0.1",
                   port=8080
               )
-              
+
               try:
                   # Start server in background
                   asyncio.create_task(mock_server.start())
                   time.sleep(2)  # Wait for server to start
-                  
+
                   # Set up Locust environment
                   env = Environment(user_classes=[CandlesFeedUser])
                   env.create_local_runner()
-                  
+
                   # Start load test
                   env.runner.start(users, spawn_rate=spawn_rate)
-                  
+
                   # Run for specified duration
                   time.sleep(duration)
-                  
+
                   # Stop load test
                   env.runner.stop()
-                  
+
                   # Generate results
                   stats = env.runner.stats
-                  
+
                   results = {
                       "summary": {
                           "users": users,
@@ -152,7 +152,7 @@ jobs:
                       },
                       "endpoints": {}
                   }
-                  
+
                   # Collect per-endpoint stats
                   for name, entry in stats.entries.items():
                       if name != "Aggregated":
@@ -165,18 +165,18 @@ jobs:
                               "rps": entry.current_rps,
                               "failure_rate": entry.fail_ratio
                           }
-                  
+
                   # Save results
                   with open("load_test_results.json", "w") as f:
                       json.dump(results, f, indent=2)
-                  
+
                   print(f"Load test completed:")
                   print(f"  Total requests: {results['summary']['total_requests']}")
                   print(f"  Failures: {results['summary']['total_failures']}")
                   print(f"  Average response time: {results['summary']['average_response_time']:.2f}ms")
                   print(f"  Requests per second: {results['summary']['requests_per_second']:.2f}")
                   print(f"  Failure rate: {results['summary']['failure_rate']:.2%}")
-                  
+
               except Exception as e:
                   print(f"Load test failed: {e}")
                   raise
@@ -186,8 +186,8 @@ jobs:
                       asyncio.create_task(mock_server.stop())
                   except:
                       pass
-          
-          
+
+
           if __name__ == "__main__":
               run_load_test()
           EOF
@@ -214,16 +214,16 @@ jobs:
           # Create a summary report
           cat > load_test_summary.md << 'EOF'
           # Load Test Results
-          
+
           **Test Configuration:**
           - Users: ${{ inputs.users || '10' }}
           - Duration: ${{ inputs.duration || '60' }} seconds
           - Target: ${{ inputs.target_environment || 'mock' }}
           - Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
+
           **Results:**
           EOF
-          
+
           # Add results from JSON if available
           if [ -f load_test_results.json ]; then
             echo "Results saved to load_test_results.json"
@@ -238,21 +238,21 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            
+
             let comment = '## 🚀 Load Test Results\n\n';
             comment += `**Configuration:** ${context.payload.inputs?.users || '10'} users for ${context.payload.inputs?.duration || '60'} seconds\n\n`;
-            
+
             try {
               const results = JSON.parse(fs.readFileSync('load_test_results.json', 'utf8'));
               const summary = results.summary;
-              
+
               comment += '**Performance Summary:**\n';
               comment += `- Total Requests: ${summary.total_requests}\n`;
               comment += `- Failures: ${summary.total_failures}\n`;
               comment += `- Average Response Time: ${summary.average_response_time.toFixed(2)}ms\n`;
               comment += `- Requests/Second: ${summary.requests_per_second.toFixed(2)}\n`;
               comment += `- Failure Rate: ${(summary.failure_rate * 100).toFixed(2)}%\n\n`;
-              
+
               comment += '**Endpoint Performance:**\n';
               for (const [endpoint, stats] of Object.entries(results.endpoints)) {
                 comment += `- \`${endpoint}\`: ${stats.requests} req, ${stats.avg_response_time.toFixed(1)}ms avg\n`;
@@ -260,7 +260,7 @@ jobs:
             } catch (e) {
               comment += '❌ Load test results could not be parsed\n';
             }
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

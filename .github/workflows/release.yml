@@ -23,7 +23,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       is-prerelease: ${{ steps.version.outputs.is-prerelease }}
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,10 +44,10 @@ jobs:
               IS_PRERELEASE="false"
             fi
           fi
-          
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "is-prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
-          
+
           echo "<÷ Release version: $VERSION"
           echo "= Pre-release: $IS_PRERELEASE"
 
@@ -65,7 +65,7 @@ jobs:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
     needs: validate-release
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -82,10 +82,10 @@ jobs:
           VERSION="${{ needs.validate-release.outputs.version }}"
           # Remove 'v' prefix for Python version
           PYTHON_VERSION="${VERSION#v}"
-          
+
           # Update __about__.py
           sed -i "s/__version__ = .*/__version__ = \"$PYTHON_VERSION\"/" candles_feed/__about__.py
-          
+
           echo "=æ Updated package version to $PYTHON_VERSION"
 
       - name: Build package
@@ -112,7 +112,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -129,7 +129,7 @@ jobs:
         run: |
           pixi install
           pip install dist/*.whl
-          
+
           # Test import
           python -c "import candles_feed; print(f' Import successful: {candles_feed.__version__}')"
 
@@ -140,13 +140,13 @@ jobs:
           from candles_feed.core.metrics import MetricsCollector
           from candles_feed.core.network_client import NetworkClient
           from candles_feed.core.network_config import NetworkConfig
-          
+
           # Test core functionality
           config = NetworkConfig()
           client = NetworkClient(config)
           monitoring = MonitoringManager()
           collector = MetricsCollector(monitoring)
-          
+
           print(' Core components loaded successfully')
           print(' Release smoke test passed')
           "

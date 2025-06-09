@@ -54,6 +54,9 @@ dev = [
     "ruff>=0.1.5",
     "mypy>=1.5.1",
     "cython-lint>=0.15.0",
+    # Enhanced integration testing dependencies
+    "redis>=4.5.0",
+    "websockets>=11.0.0",
 ]
 doc = [
     "mkdocs",
@@ -126,6 +129,9 @@ pyupgrade = "*"
 ruff = ">=0.1.5"
 mypy = ">=1.5.1"
 cython-lint = ">=0.15.0"
+# Enhanced integration testing dependencies
+redis-py = ">=4.5.0"
+websockets = ">=11.0.0"
 
 [tool.pixi.feature.ci.dependencies]
 types-setuptools = "*"
