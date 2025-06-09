@@ -138,7 +138,7 @@ body:
       placeholder: |
         ```python
         from candles_feed import CandlesFeed
-        
+
         # Minimal example that reproduces the bug
         ```
       render: python

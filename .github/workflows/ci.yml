@@ -25,7 +25,7 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.12"
             pixi-environment: "py312"
-          
+
           # macOS: Python 3.12+ only (aligned with Hummingbot requirements)
           - os: macos-latest
             python-version: "3.12"
@@ -150,7 +150,7 @@ jobs:
           if [ -f benchmark-results/benchmark-results.json ]; then
             echo "## Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
             echo "Benchmark completed successfully. Results stored as artifacts." >> $GITHUB_STEP_SUMMARY
-            
+
             # Extract key metrics for summary
             python3 -c 'import json; data=json.load(open("benchmark-results/benchmark-results.json")); benchmarks=data.get("benchmarks",[]); print(f"Total benchmarks: {len(benchmarks)}"); fastest=min(benchmarks,key=lambda x:x["stats"]["mean"]) if benchmarks else None; slowest=max(benchmarks,key=lambda x:x["stats"]["mean"]) if benchmarks else None; print(f"Fastest test: {fastest[\"name\"]} ({fastest[\"stats\"][\"mean\"]:.2f}μs)") if fastest else None; print(f"Slowest test: {slowest[\"name\"]} ({slowest[\"stats\"][\"mean\"]:.2f}μs)") if slowest else None' >> $GITHUB_STEP_SUMMARY
           else

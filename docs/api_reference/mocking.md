@@ -99,7 +99,7 @@ from candles_feed.core import NetworkClient, NetworkConfig
 async def mock_adapter():
     config = NetworkConfig()
     network_client = NetworkClient(config)
-    
+
     adapter = AsyncMockedAdapter(
         network_client=network_client,
         network_config=config,
@@ -112,7 +112,7 @@ async def mock_adapter():
 async def test_candles_retrieval(mock_adapter):
     """Test basic candle retrieval with mock adapter."""
     candles = await mock_adapter.fetch_rest_candles("BTCUSDT", "1m", limit=10)
-    
+
     assert len(candles) == 10
     assert all(candle.trading_pair == "BTCUSDT" for candle in candles)
     assert all(candle.interval == "1m" for candle in candles)
@@ -145,7 +145,7 @@ except Exception as e:
 The mocking infrastructure provides:
 
 - **Mock Adapters**: Simulate exchange behavior without real API calls
-- **Mock Server**: HTTP/WebSocket server that mimics exchange APIs  
+- **Mock Server**: HTTP/WebSocket server that mimics exchange APIs
 - **Test Integration**: Easy integration with pytest and asyncio testing
 - **Error Simulation**: Test error handling and edge cases
 - **Consistent Interface**: Mock components implement the same interfaces as production counterparts

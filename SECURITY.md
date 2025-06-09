@@ -19,7 +19,7 @@ We take the security of hb-candles-feed seriously. If you believe you have found
 
 Instead, please report them via one of the following methods:
 
-1. **GitHub Security Advisories** (Preferred): 
+1. **GitHub Security Advisories** (Preferred):
    - Go to our [Security Advisories page](https://github.com/MementoRC/hb-candles-feed/security/advisories)
    - Click "Report a vulnerability"
    - Fill out the form with details about the vulnerability

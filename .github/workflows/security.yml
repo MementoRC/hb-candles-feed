@@ -114,7 +114,7 @@ jobs:
         echo "| CodeQL | ${{ needs.codeql.result }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Dependencies | ${{ needs.dependency-scan.result }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Secrets | ${{ needs.secrets-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-        
+
         if [[ "${{ needs.codeql.result }}" == "failure" || "${{ needs.dependency-scan.result }}" == "failure" || "${{ needs.secrets-scan.result }}" == "failure" ]]; then
           echo "::error::One or more security scans failed. Please review the results."
           exit 1

@@ -57,7 +57,7 @@ AttributeError: module 'candles_feed' has no attribute 'core'
    from candles_feed.core.candles_feed import CandlesFeed
    from candles_feed.core.candle_data import CandleData
    from candles_feed.adapters.binance import BinanceSpotAdapter
-   
+
    # Incorrect imports
    from candles_feed import CandlesFeed  # Wrong
    import candles_feed.core as core      # Ambiguous
@@ -89,7 +89,7 @@ asyncio.TimeoutError: Request timed out
 1. **Increase timeout values:**
    ```python
    from candles_feed.core import NetworkConfig
-   
+
    config = NetworkConfig(
        rest_api_timeout=30.0,  # Increase from default 10.0
        websocket_ping_interval=60.0,  # Increase from default 20.0
@@ -101,7 +101,7 @@ asyncio.TimeoutError: Request timed out
    ```python
    import asyncio
    import aiohttp
-   
+
    async def test_connectivity():
        async with aiohttp.ClientSession() as session:
            try:
@@ -109,7 +109,7 @@ asyncio.TimeoutError: Request timed out
                    print(f"Binance API: {response.status}")
            except Exception as e:
                print(f"Connection failed: {e}")
-   
+
    asyncio.run(test_connectivity())
    ```
 
@@ -117,7 +117,7 @@ asyncio.TimeoutError: Request timed out
    ```python
    import asyncio
    from candles_feed.adapters.base_adapter import NetworkError
-   
+
    async def get_candles_with_retry(adapter, trading_pair, interval, max_retries=3):
        for attempt in range(max_retries):
            try:
@@ -162,12 +162,12 @@ API rate limit reached
    ```python
    import asyncio
    from asyncio import Semaphore
-   
+
    class ThrottledAdapter:
        def __init__(self, adapter, max_concurrent=5):
            self.adapter = adapter
            self.semaphore = Semaphore(max_concurrent)
-       
+
        async def get_candles(self, *args, **kwargs):
            async with self.semaphore:
                return await self.adapter.get_candles(*args, **kwargs)
@@ -191,7 +191,7 @@ API error: Invalid symbol
    # Exchange-specific formats
    formats = {
        "binance": "BTCUSDT",      # No separator
-       "coinbase": "BTC-USD",     # Hyphen separator  
+       "coinbase": "BTC-USD",     # Hyphen separator
        "bybit": "BTCUSDT",        # No separator
        "kraken": "XBTUSD",        # Different base currency code
        "gate_io": "BTC_USDT",     # Underscore separator
@@ -204,14 +204,14 @@ API error: Invalid symbol
        """Convert trading pair to exchange format."""
        # Remove common separators
        base_pair = pair.replace("-", "").replace("_", "").upper()
-       
+
        exchange_formats = {
            "binance": lambda p: p,
            "coinbase": lambda p: p[:3] + "-" + p[3:],
            "kraken": lambda p: p.replace("BTC", "XBT"),
            "gate_io": lambda p: p[:3] + "_" + p[3:],
        }
-       
+
        formatter = exchange_formats.get(exchange.lower())
        return formatter(base_pair) if formatter else base_pair
    ```
@@ -230,7 +230,7 @@ API version deprecated
 1. **Check adapter version compatibility:**
    ```python
    from candles_feed.adapters.binance import BinanceSpotAdapter
-   
+
    print(f"Adapter version: {BinanceSpotAdapter.__version__}")
    print(f"Supported API version: {BinanceSpotAdapter.API_VERSION}")
    ```
@@ -238,7 +238,7 @@ API version deprecated
 2. **Enable debug logging:**
    ```python
    import logging
-   
+
    logging.basicConfig(level=logging.DEBUG)
    logger = logging.getLogger('candles_feed')
    logger.setLevel(logging.DEBUG)
@@ -247,7 +247,7 @@ API version deprecated
 3. **Use mock adapters for testing:**
    ```python
    from candles_feed.mocking_resources.adapter import AsyncMockedAdapter
-   
+
    # Test with mock adapter first
    mock_adapter = AsyncMockedAdapter(
        network_client=network_client,
@@ -274,16 +274,16 @@ ValueError: Timestamp must be datetime object
    ```python
    from candles_feed.core.candle_data import CandleData
    from datetime import datetime
-   
+
    def validate_candle_data(data):
        required_fields = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
-       
+
        if isinstance(data, dict):
            # Validate dictionary format
            missing = [f for f in required_fields if f not in data]
            if missing:
                raise ValueError(f"Missing fields: {missing}")
-           
+
            # Convert to CandleData
            return CandleData(
                timestamp=datetime.fromtimestamp(data['timestamp']),
@@ -294,14 +294,14 @@ ValueError: Timestamp must be datetime object
                volume=float(data['volume']),
                trading_pair=data.get('trading_pair', 'UNKNOWN')
            )
-       
+
        return data
    ```
 
 2. **Handle timestamp formats:**
    ```python
    from datetime import datetime
-   
+
    def parse_timestamp(ts):
        """Parse various timestamp formats."""
        if isinstance(ts, datetime):
@@ -334,12 +334,12 @@ TypeError: Invalid data type for pandas
    ```python
    import pandas as pd
    from candles_feed.core.candle_data import CandleData
-   
+
    def candles_to_dataframe(candles: list[CandleData]) -> pd.DataFrame:
        """Convert CandleData list to pandas DataFrame."""
        if not candles:
            return pd.DataFrame()
-       
+
        data = []
        for candle in candles:
            data.append({
@@ -351,7 +351,7 @@ TypeError: Invalid data type for pandas
                'volume': candle.volume,
                'trading_pair': candle.trading_pair
            })
-       
+
        df = pd.DataFrame(data)
        df.set_index('timestamp', inplace=True)
        return df
@@ -365,7 +365,7 @@ TypeError: Invalid data type for pandas
        for candle in candles:
            try:
                # Validate numeric fields
-               if all(isinstance(getattr(candle, field), (int, float)) 
+               if all(isinstance(getattr(candle, field), (int, float))
                       for field in ['open', 'high', 'low', 'close', 'volume']):
                    # Validate OHLC logic
                    if candle.high >= max(candle.open, candle.close) and \
@@ -373,7 +373,7 @@ TypeError: Invalid data type for pandas
                        cleaned.append(candle)
            except (AttributeError, TypeError) as e:
                print(f"Skipping invalid candle: {e}")
-       
+
        return cleaned
    ```
 
@@ -392,7 +392,7 @@ RuntimeError: There is no current event loop in thread
 1. **Check event loop context:**
    ```python
    import asyncio
-   
+
    def run_async_function(coro):
        """Run async function in appropriate context."""
        try:
@@ -409,13 +409,13 @@ RuntimeError: There is no current event loop in thread
    ```python
    async def get_candles_properly():
        config = NetworkConfig()
-       
+
        async with NetworkClient(config) as network_client:
            adapter = BinanceSpotAdapter(
                network_client=network_client,
                network_config=config
            )
-           
+
            candles = await adapter.get_candles("BTCUSDT", "1m")
            return candles
    ```
@@ -437,17 +437,17 @@ UserWarning: Unclosed client session
        config = NetworkConfig()
        network_client = None
        adapter = None
-       
+
        try:
            network_client = NetworkClient(config)
            adapter = BinanceSpotAdapter(
                network_client=network_client,
                network_config=config
            )
-           
+
            candles = await adapter.get_candles("BTCUSDT", "1m")
            return candles
-           
+
        finally:
            # Explicit cleanup
            if adapter:
@@ -459,11 +459,11 @@ UserWarning: Unclosed client session
 2. **Use context managers:**
    ```python
    from contextlib import asynccontextmanager
-   
+
    @asynccontextmanager
    async def candles_adapter(exchange: str):
        config = NetworkConfig()
-       
+
        async with NetworkClient(config) as network_client:
            if exchange == "binance":
                adapter = BinanceSpotAdapter(
@@ -472,12 +472,12 @@ UserWarning: Unclosed client session
                )
            else:
                raise ValueError(f"Unknown exchange: {exchange}")
-           
+
            try:
                yield adapter
            finally:
                await adapter.close()
-   
+
    # Usage
    async with candles_adapter("binance") as adapter:
        candles = await adapter.get_candles("BTCUSDT", "1m")
@@ -499,21 +499,21 @@ aiohttp.ClientConnectorError: Cannot connect to host 127.0.0.1:8080
    ```python
    from candles_feed.mocking_resources.core import MockServer
    from candles_feed.mocking_resources.exchange_server_plugins.binance import BinanceSpotPlugin
-   
+
    async def test_mock_server():
        server = MockServer(port=8080)
        server.add_plugin(BinanceSpotPlugin())
-       
+
        try:
            await server.start()
            print("Mock server started successfully")
-           
+
            # Test connection
            import aiohttp
            async with aiohttp.ClientSession() as session:
                async with session.get('http://127.0.0.1:8080/api/v3/ping') as response:
                    print(f"Server responded with status: {response.status}")
-                   
+
        except Exception as e:
            print(f"Mock server failed: {e}")
        finally:
@@ -523,7 +523,7 @@ aiohttp.ClientConnectorError: Cannot connect to host 127.0.0.1:8080
 2. **Use different port if needed:**
    ```python
    import socket
-   
+
    def find_free_port():
        """Find a free port for the mock server."""
        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -531,7 +531,7 @@ aiohttp.ClientConnectorError: Cannot connect to host 127.0.0.1:8080
            s.listen(1)
            port = s.getsockname()[1]
        return port
-   
+
    # Use dynamic port
    port = find_free_port()
    server = MockServer(port=port)
@@ -551,13 +551,13 @@ ValueError: Mock data doesn't match expected format
    ```python
    from candles_feed.mocking_resources.core import CandleDataFactory
    from datetime import datetime, timedelta
-   
+
    factory = CandleDataFactory()
-   
+
    # Generate consistent test data
    start_time = datetime(2023, 1, 1, 0, 0, 0)
    end_time = start_time + timedelta(hours=1)
-   
+
    candles = factory.generate_candles(
        start_time=start_time,
        end_time=end_time,
@@ -574,18 +574,18 @@ ValueError: Mock data doesn't match expected format
        """Validate mock candle data consistency."""
        if expected_count and len(candles) != expected_count:
            raise ValueError(f"Expected {expected_count} candles, got {len(candles)}")
-       
+
        # Check chronological order
        for i in range(1, len(candles)):
            if candles[i].timestamp <= candles[i-1].timestamp:
                raise ValueError(f"Candles not in chronological order at index {i}")
-       
+
        # Check OHLC validity
        for i, candle in enumerate(candles):
-           if not (candle.low <= min(candle.open, candle.close) <= 
+           if not (candle.low <= min(candle.open, candle.close) <=
                    max(candle.open, candle.close) <= candle.high):
                raise ValueError(f"Invalid OHLC data at index {i}")
-       
+
        return True
    ```
 
@@ -703,7 +703,7 @@ When reporting issues, include:
    import candles_feed
    import aiohttp
    import pandas as pd
-   
+
    print(f"Python: {sys.version}")
    print(f"candles-feed: {candles_feed.__version__}")
    print(f"aiohttp: {aiohttp.__version__}")

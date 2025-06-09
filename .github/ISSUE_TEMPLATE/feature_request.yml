@@ -116,7 +116,7 @@ body:
         ```python
         # Example usage of the proposed feature
         from candles_feed import CandlesFeed
-        
+
         # Show how users would interact with the new feature
         ```
       render: python

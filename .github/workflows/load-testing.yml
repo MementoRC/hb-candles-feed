@@ -1,0 +1,311 @@
+name: Load Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Test duration in seconds'
+        required: false
+        default: '60'
+        type: string
+      users:
+        description: 'Number of concurrent users'
+        required: false
+        default: '10'
+        type: string
+      target_environment:
+        description: 'Target environment'
+        required: false
+        default: 'mock'
+        type: choice
+        options:
+          - mock
+          - staging
+  schedule:
+    # Run load tests weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+jobs:
+  load-test:
+    name: Load Testing (Users: ${{ inputs.users || '10' }}, Duration: ${{ inputs.duration || '60' }}s)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+
+      - name: Install project dependencies
+        run: |
+          pixi install
+          pixi run pip install -e .
+
+      - name: Install load testing dependencies
+        run: |
+          pixi run pip install locust
+
+      - name: Create load test script
+        run: |
+          cat > load_test.py << 'EOF'
+          import asyncio
+          import time
+          from locust import HttpUser, task, between, events
+          from locust.env import Environment
+          from locust.stats import stats_printer, stats_history
+          from locust.log import setup_logging
+          import json
+          import os
+          
+          from candles_feed.mocking_resources.core.server import MockedExchangeServer
+          from candles_feed.mocking_resources import ExchangeType
+          
+          
+          class CandlesFeedUser(HttpUser):
+              """Simulated user for candles-feed load testing."""
+              wait_time = between(0.1, 0.5)
+              
+              def on_start(self):
+                  """Initialize user session."""
+                  self.trading_pairs = ["BTC-USDT", "ETH-USDT", "ADA-USDT", "DOT-USDT"]
+                  self.intervals = ["1m", "5m", "15m", "1h"]
+              
+              @task(10)
+              def get_ping(self):
+                  """Test basic connectivity."""
+                  self.client.get("/api/v3/ping")
+              
+              @task(20)
+              def get_klines(self):
+                  """Test klines endpoint with various parameters."""
+                  import random
+                  
+                  params = {
+                      "symbol": random.choice(self.trading_pairs).replace("-", ""),
+                      "interval": random.choice(self.intervals),
+                      "limit": random.choice([10, 50, 100, 500])
+                  }
+                  
+                  self.client.get("/api/v3/klines", params=params)
+              
+              @task(5)
+              def get_server_time(self):
+                  """Test server time endpoint."""
+                  self.client.get("/api/v3/time")
+          
+          
+          def run_load_test():
+              """Run the load test with mock server."""
+              setup_logging("INFO", None)
+              
+              # Configuration from environment
+              duration = int(os.getenv('LOAD_TEST_DURATION', '60'))
+              users = int(os.getenv('LOAD_TEST_USERS', '10'))
+              spawn_rate = min(users, 5)  # Spawn up to 5 users per second
+              
+              print(f"Starting load test: {users} users for {duration} seconds")
+              
+              # Start mock server
+              mock_server = MockedExchangeServer(
+                  exchange_type=ExchangeType.BINANCE_SPOT,
+                  host="127.0.0.1",
+                  port=8080
+              )
+              
+              try:
+                  # Start server in background
+                  asyncio.create_task(mock_server.start())
+                  time.sleep(2)  # Wait for server to start
+                  
+                  # Set up Locust environment
+                  env = Environment(user_classes=[CandlesFeedUser])
+                  env.create_local_runner()
+                  
+                  # Start load test
+                  env.runner.start(users, spawn_rate=spawn_rate)
+                  
+                  # Run for specified duration
+                  time.sleep(duration)
+                  
+                  # Stop load test
+                  env.runner.stop()
+                  
+                  # Generate results
+                  stats = env.runner.stats
+                  
+                  results = {
+                      "summary": {
+                          "users": users,
+                          "duration": duration,
+                          "total_requests": stats.total.num_requests,
+                          "total_failures": stats.total.num_failures,
+                          "average_response_time": stats.total.avg_response_time,
+                          "min_response_time": stats.total.min_response_time,
+                          "max_response_time": stats.total.max_response_time,
+                          "requests_per_second": stats.total.current_rps,
+                          "failure_rate": stats.total.fail_ratio,
+                      },
+                      "endpoints": {}
+                  }
+                  
+                  # Collect per-endpoint stats
+                  for name, entry in stats.entries.items():
+                      if name != "Aggregated":
+                          results["endpoints"][name] = {
+                              "requests": entry.num_requests,
+                              "failures": entry.num_failures,
+                              "avg_response_time": entry.avg_response_time,
+                              "min_response_time": entry.min_response_time,
+                              "max_response_time": entry.max_response_time,
+                              "rps": entry.current_rps,
+                              "failure_rate": entry.fail_ratio
+                          }
+                  
+                  # Save results
+                  with open("load_test_results.json", "w") as f:
+                      json.dump(results, f, indent=2)
+                  
+                  print(f"Load test completed:")
+                  print(f"  Total requests: {results['summary']['total_requests']}")
+                  print(f"  Failures: {results['summary']['total_failures']}")
+                  print(f"  Average response time: {results['summary']['average_response_time']:.2f}ms")
+                  print(f"  Requests per second: {results['summary']['requests_per_second']:.2f}")
+                  print(f"  Failure rate: {results['summary']['failure_rate']:.2%}")
+                  
+              except Exception as e:
+                  print(f"Load test failed: {e}")
+                  raise
+              finally:
+                  # Clean up
+                  try:
+                      asyncio.create_task(mock_server.stop())
+                  except:
+                      pass
+          
+          
+          if __name__ == "__main__":
+              run_load_test()
+          EOF
+
+      - name: Run load test
+        env:
+          LOAD_TEST_DURATION: ${{ inputs.duration || '60' }}
+          LOAD_TEST_USERS: ${{ inputs.users || '10' }}
+        run: |
+          # Run the load test
+          python load_test.py
+
+      - name: Upload load test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results-${{ github.run_id }}
+          path: |
+            load_test_results.json
+            *.log
+          retention-days: 30
+
+      - name: Generate load test report
+        run: |
+          # Create a summary report
+          cat > load_test_summary.md << 'EOF'
+          # Load Test Results
+          
+          **Test Configuration:**
+          - Users: ${{ inputs.users || '10' }}
+          - Duration: ${{ inputs.duration || '60' }} seconds
+          - Target: ${{ inputs.target_environment || 'mock' }}
+          - Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          **Results:**
+          EOF
+          
+          # Add results from JSON if available
+          if [ -f load_test_results.json ]; then
+            echo "Results saved to load_test_results.json"
+            cat load_test_results.json | jq '.summary'
+          else
+            echo "No results file generated"
+          fi
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let comment = '## 🚀 Load Test Results\n\n';
+            comment += `**Configuration:** ${context.payload.inputs?.users || '10'} users for ${context.payload.inputs?.duration || '60'} seconds\n\n`;
+            
+            try {
+              const results = JSON.parse(fs.readFileSync('load_test_results.json', 'utf8'));
+              const summary = results.summary;
+              
+              comment += '**Performance Summary:**\n';
+              comment += `- Total Requests: ${summary.total_requests}\n`;
+              comment += `- Failures: ${summary.total_failures}\n`;
+              comment += `- Average Response Time: ${summary.average_response_time.toFixed(2)}ms\n`;
+              comment += `- Requests/Second: ${summary.requests_per_second.toFixed(2)}\n`;
+              comment += `- Failure Rate: ${(summary.failure_rate * 100).toFixed(2)}%\n\n`;
+              
+              comment += '**Endpoint Performance:**\n';
+              for (const [endpoint, stats] of Object.entries(results.endpoints)) {
+                comment += `- \`${endpoint}\`: ${stats.requests} req, ${stats.avg_response_time.toFixed(1)}ms avg\n`;
+              }
+            } catch (e) {
+              comment += '❌ Load test results could not be parsed\n';
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  integration-load-test:
+    name: Integration Load Test with Real Adapters
+    runs-on: ubuntu-latest
+    if: inputs.target_environment == 'staging'
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+
+      - name: Install project dependencies
+        run: |
+          pixi install
+          pixi run pip install -e .
+
+      - name: Run integration load test
+        env:
+          LOAD_TEST_DURATION: ${{ inputs.duration || '60' }}
+          LOAD_TEST_USERS: ${{ inputs.users || '10' }}
+        run: |
+          # Run load tests against integration test suite
+          pixi run pytest tests/integration/ \
+            --tb=short \
+            --maxfail=5 \
+            -v \
+            --durations=10
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-load-test-results-${{ github.run_id }}
+          path: |
+            pytest-results.xml
+            .pytest_cache/
+          retention-days: 30

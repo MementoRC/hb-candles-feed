@@ -1,0 +1,152 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.2.3)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is-prerelease: ${{ steps.version.outputs.is-prerelease }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          else
+            VERSION="${{ github.ref_name }}"
+            # Auto-detect pre-release based on version pattern
+            if [[ "$VERSION" =~ -alpha|-beta|-rc ]]; then
+              IS_PRERELEASE="true"
+            else
+              IS_PRERELEASE="false"
+            fi
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is-prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          
+          echo "<÷ Release version: $VERSION"
+          echo "= Pre-release: $IS_PRERELEASE"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "L Invalid version format: $VERSION"
+            echo "Expected format: v1.2.3 or v1.2.3-alpha.1"
+            exit 1
+          fi
+          echo " Version format valid"
+
+  build-release:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: validate-release
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+
+      - name: Install dependencies
+        run: |
+          pixi install
+          pip install build twine
+
+      - name: Update version in package
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          # Remove 'v' prefix for Python version
+          PYTHON_VERSION="${VERSION#v}"
+          
+          # Update __about__.py
+          sed -i "s/__version__ = .*/__version__ = \"$PYTHON_VERSION\"/" candles_feed/__about__.py
+          
+          echo "=æ Updated package version to $PYTHON_VERSION"
+
+      - name: Build package
+        run: |
+          python -m build
+          echo "=æ Built packages:"
+          ls -la dist/
+
+      - name: Verify package
+        run: |
+          twine check dist/*
+          echo " Package verification passed"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/
+
+  run-release-tests:
+    name: Release Testing
+    runs-on: ubuntu-latest
+    needs: [validate-release, build-release]
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+
+      - name: Test installation from wheel
+        run: |
+          pixi install
+          pip install dist/*.whl
+          
+          # Test import
+          python -c "import candles_feed; print(f' Import successful: {candles_feed.__version__}')"
+
+      - name: Run smoke tests
+        run: |
+          pixi run python -c "
+          from candles_feed.core.monitoring import MonitoringManager
+          from candles_feed.core.metrics import MetricsCollector
+          from candles_feed.core.network_client import NetworkClient
+          from candles_feed.core.network_config import NetworkConfig
+          
+          # Test core functionality
+          config = NetworkConfig()
+          client = NetworkClient(config)
+          monitoring = MonitoringManager()
+          collector = MetricsCollector(monitoring)
+          
+          print(' Core components loaded successfully')
+          print(' Release smoke test passed')
+          "

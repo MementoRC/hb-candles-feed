@@ -55,7 +55,7 @@ This page documents the exchange adapter classes and their APIs for connecting t
 
 ## Core Exchange Adapters
 
-The candles-feed framework supports multiple cryptocurrency exchanges through a unified adapter interface. 
+The candles-feed framework supports multiple cryptocurrency exchanges through a unified adapter interface.
 
 ### Binance
 
@@ -205,7 +205,7 @@ The framework includes adapters for additional exchanges:
 
 - **Kraken**: Spot trading support
 - **Gate.io**: Spot and perpetual trading
-- **OKX**: Comprehensive spot and perpetual support  
+- **OKX**: Comprehensive spot and perpetual support
 - **KuCoin**: Spot and perpetual trading
 - **Hyperliquid**: Advanced perpetual trading
 - **MEXC**: Spot and perpetual trading

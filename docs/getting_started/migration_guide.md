@@ -115,20 +115,20 @@ from pathlib import Path
 def migrate_imports(file_path: Path):
     """Update imports in a Python file."""
     content = file_path.read_text()
-    
+
     # Migration mappings
     migrations = {
-        r'from hummingbot\.data_feed\.candles_feed\.candles_feed import': 
+        r'from hummingbot\.data_feed\.candles_feed\.candles_feed import':
             'from candles_feed.core.candles_feed import',
-        r'from hummingbot\.data_feed\.candles_feed\.data_types import': 
+        r'from hummingbot\.data_feed\.candles_feed\.data_types import':
             'from candles_feed.core.candle_data import',
-        r'from hummingbot\.data_feed\.candles_feed\.(.+) import': 
+        r'from hummingbot\.data_feed\.candles_feed\.(.+) import':
             r'from candles_feed.adapters.\1 import',
     }
-    
+
     for old_pattern, new_pattern in migrations.items():
         content = re.sub(old_pattern, new_pattern, content)
-    
+
     file_path.write_text(content)
 
 # Usage
@@ -143,7 +143,7 @@ for py_file in Path('.').rglob('*.py'):
 class MyTradingStrategy:
     def __init__(self):
         self.candles_feed = CandlesFeed.get_instance()
-        
+
     async def get_candles(self):
         return await self.candles_feed.get_candles(
             connector="binance",
@@ -162,21 +162,21 @@ class MyTradingStrategy:
             websocket_ping_interval=20.0
         )
         self.network_client = NetworkClient(self.config)
-        
+
         # Initialize exchange registry
         self.registry = ExchangeRegistry()
         self._register_adapters()
-        
+
         # Create candles feed
         self.candles_feed = CandlesFeed(
             network_client=self.network_client,
             exchange_registry=self.registry
         )
-    
+
     def _register_adapters(self):
         from candles_feed.adapters.binance import BinanceSpotAdapter
         self.registry.register_adapter("binance_spot", BinanceSpotAdapter)
-        
+
     async def get_candles(self):
         return await self.candles_feed.get_candles(
             exchange="binance_spot",
@@ -255,7 +255,7 @@ def convert_trading_pair_format(pair: str, exchange: str) -> str:
         "coinbase": lambda p: p,  # No change
         "kraken": lambda p: p.replace("-", "").replace("BTC", "XBT")
     }
-    
+
     converter = mapping.get(exchange.lower())
     return converter(pair) if converter else pair
 ```
@@ -268,7 +268,7 @@ def convert_trading_pair_format(pair: str, exchange: str) -> str:
 class TestCandlesFeed(unittest.TestCase):
     def setUp(self):
         self.candles_feed = CandlesFeed.get_instance()
-    
+
     def test_get_candles(self):
         # Tests relied on real API calls or complex mocking
         pass
@@ -286,7 +286,7 @@ class TestCandlesFeed:
     async def mock_adapter(self):
         config = NetworkConfig()
         network_client = NetworkClient(config)
-        
+
         adapter = AsyncMockedAdapter(
             network_client=network_client,
             network_config=config,
@@ -294,7 +294,7 @@ class TestCandlesFeed:
             trading_pair="BTCUSDT"
         )
         return adapter
-    
+
     @pytest.mark.asyncio
     async def test_get_candles(self, mock_adapter):
         candles = await mock_adapter.get_candles("BTCUSDT", "1m", limit=10)
@@ -318,12 +318,12 @@ class MyStrategy(StrategyPy):
             # Use Hummingbot's existing network settings
             rest_api_timeout=self.connector_config.rest_api_timeout
         )
-        
+
         self.candles_feed = HummingbotCandlesFeed(
             network_config=config,
             hummingbot_app=self.app  # Pass Hummingbot app reference
         )
-    
+
     async def get_market_data(self):
         return await self.candles_feed.get_candles(
             exchange="binance_spot",
@@ -343,22 +343,22 @@ async def main():
     # Create standalone candles feed
     config = NetworkConfig()
     network_client = NetworkClient(config)
-    
+
     registry = ExchangeRegistry()
     registry.register_adapter("binance_spot", BinanceSpotAdapter)
-    
+
     candles_feed = CandlesFeed(
         network_client=network_client,
         exchange_registry=registry
     )
-    
+
     # Use normally
     candles = await candles_feed.get_candles(
         exchange="binance_spot",
         trading_pair="BTCUSDT",
         interval="1m"
     )
-    
+
     print(f"Retrieved {len(candles)} candles")
 
 if __name__ == "__main__":
