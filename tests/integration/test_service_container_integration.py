@@ -28,7 +28,7 @@ except ImportError:
 
 try:
     import websockets
-    import websockets.protocol # Added for State enum
+    import websockets.protocol  # Added for State enum
 
     HAS_WEBSOCKETS = True
 except ImportError:
@@ -270,7 +270,10 @@ class TestServiceContainerIntegration:
                     break  # Success
                 else:
                     # This indicates a problem with the echo server itself or an unexpected response
-                    if websocket_connection and websocket_connection.state != websockets.protocol.State.OPEN:
+                    if (
+                        websocket_connection
+                        and websocket_connection.state != websockets.protocol.State.OPEN
+                    ):
                         await websocket_connection.close()
                     websocket_connection = None
                     error_message = (
@@ -293,7 +296,10 @@ class TestServiceContainerIntegration:
                 logger.warning(
                     f"WebSocket connection/echo attempt {attempt}/{self.CONNECT_RETRY_ATTEMPTS} failed: {e}"
                 )
-                if websocket_connection and websocket_connection.state != websockets.protocol.State.OPEN:
+                if (
+                    websocket_connection
+                    and websocket_connection.state != websockets.protocol.State.OPEN
+                ):
                     await websocket_connection.close()
                 websocket_connection = None
                 if attempt == self.CONNECT_RETRY_ATTEMPTS:
@@ -308,7 +314,10 @@ class TestServiceContainerIntegration:
                     f"Unexpected error during WebSocket connection attempt {attempt}/{self.CONNECT_RETRY_ATTEMPTS}: {e}",
                     exc_info=True,
                 )
-                if websocket_connection and websocket_connection.state != websockets.protocol.State.OPEN:
+                if (
+                    websocket_connection
+                    and websocket_connection.state != websockets.protocol.State.OPEN
+                ):
                     await websocket_connection.close()
                 websocket_connection = None
                 if attempt == self.CONNECT_RETRY_ATTEMPTS:
@@ -352,7 +361,10 @@ class TestServiceContainerIntegration:
             )
             raise
         finally:
-            if websocket_connection and websocket_connection.state != websockets.protocol.State.OPEN:
+            if (
+                websocket_connection
+                and websocket_connection.state != websockets.protocol.State.OPEN
+            ):
                 await websocket_connection.close()
                 logger.info("WebSocket connection closed.")
 
