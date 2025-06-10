@@ -48,7 +48,8 @@ jobs:
 
       - name: Install load testing dependencies
         run: |
-          pixi run pip install locust
+          # Dependencies already included in pyproject.toml dev extras
+          echo "Load testing dependencies (locust) installed via pixi dev environment"
 
       - name: Create load test script
         run: |
@@ -192,12 +193,23 @@ jobs:
               run_load_test()
           EOF
 
+      - name: Run pytest-based load tests
+        run: |
+          echo "🔥 Running comprehensive pytest-based load testing scenarios..."
+          mkdir -p load-test-results
+          pixi run pytest tests/load/ -v \
+            --tb=short \
+            --capture=no \
+            --log-cli-level=INFO \
+            --junitxml=load-test-results/pytest-load-results.xml
+
       - name: Run load test
         env:
           LOAD_TEST_DURATION: ${{ inputs.duration || '60' }}
           LOAD_TEST_USERS: ${{ inputs.users || '10' }}
         run: |
-          # Run the load test
+          # Run the original Locust-based load test
+          echo "🔥 Running Locust-based load testing scenarios..."
           python load_test.py
 
       - name: Upload load test results
@@ -206,6 +218,8 @@ jobs:
           name: load-test-results-${{ github.run_id }}
           path: |
             load_test_results.json
+            load-test-results/
+            tests/load/
             *.log
           retention-days: 30
 

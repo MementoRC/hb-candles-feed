@@ -57,6 +57,8 @@ dev = [
     # Enhanced integration testing dependencies
     "redis>=4.5.0",
     "websockets>=11.0.0",
+    # Load testing dependencies
+    "locust>=2.20.0",
 ]
 doc = [
     "mkdocs",
@@ -93,6 +95,7 @@ aioresponses = "*"
 test = "pytest tests"
 test-unit = "pytest tests/unit"
 test-integration = "pytest tests/integration"
+test-load = "pytest tests/load -v"
 lint = "ruff check candles_feed tests"
 format = "ruff format candles_feed tests"
 typecheck = "mypy candles_feed"
@@ -132,6 +135,8 @@ cython-lint = ">=0.15.0"
 # Enhanced integration testing dependencies
 redis-py = ">=4.5.0"
 websockets = ">=11.0.0"
+# Load testing dependencies
+locust = ">=2.20.0"
 
 [tool.pixi.feature.ci.dependencies]
 types-setuptools = "*"
