@@ -122,7 +122,9 @@ class CandlesFeedLoadTester:
 
     async def test_klines_endpoint(self, concurrent_users: int = 10, requests_per_user: int = 20):
         """Load test the klines (candle data) endpoint."""
-        print(f"🔥 Load testing klines endpoint: {concurrent_users} users, {requests_per_user} requests each")
+        print(
+            f"🔥 Load testing klines endpoint: {concurrent_users} users, {requests_per_user} requests each"
+        )
 
         trading_pairs = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT"]
         intervals = ["1m", "5m", "15m", "30m"]
@@ -152,7 +154,9 @@ class CandlesFeedLoadTester:
 
     async def test_server_endpoints(self, concurrent_users: int = 5, requests_per_user: int = 10):
         """Load test basic server endpoints (ping, time, exchangeInfo)."""
-        print(f"🔥 Load testing server endpoints: {concurrent_users} users, {requests_per_user} requests each")
+        print(
+            f"🔥 Load testing server endpoints: {concurrent_users} users, {requests_per_user} requests each"
+        )
 
         endpoints = ["/api/v3/ping", "/api/v3/time", "/api/v3/exchangeInfo"]
 
@@ -173,12 +177,14 @@ class CandlesFeedLoadTester:
         print(f"🔥 Running mixed workload test for {duration_seconds} seconds")
 
         end_time = time.time() + duration_seconds
-        
+
         async def heavy_user():
             """User making frequent klines requests."""
             while time.time() < end_time:
                 response_time, status_code, error = await self._make_request(
-                    "GET", "/api/v3/klines", params={"symbol": "BTCUSDT", "interval": "1m", "limit": 100}
+                    "GET",
+                    "/api/v3/klines",
+                    params={"symbol": "BTCUSDT", "interval": "1m", "limit": 100},
                 )
                 self.metrics.record_request(response_time, status_code, error)
                 await asyncio.sleep(0.5)
@@ -200,20 +206,20 @@ async def mock_server():
     """Fixture to provide a mock exchange server for load testing."""
     plugin = BinanceSpotPlugin()
     server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
-    
+
     # Add trading pairs with all intervals needed for testing
     trading_pairs = [
         ("BTCUSDT", 50000.0),
         ("ETHUSDT", 3000.0),
         ("BNBUSDT", 400.0),
-        ("ADAUSDT", 1.0)
+        ("ADAUSDT", 1.0),
     ]
     intervals = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
-    
+
     for symbol, price in trading_pairs:
         for interval in intervals:
             server.add_trading_pair(symbol, interval, price)
-    
+
     url = await server.start()
     yield url
     await server.stop()
@@ -224,14 +230,16 @@ async def test_basic_load_klines(mock_server):
     """Test basic load on the klines endpoint."""
     async with CandlesFeedLoadTester(mock_server) as tester:
         await tester.test_klines_endpoint(concurrent_users=5, requests_per_user=10)
-        
+
         summary = tester.metrics.get_summary()
         print("\n📊 Klines Load Test Results:")
         print(json.dumps(summary, indent=2))
-        
+
         # Basic performance assertions
         assert summary["success_rate"] >= 95, f"Success rate too low: {summary['success_rate']}%"
-        assert summary["response_times"]["mean"] < 1000, f"Mean response time too high: {summary['response_times']['mean']}ms"
+        assert summary["response_times"]["mean"] < 1000, (
+            f"Mean response time too high: {summary['response_times']['mean']}ms"
+        )
         assert summary["requests_per_second"] > 10, f"RPS too low: {summary['requests_per_second']}"
 
 
@@ -240,14 +248,16 @@ async def test_server_endpoints_load(mock_server):
     """Test load on basic server endpoints."""
     async with CandlesFeedLoadTester(mock_server) as tester:
         await tester.test_server_endpoints(concurrent_users=3, requests_per_user=15)
-        
+
         summary = tester.metrics.get_summary()
         print("\n📊 Server Endpoints Load Test Results:")
         print(json.dumps(summary, indent=2))
-        
+
         # Performance assertions for lighter endpoints
         assert summary["success_rate"] >= 98, f"Success rate too low: {summary['success_rate']}%"
-        assert summary["response_times"]["mean"] < 500, f"Mean response time too high: {summary['response_times']['mean']}ms"
+        assert summary["response_times"]["mean"] < 500, (
+            f"Mean response time too high: {summary['response_times']['mean']}ms"
+        )
 
 
 @pytest.mark.asyncio
@@ -257,11 +267,11 @@ async def test_mixed_workload(mock_server):
         tester.metrics.start_test()
         await tester.mixed_workload_test(duration_seconds=15)
         tester.metrics.end_test()
-        
+
         summary = tester.metrics.get_summary()
         print("\n📊 Mixed Workload Test Results:")
         print(json.dumps(summary, indent=2))
-        
+
         # Assertions for mixed workload
         assert summary["success_rate"] >= 90, f"Success rate too low: {summary['success_rate']}%"
         assert summary["error_count"] <= 5, f"Too many errors: {summary['error_count']}"
@@ -270,43 +280,43 @@ async def test_mixed_workload(mock_server):
 if __name__ == "__main__":
     """Run load tests directly when executed as a script."""
     import sys
-    
+
     if len(sys.argv) > 1 and sys.argv[1] == "standalone":
         # Standalone mode - start server and run tests
         async def run_standalone_tests():
             plugin = BinanceSpotPlugin()
             server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
-            
+
             # Add trading pairs with multiple intervals for comprehensive testing
             trading_pairs = [("BTCUSDT", 50000.0), ("ETHUSDT", 3000.0)]
             intervals = ["1m", "5m", "15m", "30m", "1h"]
-            
+
             for symbol, price in trading_pairs:
                 for interval in intervals:
                     server.add_trading_pair(symbol, interval, price)
-            
+
             url = await server.start()
             print(f"🚀 Mock server started at {url}")
-            
+
             try:
                 async with CandlesFeedLoadTester(url) as tester:
                     print("\n=== Running Basic Klines Load Test ===")
                     await tester.test_klines_endpoint(concurrent_users=10, requests_per_user=20)
                     print(json.dumps(tester.metrics.get_summary(), indent=2))
-                    
+
                     # Reset metrics for next test
                     tester.metrics = LoadTestMetrics()
-                    
+
                     print("\n=== Running Mixed Workload Test ===")
                     tester.metrics.start_test()
                     await tester.mixed_workload_test(duration_seconds=30)
                     tester.metrics.end_test()
                     print(json.dumps(tester.metrics.get_summary(), indent=2))
-                    
+
             finally:
                 await server.stop()
                 print("🛑 Mock server stopped")
-        
+
         asyncio.run(run_standalone_tests())
     else:
         print("Run with pytest: pytest tests/load/test_load_scenarios.py -v")
