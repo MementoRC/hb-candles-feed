@@ -435,9 +435,9 @@ class TestServiceContainerIntegration:
         await redis_client.ping()  # Already timed out in fixture, but this is an additional ping
         ping_time = (asyncio.get_event_loop().time() - start_time) * 1000
 
-        assert ping_time < 1000, (
-            "Redis ping should be reasonably fast (<1000ms)"
-        )  # Increased from 100ms
+        assert (
+            ping_time < 1000
+        ), "Redis ping should be reasonably fast (<1000ms)"  # Increased from 100ms
         logger.info(f"Redis ping time: {ping_time:.2f}ms")
 
         # Test basic Redis operations performance
@@ -450,9 +450,9 @@ class TestServiceContainerIntegration:
         operation_time = (asyncio.get_event_loop().time() - start_time) * 1000
 
         assert retrieved_value == test_value, "Redis operations should work correctly"
-        assert operation_time < 500, (
-            "Redis operations should be reasonably fast (<500ms)"
-        )  # Increased from 50ms
+        assert (
+            operation_time < 500
+        ), "Redis operations should be reasonably fast (<500ms)"  # Increased from 50ms
 
         logger.info(f"Redis operation time: {operation_time:.2f}ms")
 
@@ -534,9 +534,9 @@ class TestServiceContainerIntegration:
 
         for result in results:
             assert result["value_match"], f"Task {result['task_id']} should have matching values"
-            assert result["counter_value"] == 1, (
-                f"Task {result['task_id']} should have counter value 1"
-            )
+            assert (
+                result["counter_value"] == 1
+            ), f"Task {result['task_id']} should have counter value 1"
 
         logger.info("Concurrent service container access test passed")
         logger.info(f"Successfully completed {len(results)} concurrent Redis operations")
