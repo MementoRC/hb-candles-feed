@@ -102,19 +102,17 @@ class MockedAdapter(BaseAdapter):
         trading_pair: str,
         interval: str,
         start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-        limit: Optional[int] = None,
+        limit: int = DEFAULT_CANDLES_LIMIT,
     ) -> Dict[str, Any]:
         """Get REST API request parameters.
 
         :param trading_pair: Trading pair in standard format
         :param interval: Interval string
         :param start_time: Start time in milliseconds
-        :param end_time: End time in milliseconds
         :param limit: Maximum number of candles to retrieve
         :return: Dictionary of request parameters
         """
-        return self.get_rest_params(trading_pair, interval, limit, start_time, end_time)
+        return self.get_rest_params(trading_pair, interval, limit, start_time)
 
     def get_rest_params(
         self,
@@ -174,10 +172,10 @@ class MockedAdapter(BaseAdapter):
         :param data: Response data from the REST API
         :return: List of CandleData objects
         """
-        if data is None:
+        if not isinstance(data, dict):  # Handles None and list cases
             return []
 
-        # Delegate to existing parse_rest_response method
+        # Delegate to existing parse_rest_response method, data is now known to be a dict
         return self.parse_rest_response(data)
 
     def process_rest_response(

@@ -9,6 +9,7 @@ import importlib
 import logging
 import os
 import pkgutil
+import typing
 
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.protocols import Logger
@@ -29,7 +30,7 @@ class ExchangeRegistry:
         :return: Logger instance
         """
         if cls._logger is None:
-            cls._logger = logging.getLogger(__name__)
+            cls._logger = typing.cast("Logger", logging.getLogger(__name__))
         return cls._logger
 
     @classmethod

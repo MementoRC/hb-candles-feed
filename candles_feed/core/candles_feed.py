@@ -5,6 +5,7 @@ This module provides the main class for managing candle data feeds.
 """
 
 import logging
+import typing
 from collections import deque
 from typing import Deque
 
@@ -60,7 +61,9 @@ class CandlesFeed:
         self.trading_pair = trading_pair
         self.interval = interval
         self.max_records = max_records
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = (
+            logger if logger is not None else typing.cast("Logger", logging.getLogger(__name__))
+        )
         self._network_config = network_config
 
         # Get adapter from registry

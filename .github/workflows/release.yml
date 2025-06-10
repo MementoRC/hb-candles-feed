@@ -48,8 +48,8 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "is-prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
 
-          echo "<÷ Release version: $VERSION"
-          echo "= Pre-release: $IS_PRERELEASE"
+          echo "< Release version: $VERSION"
+          echo "= Pre-release: $IS_PRERELEASE"
 
       - name: Validate version format
         run: |
@@ -59,7 +59,7 @@ jobs:
             echo "Expected format: v1.2.3 or v1.2.3-alpha.1"
             exit 1
           fi
-          echo " Version format valid"
+          echo " Version format valid"
 
   build-release:
     name: Build Release Artifacts
@@ -86,18 +86,18 @@ jobs:
           # Update __about__.py
           sed -i "s/__version__ = .*/__version__ = \"$PYTHON_VERSION\"/" candles_feed/__about__.py
 
-          echo "=æ Updated package version to $PYTHON_VERSION"
+          echo "= Updated package version to $PYTHON_VERSION"
 
       - name: Build package
         run: |
           python -m build
-          echo "=æ Built packages:"
+          echo "= Built packages:"
           ls -la dist/
 
       - name: Verify package
         run: |
           twine check dist/*
-          echo " Package verification passed"
+          echo " Package verification passed"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -131,7 +131,7 @@ jobs:
           pip install dist/*.whl
 
           # Test import
-          python -c "import candles_feed; print(f' Import successful: {candles_feed.__version__}')"
+          python -c "import candles_feed; print(f' Import successful: {candles_feed.__version__}')"
 
       - name: Run smoke tests
         run: |
@@ -147,6 +147,6 @@ jobs:
           monitoring = MonitoringManager()
           collector = MetricsCollector(monitoring)
 
-          print(' Core components loaded successfully')
-          print(' Release smoke test passed')
+          print(' Core components loaded successfully')
+          print(' Release smoke test passed')
           "

@@ -27,7 +27,7 @@ on:
 
 jobs:
   load-test:
-    name: Load Testing (Users: ${{ inputs.users || '10' }}, Duration: ${{ inputs.duration || '60' }}s)
+    name: "Load Testing (Users: ${{ inputs.users || '10' }}, Duration: ${{ inputs.duration || '60' }}s)"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:

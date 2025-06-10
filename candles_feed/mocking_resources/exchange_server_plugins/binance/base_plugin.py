@@ -502,7 +502,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary with standardized parameter names or error information
         """
         params = request.query
-        result = {"valid": True, "error": None}
+        result: dict[str, Any] = {"valid": True, "error": None}
 
         # Get all Binance klines parameters
         symbol = params.get("symbol")
@@ -1107,9 +1107,10 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
             candles = candles[-limit:]
 
         # Format response using our method
-        timezone_adjustment_ms = int(timezone_offset_hours * 3600 * 1000)
+        # Ensure timezone_adjustment_ms is an int as expected by format_rest_candles
+        timezone_adjustment_ms_val = int(timezone_offset_hours * 3600 * 1000)
         response_data = self.format_rest_candles(
-            candles, trading_pair, interval, timezone_adjustment_ms
+            candles, trading_pair, interval, timezone_adjustment_ms_val
         )
 
         return web.json_response(response_data)
