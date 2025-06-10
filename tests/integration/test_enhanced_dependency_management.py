@@ -45,10 +45,10 @@ class TestEnhancedDependencyManagement:
     """Enhanced integration tests with improved external dependency management."""
 
     @pytest.fixture
-    async def enhanced_mock_server(self):
+    async def enhanced_mock_server(self, unused_tcp_port):
         """Create enhanced mock server with better lifecycle management."""
         plugin = BinanceSpotPlugin()
-        server = MockedExchangeServer(plugin, "127.0.0.1", 8792)
+        server = MockedExchangeServer(plugin, "127.0.0.1", unused_tcp_port)
 
         # Add comprehensive trading pair coverage
         trading_pairs = [
@@ -243,6 +243,8 @@ class TestEnhancedDependencyManagement:
 
         finally:
             self.restore_feed_urls(feed, original_methods)
+            if hasattr(feed, "_network_client") and feed._network_client:
+                await feed._network_client.close()
 
     @pytest.mark.asyncio
     async def test_concurrent_external_dependency_access(self, enhanced_mock_server):
@@ -335,9 +337,11 @@ class TestEnhancedDependencyManagement:
             logger.info(f"Stress test: {stress_successes}/{len(feeds)} feeds successful under load")
 
         finally:
-            # Restore all feeds
-            for feed, original_methods in zip(feeds, original_methods_list):
-                self.restore_feed_urls(feed, original_methods)
+            # Restore all feeds and close their network clients
+            for feed_item, original_methods_item in zip(feeds, original_methods_list):
+                self.restore_feed_urls(feed_item, original_methods_item)
+                if hasattr(feed_item, "_network_client") and feed_item._network_client:
+                    await feed_item._network_client.close()
 
     @pytest.mark.asyncio
     async def test_external_dependency_failure_recovery(self, enhanced_mock_server):

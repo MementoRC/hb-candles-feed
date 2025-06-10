@@ -28,7 +28,7 @@ class TestNetworkClientPerformance:
     """Performance tests for NetworkClient connection pooling and optimization."""
 
     @pytest.mark.asyncio
-    async def test_connection_pool_reuse(self):
+    async def test_connection_pool_reuse(self, unused_tcp_port):
         """Test that connection pooling reduces connection establishment overhead."""
         config = NetworkConfig(connection_pool_size=50, enable_connection_pooling=True)
 
@@ -36,11 +36,11 @@ class TestNetworkClientPerformance:
 
         # Mock server for testing
         plugin = BinanceSpotPlugin()
-        server = MockedExchangeServer(plugin, port=8765)
+        server = MockedExchangeServer(plugin, host="127.0.0.1", port=unused_tcp_port)
         try:
             await server.start()
 
-            url = "http://127.0.0.1:8765/api/v3/ping"
+            url = f"http://127.0.0.1:{unused_tcp_port}/api/v3/ping"
 
             # Measure first request (establishes connection)
             start_time = time.perf_counter()
@@ -73,20 +73,20 @@ class TestNetworkClientPerformance:
             await server.stop()
 
     @pytest.mark.asyncio
-    async def test_concurrent_request_performance(self):
+    async def test_concurrent_request_performance(self, unused_tcp_port):
         """Test performance under concurrent load."""
         config = NetworkConfig(rest_api_timeout=10.0)
 
         network_client = NetworkClient(config)
         plugin = BinanceSpotPlugin()
-        server = MockedExchangeServer(plugin, port=8766)
+        server = MockedExchangeServer(plugin, host="127.0.0.1", port=unused_tcp_port)
 
         try:
             # Add trading pair to server before starting
             server.add_trading_pair("BTC-USDT", "1m", initial_price=50000.0)
             await server.start()
 
-            url = "http://127.0.0.1:8766/api/v3/klines"
+            url = f"http://127.0.0.1:{unused_tcp_port}/api/v3/klines"
             params = {"symbol": "BTCUSDT", "interval": "1m", "limit": "10"}
 
             # Benchmark concurrent requests
@@ -241,28 +241,29 @@ class TestAdapterPerformance:
         config = NetworkConfig()
         network_client = NetworkClient(config)
 
-        adapter = AsyncMockedAdapter(
-            network_client=network_client,
-            network_config=config,
-            exchange_name="binance",
-            trading_pair="BTCUSDT",
-        )
+        try:
+            adapter = AsyncMockedAdapter(
+                network_client=network_client,
+                network_config=config,
+                exchange_name="binance",
+                trading_pair="BTCUSDT",
+            )
 
-        benchmark = BenchmarkSuite()
+            benchmark = BenchmarkSuite()
 
-        async def fetch_candles():
-            return await adapter.fetch_rest_candles("BTCUSDT", "1m", limit=100)
+            async def fetch_candles():
+                return await adapter.fetch_rest_candles("BTCUSDT", "1m", limit=100)
 
-        result = await benchmark.run_benchmark(
-            "mock_adapter_throughput", fetch_candles, iterations=100, warmup_iterations=10
-        )
+            result = await benchmark.run_benchmark(
+                "mock_adapter_throughput", fetch_candles, iterations=100, warmup_iterations=10
+            )
 
-        # Mock adapter should be very fast
-        assert result.avg_latency_ms < 10, f"Mock adapter too slow: {result.avg_latency_ms:.2f}ms"
-        assert result.success_rate == 1.0, f"Mock adapter failures: {result.success_rate:.1%}"
-        assert result.memory_peak_mb < 300, f"Memory usage too high: {result.memory_peak_mb:.1f}MB"
-
-        await network_client.close()
+            # Mock adapter should be very fast
+            assert result.avg_latency_ms < 10, f"Mock adapter too slow: {result.avg_latency_ms:.2f}ms"
+            assert result.success_rate == 1.0, f"Mock adapter failures: {result.success_rate:.1%}"
+            assert result.memory_peak_mb < 300, f"Memory usage too high: {result.memory_peak_mb:.1f}MB"
+        finally:
+            await network_client.close()
 
     @pytest.mark.asyncio
     async def test_memory_usage_scaling(self):
@@ -301,13 +302,14 @@ class TestAdapterPerformance:
         assert max_memory < 500, f"Memory usage too high: {max_memory:.1f}MB"
 
         # Memory per candle should be reasonable (adjusted for test environment)
-        for measurement in memory_measurements:
-            memory_per_100_candles = (measurement["memory_mb"] / measurement["candle_count"]) * 100
-            assert memory_per_100_candles < 500, (
-                f"Memory per 100 candles too high: {memory_per_100_candles:.1f}MB at {measurement['candle_count']} candles"
-            )
-
-        await network_client.close()
+        try:
+            for measurement in memory_measurements:
+                memory_per_100_candles = (measurement["memory_mb"] / measurement["candle_count"]) * 100
+                assert memory_per_100_candles < 500, (
+                    f"Memory per 100 candles too high: {memory_per_100_candles:.1f}MB at {measurement['candle_count']} candles"
+                )
+        finally:
+            await network_client.close()
 
 
 @pytest.mark.benchmark
@@ -321,51 +323,52 @@ class TestIntegrationPerformance:
 
         network_client = NetworkClient(config)
 
-        # Create multiple adapters
-        adapters = []
-        for i in range(5):
-            adapter = AsyncMockedAdapter(
-                network_client=network_client,
-                network_config=config,
-                exchange_name=f"exchange_{i}",
-                trading_pair="BTCUSDT",
+        try:
+            # Create multiple adapters
+            adapters = []
+            for i in range(5):
+                adapter = AsyncMockedAdapter(
+                    network_client=network_client,
+                    network_config=config,
+                    exchange_name=f"exchange_{i}",
+                    trading_pair="BTCUSDT",
+                )
+                adapters.append(adapter)
+
+            benchmark = BenchmarkSuite()
+
+            async def concurrent_fetch():
+                """Fetch candles from all adapters concurrently."""
+                tasks = [adapter.fetch_rest_candles("BTCUSDT", "1m", limit=50) for adapter in adapters]
+                results = await asyncio.gather(*tasks)
+                return results
+
+            result = await benchmark.run_benchmark(
+                "concurrent_multiple_adapters", concurrent_fetch, iterations=20, warmup_iterations=3
             )
-            adapters.append(adapter)
 
-        benchmark = BenchmarkSuite()
+            # Should handle concurrent load efficiently
+            assert result.avg_latency_ms < 100, (
+                f"Concurrent performance too slow: {result.avg_latency_ms:.2f}ms"
+            )
+            assert result.success_rate > 0.95, (
+                f"Success rate too low under load: {result.success_rate:.1%}"
+            )
+            assert result.memory_peak_mb < 300, (
+                f"Memory usage too high under load: {result.memory_peak_mb:.1f}MB"
+            )
 
-        async def concurrent_fetch():
-            """Fetch candles from all adapters concurrently."""
-            tasks = [adapter.fetch_rest_candles("BTCUSDT", "1m", limit=50) for adapter in adapters]
-            results = await asyncio.gather(*tasks)
-            return results
-
-        result = await benchmark.run_benchmark(
-            "concurrent_multiple_adapters", concurrent_fetch, iterations=20, warmup_iterations=3
-        )
-
-        # Should handle concurrent load efficiently
-        assert result.avg_latency_ms < 100, (
-            f"Concurrent performance too slow: {result.avg_latency_ms:.2f}ms"
-        )
-        assert result.success_rate > 0.95, (
-            f"Success rate too low under load: {result.success_rate:.1%}"
-        )
-        assert result.memory_peak_mb < 300, (
-            f"Memory usage too high under load: {result.memory_peak_mb:.1f}MB"
-        )
-
-        # Check connection pool efficiency
-        stats = network_client.get_connection_pool_stats()
-        # Note: AsyncMockedAdapter doesn't use real HTTP requests, so connector may not be initialized
-        if "status" in stats and stats["status"] == "not_initialized":
-            # This is expected for mocked adapters
-            assert stats["status"] == "not_initialized"
-        else:
-            assert "total_connections" in stats, f"Stats missing total_connections: {stats}"
-            assert stats["total_connections"] >= 0, "Connection pool stats available"
-
-        await network_client.close()
+            # Check connection pool efficiency
+            stats = network_client.get_connection_pool_stats()
+            # Note: AsyncMockedAdapter doesn't use real HTTP requests, so connector may not be initialized
+            if "status" in stats and stats["status"] == "not_initialized":
+                # This is expected for mocked adapters
+                assert stats["status"] == "not_initialized"
+            else:
+                assert "total_connections" in stats, f"Stats missing total_connections: {stats}"
+                assert stats["total_connections"] >= 0, "Connection pool stats available"
+        finally:
+            await network_client.close()
 
     @pytest.mark.asyncio
     async def test_sustained_load_performance(self):
@@ -373,39 +376,40 @@ class TestIntegrationPerformance:
         config = NetworkConfig()
         network_client = NetworkClient(config)
 
-        adapter = AsyncMockedAdapter(
-            network_client=network_client,
-            network_config=config,
-            exchange_name="binance",
-            trading_pair="BTCUSDT",
-        )
+        try:
+            adapter = AsyncMockedAdapter(
+                network_client=network_client,
+                network_config=config,
+                exchange_name="binance",
+                trading_pair="BTCUSDT",
+            )
 
-        profiler = PerformanceProfiler()
-        initial_memory = profiler._get_memory_usage()
+            profiler = PerformanceProfiler()
+            initial_memory = profiler._get_memory_usage()
 
-        # Run sustained operations
-        for i in range(50):  # Reduced for faster test execution
-            with profiler.measure(f"sustained_operation_{i}"):
-                candles = await adapter.fetch_rest_candles("BTCUSDT", "1m", limit=100)
-                assert len(candles) == 100
+            # Run sustained operations
+            for i in range(50):  # Reduced for faster test execution
+                with profiler.measure(f"sustained_operation_{i}"):
+                    candles = await adapter.fetch_rest_candles("BTCUSDT", "1m", limit=100)
+                    assert len(candles) == 100
 
-            # Check for memory leaks every 10 iterations
-            if i % 10 == 0:
-                current_memory = profiler._get_memory_usage()
-                memory_growth = current_memory - initial_memory
-                assert memory_growth < 50, (
-                    f"Potential memory leak detected: {memory_growth:.1f}MB growth"
-                )
+                # Check for memory leaks every 10 iterations
+                if i % 10 == 0:
+                    current_memory = profiler._get_memory_usage()
+                    memory_growth = current_memory - initial_memory
+                    assert memory_growth < 50, (
+                        f"Potential memory leak detected: {memory_growth:.1f}MB growth"
+                    )
 
-        final_memory = profiler._get_memory_usage()
-        total_growth = final_memory - initial_memory
+            final_memory = profiler._get_memory_usage()
+            total_growth = final_memory - initial_memory
 
-        # Memory growth should be minimal under sustained load
-        assert total_growth < 100, (
-            f"Memory leak detected: {total_growth:.1f}MB growth over 50 operations"
-        )
-
-        await network_client.close()
+            # Memory growth should be minimal under sustained load
+            assert total_growth < 100, (
+                f"Memory leak detected: {total_growth:.1f}MB growth over 50 operations"
+            )
+        finally:
+            await network_client.close()
 
 
 # Utility function for running performance regression tests
