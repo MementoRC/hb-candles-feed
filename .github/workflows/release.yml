@@ -1,4 +1,4 @@
-name: Release Automation
+name: Automated Release Management
 
 on:
   push:
@@ -15,26 +15,127 @@ on:
         required: false
         default: false
         type: boolean
+      skip_tests:
+        description: 'Skip comprehensive test suite (emergency releases only)'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # Check for automated releases every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write  # for PyPI trusted publishing
+
+env:
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '20'
 
 jobs:
+  detect-changes:
+    name: Detect Version Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    outputs:
+      should-release: ${{ steps.check.outputs.should-release }}
+      version: ${{ steps.check.outputs.version }}
+      changelog: ${{ steps.check.outputs.changelog }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Install conventional-changelog
+        run: npm install -g conventional-changelog-cli conventional-recommended-bump
+      
+      - name: Check for conventional commits since last release
+        id: check
+        run: |
+          # Get last release tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Last release tag: $LAST_TAG"
+          
+          # Check if there are any feat: or fix: commits since last release
+          FEAT_COUNT=$(git log ${LAST_TAG}..HEAD --oneline --grep="^feat" --grep="^fix" --grep="^BREAKING CHANGE" | wc -l)
+          
+          if [ $FEAT_COUNT -gt 0 ]; then
+            # Determine version bump type
+            BUMP_TYPE=$(conventional-recommended-bump -p angular)
+            
+            # Get current version from __about__.py
+            CURRENT_VERSION=$(grep "__version__ = " candles_feed/__about__.py | cut -d'"' -f2)
+            
+            # Calculate new version
+            IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            PATCH=${VERSION_PARTS[2]}
+            
+            case $BUMP_TYPE in
+              major)
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              minor)
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              patch)
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
+            
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+            
+            # Generate changelog
+            CHANGELOG=$(conventional-changelog -p angular)
+            
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "version=v${NEW_VERSION}" >> $GITHUB_OUTPUT
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGELOG" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            
+            echo "📦 Automated release detected: v${NEW_VERSION}"
+          else
+            echo "should-release=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No significant changes detected since last release"
+          fi
+
   validate-release:
     name: Validate Release
     runs-on: ubuntu-latest
+    if: always() && (github.event_name != 'schedule' || needs.detect-changes.outputs.should-release == 'true')
+    needs: [detect-changes]
     outputs:
       version: ${{ steps.version.outputs.version }}
       is-prerelease: ${{ steps.version.outputs.is-prerelease }}
+      clean-version: ${{ steps.version.outputs.clean-version }}
+      should-publish: ${{ steps.version.outputs.should-publish }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine version
+      - name: Determine version and release strategy
         id: version
         run: |
+          # Determine version source
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             VERSION="${{ github.event.inputs.version }}"
             IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+            TRIGGER="manual"
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            VERSION="${{ needs.detect-changes.outputs.version }}"
+            IS_PRERELEASE="false"
+            TRIGGER="automated"
           else
             VERSION="${{ github.ref_name }}"
             # Auto-detect pre-release based on version pattern
@@ -43,28 +144,196 @@ jobs:
             else
               IS_PRERELEASE="false"
             fi
+            TRIGGER="tag"
+          fi
+
+          # Clean version (remove v prefix)
+          CLEAN_VERSION="${VERSION#v}"
+          
+          # Determine if we should publish to PyPI
+          SHOULD_PUBLISH="true"
+          if [[ "$IS_PRERELEASE" == "true" ]] && [[ "$TRIGGER" != "manual" ]]; then
+            SHOULD_PUBLISH="false"
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "clean-version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
           echo "is-prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "should-publish=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
 
-          echo "< Release version: $VERSION"
-          echo "= Pre-release: $IS_PRERELEASE"
+          echo "📋 Release Configuration:"
+          echo "   Version: $VERSION"
+          echo "   Clean Version: $CLEAN_VERSION"
+          echo "   Pre-release: $IS_PRERELEASE"
+          echo "   Trigger: $TRIGGER"
+          echo "   Publish to PyPI: $SHOULD_PUBLISH"
 
-      - name: Validate version format
+      - name: Validate version format and detect conflicts
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          CLEAN_VERSION="${{ steps.version.outputs.clean-version }}"
+          
+          # Validate semantic version format
           if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
-            echo "L Invalid version format: $VERSION"
+            echo "🚨 Invalid version format: $VERSION"
             echo "Expected format: v1.2.3 or v1.2.3-alpha.1"
             exit 1
           fi
-          echo " Version format valid"
+          
+          # Check if version already exists
+          if git tag -l | grep -q "^${VERSION}$"; then
+            echo "🚨 Version $VERSION already exists!"
+            exit 1
+          fi
+          
+          # Validate version increment
+          CURRENT_VERSION=$(grep "__version__ = " candles_feed/__about__.py | cut -d'"' -f2)
+          echo "📊 Current version: $CURRENT_VERSION"
+          echo "📊 New version: $CLEAN_VERSION"
+          
+          # Simple version comparison (assumes semantic versioning)
+          if [[ "$CLEAN_VERSION" == "$CURRENT_VERSION" ]]; then
+            echo "⚠️ Warning: Version unchanged from current package version"
+          fi
+          
+          echo "✅ Version format valid: $VERSION"
+          
+      - name: Generate automated changelog
+        id: changelog
+        run: |
+          # Install conventional-changelog if not already installed
+          npm install -g conventional-changelog-cli || true
+          
+          # Get last release tag for changelog generation
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          
+          # Generate changelog from conventional commits
+          CHANGELOG_CONTENT=""
+          if command -v conventional-changelog &> /dev/null; then
+            CHANGELOG_CONTENT=$(conventional-changelog -p angular -r 1 -s 2>/dev/null || echo "")
+          fi
+          
+          # Fallback: Generate basic changelog from git log
+          if [[ -z "$CHANGELOG_CONTENT" ]]; then
+            echo "📝 Generating basic changelog from git commits..."
+            CHANGELOG_CONTENT="## What's Changed\n\n"
+            
+            # Get commits since last tag
+            git log ${LAST_TAG}..HEAD --oneline --pretty=format:"- %s" | while read line; do
+              # Categorize commits
+              if [[ "$line" =~ ^-\ feat ]]; then
+                echo "### 🚀 Features" >> /tmp/changelog_features.md
+                echo "$line" | sed 's/^- feat[(:]/- /' >> /tmp/changelog_features.md
+              elif [[ "$line" =~ ^-\ fix ]]; then
+                echo "### 🐛 Bug Fixes" >> /tmp/changelog_fixes.md
+                echo "$line" | sed 's/^- fix[(:]/- /' >> /tmp/changelog_fixes.md
+              elif [[ "$line" =~ ^-\ docs ]]; then
+                echo "### 📚 Documentation" >> /tmp/changelog_docs.md
+                echo "$line" | sed 's/^- docs[(:]/- /' >> /tmp/changelog_docs.md
+              else
+                echo "### 🔧 Other Changes" >> /tmp/changelog_other.md
+                echo "$line" >> /tmp/changelog_other.md
+              fi
+            done
+            
+            # Combine changelog sections
+            for section in features fixes docs other; do
+              if [[ -f "/tmp/changelog_${section}.md" ]]; then
+                cat "/tmp/changelog_${section}.md" >> /tmp/combined_changelog.md
+                echo "" >> /tmp/combined_changelog.md
+              fi
+            done
+            
+            if [[ -f "/tmp/combined_changelog.md" ]]; then
+              CHANGELOG_CONTENT=$(cat /tmp/combined_changelog.md)
+            else
+              CHANGELOG_CONTENT="### 🔧 Maintenance Release\n\n- Package maintenance and improvements"
+            fi
+          fi
+          
+          # Save changelog for later use
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "📝 Generated changelog:"   
+          echo -e "$CHANGELOG_CONTENT"
+
+  update-changelog:
+    name: Update CHANGELOG.md
+    runs-on: ubuntu-latest
+    needs: validate-release
+    outputs:
+      changelog-updated: ${{ steps.update.outputs.updated }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md
+        id: update
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          CHANGELOG_CONTENT="${{ needs.validate-release.outputs.changelog || 'Package maintenance and improvements' }}"
+          
+          # Create CHANGELOG.md if it doesn't exist
+          if [[ ! -f "CHANGELOG.md" ]]; then
+            cat > CHANGELOG.md << 'EOF'
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+EOF
+            echo "📝 Created new CHANGELOG.md"
+          fi
+          
+          # Prepare changelog entry
+          DATE=$(date +%Y-%m-%d)
+          NEW_ENTRY="## [${VERSION#v}] - ${DATE}\n\n${CHANGELOG_CONTENT}\n"
+          
+          # Insert new entry after "## [Unreleased]"
+          if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+            # Insert after Unreleased section
+            sed -i "/## \[Unreleased\]/a\\\n${NEW_ENTRY}" CHANGELOG.md
+          else
+            # Prepend to file after header
+            sed -i "/# Changelog/a\\\n${NEW_ENTRY}" CHANGELOG.md
+          fi
+          
+          echo "updated=true" >> $GITHUB_OUTPUT
+          echo "✅ Updated CHANGELOG.md with version $VERSION"
+          
+          # Show the updated changelog section
+          echo "📄 New changelog entry:"
+          head -n 20 CHANGELOG.md
+
+      - name: Commit changelog update
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for ${{ needs.validate-release.outputs.version }}
+          
+          - Automated changelog generation
+          - Release preparation
+          
+          🤖 Generated with [Claude Code](https://claude.ai/code)
+          Co-Authored-By: Claude <noreply@anthropic.com>" || true
+          
+          git push origin ${{ github.ref_name }} || true
 
   build-release:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
-    needs: validate-release
+    needs: [validate-release, update-changelog]
 
     steps:
       - uses: actions/checkout@v4
@@ -79,25 +348,100 @@ jobs:
 
       - name: Update version in package
         run: |
-          VERSION="${{ needs.validate-release.outputs.version }}"
-          # Remove 'v' prefix for Python version
-          PYTHON_VERSION="${VERSION#v}"
+          CLEAN_VERSION="${{ needs.validate-release.outputs.clean-version }}"
 
           # Update __about__.py
-          sed -i "s/__version__ = .*/__version__ = \"$PYTHON_VERSION\"/" candles_feed/__about__.py
+          sed -i "s/__version__ = .*/__version__ = \"$CLEAN_VERSION\"/" candles_feed/__about__.py
 
-          echo "= Updated package version to $PYTHON_VERSION"
+          # Verify the update
+          UPDATED_VERSION=$(grep "__version__ = " candles_feed/__about__.py | cut -d'"' -f2)
+          
+          if [[ "$UPDATED_VERSION" != "$CLEAN_VERSION" ]]; then
+            echo "🚨 Version update failed! Expected: $CLEAN_VERSION, Got: $UPDATED_VERSION"
+            exit 1
+          fi
 
-      - name: Build package
+          echo "✅ Updated package version to $CLEAN_VERSION"
+          echo "📊 Version file contents:"
+          cat candles_feed/__about__.py
+
+      - name: Build package with hatch
         run: |
-          python -m build
-          echo "= Built packages:"
+          # Build using hatch (preferred for this project)
+          pip install build hatch
+          
+          # Clean any previous builds
+          rm -rf dist/ build/ *.egg-info/
+          
+          # Build wheel and source distribution
+          python -m build --wheel --sdist
+          
+          echo "📦 Built packages:"
           ls -la dist/
+          
+          # Verify package contents
+          echo "🔍 Package contents:"
+          pip install wheel
+          python -c "
+          import zipfile
+          import os
+          for f in os.listdir('dist'):
+              if f.endswith('.whl'):
+                  with zipfile.ZipFile(f'dist/{f}', 'r') as zip_ref:
+                      print(f'Contents of {f}:')
+                      for name in sorted(zip_ref.namelist())[:10]:  # Show first 10 files
+                          print(f'  {name}')
+                      if len(zip_ref.namelist()) > 10:
+                          print(f'  ... and {len(zip_ref.namelist()) - 10} more files')
+                  break
+          "
 
-      - name: Verify package
+      - name: Verify package integrity
         run: |
+          pip install twine
+          
+          # Check package metadata and structure
           twine check dist/*
-          echo " Package verification passed"
+          
+          # Verify version consistency
+          WHEEL_FILE=$(ls dist/*.whl | head -n1)
+          EXTRACTED_VERSION=$(python -c "
+          import zipfile
+          import re
+          with zipfile.ZipFile('$WHEEL_FILE', 'r') as zip_ref:
+              for name in zip_ref.namelist():
+                  if name.endswith('__about__.py'):
+                      content = zip_ref.read(name).decode('utf-8')
+                      match = re.search(r'__version__ = [\"\']([^\"\']+)[\"\']', content)
+                      if match:
+                          print(match.group(1))
+                      break
+          ")
+          
+          EXPECTED_VERSION="${{ needs.validate-release.outputs.clean-version }}"
+          
+          if [[ "$EXTRACTED_VERSION" != "$EXPECTED_VERSION" ]]; then
+            echo "🚨 Version mismatch in built package!"
+            echo "Expected: $EXPECTED_VERSION"
+            echo "Found: $EXTRACTED_VERSION"
+            exit 1
+          fi
+          
+          echo "✅ Package verification passed"
+          echo "📊 Package version: $EXTRACTED_VERSION"
+          
+          # Additional package info
+          pip install pkginfo
+          python -c "
+          from pkginfo import Wheel
+          import os
+          wheel_file = [f for f in os.listdir('dist') if f.endswith('.whl')][0]
+          pkg = Wheel(f'dist/{wheel_file}')
+          print(f'📊 Package: {pkg.name} v{pkg.version}')
+          print(f'📊 Author: {pkg.author}')
+          print(f'📊 Python: {pkg.requires_python}')
+          print(f'📊 Dependencies: {len(pkg.requires_dist or [])}')
+          "
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -146,7 +490,206 @@ jobs:
           client = NetworkClient(config)
           monitoring = MonitoringManager()
           collector = MetricsCollector(monitoring)
+          
+          print('✅ Core components loaded successfully')
+          print('✅ Release smoke test passed')
+          \"
 
-          print(' Core components loaded successfully')
-          print(' Release smoke test passed')
+      - name: Run comprehensive functional tests
+        run: |
+          # Run a subset of critical tests to ensure the package works
+          pixi run pytest tests/unit/core/test_network_config.py -v --tb=short
+          pixi run pytest tests/unit/core/test_monitoring.py -v --tb=short
+          pixi run pytest tests/unit/adapters/test_base_adapter.py -v --tb=short
+          
+          echo "✅ Critical functional tests passed"
+          
+      - name: Performance and integration validation
+        if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
+        run: |
+          # Run integration tests to ensure everything works together
+          pixi run pytest tests/integration/test_candles_feed_integration.py -v --tb=short -x
+          
+          # Quick performance check
+          python -c "
+          import time
+          import candles_feed
+          
+          start_time = time.time()
+          from candles_feed.core.candles_feed import CandlesFeed
+          from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+          
+          # Test basic operations don't hang
+          adapter = BinanceSpotAdapter()
+          import_time = time.time() - start_time
+          
+          if import_time > 5.0:  # Should import quickly
+              raise ValueError(f'Import took too long: {import_time:.2f}s')
+          
+          print(f'✅ Performance check passed: imports in {import_time:.3f}s')
           "
+          
+          echo "✅ Performance and integration validation passed"
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [validate-release, build-release, run-release-tests]
+    if: needs.validate-release.outputs.should-publish == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/hb-candles-feed
+    
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/
+      
+      - name: Verify artifacts before publishing
+        run: |
+          echo "📦 Artifacts to publish:"
+          ls -la dist/
+          
+          # Final verification
+          pip install twine
+          twine check dist/*
+          
+          echo "✅ Final verification completed"
+      
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          print-hash: true
+          
+      - name: Verify PyPI publication
+        run: |
+          VERSION="${{ needs.validate-release.outputs.clean-version }}"
+          
+          echo "⏰ Waiting for PyPI to process the upload..."
+          sleep 60  # Give PyPI time to process
+          
+          # Try to install from PyPI
+          for i in {1..5}; do
+            if pip install "hb-candles-feed==$VERSION" --no-deps; then
+              echo "✅ Successfully installed from PyPI"
+              python -c "import candles_feed; print(f'PyPI version: {candles_feed.__version__}')"
+              break
+            else
+              echo "Attempt $i failed, waiting..."
+              sleep 30
+            fi
+          done
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-release, update-changelog, build-release, run-release-tests]
+    if: always() && !failure() && !cancelled()
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/
+          
+      - name: Generate comprehensive release notes
+        id: release_notes
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          CLEAN_VERSION="${{ needs.validate-release.outputs.clean-version }}"
+          
+          # Get changelog content
+          CHANGELOG="${{ needs.validate-release.outputs.changelog }}"
+          
+          # Generate TaskMaster status (if available)
+          TASKMASTER_STATUS=""
+          if command -v mcp__taskmaster-ai__get_health_status &> /dev/null; then
+            TASKMASTER_STATUS=$(mcp__taskmaster-ai__get_health_status 2>/dev/null || echo "TaskMaster status unavailable")
+          fi
+          
+          # Build comprehensive release notes
+          cat > release_notes.md << EOF
+# 🚀 Release $VERSION
+
+$CHANGELOG
+
+## 📊 Package Information
+
+- **Version**: $CLEAN_VERSION
+- **Python Support**: 3.10, 3.11, 3.12
+- **Platform Support**: Linux, macOS, Windows
+- **Package Format**: Wheel + Source Distribution
+
+## 📎 Installation
+
+\`\`\`bash
+pip install hb-candles-feed==$CLEAN_VERSION
+\`\`\`
+
+## 🔗 Links
+
+- [PyPI Package](https://pypi.org/project/hb-candles-feed/$CLEAN_VERSION/)
+- [Documentation](https://mementorc.github.io/hb-candles-feed)
+- [Changelog](CHANGELOG.md)
+
+## 🤖 Release Automation
+
+This release was generated using our automated release management system with:
+- Semantic versioning from conventional commits
+- Automated changelog generation
+- Comprehensive multi-platform testing
+- PyPI trusted publishing
+
+EOF
+
+          if [[ -n "$TASKMASTER_STATUS" && "$TASKMASTER_STATUS" != "TaskMaster status unavailable" ]]; then
+            cat >> release_notes.md << EOF
+
+## 📊 TaskMaster Project Status
+
+\`\`\`
+$TASKMASTER_STATUS
+\`\`\`
+EOF
+          fi
+
+          cat >> release_notes.md << EOF
+
+---
+
+**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^)...$VERSION
+EOF
+
+          echo "📝 Generated release notes:"
+          cat release_notes.md
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate-release.outputs.version }}
+          name: Release ${{ needs.validate-release.outputs.version }}
+          body_path: release_notes.md
+          files: |
+            dist/*
+          prerelease: ${{ needs.validate-release.outputs.is-prerelease }}
+          make_latest: ${{ needs.validate-release.outputs.is-prerelease == 'false' }}
+          generate_release_notes: false  # We provide our own
+          
+      - name: Update release summary
+        run: |
+          echo "🎉 Release ${{ needs.validate-release.outputs.version }} completed successfully!"
+          echo "📦 Published to PyPI: ${{ needs.validate-release.outputs.should-publish == 'true' }}"
+          echo "📝 GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate-release.outputs.version }}"
+          
+          if [[ "${{ needs.validate-release.outputs.should-publish }}" == "true" ]]; then
+            echo "🔗 PyPI Package: https://pypi.org/project/hb-candles-feed/${{ needs.validate-release.outputs.clean-version }}/"
+          fi

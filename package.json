@@ -1,0 +1,56 @@
+{
+  "name": "hb-candles-feed-release-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Release automation tools for HB Candles Feed",
+  "scripts": {
+    "semantic-release": "semantic-release",
+    "conventional-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
+    "version-bump": "conventional-recommended-bump -p angular"
+  },
+  "devDependencies": {
+    "conventional-changelog-cli": "^4.1.0",
+    "conventional-recommended-bump": "^9.0.0",
+    "semantic-release": "^23.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.6"
+  },
+  "release": {
+    "branches": [
+      "main",
+      {
+        "name": "feature/github-security-infrastructure",
+        "prerelease": "alpha"
+      }
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      [
+        "@semantic-release/exec",
+        {
+          "verifyReleaseCmd": "echo 'Verifying release for version ${nextRelease.version}'",
+          "prepareCmd": "echo '__version__ = \"${nextRelease.version}\"' > candles_feed/__about__.py",
+          "publishCmd": "python -m build && twine upload dist/*"
+        }
+      ],
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "CHANGELOG.md",
+            "candles_feed/__about__.py"
+          ],
+          "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        }
+      ],
+      "@semantic-release/github"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MementoRC/hb-candles-feed.git"
+  }
+}
