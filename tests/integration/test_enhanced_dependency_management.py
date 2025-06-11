@@ -432,9 +432,9 @@ class TestEnhancedDependencyManagement:
 
             # Step 4: Verify full recovery
             final_candles = feed.get_candles()
-            assert len(final_candles) >= len(baseline_candles), (
-                "Should have at least as many candles as baseline after recovery"
-            )
+            assert len(final_candles) >= len(
+                baseline_candles
+            ), "Should have at least as many candles as baseline after recovery"
 
             logger.info("External dependency failure recovery test completed successfully")
 
@@ -519,9 +519,9 @@ class TestEnhancedDependencyManagement:
                 )
 
                 # Verify the success rate is within expected range (with some tolerance)
-                assert success_rate >= (scenario["expected_success_rate"] - 0.2), (
-                    f"{scenario['name']} success rate too low: {success_rate:.1%}"
-                )
+                assert success_rate >= (
+                    scenario["expected_success_rate"] - 0.2
+                ), f"{scenario['name']} success rate too low: {success_rate:.1%}"
 
             # Test API rate limiting simulation
             logger.info("Testing API rate limiting behavior")
