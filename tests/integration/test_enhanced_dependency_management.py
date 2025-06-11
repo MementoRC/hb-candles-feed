@@ -433,9 +433,9 @@ class TestEnhancedDependencyManagement:
 
             # Step 4: Verify full recovery
             final_candles = feed.get_candles()
-            assert len(final_candles) >= len(
-                baseline_candles
-            ), "Should have at least as many candles as baseline after recovery"
+            assert len(final_candles) >= len(baseline_candles), (
+                "Should have at least as many candles as baseline after recovery"
+            )
 
             logger.info("External dependency failure recovery test completed successfully")
 
