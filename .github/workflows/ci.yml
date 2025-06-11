@@ -31,30 +31,48 @@ jobs:
       - name: Check for changes
         id: changes
         run: |
-          # Get list of changed files
+          # Default to source changed (safe fallback)
+          echo "docs-only=false" >> $GITHUB_OUTPUT
+          echo "src-changed=true" >> $GITHUB_OUTPUT
+          echo "tests-changed=true" >> $GITHUB_OUTPUT
+          
+          # Get list of changed files with robust error handling
+          CHANGED_FILES=""
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+            # For PRs, compare against base branch
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            if [ -n "$BASE_SHA" ]; then
+              CHANGED_FILES=$(git diff --name-only "$BASE_SHA" HEAD 2>/dev/null || echo "")
+            fi
           else
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            # For push events, compare with previous commit
+            BEFORE_SHA="${{ github.event.before }}"
+            if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" HEAD 2>/dev/null || echo "")
+            fi
           fi
 
-          echo "Changed files:"
-          echo "$CHANGED_FILES"
+          echo "Changed files detected:"
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "$CHANGED_FILES"
+            
+            # Check if only docs changed (only if we have file list)
+            if echo "$CHANGED_FILES" | grep -qvE '^(docs/|README\.md|\.md$|\.github/workflows/gh-deploy\.yml)'; then
+              echo "docs-only=false" >> $GITHUB_OUTPUT
+              echo "src-changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "docs-only=true" >> $GITHUB_OUTPUT
+              echo "src-changed=false" >> $GITHUB_OUTPUT
+            fi
 
-          # Check if only docs changed
-          if echo "$CHANGED_FILES" | grep -qvE '^(docs/|README\.md|\.md$|\.github/workflows/gh-deploy\.yml)'; then
-            echo "docs-only=false" >> $GITHUB_OUTPUT
-            echo "src-changed=true" >> $GITHUB_OUTPUT
+            # Check if tests changed
+            if echo "$CHANGED_FILES" | grep -q '^tests/'; then
+              echo "tests-changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "tests-changed=false" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "docs-only=true" >> $GITHUB_OUTPUT
-            echo "src-changed=false" >> $GITHUB_OUTPUT
-          fi
-
-          # Check if tests changed
-          if echo "$CHANGED_FILES" | grep -q '^tests/'; then
-            echo "tests-changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "tests-changed=false" >> $GITHUB_OUTPUT
+            echo "No files detected or Git diff failed - using safe defaults (run all jobs)"
           fi
 
   # Ubuntu tests with enhanced caching and service containers
