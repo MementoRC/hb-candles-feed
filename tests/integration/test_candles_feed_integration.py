@@ -186,9 +186,9 @@ class TestCandlesFeedIntegration:
             # Verify timestamps are sequential
             timestamps = [c.timestamp for c in candles]
             if len(timestamps) > 1:
-                assert all(timestamps[i] < timestamps[i + 1] for i in range(len(timestamps) - 1)), (
-                    "Timestamps should be in order"
-                )
+                assert all(
+                    timestamps[i] < timestamps[i + 1] for i in range(len(timestamps) - 1)
+                ), "Timestamps should be in order"
 
         finally:
             # Restore original methods
@@ -450,15 +450,15 @@ class TestCandlesFeedIntegration:
 
             # Verify prices are reasonable (mock server can generate different price ranges)
             # Just check they are positive numbers
-            assert btc_candles[-1].close > 0, (
-                f"BTC price {btc_candles[-1].close} should be positive"
-            )
-            assert eth_candles[-1].close > 0, (
-                f"ETH price {eth_candles[-1].close} should be positive"
-            )
-            assert sol_candles[-1].close > 0, (
-                f"SOL price {sol_candles[-1].close} should be positive"
-            )
+            assert (
+                btc_candles[-1].close > 0
+            ), f"BTC price {btc_candles[-1].close} should be positive"
+            assert (
+                eth_candles[-1].close > 0
+            ), f"ETH price {eth_candles[-1].close} should be positive"
+            assert (
+                sol_candles[-1].close > 0
+            ), f"SOL price {sol_candles[-1].close} should be positive"
 
             # Verify trading pairs have different prices - use abs diff with tolerance
             # Sometimes the mock server might generate close values
@@ -474,15 +474,15 @@ class TestCandlesFeedIntegration:
             # The mock server should be configured to use distinct base prices
             # If this fails, it means the server configuration needs adjustment
             tolerance = 0.001  # Very small tolerance
-            assert btc_price != eth_price or abs(btc_price - eth_price) > tolerance, (
-                "BTC and ETH prices should be different"
-            )
-            assert btc_price != sol_price or abs(btc_price - sol_price) > tolerance, (
-                "BTC and SOL prices should be different"
-            )
-            assert eth_price != sol_price or abs(eth_price - sol_price) > tolerance, (
-                "ETH and SOL prices should be different"
-            )
+            assert (
+                btc_price != eth_price or abs(btc_price - eth_price) > tolerance
+            ), "BTC and ETH prices should be different"
+            assert (
+                btc_price != sol_price or abs(btc_price - sol_price) > tolerance
+            ), "BTC and SOL prices should be different"
+            assert (
+                eth_price != sol_price or abs(eth_price - sol_price) > tolerance
+            ), "ETH and SOL prices should be different"
 
         finally:
             # Restore original methods and stop feeds
@@ -539,24 +539,24 @@ class TestCandlesFeedIntegration:
 
                 # Mock server might not follow exact intervals, let's check something
                 # more reasonable - just that we got something
-                assert all(c.timestamp > 0 for c in candles), (
-                    f"Timestamps should be positive for {interval}"
-                )
-                assert all(c.open > 0 for c in candles), (
-                    f"Open prices should be positive for {interval}"
-                )
-                assert all(c.high > 0 for c in candles), (
-                    f"High prices should be positive for {interval}"
-                )
-                assert all(c.low > 0 for c in candles), (
-                    f"Low prices should be positive for {interval}"
-                )
-                assert all(c.close > 0 for c in candles), (
-                    f"Close prices should be positive for {interval}"
-                )
-                assert all(c.volume >= 0 for c in candles), (
-                    f"Volume should be non-negative for {interval}"
-                )
+                assert all(
+                    c.timestamp > 0 for c in candles
+                ), f"Timestamps should be positive for {interval}"
+                assert all(
+                    c.open > 0 for c in candles
+                ), f"Open prices should be positive for {interval}"
+                assert all(
+                    c.high > 0 for c in candles
+                ), f"High prices should be positive for {interval}"
+                assert all(
+                    c.low > 0 for c in candles
+                ), f"Low prices should be positive for {interval}"
+                assert all(
+                    c.close > 0 for c in candles
+                ), f"Close prices should be positive for {interval}"
+                assert all(
+                    c.volume >= 0 for c in candles
+                ), f"Volume should be non-negative for {interval}"
 
         finally:
             # Restore original methods and stop feeds

@@ -192,21 +192,21 @@ class TestMockServer:
                         # Mock server can change price significantly over time
                         # Just verify the price is a reasonable value > 0
                         if pair == "BTCUSDT":
-                            assert 10000.0 <= latest_price <= 100000.0, (
-                                f"BTC price {latest_price} out of reasonable range"
-                            )
+                            assert (
+                                10000.0 <= latest_price <= 100000.0
+                            ), f"BTC price {latest_price} out of reasonable range"
                         elif pair == "ETHUSDT":
-                            assert 1000.0 <= latest_price <= 10000.0, (
-                                f"ETH price {latest_price} out of reasonable range"
-                            )
+                            assert (
+                                1000.0 <= latest_price <= 10000.0
+                            ), f"ETH price {latest_price} out of reasonable range"
                         elif pair == "SOLUSDT":
-                            assert 10.0 <= latest_price <= 1000.0, (
-                                f"SOL price {latest_price} out of reasonable range"
-                            )
+                            assert (
+                                10.0 <= latest_price <= 1000.0
+                            ), f"SOL price {latest_price} out of reasonable range"
                         elif pair == "DOGEUSDT":
-                            assert 0.01 <= latest_price <= 10.0, (
-                                f"DOGE price {latest_price} out of reasonable range"
-                            )
+                            assert (
+                                0.01 <= latest_price <= 10.0
+                            ), f"DOGE price {latest_price} out of reasonable range"
                         else:
                             assert latest_price > 0, f"Price for {pair} should be positive"
 
@@ -261,12 +261,12 @@ class TestMockServer:
 
             # With 20% error rate and 20 requests, we expect some requests to succeed and some to fail
             # Allow for some flexibility in a CI environment
-            assert success_count > 0, (
-                f"All {error_count} requests failed, but some should succeed with 20% error rate"
-            )
-            assert error_count > 0, (
-                f"All {success_count} requests succeeded, but some should fail with 20% error rate"
-            )
+            assert (
+                success_count > 0
+            ), f"All {error_count} requests failed, but some should succeed with 20% error rate"
+            assert (
+                error_count > 0
+            ), f"All {success_count} requests succeeded, but some should fail with 20% error rate"
 
         # Reset network conditions
         standalone_mock_server.set_network_conditions(
