@@ -237,9 +237,9 @@ async def test_basic_load_klines(mock_server):
 
         # Basic performance assertions
         assert summary["success_rate"] >= 95, f"Success rate too low: {summary['success_rate']}%"
-        assert (
-            summary["response_times"]["mean"] < 1000
-        ), f"Mean response time too high: {summary['response_times']['mean']}ms"
+        assert summary["response_times"]["mean"] < 1000, (
+            f"Mean response time too high: {summary['response_times']['mean']}ms"
+        )
         assert summary["requests_per_second"] > 10, f"RPS too low: {summary['requests_per_second']}"
 
 
@@ -255,9 +255,9 @@ async def test_server_endpoints_load(mock_server):
 
         # Performance assertions for lighter endpoints
         assert summary["success_rate"] >= 98, f"Success rate too low: {summary['success_rate']}%"
-        assert (
-            summary["response_times"]["mean"] < 500
-        ), f"Mean response time too high: {summary['response_times']['mean']}ms"
+        assert summary["response_times"]["mean"] < 500, (
+            f"Mean response time too high: {summary['response_times']['mean']}ms"
+        )
 
 
 @pytest.mark.asyncio

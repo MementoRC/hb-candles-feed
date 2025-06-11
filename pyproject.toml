@@ -51,7 +51,7 @@ dev = [
     "pytest-mock>=3.11.0",
     "pytest-timeout>=2.1.0",
     "pyupgrade",
-    "ruff>=0.1.5",
+    "ruff>=0.1.6",
     "mypy>=1.5.1",
     "cython-lint>=0.15.0",
     # Enhanced integration testing dependencies
@@ -129,7 +129,7 @@ pytest-cov = ">=4.1.0"
 pytest-mock = ">=3.11.0"
 pytest-timeout = ">=2.1.0"
 pyupgrade = "*"
-ruff = ">=0.1.5"
+ruff = ">=0.1.6"
 mypy = ">=1.5.1"
 cython-lint = ">=0.15.0"
 # Enhanced integration testing dependencies
@@ -183,7 +183,7 @@ line-length = 100
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-line-ending = "auto"
+line-ending = "lf"
 
 [tool.ruff.lint]
 select = [

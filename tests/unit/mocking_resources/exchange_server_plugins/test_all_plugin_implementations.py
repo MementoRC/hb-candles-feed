@@ -119,6 +119,6 @@ class TestAllPluginImplementations:
         ]
 
         for exchange_type in target_exchange_types:
-            assert (
-                exchange_type in exchange_types
-            ), f"No plugin implementation for {exchange_type.name}"
+            assert exchange_type in exchange_types, (
+                f"No plugin implementation for {exchange_type.name}"
+            )
