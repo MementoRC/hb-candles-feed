@@ -1,4 +1,4 @@
-name: Package CI
+name: Enhanced Package CI
 
 on:
   push:
@@ -7,11 +7,62 @@ on:
     branches: [main, master, develop, development]
   workflow_dispatch:
 
+# Cancel in-progress CI runs for the same ref/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Global environment variables for consistency
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+
 jobs:
-  # Ubuntu tests with service containers
-  test-ubuntu:
-    name: Test Python ${{ matrix.python-version }} on Ubuntu (with services)
+  # Fast pre-check to skip heavy jobs on docs-only changes
+  changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
+    outputs:
+      docs-only: ${{ steps.changes.outputs.docs-only }}
+      src-changed: ${{ steps.changes.outputs.src-changed }}
+      tests-changed: ${{ steps.changes.outputs.tests-changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for changes
+        id: changes
+        run: |
+          # Get list of changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Check if only docs changed
+          if echo "$CHANGED_FILES" | grep -qvE '^(docs/|README\.md|\.md$|\.github/workflows/gh-deploy\.yml)'; then
+            echo "docs-only=false" >> $GITHUB_OUTPUT
+            echo "src-changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "docs-only=true" >> $GITHUB_OUTPUT
+            echo "src-changed=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if tests changed
+          if echo "$CHANGED_FILES" | grep -q '^tests/'; then
+            echo "tests-changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "tests-changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Ubuntu tests with enhanced caching and service containers
+  test-ubuntu:
+    name: Test Python ${{ matrix.python-version }} on Ubuntu
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.src-changed == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -45,47 +96,103 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pixi environment caching
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pixi
+            .pixi
+          key: pixi-${{ runner.os }}-${{ matrix.pixi-environment }}-${{ hashFiles('pixi.lock', 'pyproject.toml') }}
+          restore-keys: |
+            pixi-${{ runner.os }}-${{ matrix.pixi-environment }}-
+            pixi-${{ runner.os }}-
 
       - name: Install Pixi
         uses: prefix-dev/setup-pixi@v0.8.8
         with:
           environments: ${{ matrix.pixi-environment }}
+          cache: true
 
-      - name: Install project dependencies (using Pixi)
+      - name: Cache project installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            build/
+          key: project-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            project-${{ runner.os }}-${{ matrix.python-version }}-
+
+      - name: Install project dependencies
         run: |
+          echo "🔧 Installing dependencies for Python ${{ matrix.python-version }}"
           pixi install -e ${{ matrix.pixi-environment }}
-          echo "Python version check:"
+          echo "🐍 Python version check:"
           pixi run -e ${{ matrix.pixi-environment }} python --version
+          echo "📦 Installing project in editable mode..."
           pixi run -e ${{ matrix.pixi-environment }} pip install -e . --verbose
+
+      - name: Environment information
+        run: |
+          echo "## Environment Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS**: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pixi Environment**: ${{ matrix.pixi-environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runner**: ${{ runner.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Wait for service containers
+        run: |
+          echo "⏳ Waiting for service containers to be ready..."
+          # Install redis-tools for health checks
+          sudo apt-get update && sudo apt-get install -y redis-tools
+
+          # Wait for Redis with timeout
+          echo "🔴 Checking Redis connection..."
+          timeout 30 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done' || echo "⚠️ Redis not available, tests will use fallback"
+
+          # Give WebSocket echo server time to start
+          echo "🔌 Waiting for WebSocket echo server..."
+          sleep 5
+          echo "✅ Service containers ready (or timeout reached)"
 
       - name: Run unit tests with coverage
         run: |
-          # Run unit tests first to avoid URL patching pollution from integration tests
-          # Exclude benchmark tests from CI blocking - they're for performance monitoring only
-          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "not integration and not benchmark" --cov=candles_feed --cov-report=xml:coverage.xml
+          echo "🧪 Running unit tests..."
+          pixi run -e ${{ matrix.pixi-environment }} pytest tests \
+            -m "not integration and not benchmark" \
+            --cov=candles_feed \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --junitxml=test-results-unit.xml \
+            -v
 
-      - name: Run integration tests separately
+      - name: Run integration tests
         env:
-          # Service container connection details (available on Ubuntu runners only)
           REDIS_URL: redis://localhost:6379
           WEBSOCKET_ECHO_URL: ws://localhost:8080
           TEST_WITH_SERVICES: true
         run: |
-          # Run integration tests separately to prevent URL patching pollution
-          # Exclude benchmark tests from CI blocking - they're for performance monitoring only
+          echo "🔗 Running integration tests with service containers..."
+          pixi run -e ${{ matrix.pixi-environment }} pytest tests \
+            -m "integration and not benchmark" \
+            --cov=candles_feed \
+            --cov-append \
+            --junitxml=test-results-integration.xml \
+            -v
 
-          # Wait for service containers to be ready (Ubuntu only)
-          echo "Waiting for service containers to be ready..."
-          # Install redis-tools for health checks
-          sudo apt-get update && sudo apt-get install -y redis-tools
-          # Wait for Redis
-          timeout 30 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done' || echo "Redis not available, continuing without it"
-          # Give WebSocket echo server a moment to start (no health check)
-          sleep 5
-          echo "Service containers ready (or timeout reached)"
-
-          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "integration and not benchmark" --cov=candles_feed --cov-append
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-ubuntu-${{ matrix.python-version }}-${{ github.run_id }}
+          path: |
+            test-results-*.xml
+            coverage.xml
+          retention-days: 14
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -93,143 +200,271 @@ jobs:
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
+          verbose: true
+          flags: ubuntu,python-${{ matrix.python-version }}
 
-  # macOS tests without service containers
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Test Results - Ubuntu Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f test-results-unit.xml ] && [ -f test-results-integration.xml ]; then
+            echo "✅ Unit and integration tests completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some tests failed to complete" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  # macOS tests optimized for single Python version
   test-macos:
-    name: Test Python ${{ matrix.python-version }} on macOS (no services)
+    name: Test Python 3.12 on macOS
     runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - python-version: "3.12"
-            pixi-environment: "py312"
+    needs: changes
+    if: needs.changes.outputs.src-changed == 'true'
 
     defaults:
       run:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pixi environment caching
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pixi
+            .pixi
+          key: pixi-${{ runner.os }}-py312-${{ hashFiles('pixi.lock', 'pyproject.toml') }}
+          restore-keys: |
+            pixi-${{ runner.os }}-py312-
+            pixi-${{ runner.os }}-
 
       - name: Install Pixi
         uses: prefix-dev/setup-pixi@v0.8.8
         with:
-          environments: ${{ matrix.pixi-environment }}
+          environments: py312
+          cache: true
 
-      - name: Install project dependencies (using Pixi)
+      - name: Cache project installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            build/
+          key: project-${{ runner.os }}-3.12-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            project-${{ runner.os }}-3.12-
+
+      - name: Install project dependencies
         run: |
-          pixi install -e ${{ matrix.pixi-environment }}
-          echo "Python version check:"
-          pixi run -e ${{ matrix.pixi-environment }} python --version
-          pixi run -e ${{ matrix.pixi-environment }} pip install -e . --verbose
+          echo "🔧 Installing dependencies for macOS Python 3.12"
+          pixi install -e py312
+          echo "🐍 Python version check:"
+          pixi run -e py312 python --version
+          echo "📦 Installing project in editable mode..."
+          pixi run -e py312 pip install -e . --verbose
 
-      - name: Run unit tests with coverage
+      - name: Run unit tests
         run: |
-          # Run unit tests first to avoid URL patching pollution from integration tests
-          # Exclude benchmark tests from CI blocking - they're for performance monitoring only
-          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "not integration and not benchmark" --cov=candles_feed --cov-report=xml:coverage.xml
+          echo "🧪 Running unit tests on macOS..."
+          pixi run -e py312 pytest tests \
+            -m "not integration and not benchmark" \
+            --junitxml=test-results-unit-macos.xml \
+            -v
 
-      - name: Run integration tests separately
+      - name: Run integration tests (no service containers)
         env:
-          # No service containers available on macOS runners
           TEST_WITH_SERVICES: false
         run: |
-          # Run integration tests separately to prevent URL patching pollution
-          # Exclude benchmark tests from CI blocking - they're for performance monitoring only
-          # Note: Service containers not available on macOS - tests will use graceful fallback
-          
-          echo "Running integration tests on macOS (service containers not available)"
-          pixi run -e ${{ matrix.pixi-environment }} pytest tests -m "integration and not benchmark" --cov=candles_feed --cov-append
+          echo "🔗 Running integration tests on macOS (graceful fallback for missing service containers)..."
+          pixi run -e py312 pytest tests \
+            -m "integration and not benchmark" \
+            --junitxml=test-results-integration-macos.xml \
+            -v
 
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-macos-${{ github.run_id }}
+          path: |
+            test-results-*.xml
+          retention-days: 14
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Test Results - macOS Python 3.12" >> $GITHUB_STEP_SUMMARY
+          if [ -f test-results-unit-macos.xml ] && [ -f test-results-integration-macos.xml ]; then
+            echo "✅ Unit and integration tests completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some tests failed to complete" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  # Optimized lint job - single Python version since linting doesn't need multiple versions
   lint:
-    name: Lint and Type Check (Python ${{ matrix.python-version }})
+    name: Code Quality (Lint & Type Check)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-        include:
-          - python-version: "3.10"
-            pixi-environment: "py310"
-          - python-version: "3.11"
-            pixi-environment: "py311"
-          - python-version: "3.12"
-            pixi-environment: "py312"
+    needs: changes
+    if: needs.changes.outputs.src-changed == 'true'
+
     defaults:
       run:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pixi environment caching
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pixi
+            .pixi
+          key: pixi-${{ runner.os }}-py312-lint-${{ hashFiles('pixi.lock', 'pyproject.toml') }}
+          restore-keys: |
+            pixi-${{ runner.os }}-py312-lint-
+            pixi-${{ runner.os }}-py312-
 
       - name: Install Pixi
         uses: prefix-dev/setup-pixi@v0.8.8
         with:
-          environments: ${{ matrix.pixi-environment }}
+          environments: py312
+          cache: true
 
-      - name: Install project dependencies (using Pixi)
+      - name: Install project dependencies
         run: |
-          pixi install -e ${{ matrix.pixi-environment }}
-          echo "Python version check:"
-          pixi run -e ${{ matrix.pixi-environment }} python --version
-          pixi run -e ${{ matrix.pixi-environment }} pip install -e . --verbose
+          echo "🔧 Installing dependencies for linting..."
+          pixi install -e py312
+          pixi run -e py312 pip install -e . --verbose
 
-      - name: Format and lint with ruff
+      - name: Run format and lint checks
         run: |
-          pixi run -e ${{ matrix.pixi-environment }} ci-check
+          echo "🔍 Running format and lint checks..."
+          pixi run -e py312 ci-check
 
-      - name: Type check with mypy
+      - name: Run type checking
         run: |
-          pixi run -e ${{ matrix.pixi-environment }} ci-hints
+          echo "🔍 Running type checking..."
+          pixi run -e py312 ci-hints
 
+      - name: Lint summary
+        if: always()
+        run: |
+          echo "## Code Quality Results" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Format, lint, and type checks completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  # Performance benchmarks with enhanced reporting
   benchmark:
-    name: Performance Benchmarks (Non-blocking)
+    name: Performance Benchmarks
     runs-on: ubuntu-latest
-    needs: [test-ubuntu]
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    needs: [test-ubuntu, changes]
+    if: >
+      always() &&
+      needs.changes.outputs.src-changed == 'true' &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development')
     continue-on-error: true  # Don't block CI if benchmarks fail
+
     defaults:
       run:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pixi environment caching
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pixi
+            .pixi
+          key: pixi-${{ runner.os }}-default-benchmark-${{ hashFiles('pixi.lock', 'pyproject.toml') }}
+          restore-keys: |
+            pixi-${{ runner.os }}-default-benchmark-
+            pixi-${{ runner.os }}-default-
 
       - name: Install Pixi
         uses: prefix-dev/setup-pixi@v0.8.8
         with:
           environments: default
+          cache: true
 
-      - name: Install project dependencies (using Pixi)
+      - name: Install project dependencies
         run: |
+          echo "🔧 Installing dependencies for benchmarks..."
           pixi install -e default
           pixi run -e default pip install -e . --verbose
 
       - name: Create benchmark results directory
-        run: |
-          mkdir -p benchmark-results
+        run: mkdir -p benchmark-results
 
       - name: Run performance benchmarks
         run: |
-          # Run performance benchmark tests for monitoring (non-blocking)
-          # These tests measure performance characteristics but don't block CI
-          # Capture JSON output for performance trend analysis
-          pixi run -e default pytest tests -m "benchmark" -v --tb=short \
+          echo "⚡ Running performance benchmarks..."
+          pixi run -e default pytest tests -m "benchmark" \
+            -v --tb=short \
             --benchmark-json=benchmark-results/benchmark-results.json \
-            --benchmark-sort=mean
+            --benchmark-sort=mean \
+            --benchmark-warmup=on \
+            --benchmark-warmup-iterations=3
 
-      - name: Generate benchmark summary
+      - name: Generate detailed benchmark summary
         if: always()
         run: |
-          if [ -f benchmark-results/benchmark-results.json ]; then
-            echo "## Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
-            echo "Benchmark completed successfully. Results stored as artifacts." >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
 
-            # Extract key metrics for summary
-            python3 -c "import json; data=json.load(open('benchmark-results/benchmark-results.json')); benchmarks=data.get('benchmarks',[]); print(f'Total benchmarks: {len(benchmarks)}'); print(f'Fastest test: {min(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"name\"]} ({min(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"stats\"][\"mean\"]:.2f}μs)') if benchmarks else None; print(f'Slowest test: {max(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"name\"]} ({max(benchmarks,key=lambda x:x[\"stats\"][\"mean\"])[\"stats\"][\"mean\"]:.2f}μs)') if benchmarks else None" >> $GITHUB_STEP_SUMMARY
+          if [ -f benchmark-results/benchmark-results.json ]; then
+            echo "✅ Benchmarks completed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Generate detailed summary with Python
+            python3 << 'EOF' >> $GITHUB_STEP_SUMMARY
+          import json
+
+          try:
+              with open('benchmark-results/benchmark-results.json', 'r') as f:
+                  data = json.load(f)
+
+              benchmarks = data.get('benchmarks', [])
+              if benchmarks:
+                  print(f"**Total benchmarks**: {len(benchmarks)}")
+                  print("")
+
+                  # Find fastest and slowest
+                  fastest = min(benchmarks, key=lambda x: x["stats"]["mean"])
+                  slowest = max(benchmarks, key=lambda x: x["stats"]["mean"])
+
+                  print(f"**⚡ Fastest**: `{fastest['name']}` - {fastest['stats']['mean']:.2f}μs")
+                  print(f"**🐌 Slowest**: `{slowest['name']}` - {slowest['stats']['mean']:.2f}μs")
+                  print("")
+
+                  # Summary table
+                  print("| Benchmark | Mean (μs) | Std Dev | Iterations |")
+                  print("|-----------|-----------|---------|------------|")
+
+                  for bench in sorted(benchmarks, key=lambda x: x["stats"]["mean"])[:10]:  # Top 10
+                      name = bench['name'].replace('test_', '').replace('_', ' ').title()
+                      mean = bench['stats']['mean']
+                      stddev = bench['stats']['stddev']
+                      rounds = bench['stats']['rounds']
+                      print(f"| {name} | {mean:.2f} | {stddev:.2f} | {rounds} |")
+
+                  if len(benchmarks) > 10:
+                      print(f"| ... and {len(benchmarks) - 10} more | | | |")
+              else:
+                  print("❌ No benchmark results found")
+          except Exception as e:
+              print(f"❌ Error processing benchmark results: {e}")
+          EOF
           else
-            echo "Benchmark results file not found" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Benchmark results file not found" >> $GITHUB_STEP_SUMMARY
           fi
+          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Store benchmark results
         uses: actions/upload-artifact@v4
@@ -241,24 +476,78 @@ jobs:
             tests/performance/
           retention-days: 30
 
-  # Summary job that reports overall workflow status
-  ci-status:
-    name: Package CI
+  # Consolidated CI status and summary
+  ci-summary:
+    name: CI Summary & Status
     runs-on: ubuntu-latest
-    needs: [test-ubuntu, test-macos, lint, benchmark]
+    needs: [changes, test-ubuntu, test-macos, lint, benchmark]
     if: always()
+
     steps:
-      - name: Report CI Status
+      - name: Generate comprehensive CI summary
         run: |
-          # Check if all required jobs passed
-          if [[ "${{ needs.test-ubuntu.result }}" == "success" && "${{ needs.test-macos.result }}" == "success" && "${{ needs.lint.result }}" == "success" ]]; then
-            echo "✅ All Package CI jobs passed"
+          echo "# 🚀 Enhanced Package CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall status
+          echo "## Overall Status" >> $GITHUB_STEP_SUMMARY
+
+          # Check if critical jobs passed
+          UBUNTU_SUCCESS="${{ needs.test-ubuntu.result }}"
+          MACOS_SUCCESS="${{ needs.test-macos.result }}"
+          LINT_SUCCESS="${{ needs.lint.result }}"
+          BENCHMARK_SUCCESS="${{ needs.benchmark.result }}"
+          CHANGES_RESULT="${{ needs.changes.result }}"
+
+          echo "| Component | Status | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Change Detection | $([[ \"$CHANGES_RESULT\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $CHANGES_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ubuntu Tests | $([[ \"$UBUNTU_SUCCESS\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $UBUNTU_SUCCESS |" >> $GITHUB_STEP_SUMMARY
+          echo "| macOS Tests | $([[ \"$MACOS_SUCCESS\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $MACOS_SUCCESS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | $([[ \"$LINT_SUCCESS\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $LINT_SUCCESS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Benchmarks | $([[ \"$BENCHMARK_SUCCESS\" == \"success\" ]] && echo \"✅\" || echo \"⚠️\") | $BENCHMARK_SUCCESS (non-blocking) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Key metrics
+          echo "## Key Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docs Only**: ${{ needs.changes.outputs.docs-only }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source Changed**: ${{ needs.changes.outputs.src-changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests Changed**: ${{ needs.changes.outputs.tests-changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Optimization info
+          echo "## Optimizations Applied" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ Dependency caching for faster builds" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Smart change detection to skip unnecessary jobs" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎯 Optimized lint job (single Python version)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 Enhanced reporting and artifact management" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 Concurrency control to cancel outdated runs" >> $GITHUB_STEP_SUMMARY
+
+      - name: Determine final CI status
+        run: |
+          # Only fail CI if critical jobs failed
+          UBUNTU_SUCCESS="${{ needs.test-ubuntu.result }}"
+          MACOS_SUCCESS="${{ needs.test-macos.result }}"
+          LINT_SUCCESS="${{ needs.lint.result }}"
+          DOCS_ONLY="${{ needs.changes.outputs.docs-only }}"
+
+          # If docs-only changes, always pass
+          if [[ "$DOCS_ONLY" == "true" ]]; then
+            echo "✅ Documentation-only changes - CI passes"
+            exit 0
+          fi
+
+          # Check critical jobs
+          if [[ "$UBUNTU_SUCCESS" == "success" && "$MACOS_SUCCESS" == "success" && "$LINT_SUCCESS" == "success" ]]; then
+            echo "✅ All critical Package CI jobs passed"
             exit 0
           else
-            echo "❌ Some Package CI jobs failed"
-            echo "Ubuntu test result: ${{ needs.test-ubuntu.result }}"
-            echo "macOS test result: ${{ needs.test-macos.result }}"
-            echo "Lint result: ${{ needs.lint.result }}"
-            echo "Benchmark result: ${{ needs.benchmark.result }}"
+            echo "❌ Some critical Package CI jobs failed"
+            echo "Ubuntu tests: $UBUNTU_SUCCESS"
+            echo "macOS tests: $MACOS_SUCCESS"
+            echo "Code quality: $LINT_SUCCESS"
             exit 1
           fi
