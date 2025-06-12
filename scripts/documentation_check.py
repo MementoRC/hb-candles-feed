@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding=utf-8
 """
 Documentation Quality Checker for Candles Feed Project.
 
@@ -560,14 +561,14 @@ class DocumentationChecker:
         error_docstrings = [issue for issue in docstring_issues if issue.severity == "error"]
         if error_docstrings:
             recommendations.append(
-                f"=Ý Add docstrings to {len(error_docstrings)} public functions/classes "
+                f"Add docstrings to {len(error_docstrings)} public functions/classes "
                 f"to improve API documentation"
             )
         
         warning_docstrings = [issue for issue in docstring_issues if issue.severity == "warning"]
         if warning_docstrings:
             recommendations.append(
-                f"  Improve {len(warning_docstrings)} existing docstrings "
+                f"Improve {len(warning_docstrings)} existing docstrings "
                 f"(too short, missing parameters, etc.)"
             )
         
@@ -575,25 +576,25 @@ class DocumentationChecker:
         broken_links = [issue for issue in link_issues if issue.issue_type == "broken"]
         if broken_links:
             recommendations.append(
-                f"= Fix {len(broken_links)} broken links in documentation"
+                f"Fix {len(broken_links)} broken links in documentation"
             )
         
         # Code example recommendations
         syntax_errors = [issue for issue in code_example_issues if issue.issue_type == "syntax_error"]
         if syntax_errors:
             recommendations.append(
-                f"=» Fix {len(syntax_errors)} code examples with syntax errors"
+                f"Fix {len(syntax_errors)} code examples with syntax errors"
             )
         
         # Priority recommendations
         if not quality_gates.get("critical_modules_documented", True):
             recommendations.insert(0, 
-                "=¨ PRIORITY: Add documentation to critical modules (core, feeds, websocket)"
+                "PRIORITY: Add documentation to critical modules (core, feeds, websocket)"
             )
         
         # Positive reinforcement
         if all(quality_gates.values()) and not recommendations:
-            recommendations.append("<‰ Documentation quality is excellent! Consider adding more examples and tutorials.")
+            recommendations.append("Documentation quality is excellent! Consider adding more examples and tutorials.")
         
         return recommendations
     
@@ -666,15 +667,15 @@ class DocumentationChecker:
         """Format report for console output."""
         lines = []
         lines.append("=" * 80)
-        lines.append(f"=Ú DOCUMENTATION QUALITY REPORT - {report.mode.upper()} MODE")
+        lines.append(f"=Ãš DOCUMENTATION QUALITY REPORT - {report.mode.upper()} MODE")
         lines.append("=" * 80)
-        lines.append(f"=Å Timestamp: {report.timestamp}")
-        lines.append(f"=Ê Overall Score: {report.overall_score:.1f}/100")
+        lines.append(f"=Ã… Timestamp: {report.timestamp}")
+        lines.append(f"=ÃŠ Overall Score: {report.overall_score:.1f}/100")
         lines.append("")
         
         # Summary statistics
         summary = report.summary
-        lines.append("=È SUMMARY STATISTICS")
+        lines.append("=Ãˆ SUMMARY STATISTICS")
         lines.append("-" * 40)
         lines.append(f"Files Analyzed: {summary['files_analyzed']}")
         lines.append(f"Python Files: {summary['python_files']}")
@@ -683,7 +684,8 @@ class DocumentationChecker:
         lines.append("")
         
         # Issue breakdown
-        lines.append("= ISSUE BREAKDOWN")
+        lines.append("=
+ ISSUE BREAKDOWN")
         lines.append("-" * 40)
         lines.append(f"Docstring Issues: {summary['docstring_issues']}")
         lines.append(f"Link Issues: {summary['link_issues']}")
@@ -691,7 +693,7 @@ class DocumentationChecker:
         lines.append("")
         
         # Quality gates
-        lines.append("=¦ QUALITY GATES")
+        lines.append("=Â¦ QUALITY GATES")
         lines.append("-" * 40)
         for gate_name, passed in report.quality_gates.items():
             status = "" if passed else "L"
@@ -704,7 +706,7 @@ class DocumentationChecker:
         
         # Top issues (in development mode)
         if self.mode == "development" and report.docstring_issues:
-            lines.append("=Ý TOP DOCSTRING ISSUES")
+            lines.append("=Ã TOP DOCSTRING ISSUES")
             lines.append("-" * 40)
             error_issues = [issue for issue in report.docstring_issues if issue.severity == "error"]
             for issue in error_issues[:5]:  # Show top 5
@@ -715,7 +717,7 @@ class DocumentationChecker:
         
         # Recommendations
         if report.recommendations:
-            lines.append("=¡ RECOMMENDATIONS")
+            lines.append("=Â¡ RECOMMENDATIONS")
             lines.append("-" * 40)
             for recommendation in report.recommendations:
                 lines.append(f"" {recommendation}")
@@ -782,7 +784,7 @@ def main():
                 output_file = Path("documentation_check_report.json")
                 with open(output_file, "w") as f:
                     f.write(json_output)
-                print(f"\n=Ä JSON report saved to: {output_file}")
+                print(f"\n=Ã„ JSON report saved to: {output_file}")
         
         # Exit with appropriate code based on quality gates
         all_gates_passed = all(report.quality_gates.values())
