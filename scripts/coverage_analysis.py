@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding=utf-8
 """
 Coverage Analysis with Trend Tracking for Candles Feed Project.
 
@@ -347,7 +348,7 @@ class CoverageAnalyzer:
             current_coverage = metrics.line_rate * 100
             gap = self.thresholds["minimum_line_coverage"] - current_coverage
             recommendations.append(
-                f"=È Increase overall line coverage by {gap:.1f}% to meet minimum threshold "
+                f"Increase overall line coverage by {gap:.1f}% to meet minimum threshold "
                 f"(current: {current_coverage:.1f}%, target: {self.thresholds['minimum_line_coverage']:.1f}%)"
             )
         
@@ -368,7 +369,7 @@ class CoverageAnalyzer:
         if low_coverage_modules:
             low_coverage_modules.sort(key=lambda m: m.metrics.line_rate)
             recommendations.append(
-                f"<¯ Focus on improving coverage in {len(low_coverage_modules)} modules with coverage below 70%"
+                f"<Â¯ Focus on improving coverage in {len(low_coverage_modules)} modules with coverage below 70%"
             )
             
             for module in low_coverage_modules[:3]:  # Top 3 worst modules
@@ -382,12 +383,12 @@ class CoverageAnalyzer:
         critical_missing_total = sum(len(module.critical_missing) for module in modules)
         if critical_missing_total > 0:
             recommendations.append(
-                f"=¨ Address {critical_missing_total} missing lines in critical functions"
+                f"=Â¨ Address {critical_missing_total} missing lines in critical functions"
             )
         
         # Positive reinforcement
         if all(gates.values()):
-            recommendations.append("<‰ All quality gates passed! Consider raising coverage targets for continuous improvement.")
+            recommendations.append("<Â‰ All quality gates passed! Consider raising coverage targets for continuous improvement.")
         
         return recommendations
     
@@ -456,14 +457,14 @@ class CoverageAnalyzer:
         """Format report for console output."""
         lines = []
         lines.append("=" * 80)
-        lines.append(f"=Ê COVERAGE ANALYSIS REPORT - {report.mode.upper()} MODE")
+        lines.append(f"=ÃŠ COVERAGE ANALYSIS REPORT - {report.mode.upper()} MODE")
         lines.append("=" * 80)
-        lines.append(f"=Å Timestamp: {report.timestamp}")
+        lines.append(f"=Ã… Timestamp: {report.timestamp}")
         lines.append("")
         
         # Overall metrics
         metrics = report.overall_metrics
-        lines.append("=È OVERALL COVERAGE METRICS")
+        lines.append("=Ãˆ OVERALL COVERAGE METRICS")
         lines.append("-" * 40)
         lines.append(f"Line Coverage:   {metrics.line_rate * 100:6.2f}% ({metrics.lines_covered:,}/{metrics.lines_valid:,} lines)")
         lines.append(f"Branch Coverage: {metrics.branch_rate * 100:6.2f}% ({metrics.branches_covered:,}/{metrics.branches_valid:,} branches)")
@@ -471,11 +472,11 @@ class CoverageAnalyzer:
         
         # Trends
         if report.trends:
-            lines.append("=Ê COVERAGE TRENDS")
+            lines.append("=ÃŠ COVERAGE TRENDS")
             lines.append("-" * 40)
             for trend in report.trends:
                 if trend.change is not None:
-                    direction_icon = {"improving": "=È", "declining": "=É", "stable": "¡"}.get(trend.trend_direction, "S")
+                    direction_icon = {"improving": "=Ãˆ", "declining": "=Ã‰", "stable": "Â¡"}.get(trend.trend_direction, "S")
                     lines.append(f"{direction_icon} {trend.metric_name}: {trend.current_value:.2f}% "
                                f"({trend.change:+.2f}% from baseline)")
                 else:
@@ -483,7 +484,7 @@ class CoverageAnalyzer:
             lines.append("")
         
         # Quality gates
-        lines.append("=¦ QUALITY GATES")
+        lines.append("=Â¦ QUALITY GATES")
         lines.append("-" * 40)
         for gate_name, passed in report.quality_gates.items():
             status = "" if passed else "L"
@@ -496,7 +497,7 @@ class CoverageAnalyzer:
         
         # Recommendations
         if report.recommendations:
-            lines.append("=¡ RECOMMENDATIONS")
+            lines.append("=Â¡ RECOMMENDATIONS")
             lines.append("-" * 40)
             for recommendation in report.recommendations:
                 lines.append(f"" {recommendation}")
@@ -504,7 +505,7 @@ class CoverageAnalyzer:
         
         # Summary
         summary = report.summary
-        lines.append("=Ë SUMMARY STATISTICS")
+        lines.append("=Ã‹ SUMMARY STATISTICS")
         lines.append("-" * 40)
         lines.append(f"Total Modules: {summary['total_modules']}")
         lines.append(f"Modules Above 70% Coverage: {summary['modules_above_threshold']}")
@@ -574,7 +575,7 @@ def main():
                 output_file = Path("coverage_analysis_report.json")
                 with open(output_file, "w") as f:
                     f.write(json_output)
-                print(f"\n=Ä JSON report saved to: {output_file}")
+                print(f"\n=Ã„ JSON report saved to: {output_file}")
         
         # Exit with appropriate code based on quality gates
         all_gates_passed = all(report.quality_gates.values())
