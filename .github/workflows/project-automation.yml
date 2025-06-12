@@ -1,0 +1,317 @@
+name: Project Automation
+
+on:
+  issues:
+    types: [opened, closed, reopened, labeled, unlabeled]
+  pull_request:
+    types: [opened, closed, reopened, converted_to_draft, ready_for_review, labeled, unlabeled]
+  workflow_dispatch:
+    inputs:
+      sync_mode:
+        description: 'Sync mode for manual runs'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - issues
+          - pull_requests
+
+env:
+  # Project automation settings
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # Auto-label issues and PRs based on content
+  auto-label:
+    name: Auto-label Issues and PRs
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    
+    steps:
+      - name: Label Bug Reports
+        if: github.event.issue && contains(github.event.issue.title, '[Bug]')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['bug', 'needs-triage']
+            });
+
+      - name: Label Feature Requests
+        if: github.event.issue && contains(github.event.issue.title, '[Feature]')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['enhancement', 'needs-triage']
+            });
+
+      - name: Label Documentation Issues
+        if: github.event.issue && contains(github.event.issue.title, '[Docs]')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['documentation', 'needs-triage']
+            });
+
+      - name: Auto-assign to Maintainer
+        if: github.event.issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: ['MementoRC']
+            });
+
+  # Track issue and PR metrics
+  metrics-tracking:
+    name: Track Metrics
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'closed'
+    
+    steps:
+      - name: Track Issue Metrics
+        if: github.event.issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue = context.payload.issue;
+            
+            // Log metrics for tracking (could integrate with external systems)
+            console.log(`Issue ${issue.number}: ${github.event.action}`);
+            console.log(`Labels: ${issue.labels.map(l => l.name).join(', ')}`);
+            console.log(`Author: ${issue.user.login}`);
+            
+            // Add metrics tracking comment for internal tracking
+            if (github.event.action === 'opened') {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: `<!-- METRICS: opened=${new Date().toISOString()}, author=${issue.user.login}, labels=${issue.labels.map(l => l.name).join(',')} -->`
+              });
+            }
+
+      - name: Track PR Metrics
+        if: github.event.pull_request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            
+            console.log(`PR ${pr.number}: ${github.event.action}`);
+            console.log(`Author: ${pr.user.login}`);
+            console.log(`Draft: ${pr.draft}`);
+
+  # Milestone automation
+  milestone-automation:
+    name: Milestone Management
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'labeled'
+    
+    steps:
+      - name: Assign to Current Milestone
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            
+            // Get current active milestone
+            const milestones = await github.rest.issues.listMilestones({
+              owner,
+              repo,
+              state: 'open',
+              sort: 'due_on',
+              direction: 'asc'
+            });
+            
+            if (milestones.data.length > 0) {
+              const currentMilestone = milestones.data[0];
+              
+              // Assign high-priority issues to current milestone
+              if (github.event.issue) {
+                const labels = github.event.issue.labels.map(l => l.name);
+                if (labels.includes('high-priority') || labels.includes('bug')) {
+                  await github.rest.issues.update({
+                    owner,
+                    repo,
+                    issue_number: github.event.issue.number,
+                    milestone: currentMilestone.number
+                  });
+                }
+              }
+            }
+
+  # Stale issue management
+  stale-management:
+    name: Manage Stale Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    
+    steps:
+      - name: Mark Stale Issues
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had recent activity. 
+            It will be closed if no further activity occurs within 7 days.
+            
+            To keep this issue active:
+            - Add a comment with updates or additional information
+            - Add the `keep-open` label to prevent automatic closure
+            - Reference this issue in a pull request
+            
+            Thank you for your contribution to hb-candles-feed!
+          stale-pr-message: |
+            This pull request has been automatically marked as stale because it has not had recent activity.
+            It will be closed if no further activity occurs within 7 days.
+            
+            To keep this PR active:
+            - Push new commits or respond to review feedback
+            - Add the `keep-open` label to prevent automatic closure
+            - Request review from maintainers
+            
+            Thank you for your contribution to hb-candles-feed!
+          close-issue-message: |
+            This issue has been automatically closed due to inactivity.
+            If you believe this issue is still relevant, please reopen it with updated information.
+          close-pr-message: |
+            This pull request has been automatically closed due to inactivity.
+            If you would like to continue working on this change, please reopen the PR and address any feedback.
+          days-before-stale: 30
+          days-before-close: 7
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-issue-labels: 'keep-open,enhancement,documentation'
+          exempt-pr-labels: 'keep-open,in-progress'
+
+  # Project board automation (requires project setup)
+  project-board-sync:
+    name: Sync with Project Board
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || github.event.action == 'closed' || github.event.action == 'ready_for_review'
+    
+    steps:
+      - name: Add Issues to Project
+        if: github.event.issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // This would integrate with GitHub Projects v2
+            // Requires project ID and authentication setup
+            console.log('Issue project automation - requires project setup');
+            
+            const issue = context.payload.issue;
+            const labels = issue.labels.map(l => l.name);
+            
+            // Log for now - can be extended to actually add to projects
+            console.log(`Would add issue ${issue.number} with labels [${labels.join(', ')}] to project board`);
+
+      - name: Update PR Status
+        if: github.event.pull_request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Auto-request review from maintainers for ready PRs
+            if (github.event.action === 'ready_for_review' && !pr.draft) {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                reviewers: ['MementoRC']
+              });
+            }
+
+  # TaskMaster integration hook
+  taskmaster-integration:
+    name: TaskMaster Integration
+    runs-on: ubuntu-latest
+    if: github.event.pull_request && (github.event.action == 'opened' || github.event.action == 'closed')
+    
+    steps:
+      - name: Parse TaskMaster Information
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            
+            // Extract TaskMaster task ID from PR body
+            const taskMatch = body.match(/Task ID.*?(\d+(?:\.\d+)?)/i);
+            const statusMatch = body.match(/Task Status.*?([^<\n]+)/i);
+            
+            if (taskMatch) {
+              const taskId = taskMatch[1];
+              const status = statusMatch ? statusMatch[1].trim() : 'Unknown';
+              
+              console.log(`TaskMaster Integration: Task ${taskId}, Status: ${status}`);
+              
+              // Add labels based on TaskMaster info
+              const labels = ['taskmaster'];
+              if (status.toLowerCase().includes('complete')) {
+                labels.push('task-complete');
+              }
+              
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: labels
+              });
+              
+              // Add comment with TaskMaster tracking
+              if (github.event.action === 'opened') {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `> **TaskMaster Integration**\n\n- **Task ID**: ${taskId}\n- **Status**: ${status}\n- **Tracking**: This PR is linked to TaskMaster task ${taskId}`
+                });
+              }
+            }
+
+  # Release automation trigger
+  release-prep:
+    name: Release Preparation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request && github.event.action == 'closed' && github.event.pull_request.merged
+    
+    steps:
+      - name: Check for Release Labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = pr.labels.map(l => l.name);
+            
+            if (labels.includes('release') || labels.includes('major-feature')) {
+              console.log('PR merged with release implications - consider triggering release workflow');
+              
+              // Could trigger release workflow or create release issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Release Preparation: Consider release after PR #${pr.number}`,
+                body: `PR #${pr.number} was merged with release-related changes.\n\nPlease review if a new release should be created.\n\n**PR Title**: ${pr.title}\n**Labels**: ${labels.join(', ')}`,
+                labels: ['release-prep', 'needs-review']
+              });
+            }

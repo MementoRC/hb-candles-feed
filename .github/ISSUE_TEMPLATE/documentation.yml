@@ -1,0 +1,208 @@
+name: Documentation Request
+description: Request documentation improvements or report documentation issues
+title: "[Docs]: "
+labels: ["documentation", "triage"]
+assignees: ["MementoRC"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve our documentation! Please provide details about what needs to be documented or improved.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission Checks
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched for existing documentation issues
+          required: true
+        - label: I have checked the current documentation
+          required: true
+        - label: This request will help users or developers
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Documentation Category
+      description: What type of documentation is this?
+      options:
+        - API Reference
+        - Getting Started Guide
+        - Tutorial/How-to
+        - Troubleshooting
+        - Architecture/Design
+        - Configuration Guide
+        - Integration Guide
+        - Contributing Guidelines
+        - Release Notes
+        - Code Examples
+        - Performance Guide
+        - Security Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Request Type
+      description: What kind of documentation request is this?
+      options:
+        - Missing Documentation
+        - Incorrect/Outdated Information
+        - Unclear/Confusing Content
+        - New Feature Documentation
+        - Documentation Enhancement
+        - Code Example Needed
+        - Link/Reference Issue
+        - Formatting/Structure Issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Documentation Request
+      description: Describe what documentation is needed or what issue exists
+      placeholder: |
+        Clearly describe the documentation need:
+        - What specific topic needs documentation?
+        - What information is missing or incorrect?
+        - What would help users understand better?
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Current Documentation Location
+      description: Where is the current documentation (if it exists)?
+      placeholder: |
+        Provide links or paths to existing documentation:
+        - README sections
+        - Wiki pages
+        - Code comments
+        - External documentation
+        - N/A if documentation doesn't exist
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Target Audience
+      description: Who is the primary audience for this documentation?
+      options:
+        - End Users
+        - Python Developers
+        - Hummingbot Users
+        - Exchange Integration Developers
+        - Project Contributors
+        - System Administrators
+        - All Users
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: User Impact
+      description: How does the lack of this documentation affect users?
+      placeholder: |
+        Describe the impact:
+        - What difficulties do users face?
+        - How does this affect adoption?
+        - What errors or confusion result?
+        - How often is this information needed?
+
+  - type: textarea
+    id: content
+    attributes:
+      label: Suggested Content
+      description: What should the documentation include?
+      placeholder: |
+        Outline what the documentation should cover:
+        - Key concepts to explain
+        - Step-by-step procedures
+        - Code examples needed
+        - Common pitfalls to address
+        - Related topics to link
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Code Examples Needed
+      description: What code examples would be helpful?
+      placeholder: |
+        ```python
+        # Example of what should be documented
+        from candles_feed import CandlesFeed
+        
+        # Show the specific use case that needs documentation
+        ```
+      render: python
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How urgent is this documentation need?
+      options:
+        - Low - Minor improvement
+        - Medium - Would help users
+        - High - Important for usability
+        - Critical - Blocking user adoption
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues/PRs
+      description: Are there related issues, PRs, or features?
+      placeholder: |
+        Link any related items:
+        - Issue numbers (#123)
+        - PR numbers (#456)
+        - Feature requests
+        - Bug reports that would be prevented by better docs
+
+  - type: checkboxes
+    id: format
+    attributes:
+      label: Documentation Format
+      description: What format would be most helpful? (check all that apply)
+      options:
+        - label: Written guide/tutorial
+        - label: Code examples with comments
+        - label: Interactive examples
+        - label: Video tutorial
+        - label: Diagram/flowchart
+        - label: FAQ section
+        - label: API reference
+        - label: Configuration templates
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: |
+        Provide additional context:
+        - Links to external resources
+        - Similar documentation examples
+        - Specific technical requirements
+        - Timeline considerations
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution Interest
+      description: Are you interested in helping with this documentation?
+      options:
+        - label: I can help write this documentation
+        - label: I can provide technical review
+        - label: I can help test the documentation
+        - label: I can provide code examples
