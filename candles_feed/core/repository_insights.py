@@ -401,9 +401,8 @@ class RepositoryInsightsCollector:
 
         # Fallback to summary if specific check details are not parsed as above
         # This part needs to align with the actual structure of QualityGateReport
-        summary = report_data.get("summary", {})
         # Example: if coverage is directly in summary (it might not be)
-        # coverage_percentage = summary.get("coverage_percentage")
+        # coverage_percentage = report_data.get("summary", {}).get("coverage_percentage")
 
         ci_cd_snapshot = CICDPerformanceSnapshot(
             last_run_timestamp=report_data.get("timestamp"),
