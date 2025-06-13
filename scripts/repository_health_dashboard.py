@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Repository Health Dashboard Generator.
 
@@ -14,22 +13,20 @@ import json
 import logging
 import os
 import sys
-from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
 # Adjust sys.path to import from candles_feed.core
 # This assumes the script is run from the project root or that candles_feed is in PYTHONPATH
 try:
-
+    import candles_feed  # noqa: F401
 except ImportError:
     current_file_dir = Path(__file__).resolve().parent
-    project_root_dir = current_file_dir.parent # Assumes scripts/ is one level down from root
+    project_root_dir = current_file_dir.parent  # Assumes scripts/ is one level down from root
     sys.path.insert(0, str(project_root_dir))
 
-from candles_feed.core.repository_insights import RepositoryInsightsCollector
 from candles_feed.core.github_metrics import RepositoryMetricsReport
-
+from candles_feed.core.repository_insights import RepositoryInsightsCollector
 
 # Setup basic logging for the script
 logger = logging.getLogger("RepositoryHealthDashboard")
@@ -39,11 +36,11 @@ def load_json_report_data(file_path: Optional[Path]) -> Optional[dict]:
     """Loads a JSON report from the given file path."""
     if file_path and file_path.exists() and file_path.is_file():
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 return json.load(f)
         except json.JSONDecodeError:
             logger.warning(f"Could not decode JSON from {file_path}. Skipping.")
-        except IOError:
+        except OSError:
             logger.warning(f"Could not read file {file_path}. Skipping.")
     elif file_path:
         logger.warning(f"Report file {file_path} not found or is not a file. Skipping.")
@@ -87,7 +84,7 @@ async def run_dashboard_collection():
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Enable verbose logging (DEBUG level for this script and core modules)."
+        help="Enable verbose logging (DEBUG level for this script and core modules).",
     )
 
     args = parser.parse_args()
@@ -100,10 +97,11 @@ async def run_dashboard_collection():
         stream=sys.stdout,
     )
     logger.setLevel(log_level)
-    logging.getLogger("candles_feed.core.repository_insights").setLevel(log_level) # Also set for collector
+    logging.getLogger("candles_feed.core.repository_insights").setLevel(
+        log_level
+    )  # Also set for collector
     # Keep httpx logs less verbose unless specifically debugging it
     logging.getLogger("httpx").setLevel(logging.WARNING if not args.verbose else logging.DEBUG)
-
 
     repo_owner_val = args.repo_owner
     repo_name_val = args.repo_name
@@ -111,19 +109,25 @@ async def run_dashboard_collection():
     github_repository_env = os.getenv("GITHUB_REPOSITORY")
     if not repo_owner_val and github_repository_env:
         try:
-            repo_owner_val, repo_name_from_env = github_repository_env.split('/', 1)
-            if not repo_name_val: 
+            repo_owner_val, repo_name_from_env = github_repository_env.split("/", 1)
+            if not repo_name_val:
                 repo_name_val = repo_name_from_env
         except ValueError:
-            logger.error(f"Invalid GITHUB_REPOSITORY format: {github_repository_env}. Expected 'owner/name'.")
+            logger.error(
+                f"Invalid GITHUB_REPOSITORY format: {github_repository_env}. Expected 'owner/name'."
+            )
             sys.exit(1)
-    
+
     if not repo_owner_val or not repo_name_val:
-        logger.error("Repository owner and name must be provided via arguments or GITHUB_REPOSITORY environment variable.")
+        logger.error(
+            "Repository owner and name must be provided via arguments or GITHUB_REPOSITORY environment variable."
+        )
         sys.exit(1)
 
     if not args.github_token:
-        logger.warning("GITHUB_TOKEN not provided. API requests will be unauthenticated and severely rate-limited.")
+        logger.warning(
+            "GITHUB_TOKEN not provided. API requests will be unauthenticated and severely rate-limited."
+        )
 
     logger.info(f"Starting repository health data collection for {repo_owner_val}/{repo_name_val}")
 
@@ -138,9 +142,11 @@ async def run_dashboard_collection():
         logger.info(f"Attempting to load quality gates report from: {args.quality_gates_report}")
         quality_gates_data_content = load_json_report_data(args.quality_gates_report)
         if quality_gates_data_content:
-             logger.info("Successfully loaded quality gates report.")
+            logger.info("Successfully loaded quality gates report.")
         else:
-            logger.warning(f"Failed to load or parse quality gates report from {args.quality_gates_report}. CI/CD and quality snapshots might be incomplete.")
+            logger.warning(
+                f"Failed to load or parse quality gates report from {args.quality_gates_report}. CI/CD and quality snapshots might be incomplete."
+            )
 
     try:
         report: RepositoryMetricsReport = await collector.collect_all_metrics(
@@ -154,10 +160,10 @@ async def run_dashboard_collection():
 
     try:
         args.output_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.output_file, "w", encoding='utf-8') as f:
+        with open(args.output_file, "w", encoding="utf-8") as f:
             json.dump(report_dict, f, indent=2, default=str)
         logger.info(f"Repository health report saved to: {args.output_file}")
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Failed to write report to {args.output_file}: {e}")
         sys.exit(1)
 
@@ -168,14 +174,17 @@ async def run_dashboard_collection():
         f"Generated at: {report.timestamp}",
         f"Collection duration: {report.collection_duration_seconds:.2f}s",
         f"Open Issues: {report.issues.total_open_issues}",
-        f"Open PRs: {report.pull_requests.total_open_prs}", # This will be 0 if PR metrics are stubbed
+        f"Open PRs: {report.pull_requests.total_open_prs}",  # This will be 0 if PR metrics are stubbed
         f"Commits (last 7 days): {report.commits.commits_last_7_days}",
     ]
     if report.ci_cd_performance:
-        summary_lines.append(f"Last CI/CD Run Timestamp: {report.ci_cd_performance.last_run_timestamp}")
+        summary_lines.append(
+            f"Last CI/CD Run Timestamp: {report.ci_cd_performance.last_run_timestamp}"
+        )
         summary_lines.append(f"Last CI/CD Run Passed: {report.ci_cd_performance.last_run_passed}")
     summary_lines.append("--- End Summary ---")
     print("\n".join(summary_lines))
+
 
 if __name__ == "__main__":
     asyncio.run(run_dashboard_collection())

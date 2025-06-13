@@ -2,19 +2,17 @@
 Unit tests for GitHub metrics data classes.
 """
 
-
-from datetime import datetime, timedelta, timezone
-
+from datetime import datetime, timezone
 
 from candles_feed.core.github_metrics import (
-    IssueMetrics,
-    PullRequestMetrics,
-    CommitActivity,
-    ReleaseMetrics,
-    ContributorStats,
-    CommunityEngagement,
     CICDPerformanceSnapshot,
     CodeQualitySnapshot,
+    CommitActivity,
+    CommunityEngagement,
+    ContributorStats,
+    IssueMetrics,
+    PullRequestMetrics,
+    ReleaseMetrics,
     RepositoryMetricsReport,
 )
 

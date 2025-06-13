@@ -1,20 +1,21 @@
 import asyncio
-import aiohttp  # Using aiohttp for async requests
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+import aiohttp  # Using aiohttp for async requests
 
 from .github_metrics import (
-    IssueMetrics,
-    PullRequestMetrics,
-    CommitActivity,
-    ReleaseMetrics,
-    ContributorStats,
-    CommunityEngagement,
-    RepositoryMetricsReport,
     CICDPerformanceSnapshot,
     CodeQualitySnapshot,
+    CommitActivity,
+    CommunityEngagement,
+    ContributorStats,
+    IssueMetrics,
+    PullRequestMetrics,
+    ReleaseMetrics,
+    RepositoryMetricsReport,
 )
 
 # Configure logging
@@ -401,6 +402,7 @@ class RepositoryInsightsCollector:
 
         # Fallback to summary if specific check details are not parsed as above
         # This part needs to align with the actual structure of QualityGateReport
+        # summary = report_data.get("summary", {})
         # Example: if coverage is directly in summary (it might not be)
         # coverage_percentage = report_data.get("summary", {}).get("coverage_percentage")
 

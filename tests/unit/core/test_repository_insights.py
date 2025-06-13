@@ -2,25 +2,25 @@
 Unit tests for the RepositoryInsightsCollector.
 """
 
-import pytest
-import aiohttp  # Changed from httpx
-import asyncio
-from unittest.mock import AsyncMock, patch
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, patch
+
+import aiohttp  # Changed from httpx
+import pytest
 from aioresponses import aioresponses
 
-from candles_feed.core.repository_insights import RepositoryInsightsCollector
 from candles_feed.core.github_metrics import (
-    IssueMetrics,
-    PullRequestMetrics,
-    CommitActivity,
-    ReleaseMetrics,
-    ContributorStats,
-    CommunityEngagement,
-    RepositoryMetricsReport,
     CICDPerformanceSnapshot,
     CodeQualitySnapshot,
+    CommitActivity,
+    CommunityEngagement,
+    ContributorStats,
+    IssueMetrics,
+    PullRequestMetrics,
+    ReleaseMetrics,
+    RepositoryMetricsReport,
 )
+from candles_feed.core.repository_insights import RepositoryInsightsCollector
 
 REPO_OWNER = "test_owner"
 REPO_NAME = "test_repo"
@@ -405,11 +405,11 @@ class TestRepositoryInsightsCollector:
     async def test_collect_all_metrics_partial_failure(self, collector, caplog):
         with patch.object(
             collector, "get_issue_metrics", AsyncMock(side_effect=Exception("Issue fetch failed"))
-        ) as m_issues, patch.object(
+        ), patch.object(
             collector,
             "get_pull_request_metrics",
             AsyncMock(return_value=PullRequestMetrics(total_open_prs=2)),
-        ) as m_prs:
+        ):
             report = await collector.collect_all_metrics()
 
             assert isinstance(report.issues, IssueMetrics)  # Should be default
