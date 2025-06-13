@@ -27,7 +27,7 @@ jobs:
     name: Auto-label Issues and PRs
     runs-on: ubuntu-latest
     if: github.event.action == 'opened'
-    
+
     steps:
       - name: Label Bug Reports
         if: github.event.issue && contains(github.event.issue.title, '[Bug]')
@@ -82,7 +82,7 @@ jobs:
     name: Track Metrics
     runs-on: ubuntu-latest
     if: github.event.action == 'opened' || github.event.action == 'closed'
-    
+
     steps:
       - name: Track Issue Metrics
         if: github.event.issue
@@ -91,12 +91,12 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const issue = context.payload.issue;
-            
+
             // Log metrics for tracking (could integrate with external systems)
             console.log(`Issue ${issue.number}: ${github.event.action}`);
             console.log(`Labels: ${issue.labels.map(l => l.name).join(', ')}`);
             console.log(`Author: ${issue.user.login}`);
-            
+
             // Add metrics tracking comment for internal tracking
             if (github.event.action === 'opened') {
               await github.rest.issues.createComment({
@@ -114,7 +114,7 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const pr = context.payload.pull_request;
-            
+
             console.log(`PR ${pr.number}: ${github.event.action}`);
             console.log(`Author: ${pr.user.login}`);
             console.log(`Draft: ${pr.draft}`);
@@ -124,14 +124,14 @@ jobs:
     name: Milestone Management
     runs-on: ubuntu-latest
     if: github.event.action == 'opened' || github.event.action == 'labeled'
-    
+
     steps:
       - name: Assign to Current Milestone
         uses: actions/github-script@v7
         with:
           script: |
             const { owner, repo } = context.repo;
-            
+
             // Get current active milestone
             const milestones = await github.rest.issues.listMilestones({
               owner,
@@ -140,10 +140,10 @@ jobs:
               sort: 'due_on',
               direction: 'asc'
             });
-            
+
             if (milestones.data.length > 0) {
               const currentMilestone = milestones.data[0];
-              
+
               // Assign high-priority issues to current milestone
               if (github.event.issue) {
                 const labels = github.event.issue.labels.map(l => l.name);
@@ -163,31 +163,31 @@ jobs:
     name: Manage Stale Issues
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-    
+
     steps:
       - name: Mark Stale Issues
         uses: actions/stale@v9
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-issue-message: |
-            This issue has been automatically marked as stale because it has not had recent activity. 
+            This issue has been automatically marked as stale because it has not had recent activity.
             It will be closed if no further activity occurs within 7 days.
-            
+
             To keep this issue active:
             - Add a comment with updates or additional information
             - Add the `keep-open` label to prevent automatic closure
             - Reference this issue in a pull request
-            
+
             Thank you for your contribution to hb-candles-feed!
           stale-pr-message: |
             This pull request has been automatically marked as stale because it has not had recent activity.
             It will be closed if no further activity occurs within 7 days.
-            
+
             To keep this PR active:
             - Push new commits or respond to review feedback
             - Add the `keep-open` label to prevent automatic closure
             - Request review from maintainers
-            
+
             Thank you for your contribution to hb-candles-feed!
           close-issue-message: |
             This issue has been automatically closed due to inactivity.
@@ -207,7 +207,7 @@ jobs:
     name: Sync with Project Board
     runs-on: ubuntu-latest
     if: github.event.action == 'opened' || github.event.action == 'closed' || github.event.action == 'ready_for_review'
-    
+
     steps:
       - name: Add Issues to Project
         if: github.event.issue
@@ -217,10 +217,10 @@ jobs:
             // This would integrate with GitHub Projects v2
             // Requires project ID and authentication setup
             console.log('Issue project automation - requires project setup');
-            
+
             const issue = context.payload.issue;
             const labels = issue.labels.map(l => l.name);
-            
+
             // Log for now - can be extended to actually add to projects
             console.log(`Would add issue ${issue.number} with labels [${labels.join(', ')}] to project board`);
 
@@ -230,7 +230,7 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
-            
+
             // Auto-request review from maintainers for ready PRs
             if (github.event.action === 'ready_for_review' && !pr.draft) {
               await github.rest.pulls.requestReviewers({
@@ -246,7 +246,7 @@ jobs:
     name: TaskMaster Integration
     runs-on: ubuntu-latest
     if: github.event.pull_request && (github.event.action == 'opened' || github.event.action == 'closed')
-    
+
     steps:
       - name: Parse TaskMaster Information
         uses: actions/github-script@v7
@@ -254,30 +254,30 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             const body = pr.body || '';
-            
+
             // Extract TaskMaster task ID from PR body
             const taskMatch = body.match(/Task ID.*?(\d+(?:\.\d+)?)/i);
             const statusMatch = body.match(/Task Status.*?([^<\n]+)/i);
-            
+
             if (taskMatch) {
               const taskId = taskMatch[1];
               const status = statusMatch ? statusMatch[1].trim() : 'Unknown';
-              
+
               console.log(`TaskMaster Integration: Task ${taskId}, Status: ${status}`);
-              
+
               // Add labels based on TaskMaster info
               const labels = ['taskmaster'];
               if (status.toLowerCase().includes('complete')) {
                 labels.push('task-complete');
               }
-              
+
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: pr.number,
                 labels: labels
               });
-              
+
               // Add comment with TaskMaster tracking
               if (github.event.action === 'opened') {
                 await github.rest.issues.createComment({
@@ -294,7 +294,7 @@ jobs:
     name: Release Preparation
     runs-on: ubuntu-latest
     if: github.event.pull_request && github.event.action == 'closed' && github.event.pull_request.merged
-    
+
     steps:
       - name: Check for Release Labels
         uses: actions/github-script@v7
@@ -302,10 +302,10 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             const labels = pr.labels.map(l => l.name);
-            
+
             if (labels.includes('release') || labels.includes('major-feature')) {
               console.log('PR merged with release implications - consider triggering release workflow');
-              
+
               // Could trigger release workflow or create release issue
               await github.rest.issues.create({
                 owner: context.repo.owner,

@@ -177,11 +177,10 @@ class RepositoryInsightsCollector:
                 tzinfo=timezone.utc
             )
 
-            if created_at >= seven_days_ago_utc:
-                if (
-                    issue["state"] == "open" or issue["closed_at"] is None
-                ):  # Check if it's still open or was opened and not yet closed
-                    metrics.new_issues_last_7_days += 1
+            if created_at >= seven_days_ago_utc and (
+                issue["state"] == "open" or issue["closed_at"] is None
+            ):  # Check if it's still open or was opened and not yet closed
+                metrics.new_issues_last_7_days += 1
 
             if issue["closed_at"]:
                 closed_at = datetime.strptime(issue["closed_at"], "%Y-%m-%dT%H:%M:%SZ").replace(

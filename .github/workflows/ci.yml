@@ -35,7 +35,7 @@ jobs:
           echo "docs-only=false" >> $GITHUB_OUTPUT
           echo "src-changed=true" >> $GITHUB_OUTPUT
           echo "tests-changed=true" >> $GITHUB_OUTPUT
-          
+
           # Get list of changed files with robust error handling
           CHANGED_FILES=""
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -55,7 +55,7 @@ jobs:
           echo "Changed files detected:"
           if [ -n "$CHANGED_FILES" ]; then
             echo "$CHANGED_FILES"
-            
+
             # Check if only docs changed (only if we have file list)
             if echo "$CHANGED_FILES" | grep -qvE '^(docs/|README\.md|\.md$|\.github/workflows/gh-deploy\.yml)'; then
               echo "docs-only=false" >> $GITHUB_OUTPUT

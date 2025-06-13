@@ -25,7 +25,6 @@ except ImportError:
     project_root_dir = current_file_dir.parent  # Assumes scripts/ is one level down from root
     sys.path.insert(0, str(project_root_dir))
 
-from candles_feed.core.github_metrics import RepositoryMetricsReport
 from candles_feed.core.repository_insights import RepositoryInsightsCollector
 
 # Setup basic logging for the script
@@ -149,7 +148,7 @@ async def run_dashboard_collection():
             )
 
     try:
-        report: RepositoryMetricsReport = await collector.collect_all_metrics(
+        report = await collector.collect_all_metrics(
             quality_gates_report_data=quality_gates_data_content
         )
     except Exception as e:

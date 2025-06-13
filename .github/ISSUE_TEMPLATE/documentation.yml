@@ -139,7 +139,7 @@ body:
         ```python
         # Example of what should be documented
         from candles_feed import CandlesFeed
-        
+
         # Show the specific use case that needs documentation
         ```
       render: python

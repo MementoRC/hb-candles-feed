@@ -106,7 +106,7 @@ Configure the following protection rules in GitHub repository settings:
 Pattern: v*.*.*
 Restrict pushes that create matching tags:
   - Restrict pushes: Yes
-  - Who can push: 
+  - Who can push:
     - GitHub Actions (via GITHUB_TOKEN)
     - Repository administrators
 ```

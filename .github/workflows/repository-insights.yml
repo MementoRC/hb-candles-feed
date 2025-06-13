@@ -49,7 +49,7 @@ jobs:
           name: quality-gates-report # Generic name, adjust if specific to branch/workflow
           path: ./temp-artifacts/quality-gates/
           # Optional: specify workflow and run_id if needed for more specific artifact download
-          # workflow: ci.yml 
+          # workflow: ci.yml
           # run_id: ${{ github.event.workflow_run.id }} # If triggered by workflow_run
         continue-on-error: true # Don't fail if the artifact doesn't exist (e.g., first run)
 
@@ -71,7 +71,7 @@ jobs:
           else
             echo "Quality gates report not found at $QUALITY_REPORT_FILE. CI/CD and quality snapshots will be based on defaults or omitted."
           fi
-          
+
           python scripts/repository_health_dashboard.py \
             --output-file repository_health_report.json \
             $QUALITY_GATES_ARG \

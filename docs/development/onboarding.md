@@ -143,13 +143,13 @@ graph TB
     CandlesFeed --> Adapter[Exchange Adapter]
     CandlesFeed --> Strategy[Collection Strategy]
     CandlesFeed --> Processor[Data Processor]
-    
+
     Adapter --> REST[REST Client]
     Adapter --> WS[WebSocket Client]
-    
+
     Strategy --> RESTStrategy[REST Strategy]
     Strategy --> WSStrategy[WebSocket Strategy]
-    
+
     Processor --> Validator[Data Validator]
     Processor --> Sanitizer[Data Sanitizer]
 ```
@@ -215,15 +215,15 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 
 class NewExchangeAdapter(BaseAdapter):
     """Adapter for a new exchange."""
-    
+
     def __init__(self):
         super().__init__()
         self.exchange_name = "new_exchange"
-    
+
     async def fetch_rest_candles(
-        self, 
-        trading_pair: str, 
-        interval: str, 
+        self,
+        trading_pair: str,
+        interval: str,
         limit: int = 100
     ) -> list[dict]:
         """Fetch candles via REST API."""
@@ -240,7 +240,7 @@ from candles_feed.core.collection_strategies import BaseStrategy
 
 class CustomStrategy(BaseStrategy):
     """Custom data collection strategy."""
-    
+
     async def start(self) -> None:
         """Start data collection."""
         # Implementation here
@@ -273,29 +273,29 @@ from unittest.mock import AsyncMock, patch
 
 class TestExchangeAdapter:
     """Test suite for exchange adapter."""
-    
+
     async def test_fetch_candles_success(self):
         """Test successful candle fetching."""
         # Arrange
         adapter = YourAdapter()
         expected_candles = [{"timestamp": 1234567890, "open": 100.0}]
-        
+
         # Act
         with patch.object(adapter, '_make_request') as mock_request:
             mock_request.return_value = expected_candles
             result = await adapter.fetch_rest_candles("BTC-USDT", "1m")
-        
+
         # Assert
         assert result == expected_candles
         mock_request.assert_called_once()
-    
+
     async def test_fetch_candles_error_handling(self):
         """Test error handling in candle fetching."""
         adapter = YourAdapter()
-        
+
         with patch.object(adapter, '_make_request') as mock_request:
             mock_request.side_effect = ConnectionError("Network error")
-            
+
             with pytest.raises(ConnectionError):
                 await adapter.fetch_rest_candles("BTC-USDT", "1m")
 ```
@@ -330,11 +330,11 @@ async def test_with_mock_server():
     """Test using mock exchange server."""
     async with MockExchangeServer() as server:
         server.add_trading_pair("BTC-USDT", "1m")
-        
+
         # Your test code here
         adapter = YourAdapter()
         adapter.set_base_url(server.base_url)
-        
+
         candles = await adapter.fetch_rest_candles("BTC-USDT", "1m")
         assert len(candles) > 0
 ```
@@ -357,14 +357,14 @@ async def fetch_candles(
     limit: int = 100
 ) -> list[dict]:
     """Fetch candles from the exchange.
-    
+
     :param trading_pair: Trading pair symbol (e.g., 'BTC-USDT')
     :param interval: Time interval for candles ('1m', '5m', '1h', etc.)
     :param limit: Maximum number of candles to fetch
     :return: List of candle data dictionaries
     :raises ValueError: If trading pair format is invalid
     :raises ConnectionError: If unable to connect to exchange
-    
+
     Example:
         >>> adapter = BinanceAdapter()
         >>> candles = await adapter.fetch_candles('BTC-USDT', '1m', 50)

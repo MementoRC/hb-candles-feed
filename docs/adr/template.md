@@ -107,7 +107,7 @@ How will we know if this decision is working?
 
 ---
 
-**Author(s):** [Names]  
-**Date:** [YYYY-MM-DD]  
-**Last Updated:** [YYYY-MM-DD]  
+**Author(s):** [Names]
+**Date:** [YYYY-MM-DD]
+**Last Updated:** [YYYY-MM-DD]
 **Reviewers:** [Names]

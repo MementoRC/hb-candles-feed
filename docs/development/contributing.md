@@ -100,23 +100,23 @@ from unittest.mock import AsyncMock, patch
 
 class TestNewFeature:
     """Test suite for new feature."""
-    
+
     async def test_basic_functionality(self):
         """Test that basic functionality works."""
         # Arrange
         expected_result = "test_value"
-        
+
         # Act
         result = await your_function()
-        
+
         # Assert
         assert result == expected_result
-    
+
     async def test_error_handling(self):
         """Test error conditions are handled properly."""
         with pytest.raises(ValueError, match="Invalid input"):
             await your_function(invalid_input)
-    
+
     @pytest.mark.benchmark
     async def test_performance(self, benchmark):
         """Test performance characteristics."""
@@ -140,14 +140,14 @@ async def fetch_candles(
     limit: int = 100
 ) -> list[dict]:
     """Fetch candles from the exchange.
-    
+
     :param trading_pair: Trading pair symbol (e.g., 'BTC-USDT')
     :param interval: Time interval for candles ('1m', '5m', '1h', etc.)
     :param limit: Maximum number of candles to fetch (default: 100)
     :return: List of candle data dictionaries
     :raises ValueError: If trading pair format is invalid
     :raises ConnectionError: If unable to connect to exchange
-    
+
     Example:
         >>> candles = await fetch_candles('BTC-USDT', '1m', 50)
         >>> print(f"Received {len(candles)} candles")
