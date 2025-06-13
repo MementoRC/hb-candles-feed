@@ -4,7 +4,7 @@ Unit tests for GitHub metrics data classes.
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+
 
 from candles_feed.core.github_metrics import (
     IssueMetrics,
