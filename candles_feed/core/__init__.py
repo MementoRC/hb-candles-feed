@@ -48,4 +48,28 @@ __all__ = [
     "Logger",
     "NetworkClientProtocol",
     "AsyncThrottlerProtocol",
+    # GitHub Metrics and Insights
+    "IssueMetrics",
+    "PullRequestMetrics",
+    "CommitActivity",
+    "ReleaseMetrics",
+    "ContributorStats",
+    "CommunityEngagement",
+    "CICDPerformanceSnapshot",
+    "CodeQualitySnapshot",
+    "RepositoryMetricsReport",
+    "RepositoryInsightsCollector",
 ]
+
+from .github_metrics import (
+    IssueMetrics,
+    PullRequestMetrics,
+    CommitActivity,
+    ReleaseMetrics,
+    ContributorStats,
+    CommunityEngagement,
+    CICDPerformanceSnapshot,
+    CodeQualitySnapshot,
+    RepositoryMetricsReport,
+)
+from .repository_insights import RepositoryInsightsCollector
