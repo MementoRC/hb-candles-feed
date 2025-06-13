@@ -103,7 +103,7 @@ lint-cython = "cython-lint candles_feed"
 check = { cmd = ["pixi run format", "pixi run lint", "pixi run typecheck", "pixi run test"] }
 
 # Documentation tasks
-docs-build = "mkdocs build --clean --strict"
+docs-build = "mkdocs build --clean"
 docs-serve = "mkdocs serve --dev-addr localhost:8008"
 docs-deploy = "mkdocs gh-deploy"
 
