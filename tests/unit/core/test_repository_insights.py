@@ -5,7 +5,7 @@ Unit tests for the RepositoryInsightsCollector.
 import pytest
 import aiohttp  # Changed from httpx
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from datetime import datetime, timedelta, timezone
 from aioresponses import aioresponses
 
