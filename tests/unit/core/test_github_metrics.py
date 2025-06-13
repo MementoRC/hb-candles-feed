@@ -2,7 +2,7 @@
 Unit tests for GitHub metrics data classes.
 """
 
-import pytest
+
 from datetime import datetime, timedelta, timezone
 
 
