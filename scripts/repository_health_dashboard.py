@@ -21,7 +21,7 @@ from typing import Optional
 # Adjust sys.path to import from candles_feed.core
 # This assumes the script is run from the project root or that candles_feed is in PYTHONPATH
 try:
-    import candles_feed
+
 except ImportError:
     current_file_dir = Path(__file__).resolve().parent
     project_root_dir = current_file_dir.parent # Assumes scripts/ is one level down from root
