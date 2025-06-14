@@ -33,9 +33,9 @@ async def validate_network_client_factory():
 
     # Test fallback to standalone NetworkClient
     standalone_client = NetworkClientFactory.create_client()
-    assert isinstance(standalone_client, NetworkClient), (
-        "Should fallback to standalone NetworkClient"
-    )
+    assert isinstance(
+        standalone_client, NetworkClient
+    ), "Should fallback to standalone NetworkClient"
     logger.info("✅ NetworkClientFactory correctly falls back to standalone implementation")
 
     # Test with Hummingbot components
@@ -45,9 +45,9 @@ async def validate_network_client_factory():
         hummingbot_client = NetworkClientFactory.create_client(
             hummingbot_components=mock_components
         )
-        assert isinstance(hummingbot_client, HummingbotNetworkClient), (
-            "Should create HummingbotNetworkClient"
-        )
+        assert isinstance(
+            hummingbot_client, HummingbotNetworkClient
+        ), "Should create HummingbotNetworkClient"
         logger.info(
             "✅ NetworkClientFactory correctly creates HummingbotNetworkClient when components available"
         )
@@ -91,12 +91,12 @@ async def validate_rate_limiting_delegation():
 
             # Verify throttler was called
             throttler_logs = mock_components["throttler"].task_logs
-            assert len(throttler_logs) == 3, (
-                f"Expected 3 throttler calls, got {len(throttler_logs)}"
-            )
-            assert all(log[0] == "api_request" for log in throttler_logs), (
-                "All calls should use 'api_request' limit ID"
-            )
+            assert (
+                len(throttler_logs) == 3
+            ), f"Expected 3 throttler calls, got {len(throttler_logs)}"
+            assert all(
+                log[0] == "api_request" for log in throttler_logs
+            ), "All calls should use 'api_request' limit ID"
 
             logger.info("✅ Rate limiting delegation working correctly")
 
@@ -120,9 +120,9 @@ async def validate_adapter_delegation():
         )
 
         # Verify the correct network client type was created
-        assert isinstance(feed._network_client, HummingbotNetworkClient), (
-            "CandlesFeed should use HummingbotNetworkClient"
-        )
+        assert isinstance(
+            feed._network_client, HummingbotNetworkClient
+        ), "CandlesFeed should use HummingbotNetworkClient"
         logger.info(
             "✅ CandlesFeed correctly uses HummingbotNetworkClient when components provided"
         )

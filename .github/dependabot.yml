@@ -1,20 +1,72 @@
 version: 2
 updates:
+  # Enable version updates for Python/pip dependencies
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "hummingbot/core-dev"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
+      - "MementoRC"
+    assignees:
+      - "MementoRC"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "pytest*"
+          - "mypy*"
+          - "ruff*"
+          - "pre-commit*"
+          - "bandit*"
+          - "safety*"
+          - "coverage*"
+          - "aioresponses*"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        patterns:
+          - "aiohttp*"
+          - "pandas*"
+          - "numpy*"
+          - "pydantic*"
+          - "ccxt*"
+        update-types:
+          - "patch"
 
+  # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "hummingbot/core-dev"
+      - "MementoRC"
+    assignees:
+      - "MementoRC"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

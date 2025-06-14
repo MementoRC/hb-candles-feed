@@ -1,0 +1,175 @@
+site_name: Candles Feed Framework
+site_description: A modular, plugin-based approach to fetching and managing candlestick data from cryptocurrency exchanges
+site_url: https://mementorc.github.io/hb-candles-feed/
+repo_url: https://github.com/MementoRC/hb-candles-feed
+repo_name: MementoRC/hb-candles-feed
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2024 Memento RC Mori
+
+theme:
+  name: material
+  features:
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+  palette:
+    - scheme: default
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    logo: material/chart-line
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search:
+      lang: en
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: sphinx
+            docstring_options:
+              ignore_init_summary: true
+            merge_init_into_class: true
+            show_submodules: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: true
+            members_order: alphabetical
+            filters:
+              - "!^_"
+              - "!^__"
+            heading_level: 1
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: MementoRC
+      repo: hb-candles-feed
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - getting_started/installation.md
+    - getting_started/quick_start.md
+    - getting_started/architecture.md
+    - getting_started/compatibility.md
+    - getting_started/hummingbot_integration.md
+    - getting_started/migration_guide.md
+    - getting_started/troubleshooting.md
+  - Examples:
+    - examples/simple_usage.md
+    - examples/binance_spot_example.md
+    - examples/adapter_composition.md
+    - examples/hummingbot_integration.md
+    - examples/mock_server_example.md
+  - Adapters:
+    - adapters/overview.md
+    - adapters/implementation.md
+    - adapters/rest_api.md
+    - adapters/websocket.md
+    - adapters/testing.md
+  - Testing Resources:
+    - testing_resources/overview.md
+    - testing_resources/mock_server.md
+  - Testnet Support:
+    - testnet/overview.md
+    - testnet/configuration.md
+    - testnet/implementation.md
+    - testnet/examples.md
+  - API Reference:
+    - api_reference/core.md
+    - api_reference/adapters.md
+    - api_reference/mocking.md
+  - Development:
+    - development/contributing.md
+    - development/onboarding.md
+    - development/coding_standards.md
+    - development/adapter_mixins.md
+    - development/release_management.md
+  - Architecture Decision Records:
+    - adr/0001-mkdocs-documentation-framework.md
+    - ADR Template: adr/template.md
+  - Project Management: project_management.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/MementoRC/hb-candles-feed
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/hb-candles-feed/
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  version:
+    provider: mike
