@@ -109,7 +109,7 @@ docs-deploy = "mkdocs gh-deploy"
 
 # CI tasks
 ci-check = "ruff check candles_feed tests; ruff format --check candles_feed tests"
-ci-hints = "mypy --install-types --non-interactive --ignore-missing-imports --exclude 'candles_feed/mocking_resources/.*' candles_feed/"
+ci-hints = "mypy --install-types --non-interactive --ignore-missing-imports candles_feed/"
 
 # Features
 [tool.pixi.feature.docs.dependencies]
