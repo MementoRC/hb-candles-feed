@@ -2,7 +2,7 @@ name: Deployment Pipeline with Rollback
 
 on:
   workflow_run:
-    workflows: ["Comprehensive CI/CD Pipeline with Quality Gates"]
+    workflows: ["Enhanced Package CI"]
     types: [completed]
     branches: [main, master, develop, development]
   workflow_dispatch:

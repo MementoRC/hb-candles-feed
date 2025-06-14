@@ -35,6 +35,8 @@ jobs:
           # Install httpx, which is used by the collector script.
           # Add other direct dependencies of the script if any.
           pip install httpx
+          # Install the project itself so the script can import from it
+          pip install .
           # If your project is installable (e.g., `pip install .`), do that here.
           # For now, assuming scripts are run directly with PYTHONPATH adjustments.
 
