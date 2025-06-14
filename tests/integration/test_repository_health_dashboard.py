@@ -127,6 +127,7 @@ class TestRepositoryHealthDashboardScript:
         # Test that environment variables are parsed correctly
         # Uses real collector, so expect default/zero values due to API failures with "env_token"
         env = {
+            "GITHUB_REPOSITORY_OWNER": "",  # Ensure this is empty to test GITHUB_REPOSITORY parsing
             "GITHUB_REPOSITORY": "env_owner/env_repo",  # This will provide both repo_owner and repo_name
             "GITHUB_TOKEN": "env_token",
         }
