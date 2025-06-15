@@ -2,7 +2,7 @@
 Synchronous mock adapter for testing the candles feed framework.
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter

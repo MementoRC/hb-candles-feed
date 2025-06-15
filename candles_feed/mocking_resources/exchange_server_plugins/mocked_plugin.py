@@ -8,7 +8,7 @@ that can be used for unit testing the mock server framework.
 
 import asyncio
 import json
-from typing import Any, Dict, List, Optional, Tuple  # Added Dict, List, Tuple, Optional
+from typing import Any  # Added Dict, List, Tuple, Optional
 
 from aiohttp import web  # type: ignore
 
@@ -530,13 +530,13 @@ class MockedPlugin(ExchangePlugin):
                                     ][interval_str]
                                     if candles_list:
                                         current_candle_obj: CandleData = candles_list[-1]
-                                        message_dict: dict[
-                                            str, Any
-                                        ] = self.format_ws_candle_message(
-                                            candle=current_candle_obj,
-                                            trading_pair=normalized_pair_str,
-                                            interval=interval_str,
-                                            is_final=True,
+                                        message_dict: dict[str, Any] = (
+                                            self.format_ws_candle_message(
+                                                candle=current_candle_obj,
+                                                trading_pair=normalized_pair_str,
+                                                interval=interval_str,
+                                                is_final=True,
+                                            )
                                         )
                                         # Delay sending initial data to ensure subscription confirmation is processed first
                                         await asyncio.sleep(0.1)
@@ -573,9 +573,9 @@ class MockedPlugin(ExchangePlugin):
                                         del server.subscriptions[subscription_key_str]
 
                             # Send unsubscription success response
-                            unsub_success_response: dict[
-                                str, Any
-                            ] = self.create_ws_subscription_success(data_dict, subscriptions_list)
+                            unsub_success_response: dict[str, Any] = (
+                                self.create_ws_subscription_success(data_dict, subscriptions_list)
+                            )
                             await ws.send_json(unsub_success_response)
 
                     except json.JSONDecodeError:

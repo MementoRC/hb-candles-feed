@@ -351,29 +351,37 @@ class TestRepositoryInsightsCollector:
     @pytest.mark.asyncio
     async def test_collect_all_metrics_success(self, collector):
         # Mock all get_* methods
-        with patch.object(
-            collector,
-            "get_issue_metrics",
-            AsyncMock(return_value=IssueMetrics(total_open_issues=1)),
-        ) as m_issues, patch.object(
-            collector,
-            "get_pull_request_metrics",
-            AsyncMock(return_value=PullRequestMetrics(total_open_prs=2)),
-        ) as m_prs, patch.object(
-            collector,
-            "get_commit_activity",
-            AsyncMock(return_value=CommitActivity(commits_last_7_days=3)),
-        ) as m_commits, patch.object(
-            collector,
-            "get_release_metrics",
-            AsyncMock(return_value=ReleaseMetrics(total_releases=4)),
-        ) as m_releases, patch.object(
-            collector,
-            "get_contributor_stats",
-            AsyncMock(return_value=ContributorStats(total_contributors=5)),
-        ) as m_contrib, patch.object(
-            collector, "get_community_engagement", AsyncMock(return_value=CommunityEngagement())
-        ) as m_community, patch.object(collector, "_parse_quality_gates_report") as m_parse_qg:
+        with (
+            patch.object(
+                collector,
+                "get_issue_metrics",
+                AsyncMock(return_value=IssueMetrics(total_open_issues=1)),
+            ) as m_issues,
+            patch.object(
+                collector,
+                "get_pull_request_metrics",
+                AsyncMock(return_value=PullRequestMetrics(total_open_prs=2)),
+            ) as m_prs,
+            patch.object(
+                collector,
+                "get_commit_activity",
+                AsyncMock(return_value=CommitActivity(commits_last_7_days=3)),
+            ) as m_commits,
+            patch.object(
+                collector,
+                "get_release_metrics",
+                AsyncMock(return_value=ReleaseMetrics(total_releases=4)),
+            ) as m_releases,
+            patch.object(
+                collector,
+                "get_contributor_stats",
+                AsyncMock(return_value=ContributorStats(total_contributors=5)),
+            ) as m_contrib,
+            patch.object(
+                collector, "get_community_engagement", AsyncMock(return_value=CommunityEngagement())
+            ) as m_community,
+            patch.object(collector, "_parse_quality_gates_report") as m_parse_qg,
+        ):
             m_parse_qg.return_value = (
                 CICDPerformanceSnapshot(last_run_passed=True),
                 CodeQualitySnapshot(lint_issues_count=0),
@@ -403,12 +411,17 @@ class TestRepositoryInsightsCollector:
 
     @pytest.mark.asyncio
     async def test_collect_all_metrics_partial_failure(self, collector, caplog):
-        with patch.object(
-            collector, "get_issue_metrics", AsyncMock(side_effect=Exception("Issue fetch failed"))
-        ), patch.object(
-            collector,
-            "get_pull_request_metrics",
-            AsyncMock(return_value=PullRequestMetrics(total_open_prs=2)),
+        with (
+            patch.object(
+                collector,
+                "get_issue_metrics",
+                AsyncMock(side_effect=Exception("Issue fetch failed")),
+            ),
+            patch.object(
+                collector,
+                "get_pull_request_metrics",
+                AsyncMock(return_value=PullRequestMetrics(total_open_prs=2)),
+            ),
         ):
             report = await collector.collect_all_metrics()
 

@@ -52,7 +52,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         # The mock exchange uses the same format (BTC-USDT)
         return trading_pair
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their duration in seconds.
 
         :returns: Dictionary mapping interval names to seconds.
@@ -73,7 +73,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return SPOT_WSS_URL
 
-    def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> Dict[str, Any]:
+    def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict[str, Any]:
         """Get WebSocket subscription payload.
 
         :param trading_pair: Trading pair in standard format.
@@ -138,7 +138,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param limit: Maximum number of candles to retrieve.
         :returns: Dictionary of request parameters.
         """
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "symbol": AsyncMockedAdapter.get_trading_pair_format(trading_pair),
             "interval": interval,
             "limit": limit,
@@ -158,7 +158,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param response_data: Response data from the REST API.
         :returns: list of CandleData objects.
         """
-        result: List[CandleData] = []
+        result: list[CandleData] = []
 
         # The mock server returns a standardized format
         if isinstance(response_data, dict) and response_data.get("status") == "ok":
@@ -209,7 +209,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: List of CandleData objects
         """
         # Use the provided client, the instance client, or simulate one
-        client: Optional[NetworkClientProtocol] = network_client or self._network_client
+        client: NetworkClientProtocol | None = network_client or self._network_client
         if client:
             # In real implementation, we'd use the client to make a request
             # For the mock adapter, we'll just generate test data
@@ -223,7 +223,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         # Handle None limit by using default value
         actual_limit = limit if limit is not None else 500
 
-        candle_payloads: List[Dict[str, Any]] = []
+        candle_payloads: list[dict[str, Any]] = []
         for i in range(actual_limit):
             timestamp_sec: int = current_time_sec + (i * interval_seconds)
             candle_payloads.append(
@@ -239,6 +239,6 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
             )
 
         # Create a response like what our mock server would return
-        response_payload: Dict[str, Any] = {"status": "ok", "data": candle_payloads}
+        response_payload: dict[str, Any] = {"status": "ok", "data": candle_payloads}
 
         return self._parse_rest_response(response_payload)

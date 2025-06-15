@@ -2,7 +2,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple  # Added Any, Dict
+from typing import Any  # Added Any
 
 import aiohttp  # Using aiohttp for async requests
 

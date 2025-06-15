@@ -37,9 +37,11 @@ class MockedAdapter(BaseAdapter):
         """
         super().__init__()  # Call object.__init__()
         self._network_config = network_config
-        self._network_client: Any | None = kwargs.get("network_client") # Assuming NetworkClientProtocol | None
+        self._network_client: Any | None = kwargs.get(
+            "network_client"
+        )  # Assuming NetworkClientProtocol | None
 
-    def get_intervals(self) -> Dict[str, int]:
+    def get_intervals(self) -> dict[str, int]:
         """
         Get supported intervals and their duration in seconds.
 
@@ -47,7 +49,7 @@ class MockedAdapter(BaseAdapter):
         """
         return INTERVALS
 
-    def get_supported_intervals(self) -> Dict[str, int]:
+    def get_supported_intervals(self) -> dict[str, int]:
         """
         Get supported intervals and their duration in seconds.
 
@@ -101,9 +103,9 @@ class MockedAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
+        start_time: int | None = None,
         limit: int = DEFAULT_CANDLES_LIMIT,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get REST API request parameters.
 
         :param trading_pair: Trading pair in standard format
@@ -216,7 +218,7 @@ class MockedAdapter(BaseAdapter):
 
         return result
 
-    def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> Dict[str, Any]:
+    def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict[str, Any]:
         """
         Get WebSocket subscription payload.
 

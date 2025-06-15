@@ -137,23 +137,26 @@ async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
     :param mock_hummingbot_components: Mock Hummingbot components for testing
     """
     # Set up complete patching to avoid import errors
-    with patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True), patch(
-        "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
-    ), patch.dict(
-        "sys.modules",
-        {
-            "hummingbot": MagicMock(),
-            "hummingbot.core": MagicMock(),
-            "hummingbot.core.api_throttler": MagicMock(),
-            "hummingbot.core.api_throttler.async_throttler_base": MagicMock(),
-            "hummingbot.core.web_assistant": MagicMock(),
-            "hummingbot.core.web_assistant.web_assistants_factory": MagicMock(),
-            "hummingbot.core.web_assistant.rest_assistant": MagicMock(),
-            "hummingbot.core.web_assistant.ws_assistant": MagicMock(),
-        },
-    ), patch(
-        "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=create_mock_adapter(),
+    with (
+        patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True),
+        patch("candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True),
+        patch.dict(
+            "sys.modules",
+            {
+                "hummingbot": MagicMock(),
+                "hummingbot.core": MagicMock(),
+                "hummingbot.core.api_throttler": MagicMock(),
+                "hummingbot.core.api_throttler.async_throttler_base": MagicMock(),
+                "hummingbot.core.web_assistant": MagicMock(),
+                "hummingbot.core.web_assistant.web_assistants_factory": MagicMock(),
+                "hummingbot.core.web_assistant.rest_assistant": MagicMock(),
+                "hummingbot.core.web_assistant.ws_assistant": MagicMock(),
+            },
+        ),
+        patch(
+            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+            return_value=create_mock_adapter(),
+        ),
     ):
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
@@ -182,23 +185,26 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
     :param mock_hummingbot_components: Mock Hummingbot components for testing
     """
     # Set up complete patching to avoid import errors
-    with patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True), patch(
-        "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
-    ), patch.dict(
-        "sys.modules",
-        {
-            "hummingbot": MagicMock(),
-            "hummingbot.core": MagicMock(),
-            "hummingbot.core.api_throttler": MagicMock(),
-            "hummingbot.core.api_throttler.async_throttler_base": MagicMock(),
-            "hummingbot.core.web_assistant": MagicMock(),
-            "hummingbot.core.web_assistant.web_assistants_factory": MagicMock(),
-            "hummingbot.core.web_assistant.rest_assistant": MagicMock(),
-            "hummingbot.core.web_assistant.ws_assistant": MagicMock(),
-        },
-    ), patch(
-        "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=create_mock_adapter(),
+    with (
+        patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True),
+        patch("candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True),
+        patch.dict(
+            "sys.modules",
+            {
+                "hummingbot": MagicMock(),
+                "hummingbot.core": MagicMock(),
+                "hummingbot.core.api_throttler": MagicMock(),
+                "hummingbot.core.api_throttler.async_throttler_base": MagicMock(),
+                "hummingbot.core.web_assistant": MagicMock(),
+                "hummingbot.core.web_assistant.web_assistants_factory": MagicMock(),
+                "hummingbot.core.web_assistant.rest_assistant": MagicMock(),
+                "hummingbot.core.web_assistant.ws_assistant": MagicMock(),
+            },
+        ),
+        patch(
+            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+            return_value=create_mock_adapter(),
+        ),
     ):
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(
@@ -238,23 +244,26 @@ async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
     :param mock_hummingbot_components: Mock Hummingbot components for testing
     """
     # Set up complete patching to avoid import errors
-    with patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True), patch(
-        "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
-    ), patch.dict(
-        "sys.modules",
-        {
-            "hummingbot": MagicMock(),
-            "hummingbot.core": MagicMock(),
-            "hummingbot.core.api_throttler": MagicMock(),
-            "hummingbot.core.api_throttler.async_throttler_base": MagicMock(),
-            "hummingbot.core.web_assistant": MagicMock(),
-            "hummingbot.core.web_assistant.web_assistants_factory": MagicMock(),
-            "hummingbot.core.web_assistant.rest_assistant": MagicMock(),
-            "hummingbot.core.web_assistant.ws_assistant": MagicMock(),
-        },
-    ), patch(
-        "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=create_mock_adapter(),
+    with (
+        patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True),
+        patch("candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True),
+        patch.dict(
+            "sys.modules",
+            {
+                "hummingbot": MagicMock(),
+                "hummingbot.core": MagicMock(),
+                "hummingbot.core.api_throttler": MagicMock(),
+                "hummingbot.core.api_throttler.async_throttler_base": MagicMock(),
+                "hummingbot.core.web_assistant": MagicMock(),
+                "hummingbot.core.web_assistant.web_assistants_factory": MagicMock(),
+                "hummingbot.core.web_assistant.rest_assistant": MagicMock(),
+                "hummingbot.core.web_assistant.ws_assistant": MagicMock(),
+            },
+        ),
+        patch(
+            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+            return_value=create_mock_adapter(),
+        ),
     ):
         # Create CandlesFeed with mock components
         feed = create_candles_feed_with_hummingbot(

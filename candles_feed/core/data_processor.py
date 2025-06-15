@@ -6,7 +6,6 @@ import bisect
 import logging
 from collections import deque
 from collections.abc import Sequence
-from typing import Deque
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import Logger

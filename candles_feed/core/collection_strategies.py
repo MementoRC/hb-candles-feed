@@ -9,7 +9,6 @@ import asyncio
 import logging
 import time
 from collections import deque
-from typing import Deque
 
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData

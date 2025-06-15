@@ -177,7 +177,9 @@ class PerformanceProfiler:
         gc.collect()
 
 
-def profile_performance(operation_name: str | None = None, enable_memory: bool = True) -> Callable[[F], F]:
+def profile_performance(
+    operation_name: str | None = None, enable_memory: bool = True
+) -> Callable[[F], F]:
     """Decorator for profiling function performance.
 
     :param operation_name: Name for the operation (defaults to function name)
@@ -232,7 +234,7 @@ class BenchmarkSuite:
 
     def __init__(self):
         """Initialize the benchmark suite."""
-        self.results: List[BenchmarkResult] = []
+        self.results: list[BenchmarkResult] = []
         self.profiler = PerformanceProfiler()
 
     async def run_benchmark(

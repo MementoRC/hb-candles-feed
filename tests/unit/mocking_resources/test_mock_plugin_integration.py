@@ -49,9 +49,10 @@ class TestMockPluginIntegration:
         url = mocked_server_fixture.mocked_exchange_url
 
         # Create client session
-        async with aiohttp.ClientSession() as session, session.get(
-            f"{url}/api/candles?symbol=BTC-USDT&interval=1m&limit=10"
-        ) as response:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(f"{url}/api/candles?symbol=BTC-USDT&interval=1m&limit=10") as response,
+        ):
             # Check response
             assert response.status == 200
             data = await response.json()

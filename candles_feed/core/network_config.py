@@ -6,7 +6,7 @@ for different types of API endpoints.
 """
 
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class EndpointType(Enum):

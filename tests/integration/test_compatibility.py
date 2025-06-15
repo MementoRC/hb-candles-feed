@@ -159,12 +159,15 @@ class TestCompatibilityWithOriginal:
         original_df = pd.DataFrame(sample_candles_data["original"], columns=columns)
 
         # Create new implementation's CandlesFeed instance
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=MagicMock(),
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             feed = CandlesFeed(
                 exchange="mock_exchange",
@@ -181,9 +184,9 @@ class TestCompatibilityWithOriginal:
             new_df = feed.get_candles_df()
 
             # Compare DataFrames
-            assert list(new_df.columns) == list(
-                original_df.columns
-            ), "DataFrame columns should match"
+            assert list(new_df.columns) == list(original_df.columns), (
+                "DataFrame columns should match"
+            )
             assert len(new_df) == len(original_df), "DataFrame lengths should match"
 
             # Convert timestamps to integers for easier comparison
@@ -193,9 +196,9 @@ class TestCompatibilityWithOriginal:
             # Compare values
             for i in range(len(original_df)):
                 for col in columns:
-                    assert (
-                        new_df.iloc[i][col] == original_df.iloc[i][col]
-                    ), f"Value mismatch for {col} at index {i}"
+                    assert new_df.iloc[i][col] == original_df.iloc[i][col], (
+                        f"Value mismatch for {col} at index {i}"
+                    )
 
     @pytest.mark.asyncio
     async def test_historical_data_fetch_compatibility(self, sample_candles_data):
@@ -218,15 +221,19 @@ class TestCompatibilityWithOriginal:
         mock_rest_strategy.poll_once = AsyncMock(return_value=sample_candles_data["new"])
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
-            return_value=mock_rest_strategy,
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
+                return_value=mock_rest_strategy,
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(
@@ -275,15 +282,19 @@ class TestCompatibilityWithOriginal:
         mock_rest_strategy.poll_once = AsyncMock(return_value=sample_candles_data["new"])
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
-            return_value=mock_rest_strategy,
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
+                return_value=mock_rest_strategy,
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(
@@ -316,12 +327,12 @@ class TestCompatibilityWithOriginal:
             assert "volume" in historical_df.columns, "DataFrame should have volume column"
 
             # Verify the data is correct
-            assert (
-                historical_df.iloc[0]["timestamp"] == 1609459200
-            ), "First candle timestamp should match"
-            assert (
-                historical_df.iloc[1]["timestamp"] == 1609459260
-            ), "Second candle timestamp should match"
+            assert historical_df.iloc[0]["timestamp"] == 1609459200, (
+                "First candle timestamp should match"
+            )
+            assert historical_df.iloc[1]["timestamp"] == 1609459260, (
+                "Second candle timestamp should match"
+            )
 
     @pytest.mark.asyncio
     async def test_timestamp_rounding_compatibility(self):
@@ -331,12 +342,15 @@ class TestCompatibilityWithOriginal:
         mock_adapter.get_supported_intervals.return_value = {"1m": 60, "5m": 300, "1h": 3600}
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             # Create new implementation's CandlesFeed instance with 1m interval
             feed_1m = CandlesFeed(
@@ -394,12 +408,15 @@ class TestCompatibilityWithOriginal:
         mock_adapter = MagicMock()
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             # Create new implementation's CandlesFeed instance with max_records=10
             feed = CandlesFeed(
@@ -460,12 +477,15 @@ class TestCompatibilityWithOriginal:
         mock_adapter.get_supported_intervals.return_value = {"1m": 60}
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(
@@ -476,9 +496,9 @@ class TestCompatibilityWithOriginal:
             )
 
             # Test with empty candles
-            assert (
-                feed.check_candles_sorted_and_equidistant()
-            ), "Should return True with empty candles"
+            assert feed.check_candles_sorted_and_equidistant(), (
+                "Should return True with empty candles"
+            )
 
             # Test with a single candle
             feed.add_candle(
@@ -495,9 +515,9 @@ class TestCompatibilityWithOriginal:
                     taker_buy_quote_volume=2000000.0,
                 )
             )
-            assert (
-                feed.check_candles_sorted_and_equidistant()
-            ), "Should return True with a single candle"
+            assert feed.check_candles_sorted_and_equidistant(), (
+                "Should return True with a single candle"
+            )
 
             # Test with properly sorted and equidistant candles
             # Add candles with 60-second intervals (matching the 1m interval)
@@ -517,9 +537,9 @@ class TestCompatibilityWithOriginal:
                     )
                 )
 
-            assert (
-                feed.check_candles_sorted_and_equidistant()
-            ), "Should return True with sorted and equidistant candles"
+            assert feed.check_candles_sorted_and_equidistant(), (
+                "Should return True with sorted and equidistant candles"
+            )
 
             # Create a new feed for testing unsorted candles
             unsorted_feed = CandlesFeed(
@@ -561,9 +581,9 @@ class TestCompatibilityWithOriginal:
             )
 
             # This should detect the unsorted timestamps
-            assert (
-                not unsorted_feed.check_candles_sorted_and_equidistant()
-            ), "Should return False with unsorted candles"
+            assert not unsorted_feed.check_candles_sorted_and_equidistant(), (
+                "Should return False with unsorted candles"
+            )
 
             # Create a new feed for testing non-equidistant candles
             non_equidistant_feed = CandlesFeed(
@@ -605,9 +625,9 @@ class TestCompatibilityWithOriginal:
             )
 
             # This should detect the non-equidistant intervals
-            assert (
-                not non_equidistant_feed.check_candles_sorted_and_equidistant()
-            ), "Should return False with non-equidistant candles"
+            assert not non_equidistant_feed.check_candles_sorted_and_equidistant(), (
+                "Should return False with non-equidistant candles"
+            )
 
     @pytest.mark.asyncio
     async def test_start_stop_compatibility(self):
@@ -632,18 +652,23 @@ class TestCompatibilityWithOriginal:
         mock_network_client.__aexit__ = AsyncMock()
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=mock_network_client,
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_ws_strategy",
-            return_value=mock_ws_strategy,
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
-            return_value=mock_rest_strategy,
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=mock_network_client,
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_ws_strategy",
+                return_value=mock_ws_strategy,
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
+                return_value=mock_rest_strategy,
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(

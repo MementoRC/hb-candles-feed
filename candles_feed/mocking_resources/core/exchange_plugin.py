@@ -4,7 +4,7 @@ Exchange plugin interface for the mock exchange server.
 
 import abc
 import time
-from typing import Any, Dict
+from typing import Any
 
 from aiohttp import web
 

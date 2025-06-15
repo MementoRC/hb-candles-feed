@@ -7,7 +7,6 @@ This module provides the main class for managing candle data feeds.
 import logging
 import typing
 from collections import deque
-from typing import Deque
 
 import numpy as np
 import pandas as pd

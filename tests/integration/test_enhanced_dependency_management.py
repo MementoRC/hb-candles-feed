@@ -292,7 +292,9 @@ class TestEnhancedDependencyManagement:
                     }
 
             # Run concurrent operations
-            tasks = [fetch_for_feed(feed, pair) for feed, pair in zip(feeds, trading_pairs, strict=False)]
+            tasks = [
+                fetch_for_feed(feed, pair) for feed, pair in zip(feeds, trading_pairs, strict=False)
+            ]
 
             start_time = time.time()
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -327,7 +329,8 @@ class TestEnhancedDependencyManagement:
             )
 
             stress_tasks = [
-                fetch_for_feed(feed, f"{pair}_stress") for feed, pair in zip(feeds, trading_pairs, strict=False)
+                fetch_for_feed(feed, f"{pair}_stress")
+                for feed, pair in zip(feeds, trading_pairs, strict=False)
             ]
 
             stress_results = await asyncio.gather(*stress_tasks, return_exceptions=True)
@@ -433,9 +436,9 @@ class TestEnhancedDependencyManagement:
 
             # Step 4: Verify full recovery
             final_candles = feed.get_candles()
-            assert len(final_candles) >= len(
-                baseline_candles
-            ), "Should have at least as many candles as baseline after recovery"
+            assert len(final_candles) >= len(baseline_candles), (
+                "Should have at least as many candles as baseline after recovery"
+            )
 
             logger.info("External dependency failure recovery test completed successfully")
 

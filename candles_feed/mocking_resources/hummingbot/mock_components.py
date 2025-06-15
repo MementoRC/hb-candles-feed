@@ -96,11 +96,11 @@ class MockRESTConnection:
         if url not in self.responses:
             raise ValueError(f"No mock response configured for URL: {url}")
 
-        response_data_val: Dict[str, Any] = self.responses[url]
+        response_data_val: dict[str, Any] = self.responses[url]
 
         # Create a mock response object
         class MockResponse:
-            async def json(self) -> Dict[str, Any]:
+            async def json(self) -> dict[str, Any]:
                 return response_data_val
 
             status: int = 200
