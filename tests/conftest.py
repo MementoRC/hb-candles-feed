@@ -61,51 +61,56 @@ def prevent_url_pollution():
     except ImportError:
         logging.debug("BinancePerpetualAdapter could not be imported. Skipping.")
 
-    # Store original methods along with their static/instance nature
+    # Store original methods along with their static/instance/class method nature
     import inspect
 
+    method_names_to_backup = ["_get_rest_url", "_get_ws_url"]
+
     for adapter_class in adapter_classes:
-        if hasattr(adapter_class, "_get_rest_url"):
-            rest_method = adapter_class._get_rest_url
-            rest_is_static = isinstance(
-                inspect.getattr_static(adapter_class, "_get_rest_url"), staticmethod
-            )
+        methods_to_restore = {}
+        for method_name in method_names_to_backup:
+            if not hasattr(adapter_class, method_name):
+                continue
 
-            ws_method = getattr(adapter_class, "_get_ws_url", None)
-            ws_is_static = False
-            if ws_method:
-                ws_is_static = isinstance(
-                    inspect.getattr_static(adapter_class, "_get_ws_url"), staticmethod
-                )
+            original_function = None
+            is_static = False
+            is_class = False
 
-            original_methods[adapter_class] = {
-                "rest_url": rest_method,
-                "rest_is_static": rest_is_static,
-                "ws_url": ws_method,
-                "ws_is_static": ws_is_static,
-            }
+            # Iterate through MRO to find where the method is defined
+            for cls_in_mro in inspect.getmro(adapter_class):
+                if method_name in cls_in_mro.__dict__:
+                    attr_descriptor = cls_in_mro.__dict__[method_name]
+                    if isinstance(attr_descriptor, staticmethod):
+                        is_static = True
+                        original_function = attr_descriptor.__func__
+                    elif isinstance(attr_descriptor, classmethod):
+                        is_class = True
+                        original_function = attr_descriptor.__func__
+                    else: # Instance method (or other descriptor)
+                        original_function = attr_descriptor
+                    break # Found the definition
+
+            if original_function is not None:
+                methods_to_restore[method_name] = {
+                    "func": original_function,
+                    "is_static": is_static,
+                    "is_class": is_class,
+                }
+        if methods_to_restore:
+            original_methods[adapter_class] = methods_to_restore
 
     yield  # Run the test
 
-    # Restore original methods after the test, preserving static/instance nature
-    for adapter_class, methods in original_methods.items():
-        if "rest_url" in methods and methods["rest_url"]:
-            rest_method = methods["rest_url"]
-            if methods.get("rest_is_static", False):
-                # Restore as static method
-                adapter_class._get_rest_url = staticmethod(rest_method)
+    # Restore original methods after the test, preserving their type
+    for adapter_class, methods_data in original_methods.items():
+        for method_name, data in methods_data.items():
+            original_function = data["func"]
+            if data["is_static"]:
+                setattr(adapter_class, method_name, staticmethod(original_function))
+            elif data["is_class"]:
+                setattr(adapter_class, method_name, classmethod(original_function))
             else:
-                # Restore as instance method
-                adapter_class._get_rest_url = rest_method
-
-        if "ws_url" in methods and methods["ws_url"]:
-            ws_method = methods["ws_url"]
-            if methods.get("ws_is_static", False):
-                # Restore as static method
-                adapter_class._get_ws_url = staticmethod(ws_method)
-            else:
-                # Restore as instance method
-                adapter_class._get_ws_url = ws_method
+                setattr(adapter_class, method_name, original_function)
 
 
 # Remove the custom event_loop fixture to avoid the deprecation warning
