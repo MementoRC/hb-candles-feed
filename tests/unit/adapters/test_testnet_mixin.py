@@ -248,6 +248,12 @@ class TestTestnetSupportMixin:
 
         # Create a class with wrong inheritance order
         class WrongOrderAdapter(MockAdapter, TestnetSupportMixin):
+            def __init__(self, *args, **kwargs):
+                # This call to super() will invoke MockAdapter.__init__.
+                # Since MockAdapter.__init__ does not call super() itself,
+                # TestnetSupportMixin.__init__ will not be called.
+                super().__init__(*args, **kwargs)
+
             def _get_testnet_rest_url(self):
                 return "https://testnet-api.com/v1/endpoint"
 

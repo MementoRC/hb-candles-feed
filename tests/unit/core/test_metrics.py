@@ -150,16 +150,15 @@ class TestPerformanceTracker:
         """Test request tracking with exception."""
         tracker = PerformanceTracker()
 
-        # Verify exception is raised and metrics are recorded
-        with (
-            pytest.raises(ValueError, match="Test error"),
-            tracker.track_request("GET", "/api/v1/klines"),
-        ):
-            raise ValueError("Test error")
-
-        # Verify metrics were recorded despite the exception
-        assert tracker.collector.metrics.total_requests == 1
-        assert tracker.collector.metrics.failed_requests == 1
+        try:
+            # Verify exception is raised and metrics are recorded
+            with pytest.raises(ValueError, match="Test error"):
+                with tracker.track_request("GET", "/api/v1/klines"):
+                    raise ValueError("Test error")
+        finally:
+            # Verify metrics were recorded regardless of the exception path
+            assert tracker.collector.metrics.total_requests == 1
+            assert tracker.collector.metrics.failed_requests == 1
 
     @pytest.mark.asyncio
     async def test_track_stream_context_manager(self):
