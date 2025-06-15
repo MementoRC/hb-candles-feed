@@ -8,7 +8,7 @@ to reduce code duplication.
 import asyncio
 import logging
 from abc import abstractmethod
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.network_config import EndpointType, NetworkConfig

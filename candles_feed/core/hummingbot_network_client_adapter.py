@@ -7,7 +7,7 @@ Hummingbot's WebAssistantsFactory and AsyncThrottler when available.
 
 import json
 import logging
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from candles_feed.core.protocols import (
     AsyncThrottlerProtocol,

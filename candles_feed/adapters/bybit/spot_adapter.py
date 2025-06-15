@@ -2,8 +2,6 @@
 Bybit spot exchange adapter for the Candle Feed framework.
 """
 
-from typing import Optional
-
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     SPOT_CANDLES_ENDPOINT,

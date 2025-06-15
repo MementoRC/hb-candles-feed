@@ -2,8 +2,6 @@
 Binance spot exchange adapter for the Candle Feed framework.
 """
 
-from typing import Optional
-
 from candles_feed.adapters.adapter_mixins import TestnetSupportMixin
 from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
 from candles_feed.adapters.binance.constants import (

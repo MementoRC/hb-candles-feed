@@ -5,7 +5,7 @@ Network communication client for the Candle Feed framework.
 import json
 import logging
 import weakref
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import aiohttp
 

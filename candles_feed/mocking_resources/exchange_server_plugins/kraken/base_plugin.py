@@ -6,7 +6,7 @@ This class provides shared functionality for Kraken plugins.
 
 import contextlib
 from abc import ABC
-from typing import Any, Union
+from typing import Any
 
 from aiohttp import web
 

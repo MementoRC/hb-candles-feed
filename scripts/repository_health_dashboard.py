@@ -14,7 +14,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Adjust sys.path to import from candles_feed.core
 # This assumes the script is run from the project root or that candles_feed is in PYTHONPATH

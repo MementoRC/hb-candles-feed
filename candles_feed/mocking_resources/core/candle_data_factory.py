@@ -6,7 +6,6 @@ without relying on actual exchange connections.
 """
 
 import random
-from typing import Optional
 
 from candles_feed.core.candle_data import CandleData
 
