@@ -152,9 +152,11 @@ class TestPerformanceTracker:
 
         try:
             # Verify exception is raised and metrics are recorded
-            with pytest.raises(ValueError, match="Test error"):
-                with tracker.track_request("GET", "/api/v1/klines"):
-                    raise ValueError("Test error")
+            with (
+                pytest.raises(ValueError, match="Test error"),
+                tracker.track_request("GET", "/api/v1/klines"),
+            ):
+                raise ValueError("Test error")
         finally:
             # Verify metrics were recorded regardless of the exception path
             assert tracker.collector.metrics.total_requests == 1

@@ -86,9 +86,9 @@ def prevent_url_pollution():
                     elif isinstance(attr_descriptor, classmethod):
                         is_class = True
                         original_function = attr_descriptor.__func__
-                    else: # Instance method (or other descriptor)
+                    else:  # Instance method (or other descriptor)
                         original_function = attr_descriptor
-                    break # Found the definition
+                    break  # Found the definition
 
             if original_function is not None:
                 methods_to_restore[method_name] = {
