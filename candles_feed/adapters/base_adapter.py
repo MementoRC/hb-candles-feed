@@ -7,7 +7,7 @@ This module provides a base implementation for exchange adapters to reduce code 
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict
+from typing import Any, Dict # Added Any, Dict
 
 from candles_feed.core.candle_data import CandleData
 
