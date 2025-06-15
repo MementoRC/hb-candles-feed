@@ -169,7 +169,7 @@ class RepositoryInsightsCollector:
             client,
         )
 
-        total_open_time_seconds = 0
+        total_open_time_seconds = 0.0
         issues_counted_for_avg_open_time = 0
 
         for issue in all_issues_last_period:
@@ -301,7 +301,7 @@ class RepositoryInsightsCollector:
                 )
 
                 if len(release_dates) > 1:
-                    total_time_diff_days = 0
+                    total_time_diff_days = 0.0
                     for i in range(len(release_dates) - 1):
                         time_diff = release_dates[i] - release_dates[i + 1]
                         total_time_diff_days += time_diff.total_seconds() / (24 * 3600)
