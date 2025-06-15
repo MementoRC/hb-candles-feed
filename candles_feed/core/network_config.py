@@ -6,7 +6,7 @@ for different types of API endpoints.
 """
 
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class EndpointType(Enum):
@@ -27,24 +27,48 @@ class NetworkEnvironment(Enum):
 
 
 class NetworkConfig:
-    """Configuration for network endpoints.
+    """Configuration for network endpoints and performance settings.
 
     This class allows configuring which network environment (production or testnet)
-    to use for each type of endpoint.
+    to use for each type of endpoint, as well as performance-related settings.
     """
 
     def __init__(
         self,
         default_environment: NetworkEnvironment = NetworkEnvironment.PRODUCTION,
-        endpoint_overrides: Optional[Dict[EndpointType, NetworkEnvironment]] = None,
+        endpoint_overrides: dict[EndpointType, NetworkEnvironment] | None = None,
+        # Performance settings
+        rest_api_timeout: float = 30.0,
+        websocket_ping_interval: float = 20.0,
+        max_connections_per_host: int = 30,
+        connection_pool_size: int = 100,
+        enable_connection_pooling: bool = True,
+        request_retry_attempts: int = 3,
+        websocket_reconnect_attempts: int = 5,
     ):
         """Initialize network configuration.
 
         :param default_environment: Default environment for all endpoints
         :param endpoint_overrides: Specific overrides for individual endpoint types
+        :param rest_api_timeout: Timeout for REST API requests in seconds
+        :param websocket_ping_interval: WebSocket ping interval in seconds
+        :param max_connections_per_host: Maximum connections per host
+        :param connection_pool_size: Total connection pool size
+        :param enable_connection_pooling: Whether to enable connection pooling
+        :param request_retry_attempts: Number of retry attempts for failed requests
+        :param websocket_reconnect_attempts: Number of WebSocket reconnection attempts
         """
         self.default_environment = default_environment
         self.endpoint_overrides = endpoint_overrides or {}
+
+        # Performance settings
+        self.rest_api_timeout = rest_api_timeout
+        self.websocket_ping_interval = websocket_ping_interval
+        self.max_connections_per_host = max_connections_per_host
+        self.connection_pool_size = connection_pool_size
+        self.enable_connection_pooling = enable_connection_pooling
+        self.request_retry_attempts = request_retry_attempts
+        self.websocket_reconnect_attempts = websocket_reconnect_attempts
 
         # For testing only - when True, will always return production regardless of settings
         self._bypass_for_testing = False
@@ -102,7 +126,7 @@ class NetworkConfig:
         :raises ValueError: If an invalid endpoint type or environment is provided
         """
         # Convert string keys to EndpointType enum
-        processed_overrides: Dict[
+        processed_overrides: dict[
             EndpointType, NetworkEnvironment
         ] = {}  # Explicitly type processed_overrides
         for key_str, value_orig in endpoint_overrides.items():  # Use key_str and value_orig

@@ -39,6 +39,7 @@ coverage.xml
 
 # Environments
 .env
+.env.*
 .venv
 env/
 venv/
@@ -53,10 +54,13 @@ venv.bak/
 *.swp
 *.swo
 .DS_Store
+.cursor/
 
 # Documentation
 docs/_build/
 docs/site/
+site/
+mkdocs.saved.yml
 
 # Cython generated files
 *.c
@@ -71,22 +75,41 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 
-# Misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Project management and documentation (exclude from git)
+# Project management and AI development tools (local-only)
 ai_docs/
+auto_tests/
 scripts/prd*.txt
 scripts/*prd*.txt
 tasks/
 .claude/
 .mcp.json
+.taskmaster/
+.taskmasterconfig
 
-# Added by Claude Task Master
+# Aider AI development tool
+.aider*
+.aider/
+.aider.chat.history.md
+.aider.tags.cache.v4/
+
+# Development environment and caching
+.pixi/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.roo/
+.roomodes
+
+# Development and testing artifacts
+unit.log
+task*.py
+task*_validation.py
+examples/
+.windsurfrules
+
+# Hatch alternative configuration
+pyproject-hatch.toml
+
 # Logs
 logs
 *.log
@@ -94,18 +117,17 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 dev-debug.log
+
 # Dependency directories
 node_modules/
-# Environment variables
-# Editor directories and files
-.idea
-.vscode
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Additional IDE support
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-# OS specific
-# Task files
-tasks.json
-.aider*

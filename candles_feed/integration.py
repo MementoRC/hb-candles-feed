@@ -5,7 +5,7 @@ This module provides functions and utilities to simplify the integration
 of CandlesFeed with Hummingbot or other frameworks.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.protocols import Logger
@@ -28,9 +28,9 @@ def create_candles_feed_with_hummingbot(
     trading_pair: str,
     interval: str = "1m",
     max_records: int = 150,
-    throttler: Optional[Any] = None,  # Type as Any to avoid direct dependency
-    web_assistants_factory: Optional[Any] = None,  # Type as Any to avoid direct dependency
-    logger: Optional[Logger] = None,
+    throttler: Any | None = None,  # Type as Any to avoid direct dependency
+    web_assistants_factory: Any | None = None,  # Type as Any to avoid direct dependency
+    logger: Logger | None = None,
 ) -> CandlesFeed:
     """
     Create a CandlesFeed instance using Hummingbot components.

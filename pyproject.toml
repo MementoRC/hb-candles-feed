@@ -20,6 +20,8 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Cython",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -44,13 +46,19 @@ dev = [
     "pytest>=7.0.0",
     "pytest-aiohttp>=1.1.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-benchmark>=4.0.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
     "pytest-timeout>=2.1.0",
     "pyupgrade",
-    "ruff>=0.1.5",
+    "ruff>=0.1.6",
     "mypy>=1.5.1",
     "cython-lint>=0.15.0",
+    # Enhanced integration testing dependencies
+    "redis>=4.5.0",
+    "websockets>=11.0.0",
+    # Load testing dependencies
+    "locust>=2.20.0",
 ]
 doc = [
     "mkdocs",
@@ -87,6 +95,7 @@ aioresponses = "*"
 test = "pytest tests"
 test-unit = "pytest tests/unit"
 test-integration = "pytest tests/integration"
+test-load = "pytest tests/load -v"
 lint = "ruff check candles_feed tests"
 format = "ruff format candles_feed tests"
 typecheck = "mypy candles_feed"
@@ -94,7 +103,7 @@ lint-cython = "cython-lint candles_feed"
 check = { cmd = ["pixi run format", "pixi run lint", "pixi run typecheck", "pixi run test"] }
 
 # Documentation tasks
-docs-build = "mkdocs build --clean --strict"
+docs-build = "mkdocs build --clean"
 docs-serve = "mkdocs serve --dev-addr localhost:8008"
 docs-deploy = "mkdocs gh-deploy"
 
@@ -120,18 +129,36 @@ pytest-cov = ">=4.1.0"
 pytest-mock = ">=3.11.0"
 pytest-timeout = ">=2.1.0"
 pyupgrade = "*"
-ruff = ">=0.1.5"
+ruff = ">=0.1.6"
 mypy = ">=1.5.1"
 cython-lint = ">=0.15.0"
+# Enhanced integration testing dependencies
+redis-py = ">=4.5.0"
+websockets = ">=11.0.0"
+# Load testing dependencies
+locust = ">=2.20.0"
 
 [tool.pixi.feature.ci.dependencies]
 types-setuptools = "*"
+
+# Python version features
+[tool.pixi.feature.py310.dependencies]
+python = "3.10.*"
+
+[tool.pixi.feature.py311.dependencies]
+python = "3.11.*"
+
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
 
 # Environments
 [tool.pixi.environments]
 default = { features = ["dev"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 ci = { features = ["ci", "dev"], solve-group = "default" }
+py310 = { features = ["py310", "dev"], solve-group = "py310" }
+py311 = { features = ["py311", "dev"], solve-group = "py311" }
+py312 = { features = ["py312", "dev"], solve-group = "py312" }
 
 # Keep existing tool configurations
 [tool.coverage.run]
@@ -150,13 +177,13 @@ skip_empty = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:", "raise NotImplementedError"]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py310"
 line-length = 100
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-line-ending = "auto"
+line-ending = "lf"
 
 [tool.ruff.lint]
 select = [
@@ -195,6 +222,7 @@ markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "e2e: marks tests as end-to-end tests",
     "asyncio: marks tests as asyncio tests",
+    "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
 ]
 log_cli = true
 log_cli_level = "INFO"

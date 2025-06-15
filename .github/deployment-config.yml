@@ -1,0 +1,199 @@
+# Deployment Configuration for Candles Feed CI/CD Pipeline
+
+environments:
+  staging:
+    name: "staging"
+    url: "https://staging-candles-feed.example.com"
+    replicas: 2
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    environment_variables:
+      ENVIRONMENT: "staging"
+      LOG_LEVEL: "debug"
+      MONITORING_ENABLED: "true"
+      METRICS_ENDPOINT: "http://prometheus-staging:9090"
+    health_checks:
+      liveness_probe:
+        path: "/health"
+        port: 8080
+        initial_delay: 30
+        period: 10
+      readiness_probe:
+        path: "/ready"
+        port: 8080
+        initial_delay: 5
+        period: 5
+    monitoring:
+      enable_alerts: true
+      alert_thresholds:
+        error_rate: "5%"
+        latency_p95: "500ms"
+        memory_usage: "80%"
+    deployment_strategy: "rolling"
+
+  production:
+    name: "production"
+    url: "https://candles-feed.example.com"
+    replicas: 3
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    environment_variables:
+      ENVIRONMENT: "production"
+      LOG_LEVEL: "info"
+      MONITORING_ENABLED: "true"
+      METRICS_ENDPOINT: "http://prometheus:9090"
+      ENABLE_STRUCTURED_LOGGING: "true"
+      METRICS_EXPORT_INTERVAL: "60"
+    health_checks:
+      liveness_probe:
+        path: "/health"
+        port: 8080
+        initial_delay: 30
+        period: 10
+      readiness_probe:
+        path: "/ready"
+        port: 8080
+        initial_delay: 5
+        period: 5
+    monitoring:
+      enable_alerts: true
+      alert_thresholds:
+        error_rate: "1%"
+        latency_p95: "200ms"
+        memory_usage: "80%"
+        cpu_usage: "70%"
+      alert_channels:
+        - "ops-team-slack"
+        - "on-call-pager"
+    deployment_strategy: "blue_green"
+    backup:
+      enable: true
+      retention_days: 30
+    rollback:
+      enable: true
+      automatic_rollback_on_failure: true
+      rollback_timeout_minutes: 10
+
+# Quality Gates Configuration
+quality_gates:
+  coverage_threshold: 95
+  performance_score_threshold: 85
+  security_scan_required: true
+  license_compliance_required: true
+
+  blocking_conditions:
+    - test_failures
+    - coverage_below_threshold
+    - performance_degradation
+    - critical_security_vulnerabilities
+    - license_violations
+    - build_failures
+
+# CI/CD Pipeline Configuration
+pipeline:
+  test_matrix:
+    python_versions: ["3.10", "3.11", "3.12"]
+    test_types:
+      - unit
+      - integration
+      - performance
+      - e2e
+
+  security_scans:
+    - dependency_vulnerabilities
+    - static_code_analysis
+    - license_compliance
+    - secret_detection
+    - container_scanning
+
+  performance_benchmarks:
+    - api_latency
+    - memory_usage
+    - connection_pooling
+    - throughput
+
+  deployment_triggers:
+    staging:
+      branches: ["develop", "development"]
+      automatic: true
+    production:
+      branches: ["main", "master"]
+      automatic: true
+      requires_approval: false  # Set to true for manual approval
+
+# Monitoring and Alerting Configuration
+monitoring:
+  metrics:
+    collection_interval: 15
+    retention_days: 90
+
+  alerts:
+    high_error_rate:
+      condition: "error_rate > threshold"
+      duration: "5m"
+      severity: "critical"
+
+    high_latency:
+      condition: "p95_latency > threshold"
+      duration: "2m"
+      severity: "warning"
+
+    memory_usage:
+      condition: "memory_usage > threshold"
+      duration: "5m"
+      severity: "warning"
+
+    deployment_failure:
+      condition: "deployment_failed"
+      duration: "immediate"
+      severity: "critical"
+
+# Rollback Configuration
+rollback:
+  triggers:
+    - deployment_failure
+    - health_check_failure
+    - performance_degradation
+    - error_rate_spike
+
+  automated:
+    enable: true
+    timeout_minutes: 10
+    retry_attempts: 3
+
+  manual:
+    enable: true
+    approval_required: true
+
+  validation:
+    post_rollback_tests: true
+    health_check_timeout: 300
+    monitoring_verification: true
+
+# Notification Configuration
+notifications:
+  deployment_success:
+    channels: ["team-slack"]
+    message_template: "✅ {environment} deployment successful - {version}"
+
+  deployment_failure:
+    channels: ["team-slack", "ops-team"]
+    message_template: "❌ {environment} deployment failed - {version}"
+
+  rollback_executed:
+    channels: ["team-slack", "ops-team", "on-call"]
+    message_template: "🔙 Rollback executed for {environment} - {reason}"
+
+  quality_gate_failure:
+    channels: ["team-slack"]
+    message_template: "🚨 Quality gate failure - {gate_type} - {details}"

@@ -274,9 +274,10 @@ class TestMockServer:
         )
 
         # Verify normal operation is restored
-        async with aiohttp.ClientSession() as session, session.get(
-            f"{mock_server_url}/api/v3/klines", params=params
-        ) as response:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.get(f"{mock_server_url}/api/v3/klines", params=params) as response,
+        ):
             assert response.status == 200
             data = await response.json()
             assert len(data) > 0

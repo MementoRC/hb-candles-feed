@@ -102,7 +102,7 @@ class ConcreteMEXCAdapter(MEXCBaseAdapter):
                     close = float(row[4])
                     volume = float(row[5])
                     quote_volume = float(row[7])
-                    n_trades = int(row[8]) if isinstance(row[8], (int, float, str)) else 0
+                    n_trades = int(row[8]) if isinstance(row[8], int | float | str) else 0
                     taker_buy_base_volume = float(row[9])
                     taker_buy_quote_volume = float(row[10])
 

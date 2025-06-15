@@ -179,17 +179,22 @@ class TestCompatibility:
         mock_rest_strategy.poll_once = AsyncMock(return_value=mock_sample_candles)
 
         # Patch ExchangeRegistry to return our mock
-        with unittest.mock.patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), unittest.mock.patch(
-            "candles_feed.core.network_client.NetworkClient", return_value=mock_network_client
-        ), unittest.mock.patch(
-            "candles_feed.core.collection_strategies.WebSocketStrategy",
-            return_value=mock_ws_strategy,
-        ), unittest.mock.patch(
-            "candles_feed.core.collection_strategies.RESTPollingStrategy",
-            return_value=mock_rest_strategy,
+        with (
+            unittest.mock.patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            unittest.mock.patch(
+                "candles_feed.core.network_client.NetworkClient", return_value=mock_network_client
+            ),
+            unittest.mock.patch(
+                "candles_feed.core.collection_strategies.WebSocketStrategy",
+                return_value=mock_ws_strategy,
+            ),
+            unittest.mock.patch(
+                "candles_feed.core.collection_strategies.RESTPollingStrategy",
+                return_value=mock_rest_strategy,
+            ),
         ):
             # Create a candles feed instance
             feed = CandlesFeed(

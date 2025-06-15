@@ -8,7 +8,7 @@ to reduce code duplication.
 import asyncio
 import logging
 from abc import abstractmethod
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.network_config import EndpointType, NetworkConfig
@@ -154,7 +154,7 @@ class TestnetSupportMixin:
     production environments based on endpoint type.
     """
 
-    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+    def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize with network configuration.
 
         :param network_config: Network environment configuration

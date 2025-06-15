@@ -1,0 +1,11 @@
+# Load testing dependencies for Candles Feed
+# Install with: pip install -r tests/load/requirements.txt
+
+# Core load testing framework
+locust>=2.20.0
+
+# WebSocket support for advanced testing scenarios
+websocket-client>=1.6.0
+
+# Data analysis and reporting
+requests>=2.31.0

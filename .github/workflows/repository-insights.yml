@@ -1,0 +1,104 @@
+name: Repository Insights Collection
+
+on:
+  workflow_dispatch: # Manual trigger
+  schedule:
+    - cron: '0 3 * * *' # Daily at 3 AM UTC
+
+env:
+  PYTHON_VERSION: '3.10' # Consistent Python version
+
+jobs:
+  collect-insights:
+    name: Collect Repository Insights
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read      # Required to checkout the repository
+      actions: read      # Required to download artifacts from other workflows (like quality gates)
+      # issues: read     # Potentially needed if fetching detailed issue data beyond public access
+      # pull-requests: read # Potentially needed for detailed PR data
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml' # Cache based on pyproject.toml if it lists deps
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install httpx, which is used by the collector script.
+          # Add other direct dependencies of the script if any.
+          pip install httpx
+          # Install the project itself so the script can import from it
+          pip install .
+          # If your project is installable (e.g., `pip install .`), do that here.
+          # For now, assuming scripts are run directly with PYTHONPATH adjustments.
+
+      - name: Download latest Quality Gates report
+        uses: actions/download-artifact@v4
+        with:
+          # This name must match the artifact name used in the workflow that generates quality_gates_report.json
+          # For example, if quality_gates.py is run in the main CI workflow (`ci.yml`)
+          # and uploads its report as 'quality-gates-report-main' for the main branch.
+          # This needs careful coordination with the source workflow.
+          # As a fallback, trying a generic name.
+          name: quality-gates-report # Generic name, adjust if specific to branch/workflow
+          path: ./temp-artifacts/quality-gates/
+          # Optional: specify workflow and run_id if needed for more specific artifact download
+          # workflow: ci.yml
+          # run_id: ${{ github.event.workflow_run.id }} # If triggered by workflow_run
+        continue-on-error: true # Don't fail if the artifact doesn't exist (e.g., first run)
+
+      - name: Run Repository Insights Collector script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY are automatically available
+          PYTHONPATH: ${{ github.workspace }} # Add project root to PYTHONPATH
+        run: |
+          QUALITY_GATES_ARG=""
+          # Check if the specific JSON file exists (download-artifact creates subdirectories)
+          # The exact path depends on how the artifact was structured when uploaded.
+          # Assuming it's directly 'quality_gates_report.json' within the downloaded path.
+          QUALITY_REPORT_FILE="./temp-artifacts/quality-gates/quality_gates_report.json"
+
+          if [ -f "$QUALITY_REPORT_FILE" ]; then
+            QUALITY_GATES_ARG="--quality-gates-report $QUALITY_REPORT_FILE"
+            echo "Using quality gates report: $QUALITY_REPORT_FILE"
+          else
+            echo "Quality gates report not found at $QUALITY_REPORT_FILE. CI/CD and quality snapshots will be based on defaults or omitted."
+          fi
+
+          python scripts/repository_health_dashboard.py \
+            --output-file repository_health_report.json \
+            $QUALITY_GATES_ARG \
+            --verbose
+
+      - name: Upload Repository Health Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-health-report
+          path: repository_health_report.json
+          retention-days: 90 # Store reports for 90 days
+
+      - name: Insights Collection Summary to Job Summary
+        if: always()
+        run: |
+          echo "## Repository Insights Collection Summary" >> $GITHUB_STEP_SUMMARY
+          if [[ -f repository_health_report.json ]]; then
+            echo "✅ Repository health report generated successfully." >> $GITHUB_STEP_SUMMARY
+            echo "Report uploaded as 'repository-health-report' artifact." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Report Snippet (Top Level Keys):" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            # Using jq to show top-level keys and some nested values for a quick overview
+            jq '. | {repo_owner, repo_name, timestamp, collection_duration_seconds, issues_total: .issues.total_open_issues, prs_total: .pull_requests.total_open_prs, commits_7d: .commits.commits_last_7_days, releases_total: .releases.total_releases, contributors_total: .contributors.total_contributors, ci_cd_passed: .ci_cd_performance.last_run_passed}' repository_health_report.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Failed to generate repository health report." >> $GITHUB_STEP_SUMMARY
+          fi

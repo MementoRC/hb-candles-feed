@@ -2,8 +2,6 @@
 Binance spot exchange adapter for the Candle Feed framework.
 """
 
-from typing import Optional
-
 from candles_feed.adapters.adapter_mixins import TestnetSupportMixin
 from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
 from candles_feed.adapters.binance.constants import (
@@ -21,7 +19,7 @@ from candles_feed.core.network_config import EndpointType, NetworkConfig
 class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
     """Binance spot exchange adapter with testnet support."""
 
-    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+    def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.
 
         :param network_config: Network configuration for testnet/production

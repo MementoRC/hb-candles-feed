@@ -159,12 +159,15 @@ class TestCompatibilityWithOriginal:
         original_df = pd.DataFrame(sample_candles_data["original"], columns=columns)
 
         # Create new implementation's CandlesFeed instance
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=MagicMock(),
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             feed = CandlesFeed(
                 exchange="mock_exchange",
@@ -218,15 +221,19 @@ class TestCompatibilityWithOriginal:
         mock_rest_strategy.poll_once = AsyncMock(return_value=sample_candles_data["new"])
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
-            return_value=mock_rest_strategy,
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
+                return_value=mock_rest_strategy,
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(
@@ -275,15 +282,19 @@ class TestCompatibilityWithOriginal:
         mock_rest_strategy.poll_once = AsyncMock(return_value=sample_candles_data["new"])
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
-            return_value=mock_rest_strategy,
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
+                return_value=mock_rest_strategy,
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(
@@ -331,12 +342,15 @@ class TestCompatibilityWithOriginal:
         mock_adapter.get_supported_intervals.return_value = {"1m": 60, "5m": 300, "1h": 3600}
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             # Create new implementation's CandlesFeed instance with 1m interval
             feed_1m = CandlesFeed(
@@ -394,12 +408,15 @@ class TestCompatibilityWithOriginal:
         mock_adapter = MagicMock()
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             # Create new implementation's CandlesFeed instance with max_records=10
             feed = CandlesFeed(
@@ -460,12 +477,15 @@ class TestCompatibilityWithOriginal:
         mock_adapter.get_supported_intervals.return_value = {"1m": 60}
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(
@@ -632,18 +652,23 @@ class TestCompatibilityWithOriginal:
         mock_network_client.__aexit__ = AsyncMock()
 
         # Patch dependencies
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=mock_network_client,
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_ws_strategy",
-            return_value=mock_ws_strategy,
-        ), patch(
-            "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
-            return_value=mock_rest_strategy,
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=mock_network_client,
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_ws_strategy",
+                return_value=mock_ws_strategy,
+            ),
+            patch(
+                "candles_feed.core.candles_feed.CandlesFeed._create_rest_strategy",
+                return_value=mock_rest_strategy,
+            ),
         ):
             # Create new implementation's CandlesFeed instance
             feed = CandlesFeed(
