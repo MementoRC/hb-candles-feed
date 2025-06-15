@@ -36,7 +36,7 @@ class NetworkConfig:
     def __init__(
         self,
         default_environment: NetworkEnvironment = NetworkEnvironment.PRODUCTION,
-        endpoint_overrides: Optional[Dict[EndpointType, NetworkEnvironment]] = None,
+        endpoint_overrides: dict[EndpointType, NetworkEnvironment] | None = None,
         # Performance settings
         rest_api_timeout: float = 30.0,
         websocket_ping_interval: float = 20.0,
@@ -126,7 +126,7 @@ class NetworkConfig:
         :raises ValueError: If an invalid endpoint type or environment is provided
         """
         # Convert string keys to EndpointType enum
-        processed_overrides: Dict[
+        processed_overrides: dict[
             EndpointType, NetworkEnvironment
         ] = {}  # Explicitly type processed_overrides
         for key_str, value_orig in endpoint_overrides.items():  # Use key_str and value_orig

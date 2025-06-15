@@ -8,7 +8,7 @@ that can be used for testing without actual dependencies on Hummingbot.
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple  # Added Optional, Tuple
+from typing import Any
 
 # Define mock classes that mimic Hummingbot's interfaces
 
@@ -23,13 +23,13 @@ class WSResponse:
 class MockAsyncThrottler:
     """Mock implementation of AsyncThrottlerBase."""
 
-    def __init__(self, rate_limits: Optional[List[Dict[str, Any]]] = None):
+    def __init__(self, rate_limits: list[dict[str, Any]] | None = None):
         """Initialize the mock throttler.
 
-        :param rate_limits: List of rate limit dictionaries.
+        :param rate_limits: list of rate limit dictionaries.
         """
-        self.rate_limits: List[Dict[str, Any]] = rate_limits or []
-        self.task_logs: List[Tuple[str, float]] = []
+        self.rate_limits: list[dict[str, Any]] = rate_limits or []
+        self.task_logs: list[tuple[str, float]] = []
 
     async def execute_task(self, limit_id: str):
         """Execute a task respecting rate limits.
@@ -56,21 +56,21 @@ class MockAsyncThrottler:
 class MockRESTConnection:
     """Mock REST connection for testing."""
 
-    def __init__(self, responses: Optional[Dict[str, Any]] = None):
+    def __init__(self, responses: dict[str, Any] | None = None):
         """Initialize the mock connection.
 
-        :param responses: Dictionary mapping URLs to mock responses.
+        :param responses: dictionary mapping URLs to mock responses.
         """
-        self.responses: Dict[str, Any] = responses or {}
-        self.requests: List[Dict[str, Any]] = []
+        self.responses: dict[str, Any] = responses or {}
+        self.requests: list[dict[str, Any]] = []
 
     async def call(
         self,
         url: str,
         method: str = "GET",
-        params: Optional[Dict[str, Any]] = None,
-        data: Optional[Any] = None,
-        headers: Optional[Dict[str, str]] = None,
+        params: dict[str, Any] | None = None,
+        data: Any | None = None,
+        headers: dict[str, str] | None = None,
     ):
         """Make a mock REST call.
 
@@ -111,15 +111,15 @@ class MockRESTConnection:
 class MockWSConnection:
     """Mock WebSocket connection for testing."""
 
-    def __init__(self, messages: Optional[List[Any]] = None):
+    def __init__(self, messages: list[Any] | None = None):
         """Initialize the mock connection.
 
-        :param messages: List of messages to return when iterating.
+        :param messages: list of messages to return when iterating.
         """
-        self.messages: List[Any] = messages or []
-        self.sent_messages: List[Any] = []
+        self.messages: list[Any] = messages or []
+        self.sent_messages: list[Any] = []
         self.connected: bool = False
-        self.url: Optional[str] = None
+        self.url: str | None = None
 
     async def connect(self, ws_url: str):
         """Connect to a WebSocket.
@@ -170,9 +170,9 @@ class MockRESTAssistant:
         self,
         url: str,
         method: str = "GET",
-        params: Optional[Dict[str, Any]] = None,
-        data: Optional[Any] = None,
-        headers: Optional[Dict[str, str]] = None,
+        params: dict[str, Any] | None = None,
+        data: Any | None = None,
+        headers: dict[str, str] | None = None,
     ):
         """Make a mock REST call.
 
@@ -228,15 +228,15 @@ class MockWebAssistantsFactory:
 
     def __init__(
         self,
-        throttler: Optional[MockAsyncThrottler] = None,
-        rest_responses: Optional[Dict[str, Any]] = None,
-        ws_messages: Optional[List[Any]] = None,
+        throttler: MockAsyncThrottler | None = None,
+        rest_responses: dict[str, Any] | None = None,
+        ws_messages: list[Any] | None = None,
     ):
         """Initialize the mock factory.
 
         :param throttler: Mock throttler.
-        :param rest_responses: Dictionary mapping URLs to mock responses.
-        :param ws_messages: List of messages to return when iterating.
+        :param rest_responses: dictionary mapping URLs to mock responses.
+        :param ws_messages: list of messages to return when iterating.
         """
         self.throttler: MockAsyncThrottler = throttler or MockAsyncThrottler()
         self.rest_connection: MockRESTConnection = MockRESTConnection(rest_responses)
@@ -267,9 +267,9 @@ class MockWebAssistantsFactory:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[Any],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any | None,
     ) -> None:
         """Exit async context."""
         await self.close()

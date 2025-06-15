@@ -416,7 +416,7 @@ class TestBinanceSpotAdapter:
         except Exception as e:
             # Should be a handled exception, not a crash
             assert isinstance(
-                e, (ConnectionError, TimeoutError, Exception)
+                e, ConnectionError | TimeoutError | Exception
             ), "Should be a handled exception"
             logger.info(f"  Binance error handled gracefully: {type(e).__name__}")
 

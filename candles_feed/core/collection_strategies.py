@@ -8,6 +8,7 @@ including both WebSocket and REST-based approaches.
 import asyncio
 import logging
 import time
+from collections import deque
 from typing import Deque
 
 from candles_feed.adapters.protocols import AdapterProtocol
@@ -31,7 +32,7 @@ class WebSocketStrategy:
         trading_pair: str,
         interval: str,
         data_processor: DataProcessor,
-        candles_store: Deque[CandleData],
+        candles_store: deque[CandleData],
         logger: Logger | None = None,
     ):
         """Initialize the WebSocketStrategy.
@@ -210,7 +211,7 @@ class RESTPollingStrategy:
         trading_pair: str,
         interval: str,
         data_processor: DataProcessor,
-        candles_store: Deque[CandleData],
+        candles_store: deque[CandleData],
         logger: Logger | None = None,
     ):
         """Initialize the RESTPollingStrategy.
@@ -377,7 +378,7 @@ class CollectionStrategyFactory:
         interval: str,
         network_client: NetworkClient,
         data_processor: DataProcessor,
-        candles_store: Deque[CandleData],
+        candles_store: deque[CandleData],
         logger: Logger | None = None,
     ) -> CollectionStrategy:
         """Create appropriate strategy based on adapter capabilities.

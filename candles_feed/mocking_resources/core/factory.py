@@ -4,7 +4,7 @@ Server factory for creating mock exchange servers.
 
 import importlib
 import logging
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-_PLUGIN_REGISTRY: Dict[ExchangeType, "ExchangePlugin"] = {}
+_PLUGIN_REGISTRY: dict[ExchangeType, "ExchangePlugin"] = {}
 
 
 def register_plugin(exchange_type: ExchangeType, plugin: "ExchangePlugin") -> None:
@@ -32,7 +32,7 @@ def register_plugin(exchange_type: ExchangeType, plugin: "ExchangePlugin") -> No
     _PLUGIN_REGISTRY[exchange_type] = plugin
 
 
-def get_plugin(exchange_type: ExchangeType) -> "Optional[ExchangePlugin]":
+def get_plugin(exchange_type: ExchangeType) -> "ExchangePlugin | None":
     """Get the plugin for an exchange type.
 
     :param exchange_type: ExchangeType:
@@ -46,14 +46,14 @@ def get_plugin(exchange_type: ExchangeType) -> "Optional[ExchangePlugin]":
     return _get_plugin_from_registry(exchange_type)
 
 
-def _get_plugin_from_registry(exchange_type: ExchangeType) -> "Optional[ExchangePlugin]":
+def _get_plugin_from_registry(exchange_type: ExchangeType) -> "ExchangePlugin | None":
     """Get a plugin instance using the plugin registry mapping.
 
     :param exchange_type: The exchange type to get a plugin for
     :returns: A plugin instance or None if no plugin is registered
     """
     # Plugin registry mapping
-    plugin_registry: Dict[ExchangeType, str] = {
+    plugin_registry: dict[ExchangeType, str] = {
         ExchangeType.BINANCE_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.binance.spot_plugin.BinanceSpotPlugin",
         ExchangeType.BINANCE_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.binance.perpetual_plugin.BinancePerpetualPlugin",
         ExchangeType.OKX_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.okx.spot_plugin.OKXSpotPlugin",
@@ -126,8 +126,8 @@ def create_mock_server(
     exchange_type: ExchangeType,
     host: str = "127.0.0.1",
     port: int = 8082,
-    trading_pairs: Optional[List[Tuple[str, str, float]]] = None,
-) -> Optional[MockExchangeServerType]:
+    trading_pairs: list[tuple[str, str, float]] | None = None,
+) -> MockExchangeServerType | None:
     """Create a mock exchange server.
 
     :param exchange_type: The type of exchange to mock

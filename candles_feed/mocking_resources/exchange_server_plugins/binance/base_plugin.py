@@ -2,7 +2,7 @@ import json
 import random
 import time
 from abc import ABC
-from typing import Any, Dict
+from typing import Any
 
 from aiohttp import web
 
@@ -29,7 +29,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         super().__init__(exchange_type, adapter_class)
 
     @property
-    def rate_limits(self) -> Dict:
+    def rate_limits(self) -> dict:
         """
         Get the rate limits for Binance.
 
@@ -70,7 +70,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         }
 
     @property
-    def api_keys(self) -> Dict:
+    def api_keys(self) -> dict:
         """
         Get the test API keys for Binance.
 
@@ -94,7 +94,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         }
 
     @property
-    def network_settings(self) -> Dict:
+    def network_settings(self) -> dict:
         """
         Get network settings for Binance.
 
@@ -160,7 +160,7 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
                                 {"error": "Invalid message format: expected a JSON object."}
                             )
                             continue
-                        data: Dict[str, Any] = raw_data
+                        data: dict[str, Any] = raw_data
                         method = data.get("method")  # method is Optional[Any]
 
                         if method == "SUBSCRIBE":
@@ -458,8 +458,8 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         return subscriptions
 
     def create_ws_subscription_success(
-        self, message: Dict[str, Any], subscriptions: list[tuple[str, str]]
-    ) -> Dict[str, Any]:
+        self, message: dict[str, Any], subscriptions: list[tuple[str, str]]
+    ) -> dict[str, Any]:
         """
         Create a Binance WebSocket subscription success response.
 

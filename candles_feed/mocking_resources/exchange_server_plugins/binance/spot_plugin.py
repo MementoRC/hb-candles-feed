@@ -78,12 +78,12 @@ class BinanceSpotPlugin(BinanceBasePlugin):
         params = request.query
 
         # Get all Binance klines parameters
-        symbol: Optional[str] = params.get("symbol")
-        interval: Optional[str] = params.get("interval")
-        start_time_str: Optional[str] = params.get("startTime")
-        end_time_str: Optional[str] = params.get("endTime")
+        symbol: str | None = params.get("symbol")
+        interval: str | None = params.get("interval")
+        start_time_str: str | None = params.get("startTime")
+        end_time_str: str | None = params.get("endTime")
         time_zone_str: str = params.get("timeZone", "0")  # Default to "0" if not provided
-        limit_str: Optional[str] = params.get("limit")
+        limit_str: str | None = params.get("limit")
 
         parsed_limit: int = 500  # Default limit
         if limit_str is not None:

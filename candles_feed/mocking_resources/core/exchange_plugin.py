@@ -35,7 +35,7 @@ class ExchangePlugin(abc.ABC):
         self.adapter_class = adapter_class
 
     @property
-    def rate_limits(self) -> Dict:
+    def rate_limits(self) -> dict:
         """
         Get the rate limits for this exchange.
 
@@ -57,7 +57,7 @@ class ExchangePlugin(abc.ABC):
         }
 
     @property
-    def api_keys(self) -> Dict:
+    def api_keys(self) -> dict:
         """
         Get the test API keys for this exchange.
 
@@ -75,7 +75,7 @@ class ExchangePlugin(abc.ABC):
         }
 
     @property
-    def network_settings(self) -> Dict:
+    def network_settings(self) -> dict:
         """
         Get network settings for this exchange (keepalive intervals, etc.)
 
@@ -228,7 +228,7 @@ class ExchangePlugin(abc.ABC):
         return ""
 
     @property
-    def urls(self) -> Dict[str, str]:
+    def urls(self) -> dict[str, str]:
         """
         Get the URL mapping for this exchange.
 
@@ -236,7 +236,7 @@ class ExchangePlugin(abc.ABC):
         """
         return {"rest": self.rest_url, "ws": self.wss_url}
 
-    def get_patched_urls(self, host: str, port: int) -> Dict[str, str]:
+    def get_patched_urls(self, host: str, port: int) -> dict[str, str]:
         """
         Get URLs to patch during mocked server operation.
 

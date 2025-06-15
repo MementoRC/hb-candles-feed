@@ -124,7 +124,7 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
-    ) -> Union[list, dict]:
+    ) -> list | dict:
         """
         Format candle data as a Kraken WebSocket message.
 

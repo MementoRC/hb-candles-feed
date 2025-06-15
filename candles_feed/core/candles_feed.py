@@ -73,7 +73,7 @@ class CandlesFeed:
         self.ex_trading_pair = self._adapter.get_trading_pair_format(trading_pair)
 
         # Initialize components
-        self._candles: Deque[CandleData] = deque(maxlen=max_records)
+        self._candles: deque[CandleData] = deque(maxlen=max_records)
 
         # Create the appropriate network client based on available components
         self._network_client = NetworkClientFactory.create_client(

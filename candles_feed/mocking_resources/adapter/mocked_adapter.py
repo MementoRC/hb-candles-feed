@@ -2,7 +2,7 @@
 Simple mock adapter for testing the candles feed framework.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
@@ -28,7 +28,7 @@ class MockedAdapter(BaseAdapter):
     testing rather than mimicking a real exchange.
     """
 
-    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+    def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.
 
         :param network_config: Network configuration for testnet/production
@@ -37,7 +37,7 @@ class MockedAdapter(BaseAdapter):
         """
         super().__init__()  # Call object.__init__()
         self._network_config = network_config
-        self._network_client = kwargs.get("network_client")
+        self._network_client: Any | None = kwargs.get("network_client") # Assuming NetworkClientProtocol | None
 
     def get_intervals(self) -> Dict[str, int]:
         """
@@ -55,11 +55,11 @@ class MockedAdapter(BaseAdapter):
         """
         return self.get_intervals()
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """
         Get intervals supported by WebSocket API.
 
-        :returns: List of supported interval strings.
+        :returns: list of supported interval strings.
         """
         return list(INTERVALS.keys())
 
@@ -118,10 +118,10 @@ class MockedAdapter(BaseAdapter):
         self,
         trading_pair: str,
         interval: str,
-        limit: Optional[int] = None,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        limit: int | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+    ) -> dict[str, Any]:
         """
         Get REST API request parameters.
 
@@ -148,10 +148,10 @@ class MockedAdapter(BaseAdapter):
 
     def parse_rest_response(
         self,
-        response_data: Dict[str, Any],
-        trading_pair: Optional[str] = None,
-        interval: Optional[str] = None,
-    ) -> List[CandleData]:
+        response_data: dict[str, Any],
+        trading_pair: str | None = None,
+        interval: str | None = None,
+    ) -> list[CandleData]:
         """Alias for process_rest_response to match BaseAdapter interface.
 
         Note: This method makes trading_pair and interval optional to support the
@@ -166,11 +166,11 @@ class MockedAdapter(BaseAdapter):
 
         return self.process_rest_response(response_data, trading_pair, interval)
 
-    def _parse_rest_response(self, data: Dict[str, Any] | List[Any] | None) -> List[CandleData]:
+    def _parse_rest_response(self, data: dict[str, Any] | list[Any] | None) -> list[CandleData]:
         """Parse REST API response data into CandleData objects.
 
         :param data: Response data from the REST API
-        :return: List of CandleData objects
+        :return: list of CandleData objects
         """
         if not isinstance(data, dict):  # Handles None and list cases
             return []
@@ -179,15 +179,15 @@ class MockedAdapter(BaseAdapter):
         return self.parse_rest_response(data)
 
     def process_rest_response(
-        self, response_data: Dict[str, Any], trading_pair: Optional[str], interval: Optional[str]
-    ) -> List[CandleData]:
+        self, response_data: dict[str, Any], trading_pair: str | None, interval: str | None
+    ) -> list[CandleData]:
         """
         Process REST API response data into CandleData objects.
 
         :param response_data: Response data from the REST API.
         :param trading_pair: Trading pair in standard format.
         :param interval: Interval string.
-        :returns: List of CandleData objects.
+        :returns: list of CandleData objects.
         """
         result = []
 

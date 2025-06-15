@@ -6,9 +6,10 @@ profiling infrastructure to provide operational visibility.
 """
 
 import time
+from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, Generator
+from typing import Any
 
 from ..utils.profiling import PerformanceProfiler
 from .monitoring import MonitoringManager

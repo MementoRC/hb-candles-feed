@@ -18,7 +18,7 @@ from candles_feed.core.network_config import NetworkConfig
 class BybitSpotAdapter(BybitBaseAdapter):
     """Bybit spot exchange adapter."""
 
-    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+    def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.
 
         :param network_config: Network configuration for testnet/production

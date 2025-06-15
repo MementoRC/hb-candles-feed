@@ -29,7 +29,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -40,9 +40,9 @@ class QualityCheckResult:
     passed: bool
     duration: float
     message: str
-    details: Dict[str, Any]
-    command: Optional[str] = None
-    exit_code: Optional[int] = None
+    details: dict[str, Any]
+    command: str | None = None
+    exit_code: int | None = None
 
 
 @dataclass
@@ -53,9 +53,9 @@ class QualityGateReport:
     mode: str
     overall_passed: bool
     total_duration: float
-    checks: List[QualityCheckResult]
-    summary: Dict[str, Any]
-    environment: Dict[str, Any]
+    checks: list[QualityCheckResult]
+    summary: dict[str, Any]
+    environment: dict[str, Any]
 
 
 class QualityGatesOrchestrator:
@@ -77,7 +77,7 @@ class QualityGatesOrchestrator:
         # Quality checks configuration
         self.quality_checks = self._configure_quality_checks()
 
-    def _configure_quality_checks(self) -> List[Dict[str, Any]]:
+    def _configure_quality_checks(self) -> list[dict[str, Any]]:
         """Configure quality checks based on mode."""
         base_checks = [
             {
@@ -158,7 +158,7 @@ class QualityGatesOrchestrator:
         except Exception:
             return False
 
-    def _run_command(self, command: List[str], description: str) -> QualityCheckResult:
+    def _run_command(self, command: list[str], description: str) -> QualityCheckResult:
         """Run a quality check command and return results."""
         start_time = time.time()
 

@@ -4,6 +4,7 @@ Data processing utilities for the Candle Feed framework.
 
 import bisect
 import logging
+from collections import deque
 from collections.abc import Sequence
 from typing import Deque
 
@@ -118,7 +119,7 @@ class DataProcessor:
             for i in range(len(sorted_candles) - 1)
         )
 
-    def process_candle(self, candle: CandleData, candles_store: Deque[CandleData]) -> None:
+    def process_candle(self, candle: CandleData, candles_store: deque[CandleData]) -> None:
         """Process a single candle and add it to the store.
 
         Optimized version using binary search for efficient insertion and O(1)

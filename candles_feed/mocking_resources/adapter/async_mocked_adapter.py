@@ -2,7 +2,7 @@
 Asynchronous mock adapter for testing the candles feed framework.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -31,7 +31,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT = "milliseconds"
 
-    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+    def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.
 
         :param network_config: Network configuration for testnet/production
@@ -39,8 +39,8 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param kwargs: Additional keyword arguments, may include 'network_client'
         """
         super().__init__()  # Call object.__init__(), BaseAdapter has no __init__
-        self._network_config: Optional[NetworkConfig] = network_config
-        self._network_client: Optional[NetworkClientProtocol] = kwargs.get("network_client")
+        self._network_config: NetworkConfig | None = network_config
+        self._network_client: NetworkClientProtocol | None = kwargs.get("network_client")
 
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
@@ -59,7 +59,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
-    def get_ws_supported_intervals(self) -> List[str]:
+    def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
         :returns: List of supported interval strings.
@@ -91,7 +91,7 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         """Process WebSocket message into CandleData objects.
 
         :param message: WebSocket message.
-        :returns: List of CandleData objects or None if the message doesn't contain candle data.
+        :returns: list of CandleData objects or None if the message doesn't contain candle data.
         """
         data = message.get("data", {})
 
@@ -125,10 +125,10 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
         self,
         trading_pair: str,
         interval: str,
-        start_time: Optional[int] = None,
-        end_time: Optional[int] = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
         limit: int = DEFAULT_CANDLES_LIMIT,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get REST API request parameters.
 
         :param trading_pair: Trading pair in standard format.
@@ -152,11 +152,11 @@ class AsyncMockedAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
-    def _parse_rest_response(self, response_data: dict | list | None) -> List[CandleData]:
+    def _parse_rest_response(self, response_data: dict | list | None) -> list[CandleData]:
         """Process REST API response data into CandleData objects.
 
         :param response_data: Response data from the REST API.
-        :returns: List of CandleData objects.
+        :returns: list of CandleData objects.
         """
         result: List[CandleData] = []
 

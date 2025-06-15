@@ -11,9 +11,10 @@ import gc
 import logging
 import time
 import tracemalloc
+from collections.abc import Callable
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 import psutil
 
@@ -32,8 +33,8 @@ class PerformanceMetrics:
     memory_current_mb: float
     cpu_percent: float
     success: bool = True
-    error: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -50,7 +51,7 @@ class BenchmarkResult:
     memory_peak_mb: float
     memory_final_mb: float
     success_rate: float
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 class PerformanceProfiler:
@@ -62,7 +63,7 @@ class PerformanceProfiler:
         :param enable_memory_tracking: Whether to track memory usage
         """
         self.enable_memory_tracking = enable_memory_tracking
-        self.metrics: List[PerformanceMetrics] = []
+        self.metrics: list[PerformanceMetrics] = []
         self._start_memory = 0
         self._process = psutil.Process()
 
@@ -141,7 +142,7 @@ class PerformanceProfiler:
         except Exception:
             return 0.0
 
-    def get_metrics_summary(self) -> Dict[str, Any]:
+    def get_metrics_summary(self) -> dict[str, Any]:
         """Get summary statistics for all recorded metrics."""
         if not self.metrics:
             return {}
@@ -161,7 +162,7 @@ class PerformanceProfiler:
             "errors": [m.error for m in self.metrics if not m.success],
         }
 
-    def _percentile(self, values: List[float], percentile: float) -> float:
+    def _percentile(self, values: list[float], percentile: float) -> float:
         """Calculate percentile of values."""
         if not values:
             return 0.0
@@ -176,7 +177,7 @@ class PerformanceProfiler:
         gc.collect()
 
 
-def profile_performance(operation_name: str = None, enable_memory: bool = True) -> Callable[[F], F]:
+def profile_performance(operation_name: str | None = None, enable_memory: bool = True) -> Callable[[F], F]:
     """Decorator for profiling function performance.
 
     :param operation_name: Name for the operation (defaults to function name)

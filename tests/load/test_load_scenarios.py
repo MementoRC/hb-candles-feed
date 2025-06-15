@@ -33,9 +33,9 @@ class LoadTestMetrics:
     """Collect and analyze performance metrics during load testing."""
 
     def __init__(self):
-        self.request_times: List[float] = []
-        self.response_codes: List[int] = []
-        self.errors: List[str] = []
+        self.request_times: list[float] = []
+        self.response_codes: list[int] = []
+        self.errors: list[str] = []
         self.start_time: float = 0
         self.end_time: float = 0
 
@@ -54,7 +54,7 @@ class LoadTestMetrics:
         """Mark the end of the load test."""
         self.end_time = time.time()
 
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict:
         """Generate a comprehensive performance summary."""
         if not self.request_times:
             return {"error": "No requests recorded"}
@@ -105,7 +105,7 @@ class CandlesFeedLoadTester:
         if self.session:
             await self.session.close()
 
-    async def _make_request(self, method: str, path: str, **kwargs) -> Tuple[float, int, str]:
+    async def _make_request(self, method: str, path: str, **kwargs) -> tuple[float, int, str]:
         """Make a timed HTTP request and record metrics."""
         start_time = time.time()
         error_msg = None

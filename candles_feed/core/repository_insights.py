@@ -2,7 +2,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple # Added Any, Dict
+from typing import Any, Dict, List, Optional, Tuple  # Added Any, Dict
 
 import aiohttp  # Using aiohttp for async requests
 
@@ -33,8 +33,8 @@ class RepositoryInsightsCollector:
         self,
         repo_owner: str,
         repo_name: str,
-        github_token: Optional[str] = None,
-        monitoring_manager: Optional[Any] = None,
+        github_token: str | None = None,
+        monitoring_manager: Any | None = None,
     ):  # Placeholder for MonitoringManager
         self.repo_owner = repo_owner
         self.repo_name = repo_name
@@ -51,8 +51,8 @@ class RepositoryInsightsCollector:
     async def _make_request(
         self,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        client: Optional[aiohttp.ClientSession] = None,
+        params: dict[str, Any] | None = None,
+        client: aiohttp.ClientSession | None = None,
     ) -> Any:
         """Helper function to make GET requests to GitHub API."""
         url = f"{self.BASE_URL}{endpoint}"
@@ -87,9 +87,9 @@ class RepositoryInsightsCollector:
     async def _fetch_paginated_data(
         self,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        client: Optional[aiohttp.ClientSession] = None,
-    ) -> List[Dict[str, Any]]:
+        params: dict[str, Any] | None = None,
+        client: aiohttp.ClientSession | None = None,
+    ) -> list[dict[str, Any]]:
         """Fetches all items from a paginated GitHub API endpoint."""
         all_items = []
         current_params = params.copy() if params else {}
@@ -369,8 +369,8 @@ class RepositoryInsightsCollector:
         return metrics
 
     def _parse_quality_gates_report(
-        self, report_data: Dict[str, Any]
-    ) -> Tuple[Optional[CICDPerformanceSnapshot], Optional[CodeQualitySnapshot]]:
+        self, report_data: dict[str, Any]
+    ) -> tuple[CICDPerformanceSnapshot | None, CodeQualitySnapshot | None]:
         """Parses a QualityGateReport structure to extract CI/CD and Code Quality snapshots."""
         ci_cd_snapshot = None
         code_quality_snapshot = None
@@ -420,7 +420,7 @@ class RepositoryInsightsCollector:
         return ci_cd_snapshot, code_quality_snapshot
 
     async def collect_all_metrics(
-        self, quality_gates_report_data: Optional[Dict[str, Any]] = None
+        self, quality_gates_report_data: dict[str, Any] | None = None
     ) -> RepositoryMetricsReport:
         """Collects all repository metrics and generates a report."""
         collection_start_time = time.monotonic()

@@ -4,7 +4,6 @@ URL patching utility for exchange testing.
 
 import importlib
 import logging
-from typing import Dict, Optional
 
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
@@ -32,7 +31,7 @@ class ExchangeURLPatcher:
         self.exchange_type = exchange_type
         self.host = host
         self.port = port
-        self.original_urls: Dict[str, Dict[str, str]] = {}
+        self.original_urls: dict[str, dict[str, str]] = {}
 
     def patch_urls(self, plugin: ExchangePlugin) -> bool:
         """
@@ -116,7 +115,7 @@ class ExchangeURLPatcher:
             logger.error(f"Error restoring URLs: {e}")
             return False
 
-    def _get_adapter_constants_module(self) -> Optional[tuple[str, Dict[str, str]]]:
+    def _get_adapter_constants_module(self) -> tuple[str, dict[str, str]] | None:
         """
         Get the adapter constants module name and URL attributes based on exchange type.
 

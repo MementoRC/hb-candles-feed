@@ -23,7 +23,7 @@ class NetworkClient:
     handling both REST and WebSocket connections with optimized connection pooling.
     """
 
-    def __init__(self, config: Optional[NetworkConfig] = None, logger: Logger | None = None):
+    def __init__(self, config: NetworkConfig | None = None, logger: Logger | None = None):
         """Initialize the NetworkClient.
 
         :param config: Network configuration for connection pooling and timeouts

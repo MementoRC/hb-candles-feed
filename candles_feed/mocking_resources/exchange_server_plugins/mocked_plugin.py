@@ -37,7 +37,7 @@ class MockedPlugin(ExchangePlugin):
         super().__init__(exchange_type, MockedAdapter)  # type: ignore
 
         # Initialize trading pairs dictionary to store pair configurations
-        self.trading_pairs: Dict[str, Dict[str, float]] = {}
+        self.trading_pairs: dict[str, dict[str, float]] = {}
 
     @property
     def rest_url(self) -> str:
@@ -96,7 +96,7 @@ class MockedPlugin(ExchangePlugin):
         # Format candles as dictionaries
         interval_ms: int = self._interval_to_milliseconds(interval)
 
-        formatted_candles: List[Dict[str, Any]] = [
+        formatted_candles: list[dict[str, Any]] = [
             {
                 "timestamp": int(candle.timestamp_ms),  # type: ignore
                 "open": str(candle.open),  # type: ignore
@@ -156,14 +156,14 @@ class MockedPlugin(ExchangePlugin):
             },
         }
 
-    def parse_ws_subscription(self, message: Dict[str, Any]) -> List[Tuple[str, str]]:
+    def parse_ws_subscription(self, message: dict[str, Any]) -> list[tuple[str, str]]:
         """
         Parse a WebSocket subscription message.
 
         :param message: The subscription message from the client.
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
-        subscriptions: List[Tuple[str, str]] = []
+        subscriptions: list[tuple[str, str]] = []
 
         # Support both our format and the Binance format for compatibility
         if message.get("type") == "subscribe":
@@ -187,8 +187,8 @@ class MockedPlugin(ExchangePlugin):
         return subscriptions
 
     def create_ws_subscription_success(
-        self, message: Dict[str, Any], subscriptions: List[Tuple[str, str]]
-    ) -> Dict[str, Any]:
+        self, message: dict[str, Any], subscriptions: list[tuple[str, str]]
+    ) -> dict[str, Any]:
         """
         Create a WebSocket subscription success response.
 
@@ -392,7 +392,7 @@ class MockedPlugin(ExchangePlugin):
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
 
-        instruments: List[Dict[str, str]] = []
+        instruments: list[dict[str, str]] = []
         for trading_pair_str in server.trading_pairs:
             base, quote = (
                 trading_pair_str.split("-")
@@ -456,13 +456,13 @@ class MockedPlugin(ExchangePlugin):
             async for msg in ws:
                 if msg.type == web.WSMsgType.TEXT:
                     try:
-                        data_dict: Dict[str, Any] = json.loads(msg.data)
+                        data_dict: dict[str, Any] = json.loads(msg.data)
                         if (
                             data_dict.get("type") == "subscribe"
                             or data_dict.get("method") == "SUBSCRIBE"
                         ):
                             # Parse subscriptions
-                            subscriptions_list: List[Tuple[str, str]] = self.parse_ws_subscription(
+                            subscriptions_list: list[tuple[str, str]] = self.parse_ws_subscription(
                                 data_dict
                             )
 
@@ -474,7 +474,7 @@ class MockedPlugin(ExchangePlugin):
                             )
 
                             # Create success response first (before sending data)
-                            success_response_dict: Dict[str, Any]
+                            success_response_dict: dict[str, Any]
                             if method_str == "subscribe":
                                 # Our format
                                 success_response_dict = {
@@ -498,7 +498,7 @@ class MockedPlugin(ExchangePlugin):
                             # Handle subscriptions
                             for trading_pair_str, interval_str in subscriptions_list:
                                 # Find the actual trading pair in server
-                                normalized_pair_str: Optional[str] = None
+                                normalized_pair_str: str | None = None
                                 for pair_key_str in server.candles:
                                     if (
                                         self.normalize_trading_pair(pair_key_str)
@@ -525,12 +525,12 @@ class MockedPlugin(ExchangePlugin):
                                     server.subscriptions[subscription_key_str].add(ws)
 
                                     # Send the current candle (optional after confirmation)
-                                    candles_list: List[CandleData] = server.candles[
+                                    candles_list: list[CandleData] = server.candles[
                                         normalized_pair_str
                                     ][interval_str]
                                     if candles_list:
                                         current_candle_obj: CandleData = candles_list[-1]
-                                        message_dict: Dict[
+                                        message_dict: dict[
                                             str, Any
                                         ] = self.format_ws_candle_message(
                                             candle=current_candle_obj,
@@ -573,7 +573,7 @@ class MockedPlugin(ExchangePlugin):
                                         del server.subscriptions[subscription_key_str]
 
                             # Send unsubscription success response
-                            unsub_success_response: Dict[
+                            unsub_success_response: dict[
                                 str, Any
                             ] = self.create_ws_subscription_success(data_dict, subscriptions_list)
                             await ws.send_json(unsub_success_response)
@@ -619,10 +619,10 @@ class MockedPlugin(ExchangePlugin):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
 
         # Parse parameters
-        params_dict: Dict[str, Any] = self.parse_rest_candles_params(request)
-        symbol_str: Optional[str] = params_dict.get("symbol")
-        interval_str: Optional[str] = params_dict.get("interval")
-        limit_val: Optional[int] = params_dict.get(
+        params_dict: dict[str, Any] = self.parse_rest_candles_params(request)
+        symbol_str: str | None = params_dict.get("symbol")
+        interval_str: str | None = params_dict.get("interval")
+        limit_val: int | None = params_dict.get(
             "limit"
         )  # Already int or None from parse_rest_candles_params
 
@@ -631,7 +631,7 @@ class MockedPlugin(ExchangePlugin):
         )  # Default if not provided or invalid
 
         # Find the trading pair in our list
-        trading_pair_found: Optional[str] = None
+        trading_pair_found: str | None = None
         if symbol_str:
             for pair_key_str in server.candles:
                 if pair_key_str.replace("-", "") == symbol_str:
@@ -655,14 +655,14 @@ class MockedPlugin(ExchangePlugin):
             return web.json_response({"error": f"Interval not found: {interval_str}"}, status=404)
 
         # Get the candles
-        candles_list: List[CandleData] = server.candles[trading_pair_found][interval_str]
+        candles_list: list[CandleData] = server.candles[trading_pair_found][interval_str]
 
         # Apply limit
         if limit_int and len(candles_list) > limit_int:
             candles_list = candles_list[-limit_int:]
 
         # Format candles
-        formatted_candles_dict: Dict[str, Any] = self.format_rest_candles(
+        formatted_candles_dict: dict[str, Any] = self.format_rest_candles(
             candles_list, trading_pair_found, interval_str
         )
 

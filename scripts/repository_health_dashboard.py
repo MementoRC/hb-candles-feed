@@ -31,7 +31,7 @@ from candles_feed.core.repository_insights import RepositoryInsightsCollector
 logger = logging.getLogger("RepositoryHealthDashboard")
 
 
-def load_json_report_data(file_path: Optional[Path]) -> Optional[dict]:
+def load_json_report_data(file_path: Path | None) -> dict | None:
     """Loads a JSON report from the given file path."""
     if file_path and file_path.exists() and file_path.is_file():
         try:

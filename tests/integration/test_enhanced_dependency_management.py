@@ -292,7 +292,7 @@ class TestEnhancedDependencyManagement:
                     }
 
             # Run concurrent operations
-            tasks = [fetch_for_feed(feed, pair) for feed, pair in zip(feeds, trading_pairs)]
+            tasks = [fetch_for_feed(feed, pair) for feed, pair in zip(feeds, trading_pairs, strict=False)]
 
             start_time = time.time()
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -327,7 +327,7 @@ class TestEnhancedDependencyManagement:
             )
 
             stress_tasks = [
-                fetch_for_feed(feed, f"{pair}_stress") for feed, pair in zip(feeds, trading_pairs)
+                fetch_for_feed(feed, f"{pair}_stress") for feed, pair in zip(feeds, trading_pairs, strict=False)
             ]
 
             stress_results = await asyncio.gather(*stress_tasks, return_exceptions=True)
@@ -339,7 +339,7 @@ class TestEnhancedDependencyManagement:
 
         finally:
             # Restore all feeds and close their network clients
-            for feed_item, original_methods_item in zip(feeds, original_methods_list):
+            for feed_item, original_methods_item in zip(feeds, original_methods_list, strict=False):
                 self.restore_feed_urls(feed_item, original_methods_item)
                 if hasattr(feed_item, "_network_client") and feed_item._network_client:
                     await feed_item._network_client.close()
