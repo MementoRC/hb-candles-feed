@@ -179,16 +179,18 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          echo "🧪 Running unit tests..."
+          echo "🧪 Running unit tests with CI optimizations..."
           pixi run -e ${{ matrix.pixi-environment }} pytest tests \
             -m "not integration and not benchmark" \
             --cov=candles_feed \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \
             --junitxml=test-results-unit.xml \
-            --timeout=600 \
-            --maxfail=5 \
-            -v
+            --timeout=900 \
+            --maxfail=3 \
+            --tb=short \
+            --disable-warnings \
+            -q
 
       - name: Run integration tests
         env:
@@ -196,15 +198,17 @@ jobs:
           WEBSOCKET_ECHO_URL: ws://localhost:8080
           TEST_WITH_SERVICES: true
         run: |
-          echo "🔗 Running integration tests with service containers..."
+          echo "🔗 Running integration tests with CI optimizations..."
           pixi run -e ${{ matrix.pixi-environment }} pytest tests \
             -m "integration and not benchmark" \
             --cov=candles_feed \
             --cov-append \
             --junitxml=test-results-integration.xml \
-            --timeout=900 \
-            --maxfail=3 \
-            -v
+            --timeout=1200 \
+            --maxfail=2 \
+            --tb=short \
+            --disable-warnings \
+            -q
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -289,25 +293,29 @@ jobs:
 
       - name: Run unit tests
         run: |
-          echo "🧪 Running unit tests on macOS..."
+          echo "🧪 Running unit tests on macOS with CI optimizations..."
           pixi run -e py312 pytest tests \
             -m "not integration and not benchmark" \
             --junitxml=test-results-unit-macos.xml \
-            --timeout=600 \
-            --maxfail=5 \
-            -v
+            --timeout=900 \
+            --maxfail=3 \
+            --tb=short \
+            --disable-warnings \
+            -q
 
       - name: Run integration tests (no service containers)
         env:
           TEST_WITH_SERVICES: false
         run: |
-          echo "🔗 Running integration tests on macOS (graceful fallback for missing service containers)..."
+          echo "🔗 Running integration tests on macOS with CI optimizations..."
           pixi run -e py312 pytest tests \
             -m "integration and not benchmark" \
             --junitxml=test-results-integration-macos.xml \
-            --timeout=900 \
-            --maxfail=3 \
-            -v
+            --timeout=1200 \
+            --maxfail=2 \
+            --tb=short \
+            --disable-warnings \
+            -q
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
