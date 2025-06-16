@@ -226,6 +226,9 @@ markers = [
 ]
 log_cli = true
 log_cli_level = "INFO"
+# Timeout settings (CI-friendly, can be overridden by --timeout flag)
+timeout = 300
+timeout_method = "thread"
 
 [tool.mypy]
 python_version = "3.10"

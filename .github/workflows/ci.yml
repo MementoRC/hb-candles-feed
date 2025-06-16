@@ -186,6 +186,8 @@ jobs:
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \
             --junitxml=test-results-unit.xml \
+            --timeout=600 \
+            --maxfail=5 \
             -v
 
       - name: Run integration tests
@@ -200,6 +202,8 @@ jobs:
             --cov=candles_feed \
             --cov-append \
             --junitxml=test-results-integration.xml \
+            --timeout=900 \
+            --maxfail=3 \
             -v
 
       - name: Upload test results
@@ -289,6 +293,8 @@ jobs:
           pixi run -e py312 pytest tests \
             -m "not integration and not benchmark" \
             --junitxml=test-results-unit-macos.xml \
+            --timeout=600 \
+            --maxfail=5 \
             -v
 
       - name: Run integration tests (no service containers)
@@ -299,6 +305,8 @@ jobs:
           pixi run -e py312 pytest tests \
             -m "integration and not benchmark" \
             --junitxml=test-results-integration-macos.xml \
+            --timeout=900 \
+            --maxfail=3 \
             -v
 
       - name: Upload test results

@@ -3,6 +3,7 @@ Global test fixtures and configuration for the Candles Feed framework tests.
 """
 
 import logging
+import os
 from collections import deque
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
@@ -18,6 +19,16 @@ from candles_feed.core.protocols import WSAssistant
 from candles_feed.mocking_resources import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
+
+# CI Environment Detection
+IS_CI = any(
+    os.getenv(var, "").lower() in ("true", "1", "yes")
+    for var in ("CI", "GITHUB_ACTIONS", "CONTINUOUS_INTEGRATION")
+)
+
+# CI-specific configuration
+CI_TIMEOUT_MULTIPLIER = 3 if IS_CI else 1
+CI_RETRY_ATTEMPTS = 3 if IS_CI else 1
 
 # Configure logging for tests
 @pytest.fixture(scope="session", autouse=True)
