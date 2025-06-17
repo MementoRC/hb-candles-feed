@@ -9,12 +9,12 @@ It leverages the GitHub API and can integrate with other local reports (e.g., qu
 
 import argparse
 import asyncio
+import importlib.util
 import json
 import logging
 import os
 import sys
 from pathlib import Path
-import importlib.util
 
 # Adjust sys.path to import from candles_feed.core
 # This assumes the script is run from the project root or that candles_feed is in PYTHONPATH
@@ -32,7 +32,7 @@ if candles_feed_spec is None:
         candles_feed_spec = importlib.util.find_spec("candles_feed.core")
     except (ModuleNotFoundError, ImportError):
         candles_feed_spec = None
-    
+
     if candles_feed_spec is None:
         sys.stderr.write(
             "Error: Could not find 'candles_feed.core' even after adding project root to sys.path.\n"

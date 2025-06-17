@@ -69,7 +69,7 @@ def run_script(args_list, env_vars=None):
     # Check if pixi is available and pyproject.toml exists
     project_root = Path(__file__).resolve().parent.parent.parent
     pyproject_toml = project_root / "pyproject.toml"
-    
+
     if pyproject_toml.exists():
         # Use pixi run to execute with proper environment
         cmd = ["pixi", "run", "python", str(SCRIPT_PATH)] + args_list
