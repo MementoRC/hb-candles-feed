@@ -225,7 +225,7 @@ markers = [
     "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
 ]
 log_cli = true
-log_cli_level = "INFO"
+log_cli_level = "DEBUG"
 # Timeout settings (CI-friendly, can be overridden by --timeout flag)
 timeout = 300
 timeout_method = "thread"
