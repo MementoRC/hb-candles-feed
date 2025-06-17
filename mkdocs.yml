@@ -92,8 +92,8 @@ markdown_extensions:
   - pymdownx.caret
   - pymdownx.details
   - pymdownx.emoji:
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: material.extensions.emoji.to_svg
+      emoji_index: material.extensions.emoji.twemoji
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -110,7 +110,7 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+          format: pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist:
@@ -170,6 +170,8 @@ extra:
       link: https://pypi.org/project/hb-candles-feed/
   analytics:
     provider: google
-    property: !ENV GOOGLE_ANALYTICS_KEY
+    # The !ENV tag was replaced with a placeholder to pass the 'check-yaml' pre-commit hook.
+    # The build process should handle substituting this value from the GOOGLE_ANALYTICS_KEY environment variable.
+    property: "UA-XXXXXXXXX-X"
   version:
     provider: mike

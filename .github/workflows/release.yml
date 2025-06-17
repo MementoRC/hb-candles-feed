@@ -117,6 +117,8 @@ jobs:
       is-prerelease: ${{ steps.version.outputs.is-prerelease }}
       clean-version: ${{ steps.version.outputs.clean-version }}
       should-publish: ${{ steps.version.outputs.should-publish }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      last_tag: ${{ steps.changelog.outputs.last_tag }}
 
     steps:
       - uses: actions/checkout@v4
@@ -252,6 +254,7 @@ jobs:
           fi
 
           # Save changelog for later use
+          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo -e "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -276,20 +279,17 @@ jobs:
         run: |
           VERSION="${{ needs.validate-release.outputs.version }}"
           CHANGELOG_CONTENT="${{ needs.validate-release.outputs.changelog || 'Package maintenance and improvements' }}"
-
+          
           # Create CHANGELOG.md if it doesn't exist
           if [[ ! -f "CHANGELOG.md" ]]; then
-            cat > CHANGELOG.md << 'EOF'
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-EOF
+            cat > CHANGELOG.md << 'CHANGELOG_EOF'
+          # Changelog
+          
+          All notable changes to this project will be documented in this file.
+          
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+          CHANGELOG_EOF
             echo "📝 Created new CHANGELOG.md"
           fi
 
@@ -493,7 +493,7 @@ EOF
 
           print('✅ Core components loaded successfully')
           print('✅ Release smoke test passed')
-          \"
+          "
 
       - name: Run comprehensive functional tests
         run: |
@@ -606,68 +606,64 @@ EOF
         run: |
           VERSION="${{ needs.validate-release.outputs.version }}"
           CLEAN_VERSION="${{ needs.validate-release.outputs.clean-version }}"
-
-          # Get changelog content
           CHANGELOG="${{ needs.validate-release.outputs.changelog }}"
-
-          # Generate TaskMaster status (if available)
+          LAST_TAG="${{ needs.validate-release.outputs.last_tag }}"
           TASKMASTER_STATUS=""
           if command -v mcp__taskmaster-ai__get_health_status &> /dev/null; then
             TASKMASTER_STATUS=$(mcp__taskmaster-ai__get_health_status 2>/dev/null || echo "TaskMaster status unavailable")
           fi
 
           # Build comprehensive release notes
-          cat > release_notes.md << EOF
-# 🚀 Release $VERSION
-
-$CHANGELOG
-
-## 📊 Package Information
-
-- **Version**: $CLEAN_VERSION
-- **Python Support**: 3.10, 3.11, 3.12
-- **Platform Support**: Linux, macOS, Windows
-- **Package Format**: Wheel + Source Distribution
-
-## 📎 Installation
-
-\`\`\`bash
-pip install hb-candles-feed==$CLEAN_VERSION
-\`\`\`
-
-## 🔗 Links
-
-- [PyPI Package](https://pypi.org/project/hb-candles-feed/$CLEAN_VERSION/)
-- [Documentation](https://mementorc.github.io/hb-candles-feed)
-- [Changelog](CHANGELOG.md)
-
-## 🤖 Release Automation
-
-This release was generated using our automated release management system with:
-- Semantic versioning from conventional commits
-- Automated changelog generation
-- Comprehensive multi-platform testing
-- PyPI trusted publishing
-
-EOF
+          {
+            echo "# 🚀 Release $VERSION"
+            echo ""
+            echo "$CHANGELOG"
+            echo ""
+            echo "## 📊 Package Information"
+            echo ""
+            echo "- **Version**: $CLEAN_VERSION"
+            echo "- **Python Support**: 3.10, 3.11, 3.12"
+            echo "- **Platform Support**: Linux, macOS, Windows"
+            echo "- **Package Format**: Wheel + Source Distribution"
+            echo ""
+            echo "## 📎 Installation"
+            echo ""
+            echo "\`\`\`bash"
+            echo "pip install hb-candles-feed==$CLEAN_VERSION"
+            echo "\`\`\`"
+            echo ""
+            echo "## 🔗 Links"
+            echo ""
+            echo "- [PyPI Package](https://pypi.org/project/hb-candles-feed/$CLEAN_VERSION/)"
+            echo "- [Documentation](https://mementorc.github.io/hb-candles-feed)"
+            echo "- [Changelog](CHANGELOG.md)"
+            echo ""
+            echo "## 🤖 Release Automation"
+            echo ""
+            echo "This release was generated using our automated release management system with:"
+            echo "- Semantic versioning from conventional commits"
+            echo "- Automated changelog generation"
+            echo "- Comprehensive multi-platform testing"
+            echo "- PyPI trusted publishing"
+          } > release_notes.md
 
           if [[ -n "$TASKMASTER_STATUS" && "$TASKMASTER_STATUS" != "TaskMaster status unavailable" ]]; then
-            cat >> release_notes.md << EOF
-
-## 📊 TaskMaster Project Status
-
-\`\`\`
-$TASKMASTER_STATUS
-\`\`\`
-EOF
+            {
+              echo ""
+              echo "## 📊 TaskMaster Project Status"
+              echo ""
+              echo "\`\`\`"
+              echo "$TASKMASTER_STATUS"
+              echo "\`\`\`"
+            } >> release_notes.md
           fi
 
-          cat >> release_notes.md << EOF
-
----
-
-**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^)...$VERSION
-EOF
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$LAST_TAG...$VERSION"
+          } >> release_notes.md
 
           echo "📝 Generated release notes:"
           cat release_notes.md

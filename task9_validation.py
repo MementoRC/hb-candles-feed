@@ -65,11 +65,9 @@ def validate_candle_data_to_array():
     assert len(array_output) == 10, f"Expected 10 elements, got {len(array_output)}"
 
     # Validate each element
-    for i, (actual, expected) in enumerate(zip(array_output, expected_format)):
+    for i, (actual, expected) in enumerate(zip(array_output, expected_format, strict=True)):
         assert actual == expected, f"Mismatch at index {i}: {actual} != {expected}"
-        assert isinstance(
-            actual, (int, float)
-        ), f"Element {i} should be numeric, got {type(actual)}"
+        assert isinstance(actual, int | float), f"Element {i} should be numeric, got {type(actual)}"
 
     # Test timestamp precision with different input formats
     timestamp_tests = [
@@ -426,7 +424,7 @@ def validate_backward_compatibility():
     converted_back = candle.to_array()
 
     # Validate roundtrip conversion
-    for i, (original, converted) in enumerate(zip(original_data, converted_back)):
+    for i, (original, converted) in enumerate(zip(original_data, converted_back, strict=True)):
         if i == 7:  # n_trades gets converted to int then back to float
             assert int(original) == int(
                 converted
