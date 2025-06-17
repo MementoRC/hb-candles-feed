@@ -65,14 +65,24 @@ def run_script(args_list, env_vars=None):
     if env_vars:
         env.update(env_vars)
 
-    # Ensure python executable is the same as the one running pytest
-    python_executable = os.sys.executable
+    # Use pixi run to ensure proper environment setup
+    # Check if pixi is available and pyproject.toml exists
+    project_root = Path(__file__).resolve().parent.parent.parent
+    pyproject_toml = project_root / "pyproject.toml"
+    
+    if pyproject_toml.exists():
+        # Use pixi run to execute with proper environment
+        cmd = ["pixi", "run", "python", str(SCRIPT_PATH)] + args_list
+    else:
+        # Fallback to current Python executable if not in a pixi project
+        cmd = [os.sys.executable, str(SCRIPT_PATH)] + args_list
 
     process = subprocess.run(
-        [python_executable, str(SCRIPT_PATH)] + args_list,
+        cmd,
         capture_output=True,
         text=True,
         env=env,
+        cwd=str(project_root),  # Ensure we're in the project root
         check=False,  # Don't raise exception on non-zero exit, check manually
     )
     return process

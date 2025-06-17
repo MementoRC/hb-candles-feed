@@ -18,12 +18,22 @@ import importlib.util
 
 # Adjust sys.path to import from candles_feed.core
 # This assumes the script is run from the project root or that candles_feed is in PYTHONPATH
-if importlib.util.find_spec("candles_feed.core") is None:
+try:
+    candles_feed_spec = importlib.util.find_spec("candles_feed.core")
+except (ModuleNotFoundError, ImportError):
+    candles_feed_spec = None
+
+if candles_feed_spec is None:
     current_file_dir = Path(__file__).resolve().parent
     project_root_dir = current_file_dir.parent  # Assumes scripts/ is one level down from root
     sys.path.insert(0, str(project_root_dir))
     # Re-check after modifying path, to ensure it's now available for subsequent imports
-    if importlib.util.find_spec("candles_feed.core") is None:
+    try:
+        candles_feed_spec = importlib.util.find_spec("candles_feed.core")
+    except (ModuleNotFoundError, ImportError):
+        candles_feed_spec = None
+    
+    if candles_feed_spec is None:
         sys.stderr.write(
             "Error: Could not find 'candles_feed.core' even after adding project root to sys.path.\n"
             "Ensure the script is run from the project root or 'candles_feed' is installed.\n"
