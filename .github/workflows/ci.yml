@@ -165,17 +165,23 @@ jobs:
       - name: Wait for service containers
         run: |
           echo "⏳ Waiting for service containers to be ready..."
-          # Install redis-tools for health checks
-          sudo apt-get update && sudo apt-get install -y redis-tools
+          # Install redis-tools and curl for health checks
+          sudo apt-get update && sudo apt-get install -y redis-tools curl
 
-          # Wait for Redis with timeout
+          # Wait for Redis with extended timeout
           echo "🔴 Checking Redis connection..."
-          timeout 30 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done'
+          timeout 60 bash -c 'until redis-cli -h localhost -p 6379 ping; do echo "Waiting for Redis..."; sleep 2; done'
+          echo "✅ Redis is ready"
 
-          # Give WebSocket echo server time to start
+          # Wait for WebSocket echo server with simpler HTTP check
           echo "🔌 Waiting for WebSocket echo server..."
-          timeout 30 bash -c 'until pixi run -e ${{ matrix.pixi-environment }} python -c "import asyncio, websockets; asyncio.run(websockets.connect(\"ws://localhost:8080\").close())" > /dev/null 2>&1; do echo "Waiting for websocket server at ws://localhost:8080..."; sleep 1; done'
-          echo "✅ Service containers ready (or timeout reached)"
+          timeout 60 bash -c 'until curl -s -f http://localhost:8080/health > /dev/null 2>&1 || curl -s -f http://localhost:8080 > /dev/null 2>&1; do echo "Waiting for echo server at localhost:8080..."; sleep 2; done'
+          echo "✅ Echo server is ready"
+
+          # Additional safety wait for full container initialization
+          echo "⏳ Additional safety wait (5s)..."
+          sleep 5
+          echo "✅ Service containers ready"
 
       - name: Run unit tests with coverage
         run: |
