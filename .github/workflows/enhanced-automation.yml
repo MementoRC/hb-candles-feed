@@ -1,0 +1,268 @@
+name: Enhanced Automation Workflows
+
+on:
+  pull_request_target: # Use pull_request_target for assigning reviewers/labels to PRs from forks
+    types: [opened, ready_for_review]
+  issues:
+    types: [opened, edited]
+  schedule:
+    - cron: '30 1 * * *' # Run daily for stale management
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read # For reading file paths in PRs for review assignment
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # 3. Enhanced Code Review Assignment
+  enhanced-review-assignment:
+    name: Enhanced Review Assignment
+    if: github.event_name == 'pull_request_target' && (github.event.action == 'opened' || github.event.action == 'ready_for_review')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Assign Reviewers Based on File Changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.issue.number;
+
+            // Define expertise map (example, customize for your project)
+            // Users must have write access or be collaborators to be assigned.
+            const expertiseMap = {
+              'candles_feed/core/': ['MementoRC'], // Core logic maintainer
+              'candles_feed/adapters/': ['MementoRC'], // Adapters expert
+              'tests/': ['MementoRC'],             // QA / Test expert
+              'docs/': ['MementoRC'],              // Documentation maintainer
+              '.github/workflows/': ['MementoRC'], // CI/CD expert
+              'pyproject.toml': ['MementoRC'],
+              'pixi.toml': ['MementoRC'],
+              'default': ['MementoRC']             // Default reviewer
+            };
+
+            // Get changed files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            let reviewers = new Set();
+            for (const file of files) {
+              let assigned = false;
+              for (const pathPrefix in expertiseMap) {
+                if (pathPrefix !== 'default' && file.filename.startsWith(pathPrefix)) {
+                  expertiseMap[pathPrefix].forEach(reviewer => reviewers.add(reviewer));
+                  assigned = true;
+                }
+              }
+              if (!assigned) {
+                expertiseMap['default'].forEach(reviewer => reviewers.add(reviewer));
+              }
+            }
+
+            // Remove PR author from reviewers list
+            const prAuthor = context.payload.pull_request.user.login;
+            reviewers.delete(prAuthor);
+
+            if (reviewers.size > 0) {
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  reviewers: Array.from(reviewers),
+                });
+                console.log(`Requested reviews from: ${Array.from(reviewers).join(', ')} for PR #${prNumber}`);
+              } catch (error) {
+                console.error(`Error requesting reviewers for PR #${prNumber}: ${error.message}`);
+                // Common error: reviewer is not a collaborator.
+                // Consider adding a comment instead or logging the error.
+                 await github.rest.issues.createComment({
+                    owner, repo, issue_number: prNumber,
+                    body: `Could not automatically assign reviewers: ${Array.from(reviewers).join(', ')}. Error: ${error.message}. Please assign manually.`
+                  });
+              }
+            } else {
+              console.log(`No suitable reviewers found for PR #${prNumber} based on file changes or author is the only match.`);
+            }
+
+  # 4. Advanced Stale Issue/PR Management
+  advanced-stale-management:
+    name: Advanced Stale Issue/PR Management
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Mark and Close Stale Issues/PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # General settings
+          days-before-stale: 45 # Issues/PRs inactive for 45 days are marked stale
+          days-before-close: 15 # Stale items are closed after 15 more days of inactivity
+          stale-issue-label: 'status/stale'
+          stale-pr-label: 'status/stale'
+          exempt-issue-labels: 'keep-open,P0-Critical,P1-High,security,pinned'
+          exempt-pr-labels: 'keep-open,work-in-progress,pinned'
+          # exempt-assignees: 'core-maintainer,project-lead' # Example: exempt items assigned to specific people
+          # Messages
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had
+            recent activity for 45 days. It will be closed if no further activity occurs
+            within 15 days.
+
+            Thank you for your contributions.
+            Ways to keep this issue open:
+            - Add a comment with an update.
+            - Add the 'keep-open' label.
+            - If you are assigned, push an update or comment.
+          stale-pr-message: |
+            This PR has been automatically marked as stale because it has not had
+            recent activity for 45 days. It will be closed if no further activity occurs
+            within 15 days.
+
+            Thank you for your contributions.
+            Ways to keep this PR open:
+            - Push new commits.
+            - Add the 'keep-open' label.
+            - Request a review.
+          close-issue-message: |
+            This issue was automatically closed because it has been stale for 15 days
+            with no activity. You can reopen the issue if you believe it is still relevant.
+          close-pr-message: |
+            This PR was automatically closed because it has been stale for 15 days
+            with no activity. You can reopen the PR if you wish to continue working on it.
+          # Operations per run
+          operations-per-run: 30 # Limit API calls
+
+  # 5. Automated Issue Triage and Priority Assignment
+  automated-issue-triage:
+    name: Automated Issue Triage
+    if: github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Triage Issue Content
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+            const issueTitle = context.payload.issue.title.toLowerCase();
+            const issueBody = (context.payload.issue.body || '').toLowerCase();
+            const issueContent = `${issueTitle} ${issueBody}`;
+            const currentLabels = context.payload.issue.labels.map(label => label.name);
+
+            let labelsToAdd = new Set();
+            let labelsToRemove = new Set();
+
+            // Priority Keywords Mapping (customize as needed)
+            const priorityMap = {
+              'priority/P0-Critical': ['critical', 'blocker', 'urgent', 'panic', 'crash', 'regression'],
+              'priority/P1-High': ['high impact', 'severe', 'major bug', 'exploit'],
+              'priority/P2-Medium': ['bug', 'error', 'fail', 'incorrect behavior', 'needs fix'],
+              'priority/P3-Low': ['minor bug', 'trivial', 'cosmetic', 'typo', 'suggestion']
+            };
+
+            // Area/Type Keywords Mapping (customize as needed)
+            const areaMap = {
+              'type/bug': ['bug', 'error', 'failure', 'defect', 'issue', 'problem'],
+              'type/feature': ['feature', 'enhancement', 'request', 'proposal', 'idea'],
+              'type/docs': ['documentation', 'docs', 'readme', 'guide', 'help'],
+              'type/question': ['question', 'help', 'how to', 'advice'],
+              'area/ci-cd': ['workflow', 'github actions', 'ci', 'cd', 'pixi', 'dependabot'],
+              'area/performance': ['performance', 'slow', 'benchmark', 'optimize', 'speed'],
+              'area/security': ['security', 'vulnerability', 'cve', 'exploit']
+            };
+
+            function assignLabelsFromMap(map, content, existingLabels) {
+              let assignedPriority = existingLabels.some(l => l.startsWith('priority/'));
+              for (const [label, keywords] of Object.entries(map)) {
+                if (keywords.some(keyword => content.includes(keyword))) {
+                  if (label.startsWith('priority/')) {
+                    if (!assignedPriority) { // Assign only one priority
+                      labelsToAdd.add(label);
+                      assignedPriority = true;
+                    }
+                  } else {
+                    labelsToAdd.add(label);
+                  }
+                }
+              }
+            }
+
+            assignLabelsFromMap(priorityMap, issueContent, currentLabels);
+            assignLabelsFromMap(areaMap, issueContent, currentLabels);
+
+            // Default labels if no specific type/priority found
+            if (!currentLabels.some(l => l.startsWith('type/')) && !Array.from(labelsToAdd).some(l => l.startsWith('type/'))) {
+              labelsToAdd.add('needs-triage');
+            }
+            if (!currentLabels.some(l => l.startsWith('priority/')) && !Array.from(labelsToAdd).some(l => l.startsWith('priority/'))) {
+               if (!labelsToAdd.has('needs-triage')) labelsToAdd.add('needs-triage'); // Add if not already added
+            } else if (labelsToAdd.has('needs-triage') && Array.from(labelsToAdd).some(l => l.startsWith('priority/'))) {
+              // If a priority is assigned, remove 'needs-triage'
+              labelsToRemove.add('needs-triage');
+            }
+
+
+            // TaskMaster Integration Hook (simple version)
+            const taskMatch = issueBody.match(/task id.*?(\d+(?:\.\d+)?)/i);
+            if (taskMatch) {
+              labelsToAdd.add('taskmaster-linked');
+              const taskId = taskMatch[1];
+              const commentBody = `🔗 This issue appears to be linked to TaskMaster ID: **${taskId}**.`;
+              // Avoid duplicate comments
+              const {data: comments} = await github.rest.issues.listComments({
+                owner, repo, issue_number: issueNumber
+              });
+              if (!comments.some(comment => comment.body.includes(taskId))) {
+                 await github.rest.issues.createComment({
+                    owner, repo, issue_number: issueNumber, body: commentBody
+                 });
+              }
+            }
+
+            // Filter out labels that are already present
+            labelsToAdd = new Set([...labelsToAdd].filter(label => !currentLabels.includes(label)));
+
+            if (labelsToAdd.size > 0) {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: issueNumber, labels: Array.from(labelsToAdd)
+              });
+              console.log(`Added labels: ${Array.from(labelsToAdd).join(', ')} to issue #${issueNumber}`);
+            }
+
+            for (const labelToRemove of labelsToRemove) {
+              if (currentLabels.includes(labelToRemove) || labelsToAdd.has(labelToRemove)) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner, repo, issue_number: issueNumber, name: labelToRemove
+                  });
+                  console.log(`Removed label: ${labelToRemove} from issue #${issueNumber}`);
+                } catch (error) {
+                  // Ignore if label doesn't exist (might have been removed by another process)
+                  if (error.status !== 404) {
+                    console.error(`Error removing label ${labelToRemove}: ${error.message}`);
+                  }
+                }
+              }
+            }

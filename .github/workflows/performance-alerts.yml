@@ -1,0 +1,113 @@
+name: Performance Degradation Alerts
+
+on:
+  workflow_run:
+    workflows: ["Enhanced Package CI"] # Name of your CI workflow from ci.yml
+    types:
+      - completed
+
+permissions:
+  actions: read    # To download artifacts
+  issues: write    # To create alert issues
+  contents: read   # Default
+
+jobs:
+  check-performance:
+    name: Check Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' # Only run if the CI workflow itself succeeded
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Download benchmark artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results-${{ github.event.workflow_run.id }} # Matches upload name in ci.yml
+          path: benchmark-data
+          github-token: ${{ secrets.GITHUB_TOKEN }} # download-artifact needs token for workflow_run from other workflows
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Analyze benchmark results and alert
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const benchmarkFile = path.join('benchmark-data', 'benchmark-results', 'benchmark-results.json');
+            if (!fs.existsSync(benchmarkFile)) {
+              console.log('Benchmark results file not found. Skipping analysis.');
+              // This might happen if the benchmark job in ci.yml didn't run or produce an artifact
+              // Or if the artifact name/path is incorrect.
+              // Check if the benchmark job was skipped or failed in the CI workflow.
+              const benchmarkJob = ${{ toJson(github.event.workflow_run.actor) }}; // Example: how to get workflow info
+              // A more robust check would be to query the jobs of the workflow_run via API
+              console.log(`Workflow run actor: ${github.event.workflow_run.actor.login}`);
+              console.log(`Workflow run head_sha: ${github.event.workflow_run.head_sha}`);
+              return;
+            }
+
+            const benchmarkData = JSON.parse(fs.readFileSync(benchmarkFile, 'utf8'));
+            const benchmarks = benchmarkData.benchmarks;
+
+            // Define thresholds (example: alert if mean > 1000 microseconds, or relative change > 20%)
+            // These thresholds should be tuned for your specific project.
+            const ABSOLUTE_THRESHOLD_MS = 10000; // 10ms, example
+            const RELATIVE_REGRESSION_THRESHOLD = 0.20; // 20%
+
+            let regressionsFound = [];
+
+            for (const bench of benchmarks) {
+              const name = bench.name;
+              const meanTime = bench.stats.mean * 1000000; // Convert seconds to microseconds
+
+              // Example: Check against an absolute threshold
+              if (meanTime > ABSOLUTE_THRESHOLD_MS) {
+                regressionsFound.push({
+                  name: name,
+                  mean: meanTime.toFixed(2),
+                  reason: `Exceeded absolute threshold of ${ABSOLUTE_THRESHOLD_MS}µs (was ${meanTime.toFixed(2)}µs)`
+                });
+              }
+
+              // TODO: Implement comparison with a baseline (e.g., previous run on main branch)
+              // This requires storing/fetching baseline data, which is more complex.
+              // For now, we focus on absolute thresholds or very large changes if we had previous data.
+            }
+
+            if (regressionsFound.length > 0) {
+              let issueBody = `## 📉 Performance Regression Detected\n\n`;
+              issueBody += `Workflow Run: ${context.payload.workflow_run.html_url}\n`;
+              issueBody += `Commit: ${context.payload.workflow_run.head_sha}\n\n`;
+              issueBody += `The following benchmarks showed potential regressions:\n\n`;
+              issueBody += `| Benchmark Name | Mean Time (µs) | Reason |\n`;
+              issueBody += `|----------------|----------------|--------|\n`;
+              for (const reg of regressionsFound) {
+                issueBody += `| ${reg.name} | ${reg.mean} | ${reg.reason} |\n`;
+              }
+              issueBody += `\nPlease investigate these performance changes.`;
+
+              // Add TaskMaster info if relevant (e.g., if commit message has Task ID)
+              // This part is illustrative and needs context from your TaskMaster integration
+              const commitMessage = context.payload.workflow_run.head_commit.message;
+              const taskMatch = commitMessage.match(/Task ID.*?(\d+(?:\.\d+)?)/i);
+              if (taskMatch) {
+                issueBody += `\n\nAssociated TaskMaster ID: ${taskMatch[1]}`;
+              }
+
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🚨 Performance Alert: Regression detected in benchmarks`,
+                body: issueBody,
+                labels: ['performance', 'regression', 'needs-investigation']
+              });
+              console.log('Performance regression issue created.');
+            } else {
+              console.log('No significant performance regressions detected based on current thresholds.');
+            }

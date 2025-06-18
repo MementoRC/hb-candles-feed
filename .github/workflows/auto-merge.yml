@@ -1,0 +1,155 @@
+name: Auto-Merge Dependabot PRs
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+  workflow_run:
+    workflows: ["Enhanced Package CI"] # Name of your CI workflow from ci.yml
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read # To read check suites/runs status
+
+jobs:
+  auto-merge-dependabot:
+    name: Auto-Merge Dependabot PR
+    if: >
+      (github.event_name == 'pull_request_target' && github.actor == 'dependabot[bot]') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout PR metadata (for workflow_run)
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v4 # Minimal checkout for PR info
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+          persist-credentials: false
+          depth: 1
+
+      - name: Auto-merge Dependabot PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const GITHUB_CONTEXT = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
+
+            async function processPullRequest(prNumber) {
+              console.log(`Processing PR #${prNumber}`);
+              const { data: pr } = await github.rest.pulls.get({
+                ...GITHUB_CONTEXT,
+                pull_number: prNumber,
+              });
+
+              if (pr.user.login !== 'dependabot[bot]') {
+                console.log(`PR #${prNumber} is not from Dependabot. Skipping.`);
+                return;
+              }
+
+              if (pr.state !== 'open') {
+                console.log(`PR #${prNumber} is not open. Skipping.`);
+                return;
+              }
+
+              if (pr.draft) {
+                console.log(`PR #${prNumber} is a draft. Skipping.`);
+                return;
+              }
+
+              // Check for labels indicating it's a patch or minor update (based on dependabot.yml groups)
+              // Dependabot should add 'dependencies' and 'python' or 'github-actions'
+              // The dependabot.yml configuration limits PRs to patch/minor for these groups.
+              const hasDependencyLabel = pr.labels.some(label => label.name === 'dependencies');
+              if (!hasDependencyLabel) {
+                console.log(`PR #${prNumber} does not have 'dependencies' label. Skipping auto-merge.`);
+                return;
+              }
+
+              // Check CI status
+              const { data: checkSuites } = await github.rest.checks.listForRef({
+                ...GITHUB_CONTEXT,
+                ref: pr.head.sha,
+              });
+
+              const allChecksPassed = checkSuites.check_suites.every(suite => suite.conclusion === 'success' || suite.conclusion === 'skipped' || suite.conclusion === null); // null for pending
+              const isPending = checkSuites.check_suites.some(suite => suite.status !== 'completed');
+
+
+              if (isPending) {
+                console.log(`PR #${prNumber}: Checks are still pending. Will re-evaluate later.`);
+                // Optionally, re-trigger workflow or add a label to re-check
+                return;
+              }
+
+              if (!allChecksPassed) {
+                console.log(`PR #${prNumber}: Not all checks passed. Skipping auto-merge.`);
+                await github.rest.issues.createComment({
+                  ...GITHUB_CONTEXT,
+                  issue_number: prNumber,
+                  body: "🤖 Auto-merge skipped: Not all CI checks passed.",
+                });
+                return;
+              }
+
+              console.log(`PR #${prNumber}: All checks passed.`);
+
+              // Check if PR is mergeable
+              if (!pr.mergeable) {
+                console.log(`PR #${prNumber} is not mergeable. State: ${pr.mergeable_state}. Skipping.`);
+                await github.rest.issues.createComment({
+                  ...GITHUB_CONTEXT,
+                  issue_number: prNumber,
+                  body: `🤖 Auto-merge skipped: PR is not mergeable (State: ${pr.mergeable_state}).`,
+                });
+                return;
+              }
+
+              try {
+                console.log(`Attempting to merge PR #${prNumber}`);
+                await github.rest.pulls.merge({
+                  ...GITHUB_CONTEXT,
+                  pull_number: prNumber,
+                  commit_title: `Auto-merge Dependabot PR #${prNumber}: ${pr.title}`,
+                  commit_message: pr.body || `Auto-merged by GitHub Actions.`,
+                  merge_method: 'squash', // Or 'merge', 'rebase'
+                });
+                console.log(`PR #${prNumber} merged successfully.`);
+                await github.rest.issues.createComment({
+                  ...GITHUB_CONTEXT,
+                  issue_number: prNumber,
+                  body: "🤖 This Dependabot PR has been automatically merged after passing all CI checks.",
+                });
+              } catch (error) {
+                console.error(`Failed to merge PR #${prNumber}:`, error);
+                await github.rest.issues.createComment({
+                  ...GITHUB_CONTEXT,
+                  issue_number: prNumber,
+                  body: `🤖 Auto-merge failed for PR #${prNumber}: ${error.message}`,
+                });
+              }
+            }
+
+            if (github.event_name == 'pull_request_target') {
+              await processPullRequest(context.issue.number);
+            } else if (github.event_name == 'workflow_run') {
+              // Find associated PRs for the commit SHA
+              const associatedPRs = github.event.workflow_run.pull_requests;
+              if (associatedPRs && associatedPRs.length > 0) {
+                for (const pr of associatedPRs) {
+                  await processPullRequest(pr.number);
+                }
+              } else {
+                console.log("Workflow run not associated with any PRs. Skipping.");
+              }
+            }
