@@ -265,7 +265,9 @@ class TestServiceContainerIntegration:
                 if not response_raw or not response_raw.strip():
                     error_message = "WebSocket echo server returned empty response"
                     logger.warning(f"{error_message} on attempt {attempt}")
-                    raise websockets.exceptions.ConnectionClosedError(None, None, reason=error_message)
+                    raise websockets.exceptions.ConnectionClosedError(
+                        None, None, reason=error_message
+                    )
 
                 response_data = json.loads(response_raw)
 
