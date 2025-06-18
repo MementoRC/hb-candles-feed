@@ -28,7 +28,6 @@ except ImportError:
 
 try:
     import websockets
-    import websockets.protocol  # Added for State enum
     from websockets.protocol import State  # Explicit import for State enum
 
     HAS_WEBSOCKETS = True

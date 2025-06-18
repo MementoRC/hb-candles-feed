@@ -40,7 +40,6 @@ if candles_feed_spec is None:
         )
         sys.exit(1)
 
-from candles_feed.core.repository_insights import RepositoryInsightsCollector
 
 # Setup basic logging for the script
 logger = logging.getLogger("RepositoryHealthDashboard")
@@ -63,6 +62,9 @@ def load_json_report_data(file_path: Path | None) -> dict | None:
 
 async def run_dashboard_collection():
     """Main asynchronous logic for collecting and saving dashboard data."""
+    # Import moved inside to prevent static analysis errors with dynamic sys.path
+    from candles_feed.core.repository_insights import RepositoryInsightsCollector
+
     parser = argparse.ArgumentParser(
         description="Generate a repository health dashboard report.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
