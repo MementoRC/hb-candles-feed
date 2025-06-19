@@ -41,8 +41,8 @@ class NotificationIntegrationConfig:
     performance_degradation_threshold: float = 0.2  # 20% degradation
 
     # Channel preferences
-    build_notification_channels: list[NotificationChannel] = None
-    alert_notification_channels: list[NotificationChannel] = None
+    build_notification_channels: list[NotificationChannel] | None = None
+    alert_notification_channels: list[NotificationChannel] | None = None
 
     def __post_init__(self):
         """Set default channel preferences."""
@@ -76,7 +76,7 @@ class NotificationIntegration:
         self.notification_manager = notification_manager
         self.monitoring_manager = monitoring_manager
         self.config = config or NotificationIntegrationConfig()
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
 
         self._monitoring_task: asyncio.Task | None = None
         self._last_error_count = 0
@@ -165,8 +165,14 @@ class NotificationIntegration:
         )
 
         # Send notification with fallback channels
+        fallback_channels = []
+        if (
+            self.config.build_notification_channels
+            and len(self.config.build_notification_channels) > 1
+        ):
+            fallback_channels = self.config.build_notification_channels[1:]
         success = await self.notification_manager.send_notification(
-            message, fallback_channels=self.config.build_notification_channels[1:]
+            message, fallback_channels=fallback_channels
         )
 
         if success:
@@ -230,8 +236,14 @@ class NotificationIntegration:
         )
 
         # Send notification with fallback channels
+        fallback_channels = []
+        if (
+            self.config.alert_notification_channels
+            and len(self.config.alert_notification_channels) > 1
+        ):
+            fallback_channels = self.config.alert_notification_channels[1:]
         success = await self.notification_manager.send_notification(
-            notification, fallback_channels=self.config.alert_notification_channels[1:]
+            notification, fallback_channels=fallback_channels
         )
 
         if success:
@@ -250,7 +262,12 @@ class NotificationIntegration:
                     continue
 
                 health_data = self.monitoring_manager.get_health_status()
-                performance_data = self.monitoring_manager.get_performance_data()
+                all_metrics = self.monitoring_manager.get_metrics()
+                performance_data = {
+                    k: v[-1]["value"]
+                    for k, v in all_metrics.items()
+                    if ("duration" in k.lower() or "timing" in k.lower()) and v
+                }
 
                 # Check error threshold
                 current_error_count = health_data.get("error_count", 0)

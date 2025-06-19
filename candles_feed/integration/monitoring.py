@@ -51,7 +51,7 @@ class PrometheusMetricsExporter:
         """
         self.monitoring_manager = monitoring_manager
         self.config = config
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
 
@@ -98,7 +98,11 @@ class PrometheusMetricsExporter:
         lines.append("")
 
         # Performance metrics - extract timing metrics from the metrics data
-        timing_metrics = {k: v for k, v in metrics_data.items() if "timing" in k.lower() or "duration" in k.lower()}
+        timing_metrics = {
+            k: v
+            for k, v in metrics_data.items()
+            if "timing" in k.lower() or "duration" in k.lower()
+        }
         if timing_metrics:
             lines.append("# HELP candles_feed_request_duration_seconds Request duration in seconds")
             lines.append("# TYPE candles_feed_request_duration_seconds histogram")
@@ -197,7 +201,7 @@ class HealthCheckServer:
         """
         self.monitoring_manager = monitoring_manager
         self.config = config
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
 
@@ -325,7 +329,7 @@ class ExternalMonitoringIntegration:
         """
         self.monitoring_manager = monitoring_manager
         self.config = config or MonitoringIntegrationConfig()
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
 
         self.prometheus_exporter = PrometheusMetricsExporter(
             monitoring_manager, self.config, logger
@@ -340,29 +344,25 @@ class ExternalMonitoringIntegration:
             try:
                 for name, url in self.config.external_endpoints.items():
                     try:
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(
-                                url,
-                                timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds),
-                            ) as response:
-                                if response.status == 200:
-                                    self.monitoring_manager.update_metrics(
-                                        {
-                                            f"external_endpoint_{name}_status": 1,
-                                            f"external_endpoint_{name}_response_time": 0.1,  # Placeholder
-                                        }
-                                    )
-                                else:
-                                    self.monitoring_manager.update_metrics(
-                                        {f"external_endpoint_{name}_status": 0}
-                                    )
-                                    self.logger.warning(
-                                        f"External endpoint {name} returned {response.status}"
-                                    )
+                        async with aiohttp.ClientSession() as session, session.get(
+                            url,
+                            timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds),
+                        ) as response:
+                            if response.status == 200:
+                                self.monitoring_manager.record_metric(
+                                    f"external_endpoint_{name}_status", 1.0
+                                )
+                            else:
+                                self.monitoring_manager.record_metric(
+                                    f"external_endpoint_{name}_status", 0.0
+                                )
+                                self.logger.warning(
+                                    f"External endpoint {name} returned {response.status}"
+                                )
 
                     except Exception as e:
-                        self.monitoring_manager.update_metrics(
-                            {f"external_endpoint_{name}_status": 0}
+                        self.monitoring_manager.record_metric(
+                            f"external_endpoint_{name}_status", 0.0
                         )
                         self.logger.error(f"Failed to check external endpoint {name}: {e}")
 

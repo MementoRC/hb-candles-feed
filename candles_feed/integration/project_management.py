@@ -52,8 +52,8 @@ class Task:
     priority: TaskPriority
     assignee: str | None = None
     milestone: str | None = None
-    labels: list[str] = None
-    metadata: dict[str, Any] = None
+    labels: list[str] | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -73,7 +73,7 @@ class Milestone:
     due_date: str | None = None
     progress: float = 0.0  # 0.0 to 1.0
     status: str = "active"
-    metadata: dict[str, Any] = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -107,8 +107,8 @@ class ProjectManagementConfig:
     sync_interval_seconds: float = 300.0  # 5 minutes
 
     # Task mapping configuration
-    status_mapping: dict[str, TaskStatus] = None
-    priority_mapping: dict[str, TaskPriority] = None
+    status_mapping: dict[str, TaskStatus] | None = None
+    priority_mapping: dict[str, TaskPriority] | None = None
 
     def __post_init__(self):
         """Initialize default mappings."""
@@ -141,7 +141,7 @@ class GitHubProjectsIntegration:
         :param logger: Logger instance
         """
         self.config = config
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
 
     async def sync_tasks(self) -> list[Task]:
         """
@@ -166,46 +166,47 @@ class GitHubProjectsIntegration:
             # This would need to be adapted based on your GitHub Projects setup
             url = f"https://api.github.com/repos/{self.config.github_org}/issues"
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers) as response:
-                    if response.status == 200:
-                        issues = await response.json()
+            async with aiohttp.ClientSession() as session, session.get(
+                url, headers=headers
+            ) as response:
+                if response.status == 200:
+                    issues = await response.json()
 
-                        for issue in issues:
-                            # Map GitHub issue to Task
-                            status = TaskStatus.PENDING
-                            if issue.get("state") == "closed":
-                                status = TaskStatus.DONE
+                    for issue in issues:
+                        # Map GitHub issue to Task
+                        status = TaskStatus.PENDING
+                        if issue.get("state") == "closed":
+                            status = TaskStatus.DONE
 
-                            priority = TaskPriority.MEDIUM
-                            for label in issue.get("labels", []):
-                                label_name = label.get("name", "").lower()
-                                if "high" in label_name or "urgent" in label_name:
-                                    priority = TaskPriority.HIGH
-                                elif "low" in label_name:
-                                    priority = TaskPriority.LOW
+                        priority = TaskPriority.MEDIUM
+                        for label in issue.get("labels", []):
+                            label_name = label.get("name", "").lower()
+                            if "high" in label_name or "urgent" in label_name:
+                                priority = TaskPriority.HIGH
+                            elif "low" in label_name:
+                                priority = TaskPriority.LOW
 
-                            task = Task(
-                                id=str(issue["number"]),
-                                title=issue["title"],
-                                description=issue.get("body", ""),
-                                status=status,
-                                priority=priority,
-                                assignee=issue.get("assignee", {}).get("login")
-                                if issue.get("assignee")
-                                else None,
-                                labels=[label["name"] for label in issue.get("labels", [])],
-                                metadata={
-                                    "github_url": issue["html_url"],
-                                    "created_at": issue["created_at"],
-                                    "updated_at": issue["updated_at"],
-                                },
-                            )
-                            tasks.append(task)
+                        task = Task(
+                            id=str(issue["number"]),
+                            title=issue["title"],
+                            description=issue.get("body", ""),
+                            status=status,
+                            priority=priority,
+                            assignee=issue.get("assignee", {}).get("login")
+                            if issue.get("assignee")
+                            else None,
+                            labels=[label["name"] for label in issue.get("labels", [])],
+                            metadata={
+                                "github_url": issue["html_url"],
+                                "created_at": issue["created_at"],
+                                "updated_at": issue["updated_at"],
+                            },
+                        )
+                        tasks.append(task)
 
-                        self.logger.debug(f"Synced {len(tasks)} tasks from GitHub")
-                    else:
-                        self.logger.error(f"Failed to sync GitHub tasks: {response.status}")
+                    self.logger.debug(f"Synced {len(tasks)} tasks from GitHub")
+                else:
+                    self.logger.error(f"Failed to sync GitHub tasks: {response.status}")
 
         except Exception as e:
             self.logger.error(f"Error syncing GitHub tasks: {e}")
@@ -239,16 +240,15 @@ class GitHubProjectsIntegration:
 
             data = {"state": github_state}
 
-            async with aiohttp.ClientSession() as session:
-                async with session.patch(url, headers=headers, json=data) as response:
-                    if response.status == 200:
-                        self.logger.debug(f"Updated GitHub task {task_id} status to {status.value}")
-                        return True
-                    else:
-                        self.logger.error(
-                            f"Failed to update GitHub task {task_id}: {response.status}"
-                        )
-                        return False
+            async with aiohttp.ClientSession() as session, session.patch(
+                url, headers=headers, json=data
+            ) as response:
+                if response.status == 200:
+                    self.logger.debug(f"Updated GitHub task {task_id} status to {status.value}")
+                    return True
+                else:
+                    self.logger.error(f"Failed to update GitHub task {task_id}: {response.status}")
+                    return False
 
         except Exception as e:
             self.logger.error(f"Error updating GitHub task {task_id}: {e}")
@@ -273,7 +273,7 @@ class WebhookHandler:
         """
         self.config = config
         self.task_update_callback = task_update_callback
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
 
@@ -401,7 +401,7 @@ class ProjectManagementIntegration:
         :param logger: Logger instance
         """
         self.config = config or ProjectManagementConfig()
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger: Logger = logger or logging.getLogger(__name__)
 
         self.github_integration = GitHubProjectsIntegration(self.config, logger)
         self.webhook_handler = WebhookHandler(

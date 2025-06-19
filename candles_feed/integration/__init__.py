@@ -13,7 +13,7 @@ try:
 
     # Add parent directory to path to import from integration.py
     sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-    from integration import create_candles_feed_with_hummingbot, HUMMINGBOT_AVAILABLE
+    from integration import HUMMINGBOT_AVAILABLE, create_candles_feed_with_hummingbot
 
     sys.path.pop(0)
 except ImportError:
