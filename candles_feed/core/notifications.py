@@ -7,10 +7,12 @@ including Slack, Discord, email, and webhook-based notification services.
 
 import asyncio
 import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, Type
 
 import aiohttp
 
@@ -128,27 +130,29 @@ class SlackNotificationProvider(NotificationProvider):
             NotificationLevel.CRITICAL: "#9c27b0",  # Purple
         }
 
-        payload = {
-            "text": message.title,
-            "attachments": [
-                {
-                    "color": color_map.get(message.level, "#36a64f"),
-                    "fields": [
-                        {"title": "Level", "value": message.level.value.upper(), "short": True},
-                        {"title": "Message", "value": message.content, "short": False},
-                    ],
-                    "footer": "Hummingbot Candles Feed",
-                    "ts": int(asyncio.get_event_loop().time()),
-                }
-            ],
-        }
+        fields: list[dict[str, Any]] = [
+            {"title": "Level", "value": message.level.value.upper(), "short": True},
+            {"title": "Message", "value": message.content, "short": False},
+        ]
 
         # Add metadata fields if present
         if message.metadata:
             for key, value in message.metadata.items():
-                payload["attachments"][0]["fields"].append(
+                fields.append(
                     {"title": key.replace("_", " ").title(), "value": str(value), "short": True}
                 )
+
+        payload: dict[str, Any] = {
+            "text": message.title,
+            "attachments": [
+                {
+                    "color": color_map.get(message.level, "#36a64f"),
+                    "fields": fields,
+                    "footer": "Hummingbot Candles Feed",
+                    "ts": int(time.time()),
+                }
+            ],
+        }
 
         try:
             async with aiohttp.ClientSession() as session, session.post(
@@ -189,21 +193,25 @@ class DiscordNotificationProvider(NotificationProvider):
             NotificationLevel.CRITICAL: 0x9C27B0,  # Purple
         }
 
-        embed = {
-            "title": message.title,
-            "description": message.content,
-            "color": color_map.get(message.level, 0x36A64F),
-            "fields": [{"name": "Level", "value": message.level.value.upper(), "inline": True}],
-            "footer": {"text": "Hummingbot Candles Feed"},
-            "timestamp": asyncio.get_event_loop().time(),
-        }
+        fields: list[dict[str, Any]] = [
+            {"name": "Level", "value": message.level.value.upper(), "inline": True}
+        ]
 
         # Add metadata fields if present
         if message.metadata:
             for key, value in message.metadata.items():
-                embed["fields"].append(
+                fields.append(
                     {"name": key.replace("_", " ").title(), "value": str(value), "inline": True}
                 )
+
+        embed: dict[str, Any] = {
+            "title": message.title,
+            "description": message.content,
+            "color": color_map.get(message.level, 0x36A64F),
+            "fields": fields,
+            "footer": {"text": "Hummingbot Candles Feed"},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
         payload = {"embeds": [embed]}
 
@@ -247,7 +255,7 @@ class WebhookNotificationProvider(NotificationProvider):
             "content": message.content,
             "level": message.level.value,
             "metadata": message.metadata,
-            "timestamp": asyncio.get_event_loop().time(),
+            "timestamp": time.time(),
         }
 
         try:
@@ -284,7 +292,7 @@ class NotificationManager:
 
     def _initialize_providers(self) -> None:
         """Initialize notification providers based on configuration."""
-        provider_classes = {
+        provider_classes: dict[NotificationChannel, Type[NotificationProvider]] = {
             NotificationChannel.SLACK: SlackNotificationProvider,
             NotificationChannel.DISCORD: DiscordNotificationProvider,
             NotificationChannel.WEBHOOK: WebhookNotificationProvider,
@@ -307,7 +315,7 @@ class NotificationManager:
         if not self.config.enabled:
             return False
 
-        current_time = asyncio.get_event_loop().time()
+        current_time = time.time()
         if channel not in self._rate_limit_tracker:
             self._rate_limit_tracker[channel] = []
 
