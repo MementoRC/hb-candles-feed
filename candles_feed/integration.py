@@ -50,7 +50,10 @@ def create_candles_feed_with_hummingbot(
     :raises TypeError: If throttler or web_assistants_factory are of incorrect type
     :return: CandlesFeed instance configured to use Hummingbot components
     """
-    if not HUMMINGBOT_AVAILABLE:
+    # Dynamically check HUMMINGBOT_AVAILABLE to allow patching in tests
+    import sys
+
+    if not getattr(sys.modules[__name__], "HUMMINGBOT_AVAILABLE", False):
         raise ImportError(
             "Hummingbot dependencies not available. Please install them or use "
             "the standard CandlesFeed constructor for standalone operation."
