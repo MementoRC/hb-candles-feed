@@ -138,11 +138,11 @@ async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
     """
     # Set up complete patching to avoid import errors
     with (
-        patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True),
         patch("candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True),
         patch.dict(
             "sys.modules",
             {
+                "hummingbot_integration": MagicMock(HUMMINGBOT_AVAILABLE=True),
                 "hummingbot": MagicMock(),
                 "hummingbot.core": MagicMock(),
                 "hummingbot.core.api_throttler": MagicMock(),
@@ -186,11 +186,11 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
     """
     # Set up complete patching to avoid import errors
     with (
-        patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True),
         patch("candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True),
         patch.dict(
             "sys.modules",
             {
+                "hummingbot_integration": MagicMock(HUMMINGBOT_AVAILABLE=True),
                 "hummingbot": MagicMock(),
                 "hummingbot.core": MagicMock(),
                 "hummingbot.core.api_throttler": MagicMock(),
@@ -245,11 +245,11 @@ async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
     """
     # Set up complete patching to avoid import errors
     with (
-        patch("candles_feed.integration.HUMMINGBOT_AVAILABLE", True),
         patch("candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True),
         patch.dict(
             "sys.modules",
             {
+                "hummingbot_integration": MagicMock(HUMMINGBOT_AVAILABLE=True),
                 "hummingbot": MagicMock(),
                 "hummingbot.core": MagicMock(),
                 "hummingbot.core.api_throttler": MagicMock(),
