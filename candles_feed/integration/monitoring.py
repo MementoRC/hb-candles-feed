@@ -6,6 +6,7 @@ Prometheus metrics export, health check endpoints, and monitoring dashboards.
 """
 
 import asyncio
+import contextlib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -103,7 +104,7 @@ class PrometheusMetricsExporter:
             lines.append("# TYPE candles_feed_request_duration_seconds histogram")
 
             for operation, timing in timing_metrics.items():
-                if isinstance(timing, (int, float)):
+                if isinstance(timing, int | float):
                     operation_name = operation.replace("_timing", "").replace("_duration", "")
                     lines.append(
                         f'candles_feed_request_duration_seconds{{operation="{operation_name}"}} {timing}'
@@ -116,11 +117,11 @@ class PrometheusMetricsExporter:
                 latest_entry = metric_entries[-1]
                 metric_value = latest_entry["value"]
                 tags = latest_entry.get("tags", {})
-                
+
                 safe_name = metric_name.replace("-", "_").replace(" ", "_").lower()
                 lines.append(f"# HELP candles_feed_{safe_name} Custom metric: {metric_name}")
                 lines.append(f"# TYPE candles_feed_{safe_name} gauge")
-                
+
                 # Format with tags if present
                 if tags:
                     tag_pairs = [f'{k}="{v}"' for k, v in tags.items()]
@@ -393,10 +394,8 @@ class ExternalMonitoringIntegration:
         """Stop all external monitoring components."""
         if self._monitoring_task:
             self._monitoring_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._monitoring_task
-            except asyncio.CancelledError:
-                pass
             self._monitoring_task = None
 
         await self.prometheus_exporter.stop()

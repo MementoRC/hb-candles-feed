@@ -6,6 +6,7 @@ to enable CI/CD event notifications and monitoring alerts.
 """
 
 import asyncio
+import contextlib
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -273,7 +274,7 @@ class NotificationIntegration:
                 # Check performance degradation
                 if performance_data:
                     for operation, current_time in performance_data.items():
-                        if isinstance(current_time, (int, float)):
+                        if isinstance(current_time, int | float):
                             baseline_time = self._baseline_performance.get(operation)
 
                             if baseline_time is None:
@@ -329,10 +330,8 @@ class NotificationIntegration:
         """Stop background monitoring."""
         if self._monitoring_task:
             self._monitoring_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._monitoring_task
-            except asyncio.CancelledError:
-                pass
             self._monitoring_task = None
             self.logger.info("Stopped notification monitoring")
 

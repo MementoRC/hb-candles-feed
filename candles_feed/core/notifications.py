@@ -151,16 +151,15 @@ class SlackNotificationProvider(NotificationProvider):
                 )
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
-                ) as response:
-                    if response.status == 200:
-                        self.logger.debug(f"Slack notification sent: {message.title}")
-                        return True
-                    else:
-                        self.logger.error(f"Slack notification failed: {response.status}")
-                        return False
+            async with aiohttp.ClientSession() as session, session.post(
+                webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
+            ) as response:
+                if response.status == 200:
+                    self.logger.debug(f"Slack notification sent: {message.title}")
+                    return True
+                else:
+                    self.logger.error(f"Slack notification failed: {response.status}")
+                    return False
         except Exception as e:
             self.logger.error(f"Failed to send Slack notification: {e}")
             return False
@@ -209,16 +208,15 @@ class DiscordNotificationProvider(NotificationProvider):
         payload = {"embeds": [embed]}
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
-                ) as response:
-                    if response.status == 204:  # Discord returns 204 for success
-                        self.logger.debug(f"Discord notification sent: {message.title}")
-                        return True
-                    else:
-                        self.logger.error(f"Discord notification failed: {response.status}")
-                        return False
+            async with aiohttp.ClientSession() as session, session.post(
+                webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
+            ) as response:
+                if response.status == 204:  # Discord returns 204 for success
+                    self.logger.debug(f"Discord notification sent: {message.title}")
+                    return True
+                else:
+                    self.logger.error(f"Discord notification failed: {response.status}")
+                    return False
         except Exception as e:
             self.logger.error(f"Failed to send Discord notification: {e}")
             return False
@@ -253,16 +251,15 @@ class WebhookNotificationProvider(NotificationProvider):
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=10.0)
-                ) as response:
-                    if 200 <= response.status < 300:
-                        self.logger.debug(f"Webhook notification sent: {message.title}")
-                        return True
-                    else:
-                        self.logger.error(f"Webhook notification failed: {response.status}")
-                        return False
+            async with aiohttp.ClientSession() as session, session.post(
+                url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=10.0)
+            ) as response:
+                if 200 <= response.status < 300:
+                    self.logger.debug(f"Webhook notification sent: {message.title}")
+                    return True
+                else:
+                    self.logger.error(f"Webhook notification failed: {response.status}")
+                    return False
         except Exception as e:
             self.logger.error(f"Failed to send webhook notification: {e}")
             return False

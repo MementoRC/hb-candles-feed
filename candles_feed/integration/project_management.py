@@ -6,6 +6,7 @@ for task tracking, milestone management, and progress synchronization.
 """
 
 import asyncio
+import contextlib
 import hashlib
 import hmac
 import json
@@ -502,10 +503,8 @@ class ProjectManagementIntegration:
         """Stop all project management integration components."""
         if self._sync_task:
             self._sync_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._sync_task
-            except asyncio.CancelledError:
-                pass
             self._sync_task = None
 
         await self.webhook_handler.stop()
