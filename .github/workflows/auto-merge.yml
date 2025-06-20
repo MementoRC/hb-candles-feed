@@ -67,9 +67,33 @@ jobs:
                 return;
               }
 
-              // Check for labels indicating it's a patch or minor update (based on dependabot.yml groups)
-              // Dependabot should add 'dependencies' and 'python' or 'github-actions'
-              // The dependabot.yml configuration limits PRs to patch/minor for these groups.
+              // Major version update safeguard: Parse PR title
+              const title = pr.title;
+              const versionRegex = /bump(?:s)?\s+.+?\s+from\s+v?([\d\w.-]+)\s+to\s+v?([\d\w.-]+)/i;
+              const versionMatch = title.match(versionRegex);
+
+              if (versionMatch) {
+                const versionFromString = versionMatch[1];
+                const versionToString = versionMatch[2];
+                console.log(`PR #${prNumber}: Detected versions in title - From: ${versionFromString}, To: ${versionToString}`);
+
+                const majorFrom = parseInt(versionFromString.split('.')[0], 10);
+                const majorTo = parseInt(versionToString.split('.')[0], 10);
+
+                if (!isNaN(majorFrom) && !isNaN(majorTo) && majorTo > majorFrom) {
+                  console.log(`PR #${prNumber}: Major version update detected (${majorFrom} -> ${majorTo}). Skipping auto-merge.`);
+                  await github.rest.issues.createComment({
+                    ...GITHUB_CONTEXT,
+                    issue_number: prNumber,
+                    body: "🤖 Auto-merge skipped: This appears to be a major version update. Please review manually.",
+                  });
+                  return; // Skip auto-merge for detected major updates
+                }
+              } else {
+                console.log(`PR #${prNumber}: Could not parse version bump from title, or title does not match standard bump format. Proceeding, relying on dependabot.yml update-types and CI. Title: "${title}"`);
+              }
+
+              // Check for 'dependencies' label (standard for Dependabot PRs)
               const hasDependencyLabel = pr.labels.some(label => label.name === 'dependencies');
               if (!hasDependencyLabel) {
                 console.log(`PR #${prNumber} does not have 'dependencies' label. Skipping auto-merge.`);
@@ -77,32 +101,53 @@ jobs:
               }
 
               // Check CI status
-              const { data: checkSuites } = await github.rest.checks.listForRef({
+              const { data: checkSuitesResponse } = await github.rest.checks.listForRef({
                 ...GITHUB_CONTEXT,
+                ref: pr.head.sha,
                 ref: pr.head.sha,
               });
 
-              const allChecksPassed = checkSuites.check_suites.every(suite => suite.conclusion === 'success' || suite.conclusion === 'skipped' || suite.conclusion === null); // null for pending
-              const isPending = checkSuites.check_suites.some(suite => suite.status !== 'completed');
+              const relevantCheckSuites = checkSuitesResponse.check_suites;
 
-
-              if (isPending) {
-                console.log(`PR #${prNumber}: Checks are still pending. Will re-evaluate later.`);
-                // Optionally, re-trigger workflow or add a label to re-check
+              const isAnyCheckPending = relevantCheckSuites.some(suite => suite.status !== 'completed');
+              if (isAnyCheckPending) {
+                console.log(`PR #${prNumber}: CI checks are still pending. Will re-evaluate when workflow_run completes or on next event.`);
                 return;
               }
 
-              if (!allChecksPassed) {
-                console.log(`PR #${prNumber}: Not all checks passed. Skipping auto-merge.`);
+              // If not pending, all checks must be success or skipped.
+              // Also ensure there was at least one check suite.
+              const allChecksSuccessfullyCompleted = relevantCheckSuites.length > 0 && relevantCheckSuites.every(
+                suite => suite.conclusion === 'success' || suite.conclusion === 'skipped'
+              );
+
+              if (!allChecksSuccessfullyCompleted) {
+                const checkConclusions = relevantCheckSuites.map(s => `${s.app.name || 'UnknownApp'}(${s.id}): ${s.conclusion}`).join(', ');
+                console.log(`PR #${prNumber}: Not all CI checks passed successfully or were skipped. Conclusions: [${checkConclusions}]. Skipping auto-merge.`);
                 await github.rest.issues.createComment({
                   ...GITHUB_CONTEXT,
                   issue_number: prNumber,
-                  body: "🤖 Auto-merge skipped: Not all CI checks passed.",
+                  body: `🤖 Auto-merge skipped: Not all CI checks passed successfully. Please review. Conclusions: \`${checkConclusions || 'No conclusions found'}\``,
                 });
                 return;
               }
 
-              console.log(`PR #${prNumber}: All checks passed.`);
+              // Safety check: if no check suites were found (and not pending), it might mean CI didn't run.
+              // This is covered by relevantCheckSuites.length > 0 in allChecksSuccessfullyCompleted,
+              // but an explicit log can be useful if that part of the condition fails.
+              if (relevantCheckSuites.length === 0) {
+                 console.log(`PR #${prNumber}: No completed check suites found for ref ${pr.head.sha}. Skipping auto-merge for safety.`);
+                 // This case should be caught by !allChecksSuccessfullyCompleted due to .length > 0,
+                 // but if it were to be handled separately:
+                 // await github.rest.issues.createComment({
+                 //   ...GITHUB_CONTEXT,
+                 //   issue_number: prNumber,
+                 //   body: "🤖 Auto-merge skipped: No CI checks found for this PR's commit.",
+                 // });
+                 return;
+              }
+
+              console.log(`PR #${prNumber}: All CI checks passed successfully or were skipped.`);
 
               // Check if PR is mergeable
               if (!pr.mergeable) {
