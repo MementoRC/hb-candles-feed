@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Type
+from typing import Any
 
 import aiohttp
 
@@ -155,9 +155,12 @@ class SlackNotificationProvider(NotificationProvider):
         }
 
         try:
-            async with aiohttp.ClientSession() as session, session.post(
-                webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
-            ) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
+                    webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
+                ) as response,
+            ):
                 if response.status == 200:
                     self.logger.debug(f"Slack notification sent: {message.title}")
                     return True
@@ -216,9 +219,12 @@ class DiscordNotificationProvider(NotificationProvider):
         payload = {"embeds": [embed]}
 
         try:
-            async with aiohttp.ClientSession() as session, session.post(
-                webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
-            ) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
+                    webhook_url, json=payload, timeout=aiohttp.ClientTimeout(total=10.0)
+                ) as response,
+            ):
                 if response.status == 204:  # Discord returns 204 for success
                     self.logger.debug(f"Discord notification sent: {message.title}")
                     return True
@@ -259,9 +265,12 @@ class WebhookNotificationProvider(NotificationProvider):
         }
 
         try:
-            async with aiohttp.ClientSession() as session, session.post(
-                url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=10.0)
-            ) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
+                    url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=10.0)
+                ) as response,
+            ):
                 if 200 <= response.status < 300:
                     self.logger.debug(f"Webhook notification sent: {message.title}")
                     return True
@@ -292,7 +301,7 @@ class NotificationManager:
 
     def _initialize_providers(self) -> None:
         """Initialize notification providers based on configuration."""
-        provider_classes: dict[NotificationChannel, Type[NotificationProvider]] = {
+        provider_classes: dict[NotificationChannel, type[NotificationProvider]] = {
             NotificationChannel.SLACK: SlackNotificationProvider,
             NotificationChannel.DISCORD: DiscordNotificationProvider,
             NotificationChannel.WEBHOOK: WebhookNotificationProvider,
