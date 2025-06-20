@@ -344,10 +344,13 @@ class ExternalMonitoringIntegration:
             try:
                 for name, url in self.config.external_endpoints.items():
                     try:
-                        async with aiohttp.ClientSession() as session, session.get(
-                            url,
-                            timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds),
-                        ) as response:
+                        async with (
+                            aiohttp.ClientSession() as session,
+                            session.get(
+                                url,
+                                timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds),
+                            ) as response,
+                        ):
                             if response.status == 200:
                                 self.monitoring_manager.record_metric(
                                     f"external_endpoint_{name}_status", 1.0

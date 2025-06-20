@@ -2,7 +2,6 @@
 Unit tests for monitoring integration.
 """
 
-
 import pytest
 
 from candles_feed.core.monitoring import MonitoringConfig, MonitoringManager
@@ -23,7 +22,7 @@ class TestPrometheusMetricsExporter:
         config = MonitoringConfig(
             enable_metrics_collection=True,
             enable_structured_logging=True,
-            enable_performance_tracking=True
+            enable_performance_tracking=True,
         )
         return MonitoringManager(config)
 

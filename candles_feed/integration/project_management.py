@@ -166,9 +166,10 @@ class GitHubProjectsIntegration:
             # This would need to be adapted based on your GitHub Projects setup
             url = f"https://api.github.com/repos/{self.config.github_org}/issues"
 
-            async with aiohttp.ClientSession() as session, session.get(
-                url, headers=headers
-            ) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.get(url, headers=headers) as response,
+            ):
                 if response.status == 200:
                     issues = await response.json()
 
@@ -240,9 +241,10 @@ class GitHubProjectsIntegration:
 
             data = {"state": github_state}
 
-            async with aiohttp.ClientSession() as session, session.patch(
-                url, headers=headers, json=data
-            ) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.patch(url, headers=headers, json=data) as response,
+            ):
                 if response.status == 200:
                     self.logger.debug(f"Updated GitHub task {task_id} status to {status.value}")
                     return True
