@@ -46,7 +46,7 @@ jobs:
         include:
           - hummingbot-version: "1.25.0"
             python-version: "3.10"
-          - hummingbot-version: "1.26.0" 
+          - hummingbot-version: "1.26.0"
             python-version: "3.10"
           - hummingbot-version: "development"
             python-version: "3.10"
@@ -96,10 +96,10 @@ jobs:
           try:
               from candles_feed import create_candles_feed_with_hummingbot
               from candles_feed.mocking_resources.hummingbot.mock_components import create_mock_hummingbot_components
-              
+
               # Test component creation
               throttler, web_factory = create_mock_hummingbot_components()
-              
+
               # Test candles feed creation
               feed = create_candles_feed_with_hummingbot(
                   exchange='binance_spot',
@@ -107,7 +107,7 @@ jobs:
                   throttler=throttler,
                   web_assistants_factory=web_factory
               )
-              
+
               print('✅ Hummingbot compatibility test passed')
           except Exception as e:
               print(f'❌ Hummingbot compatibility test failed: {e}')
@@ -174,35 +174,35 @@ jobs:
           import sys
           from candles_feed.core.monitoring import MonitoringManager, MonitoringConfig
           from candles_feed.integration.monitoring import (
-              ExternalMonitoringIntegration, 
+              ExternalMonitoringIntegration,
               MonitoringIntegrationConfig
           )
-          
+
           async def test_prometheus():
               monitoring_config = MonitoringConfig(enable_metrics_collection=True)
               monitoring_manager = MonitoringManager(monitoring_config)
-              
+
               integration_config = MonitoringIntegrationConfig(
                   prometheus_enabled=True,
                   prometheus_port=9091  # Use different port to avoid conflicts
               )
-              
+
               integration = ExternalMonitoringIntegration(
                   monitoring_manager, integration_config
               )
-              
+
               try:
                   await integration.start()
-                  
+
                   # Simulate some metrics
                   monitoring_manager.update_metrics({
                       'test_metric_1': 42,
                       'test_metric_2': 3.14
                   })
-                  
+
                   # Wait a bit for server to start
                   await asyncio.sleep(2)
-                  
+
                   # Test metrics endpoint
                   import aiohttp
                   async with aiohttp.ClientSession() as session:
@@ -217,13 +217,13 @@ jobs:
                           else:
                               print(f'❌ Metrics endpoint returned {response.status}')
                               sys.exit(1)
-                              
+
               except Exception as e:
                   print(f'❌ Prometheus integration test failed: {e}')
                   sys.exit(1)
               finally:
                   await integration.stop()
-          
+
           asyncio.run(test_prometheus())
           "
 
@@ -237,24 +237,24 @@ jobs:
               ExternalMonitoringIntegration,
               MonitoringIntegrationConfig
           )
-          
+
           async def test_health_checks():
               monitoring_config = MonitoringConfig()
               monitoring_manager = MonitoringManager(monitoring_config)
-              
+
               integration_config = MonitoringIntegrationConfig(
                   health_check_enabled=True,
                   health_check_port=8082
               )
-              
+
               integration = ExternalMonitoringIntegration(
                   monitoring_manager, integration_config
               )
-              
+
               try:
                   await integration.start()
                   await asyncio.sleep(2)  # Wait for server to start
-                  
+
                   import aiohttp
                   async with aiohttp.ClientSession() as session:
                       # Test health endpoint
@@ -262,27 +262,27 @@ jobs:
                           if response.status != 200:
                               print(f'❌ Health endpoint returned {response.status}')
                               sys.exit(1)
-                      
+
                       # Test readiness endpoint
                       async with session.get('http://localhost:8082/health/readiness') as response:
                           if response.status not in [200, 503]:  # Either ready or not ready is fine
                               print(f'❌ Readiness endpoint returned {response.status}')
                               sys.exit(1)
-                      
+
                       # Test liveness endpoint
                       async with session.get('http://localhost:8082/health/liveness') as response:
                           if response.status != 200:
                               print(f'❌ Liveness endpoint returned {response.status}')
                               sys.exit(1)
-                  
+
                   print('✅ Health check endpoints test passed')
-                              
+
               except Exception as e:
                   print(f'❌ Health check integration test failed: {e}')
                   sys.exit(1)
               finally:
                   await integration.stop()
-          
+
           asyncio.run(test_health_checks())
           "
 
@@ -317,10 +317,10 @@ jobs:
           import asyncio
           import sys
           from candles_feed.core.notifications import (
-              NotificationManager, NotificationConfig, NotificationMessage, 
+              NotificationManager, NotificationConfig, NotificationMessage,
               NotificationLevel, NotificationChannel
           )
-          
+
           async def test_notifications():
               # Test with webhook configuration (mock endpoint)
               config = NotificationConfig(
@@ -331,9 +331,9 @@ jobs:
                       }
                   }
               )
-              
+
               manager = NotificationManager(config)
-              
+
               message = NotificationMessage(
                   title='Test Notification',
                   content='This is a test message from CI',
@@ -341,7 +341,7 @@ jobs:
                   channel=NotificationChannel.WEBHOOK,
                   metadata={'test': True, 'ci_run': True}
               )
-              
+
               try:
                   success = await manager.send_notification(message)
                   if success:
@@ -352,7 +352,7 @@ jobs:
               except Exception as e:
                   print(f'❌ Notification test failed: {e}')
                   sys.exit(1)
-          
+
           asyncio.run(test_notifications())
           "
 
@@ -361,7 +361,7 @@ jobs:
           python -c "
           import asyncio
           from candles_feed.core.notifications import NotificationManager, NotificationConfig, NotificationChannel
-          
+
           async def test_build_notifications():
               config = NotificationConfig(
                   channels={
@@ -370,9 +370,9 @@ jobs:
                       }
                   }
               )
-              
+
               manager = NotificationManager(config)
-              
+
               # Test build status notification
               success = await manager.send_build_status(
                   status='success',
@@ -384,12 +384,12 @@ jobs:
                       'test_results': 'All tests passed'
                   }
               )
-              
+
               if success:
                   print('✅ Build status notification test passed')
               else:
                   print('❌ Build status notification test failed')
-          
+
           asyncio.run(test_build_notifications())
           "
 
@@ -419,7 +419,7 @@ jobs:
         run: |
           pip install -e .
           pip install pytest pytest-cov pytest-asyncio aioresponses
-          
+
           # Run tests with coverage for code quality analysis
           pytest --cov=candles_feed --cov-report=xml --cov-report=lcov tests/
 
@@ -445,14 +445,14 @@ jobs:
           # Check if coverage meets minimum threshold
           python -c "
           import xml.etree.ElementTree as ET
-          
+
           try:
               tree = ET.parse('coverage.xml')
               root = tree.getroot()
               coverage = float(root.attrib['line-rate']) * 100
-              
+
               print(f'Code coverage: {coverage:.1f}%')
-              
+
               if coverage < 80:
                   print('❌ Code coverage below 80% threshold')
                   exit(1)
@@ -485,14 +485,14 @@ jobs:
           echo "**Workflow:** ${{ github.workflow }}" >> integration-report.md
           echo "**Trigger:** ${{ github.event_name }}" >> integration-report.md
           echo "" >> integration-report.md
-          
+
           echo "## Integration Test Results" >> integration-report.md
           echo "- **Hummingbot Compatibility:** ${{ needs.hummingbot-compatibility.result }}" >> integration-report.md
           echo "- **Monitoring Integration:** ${{ needs.monitoring-integration.result }}" >> integration-report.md
           echo "- **Notification Integration:** ${{ needs.notification-integration.result }}" >> integration-report.md
           echo "- **Code Quality Integration:** ${{ needs.code-quality-integration.result }}" >> integration-report.md
           echo "" >> integration-report.md
-          
+
           # Determine overall status
           if [[ "${{ needs.hummingbot-compatibility.result }}" == "success" && \
                 "${{ needs.monitoring-integration.result }}" == "success" && \
@@ -512,7 +512,7 @@ jobs:
           script: |
             const fs = require('fs');
             const reportContent = fs.readFileSync('integration-report.md', 'utf8');
-            
+
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
