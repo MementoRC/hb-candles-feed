@@ -6,7 +6,7 @@ on:
   issues:
     types: [opened, edited]
   schedule:
-    - cron: '30 1 * * *' # Run daily for stale management
+    - cron: '30 1 * * 0,2-6' # Run daily except Mondays to avoid conflict with intelligent stale management
   workflow_dispatch: # Allow manual triggering
 
 permissions:
