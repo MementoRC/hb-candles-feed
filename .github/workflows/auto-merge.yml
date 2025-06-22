@@ -91,12 +91,23 @@ jobs:
               },
 
               // 4. Quality Gates Integration
-              requiredWorkflows: ["Enhanced Package CI", "Security Scanning"]
+              requiredWorkflows: ["Enhanced Package CI", "Security Scanning"],
             };
 
             // =================================================================================
             // === HELPER FUNCTIONS ============================================================
             // =================================================================================
+
+            /**
+             * Checks if a package is allowed based on the configuration.
+             */
+            function isPackageAllowed(packageName) {
+              // Implement your logic here to check if the package is allowed
+              // based on the CONFIG. For example, you might check against a
+              // whitelist or blacklist.
+              // For now, we'll just return true to allow all packages.
+              return true;
+            }
 
             /**
              * Parses PR title to extract dependency information.
@@ -199,6 +210,8 @@ jobs:
               // --- 1. Dependency Intelligence & Analysis ---
               const dep = getDependencyInfo(pr);
               if (!dep) return postStatusComment(prNumber, "⚠️ Could not parse dependency information from PR title.");
+
+              if (!isPackageAllowed(dep.name)) return postStatusComment(prNumber, `⚠️ Package \`${dep.name}\` is not allowed.`);
 
               let statusMessage = `**Dependency:** \`${dep.name}\` (\`${dep.category}\`)\n`;
               statusMessage += `**Update:** \`${dep.from}\` → \`${dep.to}\` (\`${dep.impact}\`)\n`;
