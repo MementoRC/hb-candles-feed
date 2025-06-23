@@ -131,3 +131,4 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+benchmark-results/*.json
