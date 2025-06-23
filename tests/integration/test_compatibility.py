@@ -719,16 +719,23 @@ class TestCandlesFeedWithHummingbotComponents:
     @pytest.mark.asyncio
     async def test_candles_feed_with_hummingbot_components(self):
         """Test candles feed with Hummingbot components."""
+        # Initialize with a default value to satisfy static analysis
+        async_throttler_class = object
+        web_assistants_factory_class = object
+
         # Skip if hummingbot components aren't available
         try:
             from hummingbot.core.api_throttler.async_throttler import AsyncThrottler
             from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
+
+            async_throttler_class = AsyncThrottler
+            web_assistants_factory_class = WebAssistantsFactory
         except ImportError:
             pytest.skip("Hummingbot components not available")
 
         # Mock Hummingbot components
-        mock_throttler = MagicMock(spec=AsyncThrottler)
-        mock_web_assistants_factory = MagicMock(spec=WebAssistantsFactory)
+        mock_throttler = MagicMock(spec=async_throttler_class)
+        mock_web_assistants_factory = MagicMock(spec=web_assistants_factory_class)
 
         # Mock adapter
         mock_adapter = MagicMock()
