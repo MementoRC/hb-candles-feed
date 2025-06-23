@@ -605,9 +605,9 @@ async def test_poll_for_updates(
         # 2. First poll should use start_time of initial candle in incremental updates
         # The loop will call poll_once at least once after initialization
         if len(strategy.poll_once_calls) > 1:
-            assert (
-                strategy.poll_once_calls[1][0] == 1
-            ), "Incremental poll should start from timestamp 1"
+            assert strategy.poll_once_calls[1][0] == 1, (
+                "Incremental poll should start from timestamp 1"
+            )
 
 
 @pytest.mark.asyncio
