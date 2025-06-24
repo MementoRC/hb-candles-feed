@@ -33,8 +33,15 @@ jobs:
 
       - name: Analyze benchmark results and alert
         uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL_SECRET: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL_SECRET: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PERFORMANCE_ALERT_THRESHOLD_MS_VAR: ${{ vars.PERFORMANCE_ALERT_THRESHOLD_MS }}
+          DEGRADATION_THRESHOLD_PERCENT_VAR: ${{ vars.DEGRADATION_THRESHOLD_PERCENT }}
+          # GITHUB_TOKEN is implicitly available to github-script, but explicit pass is fine
+          # For github.rest.issues.create, it uses the token associated with the GITHUB_TOKEN secret
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }} # Standard practice for github-script
           script: |
             const fs = require('fs');
             const path = require('path');
@@ -55,51 +62,114 @@ jobs:
             const benchmarkData = JSON.parse(fs.readFileSync(benchmarkFile, 'utf8'));
             const benchmarks = benchmarkData.benchmarks;
 
-            // Define thresholds (example: alert if mean > 1000 microseconds, or relative change > 20%)
-            // These thresholds should be tuned for your specific project.
-            const ABSOLUTE_THRESHOLD_MS = 10000; // 10ms, example
-            const RELATIVE_REGRESSION_THRESHOLD = 0.20; // 20%
+            // Read thresholds from environment variables, with defaults
+            const absoluteThresholdMsConfig = parseInt(process.env.PERFORMANCE_ALERT_THRESHOLD_MS_VAR) || 10000; // Default 10ms
+            const relativeRegressionThresholdConfig = parseFloat(process.env.DEGRADATION_THRESHOLD_PERCENT_VAR) / 100.0 || 0.20; // Default 20%
+            console.log(`Using Absolute Threshold: ${absoluteThresholdMsConfig} ms`);
+            console.log(`Using Relative Regression Threshold: ${relativeRegressionThresholdConfig * 100}% (Note: relative check is a TODO)`);
 
             let regressionsFound = [];
 
             for (const bench of benchmarks) {
               const name = bench.name;
-              const meanTime = bench.stats.mean * 1000000; // Convert seconds to microseconds
+              const meanTimeSeconds = bench.stats.mean;
+              const meanTimeMicroseconds = meanTimeSeconds * 1000000; // Convert seconds to microseconds
 
-              // Example: Check against an absolute threshold
-              if (meanTime > ABSOLUTE_THRESHOLD_MS) {
+              // Check against absolute threshold (convert configured ms to µs for comparison)
+              if (meanTimeMicroseconds > (absoluteThresholdMsConfig * 1000)) {
                 regressionsFound.push({
                   name: name,
-                  mean: meanTime.toFixed(2),
-                  reason: `Exceeded absolute threshold of ${ABSOLUTE_THRESHOLD_MS}µs (was ${meanTime.toFixed(2)}µs)`
+                  mean: meanTimeMicroseconds.toFixed(2),
+                  reason: `Exceeded absolute threshold of ${absoluteThresholdMsConfig}ms (was ${(meanTimeMicroseconds / 1000).toFixed(2)}ms)`
                 });
               }
 
-              // TODO: Implement comparison with a baseline (e.g., previous run on main branch)
-              // This requires storing/fetching baseline data, which is more complex.
-              // For now, we focus on absolute thresholds or very large changes if we had previous data.
+              // TODO: Implement comparison with a baseline for relative regression.
+              // This requires storing/fetching baseline data.
+              // Example: if (relativeChange > relativeRegressionThresholdConfig) { ... }
+            }
+
+            async function sendWebhookNotificationWithRetry(webhookUrl, messagePayload, serviceName, retries = 2, delayMs = 1500) {
+              if (!webhookUrl || webhookUrl === 'undefined' || webhookUrl === '') {
+                console.log(`${serviceName} webhook URL not configured or empty. Skipping notification.`);
+                return false;
+              }
+              console.log(`Attempting to send notification to ${serviceName}...`);
+
+              let requestBody;
+              if (serviceName === 'Slack') {
+                requestBody = JSON.stringify({ text: messagePayload });
+              } else if (serviceName === 'Discord') {
+                requestBody = JSON.stringify({ content: messagePayload });
+              } else { // Generic webhook
+                requestBody = JSON.stringify({ message: messagePayload }); // Adjust as needed
+              }
+
+              for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                  const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: requestBody
+                  });
+
+                  // Discord often returns 204 No Content on success
+                  if (response.ok || (serviceName === 'Discord' && response.status === 204)) {
+                    console.log(`${serviceName} notification sent successfully (Status: ${response.status}).`);
+                    return true;
+                  }
+                  const responseText = await response.text();
+                  throw new Error(`HTTP error ${response.status} ${response.statusText}. Response: ${responseText}`);
+                } catch (error) {
+                  console.error(`Attempt ${attempt + 1} to send ${serviceName} notification failed: ${error.message}`);
+                  if (attempt < retries) {
+                    await new Promise(resolve => setTimeout(resolve, delayMs * (attempt + 1)));
+                  } else {
+                    console.error(`Failed to send ${serviceName} notification after ${retries + 1} attempts.`);
+                    return false;
+                  }
+                }
+              }
+              return false; // Should be unreachable
             }
 
             if (regressionsFound.length > 0) {
-              let issueBody = `## 📉 Performance Regression Detected\n\n`;
-              issueBody += `Workflow Run: ${context.payload.workflow_run.html_url}\n`;
-              issueBody += `Commit: ${context.payload.workflow_run.head_sha}\n\n`;
-              issueBody += `The following benchmarks showed potential regressions:\n\n`;
+              const commitShaShort = context.payload.workflow_run.head_sha.substring(0, 7);
+              let baseMessage = `## 📉 Performance Regression Detected\n\n`;
+              baseMessage += `Workflow Run: ${context.payload.workflow_run.html_url}\n`;
+              baseMessage += `Commit: ${commitShaShort}\n\n`;
+              baseMessage += `The following benchmarks showed potential regressions:\n\n`;
+
+              let issueBody = baseMessage;
               issueBody += `| Benchmark Name | Mean Time (µs) | Reason |\n`;
               issueBody += `|----------------|----------------|--------|\n`;
+
+              let notificationText = `📉 Performance Regression Detected in ${context.repo.owner}/${context.repo.repo} (Commit: ${commitShaShort})\n`;
+              notificationText += `Workflow: ${context.payload.workflow_run.html_url}\nRegressions:\n`;
+
               for (const reg of regressionsFound) {
                 issueBody += `| ${reg.name} | ${reg.mean} | ${reg.reason} |\n`;
+                notificationText += `- ${reg.name}: ${reg.mean} µs (${reg.reason})\n`;
               }
               issueBody += `\nPlease investigate these performance changes.`;
 
-              // Add TaskMaster info if relevant (e.g., if commit message has Task ID)
-              // This part is illustrative and needs context from your TaskMaster integration
               const commitMessage = context.payload.workflow_run.head_commit.message;
               const taskMatch = commitMessage.match(/Task ID.*?(\d+(?:\.\d+)?)/i);
               if (taskMatch) {
-                issueBody += `\n\nAssociated TaskMaster ID: ${taskMatch[1]}`;
+                const taskMasterInfo = `\n\nAssociated TaskMaster ID: ${taskMatch[1]}`;
+                issueBody += taskMasterInfo;
+                notificationText += `Associated TaskMaster ID: ${taskMatch[1]}\n`;
               }
+              notificationText += `\nSee issue for details (if created) and full benchmark run.`;
 
+              // Send external notifications
+              const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL_SECRET;
+              const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL_SECRET;
+
+              await sendWebhookNotificationWithRetry(slackWebhookUrl, notificationText, 'Slack');
+              await sendWebhookNotificationWithRetry(discordWebhookUrl, notificationText, 'Discord');
+
+              // Create GitHub issue
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
