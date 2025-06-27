@@ -228,7 +228,9 @@ jobs:
             
             # Coverage status
             if [ "$COVERAGE" != "N/A" ]; then
-              if (( $(echo "$COVERAGE >= $THRESHOLD" | bc -l) )); then
+              # Use Python for floating point comparison instead of bc
+              MEETS_THRESHOLD=$(python3 -c "print('true' if float('$COVERAGE') >= float('$THRESHOLD') else 'false')")
+              if [ "$MEETS_THRESHOLD" = "true" ]; then
                 echo "- **Status**: ✅ Coverage meets threshold" >> $GITHUB_STEP_SUMMARY
               else
                 echo "- **Status**: ⚠️ Coverage below threshold" >> $GITHUB_STEP_SUMMARY
@@ -253,7 +255,7 @@ jobs:
 
       - name: SonarCloud analysis
         uses: SonarSource/sonarcloud-github-action@master
-        if: github.event.inputs.sonar_analysis != 'false' && always()
+        if: github.event.inputs.sonar_analysis != 'false' && always() && secrets.SONAR_TOKEN != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -360,7 +362,9 @@ jobs:
                 print('0')
             ")
             
-            if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            # Use Python for floating point comparison instead of bc
+            BELOW_THRESHOLD=$(python3 -c "print('true' if float('$COVERAGE') < float('$THRESHOLD') else 'false')")
+            if [ "$BELOW_THRESHOLD" = "true" ]; then
               echo "❌ Coverage ($COVERAGE%) below threshold ($THRESHOLD%)"
               QUALITY_PASSED=false
             else
