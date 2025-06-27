@@ -1,0 +1,381 @@
+name: Hummingbot Integration Tests
+
+on:
+  pull_request:
+    branches: [main, master, develop, development]
+    paths:
+      - 'candles_feed/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/hummingbot-integration-tests.yml'
+  push:
+    branches: [main, master, develop, development]
+    paths:
+      - 'candles_feed/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/hummingbot-integration-tests.yml'
+  workflow_dispatch:
+    inputs:
+      verbose_output:
+        description: 'Enable verbose test output'
+        required: false
+        default: 'false'
+        type: boolean
+      test_timeout:
+        description: 'Test timeout in seconds'
+        required: false
+        default: '1800'
+        type: string
+
+# Cancel in-progress runs for the same ref/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+  # Hummingbot integration test environment variables
+  HUMMINGBOT_TEST_MODE: "true"
+  SKIP_EXTERNAL_API_TESTS: "true"
+  # API keys for testing (use secrets for real integration tests)
+  BINANCE_API_KEY: ${{ secrets.BINANCE_TESTNET_API_KEY || 'test_api_key' }}
+  BINANCE_SECRET_KEY: ${{ secrets.BINANCE_TESTNET_SECRET_KEY || 'test_secret_key' }}
+
+jobs:
+  # Quick check to skip workflow on docs-only changes
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      hummingbot-relevant: ${{ steps.changes.outputs.hummingbot-relevant }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Hummingbot-relevant changes
+        id: changes
+        run: |
+          # Default to running tests (safe fallback)
+          echo "hummingbot-relevant=true" >> $GITHUB_OUTPUT
+          
+          # Get list of changed files
+          CHANGED_FILES=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            if [ -n "$BASE_SHA" ]; then
+              CHANGED_FILES=$(git diff --name-only "$BASE_SHA" HEAD 2>/dev/null || echo "")
+            fi
+          else
+            BEFORE_SHA="${{ github.event.before }}"
+            if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" HEAD 2>/dev/null || echo "")
+            fi
+          fi
+          
+          echo "Changed files detected:"
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "$CHANGED_FILES"
+            
+            # Check if only docs/README changes (skip Hummingbot tests)
+            if echo "$CHANGED_FILES" | grep -qvE '^(docs/|README\.md|\.md$|LICENSE|CHANGELOG\.md)'; then
+              echo "hummingbot-relevant=true" >> $GITHUB_OUTPUT
+            else
+              echo "hummingbot-relevant=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No files detected or Git diff failed - running Hummingbot tests (safe default)"
+          fi
+
+  # Hummingbot integration tests
+  hummingbot-integration:
+    name: Hummingbot Integration Tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.hummingbot-relevant == 'true'
+    
+    # Extended timeout for integration tests
+    timeout-minutes: 30
+    
+    # Service containers for comprehensive integration testing
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+      
+      # Mock exchange API server for controlled testing
+      mock-exchange:
+        image: nginx:alpine
+        ports:
+          - 8081:80
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Need full history for proper integration testing
+          fetch-depth: 0
+
+      - name: Setup pixi environment caching
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pixi
+            .pixi
+          key: pixi-hummingbot-${{ runner.os }}-${{ hashFiles('pixi.lock', 'pyproject.toml') }}
+          restore-keys: |
+            pixi-hummingbot-${{ runner.os }}-
+            pixi-${{ runner.os }}-
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          environments: default
+          cache: true
+
+      - name: Cache project installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            build/
+            .pytest_cache/
+          key: hummingbot-project-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            hummingbot-project-${{ runner.os }}-
+            project-${{ runner.os }}-
+
+      - name: Install project and dependencies
+        run: |
+          echo "🔧 Installing Hummingbot integration test dependencies..."
+          pixi install
+          echo "🐍 Python version check:"
+          pixi run python --version
+          echo "📦 Installing project in editable mode..."
+          pixi run pip install -e . --verbose
+          
+          # Install additional dependencies for Hummingbot integration
+          echo "🤖 Installing Hummingbot-related test dependencies..."
+          pixi run pip install aioresponses websockets
+
+      - name: Environment setup and validation
+        run: |
+          echo "## Hummingbot Integration Test Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS**: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python**: $(pixi run python --version)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timeout**: ${{ github.event.inputs.test_timeout || '1800' }}s" >> $GITHUB_STEP_SUMMARY
+          echo "- **Verbose**: ${{ github.event.inputs.verbose_output || 'false' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Validate core dependencies
+          echo "🔍 Validating core dependencies..."
+          pixi run python -c "import aiohttp, pandas, numpy; print('✅ Core dependencies OK')"
+          
+          # Check candles_feed import
+          echo "📦 Validating candles_feed package..."
+          pixi run python -c "from candles_feed import CandlesFeed; print('✅ CandlesFeed import OK')"
+
+      - name: Wait for service containers
+        run: |
+          echo "⏳ Waiting for service containers to be ready..."
+          sudo apt-get update && sudo apt-get install -y redis-tools curl
+          
+          # Wait for Redis
+          echo "🔴 Checking Redis connection..."
+          timeout 60 bash -c 'until redis-cli -h localhost -p 6379 ping; do echo "Waiting for Redis..."; sleep 2; done'
+          echo "✅ Redis is ready"
+          
+          # Verify mock exchange server
+          echo "🌐 Checking mock exchange server..."
+          timeout 30 bash -c 'until curl -s -f http://localhost:8081 > /dev/null; do echo "Waiting for mock exchange..."; sleep 2; done'
+          echo "✅ Mock exchange server is ready"
+
+      - name: Run Hummingbot integration tests
+        env:
+          REDIS_URL: redis://localhost:6379
+          MOCK_EXCHANGE_URL: http://localhost:8081
+          TEST_TIMEOUT: ${{ github.event.inputs.test_timeout || '1800' }}
+          PYTEST_VERBOSE: ${{ github.event.inputs.verbose_output == 'true' && '-v' || '-q' }}
+        run: |
+          echo "🤖 Running Hummingbot integration tests..."
+          
+          # Set test timeout from input or default
+          TIMEOUT_SECONDS="${TEST_TIMEOUT}"
+          VERBOSE_FLAG="${PYTEST_VERBOSE}"
+          
+          # Run specifically the Hummingbot integration tests
+          pixi run pytest tests/unit/test_hummingbot_integration.py \
+            tests/integration/test_compatibility.py \
+            --timeout="${TIMEOUT_SECONDS}" \
+            --junitxml=hummingbot-integration-results.xml \
+            --tb=short \
+            ${VERBOSE_FLAG} \
+            --disable-warnings \
+            --maxfail=5 \
+            -m "not benchmark"
+          
+          echo "✅ Hummingbot integration tests completed"
+
+      - name: Run Hummingbot compatibility verification
+        env:
+          TEST_TIMEOUT: ${{ github.event.inputs.test_timeout || '1800' }}
+        run: |
+          echo "🔄 Running Hummingbot compatibility verification tests..."
+          
+          # Run compatibility tests to ensure backward compatibility
+          pixi run pytest tests/integration/ \
+            -k "compatibility or hummingbot" \
+            --timeout="${TEST_TIMEOUT}" \
+            --junitxml=hummingbot-compatibility-results.xml \
+            --tb=short \
+            -q \
+            --disable-warnings \
+            --maxfail=3
+          
+          echo "✅ Hummingbot compatibility verification completed"
+
+      - name: Run mock server integration tests
+        env:
+          MOCK_SERVER_URL: http://localhost:8081
+          TEST_TIMEOUT: ${{ github.event.inputs.test_timeout || '900' }}
+        run: |
+          echo "🎭 Running mock server integration tests..."
+          
+          # Test with mocking resources to ensure Hummingbot integration works with mocks
+          pixi run pytest tests/integration/test_mock_server.py \
+            tests/unit/mocking_resources/ \
+            --timeout="${TEST_TIMEOUT}" \
+            --junitxml=mock-integration-results.xml \
+            --tb=short \
+            -q \
+            --disable-warnings \
+            --maxfail=3 \
+            -m "not benchmark"
+          
+          echo "✅ Mock server integration tests completed"
+
+      - name: Generate comprehensive test summary
+        if: always()
+        run: |
+          echo "## 🤖 Hummingbot Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for test result files
+          TESTS_PASSED=true
+          
+          if [ -f hummingbot-integration-results.xml ]; then
+            echo "✅ **Hummingbot Integration Tests**: Completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Hummingbot Integration Tests**: Failed or incomplete" >> $GITHUB_STEP_SUMMARY
+            TESTS_PASSED=false
+          fi
+          
+          if [ -f hummingbot-compatibility-results.xml ]; then
+            echo "✅ **Compatibility Tests**: Completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Compatibility Tests**: Failed or incomplete" >> $GITHUB_STEP_SUMMARY
+            TESTS_PASSED=false
+          fi
+          
+          if [ -f mock-integration-results.xml ]; then
+            echo "✅ **Mock Integration Tests**: Completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Mock Integration Tests**: Failed or incomplete" >> $GITHUB_STEP_SUMMARY
+            TESTS_PASSED=false
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall summary
+          if [ "$TESTS_PASSED" = true ]; then
+            echo "🎉 **Overall Status**: All Hummingbot integration tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Overall Status**: Some Hummingbot integration tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Key information
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timeout**: ${{ github.event.inputs.test_timeout || '1800' }}s" >> $GITHUB_STEP_SUMMARY
+          echo "- **Verbose**: ${{ github.event.inputs.verbose_output || 'false' }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Hummingbot test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hummingbot-integration-test-results-${{ github.run_id }}
+          path: |
+            hummingbot-integration-results.xml
+            hummingbot-compatibility-results.xml
+            mock-integration-results.xml
+            logs/
+          retention-days: 14
+
+      - name: Check test results and set status
+        if: always()
+        run: |
+          # Fail the job if any critical test files are missing
+          CRITICAL_MISSING=false
+          
+          if [ ! -f hummingbot-integration-results.xml ]; then
+            echo "❌ Critical test file missing: hummingbot-integration-results.xml"
+            CRITICAL_MISSING=true
+          fi
+          
+          if [ ! -f hummingbot-compatibility-results.xml ]; then
+            echo "❌ Critical test file missing: hummingbot-compatibility-results.xml"
+            CRITICAL_MISSING=true
+          fi
+          
+          if [ "$CRITICAL_MISSING" = true ]; then
+            echo "💥 Hummingbot integration tests failed - missing critical test results"
+            exit 1
+          else
+            echo "✅ All Hummingbot integration tests completed successfully"
+          fi
+
+  # Status check job for branch protection
+  hummingbot-status:
+    name: Hummingbot Integration Status
+    runs-on: ubuntu-latest
+    needs: [changes, hummingbot-integration]
+    if: always()
+    
+    steps:
+      - name: Check Hummingbot integration status
+        run: |
+          CHANGES_RESULT="${{ needs.changes.result }}"
+          HUMMINGBOT_RELEVANT="${{ needs.changes.outputs.hummingbot-relevant }}"
+          INTEGRATION_RESULT="${{ needs.hummingbot-integration.result }}"
+          
+          echo "## 🤖 Hummingbot Integration Workflow Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Change Detection | $([[ \"$CHANGES_RESULT\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $CHANGES_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Hummingbot Relevant | $([[ \"$HUMMINGBOT_RELEVANT\" == \"true\" ]] && echo \"✅\" || echo \"⏭️\") | $HUMMINGBOT_RELEVANT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | $([[ \"$INTEGRATION_RESULT\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $INTEGRATION_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine final status
+          if [[ "$HUMMINGBOT_RELEVANT" == "false" ]]; then
+            echo "⏭️ Hummingbot integration tests skipped (no relevant changes)"
+            exit 0
+          elif [[ "$INTEGRATION_RESULT" == "success" ]]; then
+            echo "✅ Hummingbot integration tests passed"
+            exit 0
+          else
+            echo "❌ Hummingbot integration tests failed"
+            exit 1
+          fi
