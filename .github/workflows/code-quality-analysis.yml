@@ -1,0 +1,437 @@
+name: Code Quality Analysis
+
+on:
+  push:
+    branches: [main, master, develop, development]
+    paths:
+      - 'candles_feed/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'sonar-project.properties'
+      - '.github/workflows/code-quality-analysis.yml'
+  pull_request:
+    branches: [main, master, develop, development]
+    paths:
+      - 'candles_feed/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'sonar-project.properties'
+      - '.github/workflows/code-quality-analysis.yml'
+  workflow_dispatch:
+    inputs:
+      sonar_analysis:
+        description: 'Run SonarCloud analysis'
+        required: false
+        default: 'true'
+        type: boolean
+      coverage_threshold:
+        description: 'Coverage threshold percentage'
+        required: false
+        default: '70'
+        type: string
+
+# Cancel in-progress runs for the same ref/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  # Change detection for smart workflow execution
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code-changed: ${{ steps.changes.outputs.code-changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for code changes
+        id: changes
+        run: |
+          # Default to code changed (safe fallback)
+          echo "code-changed=true" >> $GITHUB_OUTPUT
+          
+          # Get list of changed files
+          CHANGED_FILES=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            if [ -n "$BASE_SHA" ]; then
+              CHANGED_FILES=$(git diff --name-only "$BASE_SHA" HEAD 2>/dev/null || echo "")
+            fi
+          else
+            BEFORE_SHA="${{ github.event.before }}"
+            if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" HEAD 2>/dev/null || echo "")
+            fi
+          fi
+          
+          echo "Changed files detected:"
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "$CHANGED_FILES"
+            
+            # Check if only docs/README changes (skip analysis)
+            if echo "$CHANGED_FILES" | grep -qvE '^(docs/|README\.md|\.md$|LICENSE|CHANGELOG\.md)'; then
+              echo "code-changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "code-changed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No files detected or Git diff failed - running analysis (safe default)"
+          fi
+
+  # Comprehensive code quality analysis
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code-changed == 'true'
+    
+    # Extended timeout for comprehensive analysis
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for SonarCloud analysis
+          fetch-depth: 0
+
+      - name: Setup pixi environment caching
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pixi
+            .pixi
+          key: pixi-quality-${{ runner.os }}-${{ hashFiles('pixi.lock', 'pyproject.toml') }}
+          restore-keys: |
+            pixi-quality-${{ runner.os }}-
+            pixi-${{ runner.os }}-
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          environments: default
+          cache: true
+
+      - name: Cache project installation and quality tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            build/
+            .pytest_cache/
+            .mypy_cache/
+            .ruff_cache/
+          key: quality-project-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            quality-project-${{ runner.os }}-
+            project-${{ runner.os }}-
+
+      - name: Install project and quality dependencies
+        run: |
+          echo "🔧 Installing project and quality analysis dependencies..."
+          pixi install
+          echo "🐍 Python version check:"
+          pixi run python --version
+          echo "📦 Installing project in editable mode..."
+          pixi run pip install -e . --verbose
+          
+          # Install additional quality tools
+          echo "🛠️ Installing additional quality analysis tools..."
+          pixi run pip install bandit pylint
+
+      - name: Environment validation
+        run: |
+          echo "## Code Quality Analysis Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS**: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python**: $(pixi run python --version)" >> $GITHUB_STEP_SUMMARY
+          echo "- **SonarCloud**: ${{ github.event.inputs.sonar_analysis || 'true' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage Threshold**: ${{ github.event.inputs.coverage_threshold || '70' }}%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Validate quality tools
+          echo "🔍 Validating quality analysis tools..."
+          pixi run python -c "import ruff, mypy; print('✅ Core quality tools OK')"
+          pixi run python -c "import bandit, pylint; print('✅ Additional quality tools OK')"
+
+      - name: Run comprehensive tests with coverage
+        run: |
+          echo "🧪 Running comprehensive test suite with coverage..."
+          pixi run pytest tests \
+            -m "not benchmark" \
+            --cov=candles_feed \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --cov-report=html:htmlcov \
+            --junitxml=test-results.xml \
+            --timeout=900 \
+            --maxfail=5 \
+            --tb=short \
+            --disable-warnings \
+            -v
+          
+          echo "✅ Test suite completed"
+
+      - name: Run static code analysis
+        run: |
+          echo "🔍 Running static code analysis..."
+          
+          # Ruff linting
+          echo "📊 Running Ruff analysis..."
+          pixi run ruff check candles_feed tests --output-format=json > ruff-report.json || true
+          pixi run ruff check candles_feed tests --output-format=text || true
+          
+          # MyPy type checking
+          echo "🔍 Running MyPy type checking..."
+          pixi run mypy candles_feed --html-report mypy-report --txt-report mypy-txt-report || true
+          
+          # Bandit security analysis
+          echo "🔒 Running Bandit security analysis..."
+          pixi run bandit -r candles_feed -f json -o bandit-report.json || true
+          pixi run bandit -r candles_feed -f txt || true
+          
+          # Pylint analysis (optional, for SonarCloud)
+          echo "📋 Running Pylint analysis..."
+          pixi run pylint candles_feed --output-format=text > pylint-report.txt || true
+          
+          echo "✅ Static analysis completed"
+
+      - name: Generate coverage summary
+        if: always()
+        run: |
+          echo "## 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f coverage.xml ]; then
+            # Extract coverage percentage from XML
+            COVERAGE=$(python3 -c "
+            import xml.etree.ElementTree as ET
+            try:
+                tree = ET.parse('coverage.xml')
+                root = tree.getroot()
+                coverage = float(root.attrib['line-rate']) * 100
+                print(f'{coverage:.2f}')
+            except:
+                print('N/A')
+            ")
+            
+            THRESHOLD="${{ github.event.inputs.coverage_threshold || '70' }}"
+            
+            echo "- **Current Coverage**: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+            echo "- **Threshold**: ${THRESHOLD}%" >> $GITHUB_STEP_SUMMARY
+            
+            # Coverage status
+            if [ "$COVERAGE" != "N/A" ]; then
+              if (( $(echo "$COVERAGE >= $THRESHOLD" | bc -l) )); then
+                echo "- **Status**: ✅ Coverage meets threshold" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- **Status**: ⚠️ Coverage below threshold" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "- **Status**: ❓ Coverage data unavailable" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ Coverage report not found" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: always()
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+          flags: code-quality-analysis
+          name: code-quality-coverage
+
+      - name: SonarCloud analysis
+        uses: SonarSource/sonarcloud-github-action@master
+        if: github.event.inputs.sonar_analysis != 'false' && always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=MementoRC_hb-candles-feed
+            -Dsonar.organization=mementorc
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.python.xunit.reportPath=test-results.xml
+            -Dsonar.python.bandit.reportPaths=bandit-report.json
+            -Dsonar.python.pylint.reportPaths=pylint-report.txt
+            -Dsonar.sources=candles_feed
+            -Dsonar.tests=tests
+            -Dsonar.sourceEncoding=UTF-8
+
+      - name: Generate quality analysis summary
+        if: always()
+        run: |
+          echo "## 🔍 Static Analysis Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Ruff analysis summary
+          if [ -f ruff-report.json ]; then
+            RUFF_ISSUES=$(python3 -c "
+            import json
+            try:
+                with open('ruff-report.json') as f:
+                    data = json.load(f)
+                    print(len(data))
+            except:
+                print('N/A')
+            ")
+            echo "- **Ruff Issues**: ${RUFF_ISSUES}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Ruff Issues**: ✅ No issues found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # MyPy summary
+          if [ -f mypy-txt-report/index.txt ]; then
+            echo "- **MyPy**: Report generated (check artifacts)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **MyPy**: ✅ Type checking completed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Bandit security summary
+          if [ -f bandit-report.json ]; then
+            SECURITY_ISSUES=$(python3 -c "
+            import json
+            try:
+                with open('bandit-report.json') as f:
+                    data = json.load(f)
+                    print(len(data.get('results', [])))
+            except:
+                print('N/A')
+            ")
+            echo "- **Security Issues**: ${SECURITY_ISSUES}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Security Issues**: ✅ No issues found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### External Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "- **Codecov**: Coverage report uploaded" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.sonar_analysis }}" != "false" ]; then
+            echo "- **SonarCloud**: Analysis completed (check dashboard)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **SonarCloud**: Skipped (disabled)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload analysis artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-quality-analysis-${{ github.run_id }}
+          path: |
+            coverage.xml
+            htmlcov/
+            test-results.xml
+            ruff-report.json
+            mypy-report/
+            mypy-txt-report/
+            bandit-report.json
+            pylint-report.txt
+          retention-days: 14
+
+      - name: Quality gate check
+        if: always()
+        run: |
+          # Check if critical quality metrics pass
+          QUALITY_PASSED=true
+          THRESHOLD="${{ github.event.inputs.coverage_threshold || '70' }}"
+          
+          # Coverage check
+          if [ -f coverage.xml ]; then
+            COVERAGE=$(python3 -c "
+            import xml.etree.ElementTree as ET
+            try:
+                tree = ET.parse('coverage.xml')
+                root = tree.getroot()
+                coverage = float(root.attrib['line-rate']) * 100
+                print(f'{coverage:.2f}')
+            except:
+                print('0')
+            ")
+            
+            if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+              echo "❌ Coverage ($COVERAGE%) below threshold ($THRESHOLD%)"
+              QUALITY_PASSED=false
+            else
+              echo "✅ Coverage ($COVERAGE%) meets threshold ($THRESHOLD%)"
+            fi
+          else
+            echo "⚠️ Coverage data unavailable"
+            # Don't fail on missing coverage data in this analysis
+          fi
+          
+          # Ruff critical issues check
+          if [ -f ruff-report.json ]; then
+            CRITICAL_ISSUES=$(python3 -c "
+            import json
+            try:
+                with open('ruff-report.json') as f:
+                    data = json.load(f)
+                    critical = [issue for issue in data if issue.get('code', '').startswith(('F', 'E9'))]
+                    print(len(critical))
+            except:
+                print('0')
+            ")
+            
+            if [ "$CRITICAL_ISSUES" -gt "0" ]; then
+              echo "❌ $CRITICAL_ISSUES critical Ruff issues found"
+              QUALITY_PASSED=false
+            else
+              echo "✅ No critical Ruff issues found"
+            fi
+          fi
+          
+          # Final quality gate decision
+          if [ "$QUALITY_PASSED" = true ]; then
+            echo "✅ Quality gate passed"
+            exit 0
+          else
+            echo "❌ Quality gate failed"
+            exit 1
+          fi
+
+  # Status check job for branch protection
+  analysis-status:
+    name: Code Quality Status
+    runs-on: ubuntu-latest
+    needs: [changes, code-quality]
+    if: always()
+    
+    steps:
+      - name: Check analysis status
+        run: |
+          CHANGES_RESULT="${{ needs.changes.result }}"
+          CODE_CHANGED="${{ needs.changes.outputs.code-changed }}"
+          QUALITY_RESULT="${{ needs.code-quality.result }}"
+          
+          echo "## 🔍 Code Quality Analysis Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Change Detection | $([[ \"$CHANGES_RESULT\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $CHANGES_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Changed | $([[ \"$CODE_CHANGED\" == \"true\" ]] && echo \"✅\" || echo \"⏭️\") | $CODE_CHANGED |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Analysis | $([[ \"$QUALITY_RESULT\" == \"success\" ]] && echo \"✅\" || echo \"❌\") | $QUALITY_RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine final status
+          if [[ "$CODE_CHANGED" == "false" ]]; then
+            echo "⏭️ Code quality analysis skipped (no relevant changes)"
+            exit 0
+          elif [[ "$QUALITY_RESULT" == "success" ]]; then
+            echo "✅ Code quality analysis passed"
+            exit 0
+          else
+            echo "❌ Code quality analysis failed"
+            exit 1
+          fi
