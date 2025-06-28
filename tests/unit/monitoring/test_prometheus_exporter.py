@@ -10,7 +10,7 @@ except ImportError:
     REGISTRY = None
 
 from candles_feed.core.metrics import MetricsCollector
-from candles_feed.monitoring.prometheus_exporter import PrometheusExporter, PROMETHEUS_AVAILABLE as EXPORTER_AVAILABLE
+from candles_feed.monitoring.prometheus_exporter import PrometheusExporter
 
 
 @pytest.fixture
@@ -20,21 +20,14 @@ def metrics_collector() -> MetricsCollector:
 
 
 @pytest.mark.skipif(not PROMETHEUS_AVAILABLE, reason="prometheus_client not available")
-@pytest.fixture
+@pytest.fixture(scope="session")
 def prometheus_exporter() -> PrometheusExporter:
     """Fixture for a PrometheusExporter instance.
 
-    This fixture ensures the Prometheus registry is clean before each test,
-    preventing errors from re-registering metrics.
+    This fixture is session-scoped to ensure the PrometheusExporter and its
+    metrics are registered only once per test session, preventing
+    re-registration errors.
     """
-    # Get a list of all currently registered collectors
-    collectors = list(REGISTRY._collectors)
-    for collector in collectors:
-        # Unregister only if it's not one of the default collectors
-        if hasattr(collector, "collect"):
-            REGISTRY.unregister(collector)
-
-    # Return a new exporter, which will register its metrics
     return PrometheusExporter()
 
 

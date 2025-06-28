@@ -13,7 +13,7 @@ except ImportError:
         return "# Prometheus client not available - install prometheus_client for metrics\n"
 
 from ..core.metrics import MetricsCollector
-from .prometheus_exporter import PrometheusExporter, PROMETHEUS_AVAILABLE as EXPORTER_AVAILABLE
+from .prometheus_exporter import PrometheusExporter
 
 
 async def metrics_handler(request: web.Request) -> web.Response:
