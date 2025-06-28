@@ -1,0 +1,76 @@
+# Project Management Tool Sync Configuration
+# -----------------------------------------
+# This file configures the synchronization between GitHub and an external project management tool.
+#
+# Instructions:
+# 1. Enable ONE tool by setting 'enabled: true' for that tool. All others must be 'enabled: false'.
+# 2. Fill in the required parameters for the enabled tool.
+# 3. Store required API keys/tokens as encrypted secrets in your GitHub repository settings.
+#    (Settings > Secrets and variables > Actions > New repository secret)
+
+# --- Jira Configuration ---
+jira:
+  enabled: false # Set to true to enable Jira sync
+  project_key: "PROJ" # Your Jira project key (e.g., "HB")
+  instance_url: "https://your-domain.atlassian.net" # Your Jira Cloud instance URL
+  # Required GitHub Secrets:
+  # - JIRA_API_TOKEN: Your Jira API token with write permissions.
+  # - JIRA_USER_EMAIL: The email of the user associated with the API token.
+
+# --- Linear Configuration ---
+linear:
+  enabled: false # Set to true to enable Linear sync
+  team_id: "your-team-id" # Your Linear team ID (e.g., "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+  # Required GitHub Secrets:
+  # - LINEAR_API_KEY: Your Linear API key.
+
+# --- Asana Configuration ---
+asana:
+  enabled: false # Set to true to enable Asana sync
+  project_gid: "your-project-gid" # Your Asana project GID (numeric string)
+  # Required GitHub Secrets:
+  # - ASANA_ACCESS_TOKEN: Your Asana Personal Access Token.
+
+# --- Notion Configuration ---
+notion:
+  enabled: false # Set to true to enable Notion sync
+  database_id: "your-database-id" # The ID of your Notion database
+  # Required GitHub Secrets:
+  # - NOTION_API_KEY: Your Notion integration token.
+
+# --- GitHub Projects Configuration ---
+github_projects:
+  enabled: true # Default enabled tool. Manages issues within GitHub Projects.
+  project_number: 1 # The number of your GitHub Project (v2). Found in the project URL.
+  # No extra secrets needed; uses the built-in GITHUB_TOKEN.
+
+# --- Sync Behavior Configuration ---
+sync_config:
+  # Label that triggers creation of an issue in the external PM tool.
+  # If an issue is opened with this label, it will be synced.
+  # If this label is added to an existing issue, it will be synced.
+  creation_label: 'sync-to-pm'
+
+  # Field name in the PM tool to store the link back to the GitHub issue/PR.
+  # This is used to check if an item has already been synced.
+  # For Notion, this should be the name of a URL property.
+  # For Jira, this is a custom field name.
+  github_link_field: 'GitHub Link'
+
+  # Default status/column for new items created in the PM tool.
+  # For GitHub Projects, this is the column name in your board.
+  default_status: 'Todo'
+
+  # Map GitHub labels to statuses in your PM tool.
+  # This enables changing the status in the PM tool when a label is added/removed on GitHub.
+  # The key is the GitHub label, the value is the status name in the PM tool.
+  status_mapping:
+    'needs-triage': 'Triage'
+    'in-progress': 'In Progress'
+    'in-review': 'In Review'
+    'done': 'Done'
+    'wontfix': 'Won''t Do'
+    'duplicate': 'Done'
+
+  # When a GitHub issue is closed, what status should it be set to in the PM tool?
+  closed_status: 'Done'
