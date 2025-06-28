@@ -43,6 +43,7 @@ Repository = "https://github.com/MementoRC/hb-candles-feed/tree/master"
 dev = [
     "aioresponses>=0.7.0",
     "pre-commit>=2.15.0",
+    "prometheus-client>=0.17.0",
     "pytest>=7.0.0",
     "pytest-aiohttp>=1.1.0",
     "pytest-asyncio>=0.21.0",
@@ -89,6 +90,7 @@ packages = ["candles_feed"]
 cython = ">=3"
 wheel = ">=0.37.0"
 aioresponses = "*"
+prometheus_client = "*"
 
 # Tasks equivalent to hatch scripts
 [tool.pixi.tasks]
@@ -129,6 +131,7 @@ pytest-cov = ">=4.1.0"
 pytest-mock = ">=3.11.0"
 pytest-timeout = ">=2.1.0"
 pyupgrade = "*"
+prometheus_client = ">=0.17.0"
 ruff = ">=0.1.6"
 mypy = ">=1.5.1"
 cython-lint = ">=0.15.0"
