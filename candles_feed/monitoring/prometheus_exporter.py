@@ -2,25 +2,32 @@
 
 try:
     from prometheus_client import Counter, Gauge
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
+
     # Create stub classes when prometheus_client is not available
-    class Counter:
+    class Counter:  # type: ignore [no-redef]
         def __init__(self, *args, **kwargs):
             pass
+
         def inc(self, *args, **kwargs):
             pass
+
         def labels(self, **kwargs):
             return self
-    
-    class Gauge:
+
+    class Gauge:  # type: ignore [no-redef]
         def __init__(self, *args, **kwargs):
             pass
+
         def set(self, *args, **kwargs):
             pass
+
         def labels(self, **kwargs):
             return self
+
 
 from candles_feed.core.metrics import MetricsCollector
 
@@ -40,15 +47,11 @@ class PrometheusExporter:
             "connections_created_total", "Total connections created"
         )
         self.connection_errors = Counter("connection_errors_total", "Total connection errors")
-        self.connection_pool_size = Gauge(
-            "connection_pool_size", "Size of the connection pool"
-        )
+        self.connection_pool_size = Gauge("connection_pool_size", "Size of the connection pool")
 
         # Request metrics
         self.total_requests = Counter("requests_total", "Total requests made")
-        self.successful_requests = Counter(
-            "successful_requests_total", "Total successful requests"
-        )
+        self.successful_requests = Counter("successful_requests_total", "Total successful requests")
         self.failed_requests = Counter("failed_requests_total", "Total failed requests")
 
         # Stream metrics
@@ -64,9 +67,7 @@ class PrometheusExporter:
         # Data processing metrics
         self.candles_processed = Counter("candles_processed_total", "Total candles processed")
         self.candles_per_second = Gauge("candles_per_second", "Candles processed per second")
-        self.processing_errors = Counter(
-            "processing_errors_total", "Total data processing errors"
-        )
+        self.processing_errors = Counter("processing_errors_total", "Total data processing errors")
 
         # Error metrics
         self.total_errors = Counter("errors_total", "Total errors")
@@ -88,37 +89,40 @@ class PrometheusExporter:
 
         :param collector: The MetricsCollector instance to export from.
         """
+        if not PROMETHEUS_AVAILABLE:
+            return  # Do nothing if prometheus_client is not available
+
         metrics = collector.metrics
 
         # Use the difference to increment counters, as MetricsCollector holds totals.
         # This makes the counters robust to application restarts if the collector state is lost.
         self.total_connections_created.inc(
-            metrics.total_connections_created - self.total_connections_created._value.get()
+            metrics.total_connections_created - self.total_connections_created._value.get()  # type: ignore [attr-defined]
         )
         self.connection_errors.inc(
-            metrics.connection_errors - self.connection_errors._value.get()
+            metrics.connection_errors - self.connection_errors._value.get()  # type: ignore [attr-defined]
         )
-        self.total_requests.inc(metrics.total_requests - self.total_requests._value.get())
+        self.total_requests.inc(metrics.total_requests - self.total_requests._value.get())  # type: ignore [attr-defined]
         self.successful_requests.inc(
-            metrics.successful_requests - self.successful_requests._value.get()
+            metrics.successful_requests - self.successful_requests._value.get()  # type: ignore [attr-defined]
         )
-        self.failed_requests.inc(metrics.failed_requests - self.failed_requests._value.get())
+        self.failed_requests.inc(metrics.failed_requests - self.failed_requests._value.get())  # type: ignore [attr-defined]
         self.total_streams_created.inc(
-            metrics.total_streams_created - self.total_streams_created._value.get()
+            metrics.total_streams_created - self.total_streams_created._value.get()  # type: ignore [attr-defined]
         )
         self.stream_disconnections.inc(
-            metrics.stream_disconnections - self.stream_disconnections._value.get()
+            metrics.stream_disconnections - self.stream_disconnections._value.get()  # type: ignore [attr-defined]
         )
         self.stream_reconnections.inc(
-            metrics.stream_reconnections - self.stream_reconnections._value.get()
+            metrics.stream_reconnections - self.stream_reconnections._value.get()  # type: ignore [attr-defined]
         )
         self.candles_processed.inc(
-            metrics.candles_processed - self.candles_processed._value.get()
+            metrics.candles_processed - self.candles_processed._value.get()  # type: ignore [attr-defined]
         )
         self.processing_errors.inc(
-            metrics.processing_errors - self.processing_errors._value.get()
+            metrics.processing_errors - self.processing_errors._value.get()  # type: ignore [attr-defined]
         )
-        self.total_errors.inc(metrics.total_errors - self.total_errors._value.get())
+        self.total_errors.inc(metrics.total_errors - self.total_errors._value.get())  # type: ignore [attr-defined]
 
         # Set gauges to their current values
         self.active_connections.set(metrics.active_connections)

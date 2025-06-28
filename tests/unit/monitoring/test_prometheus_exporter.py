@@ -4,6 +4,7 @@ import pytest
 
 try:
     from prometheus_client import REGISTRY
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False

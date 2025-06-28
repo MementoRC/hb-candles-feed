@@ -4,13 +4,15 @@ from aiohttp import web
 
 try:
     from prometheus_client import REGISTRY, generate_latest
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
     REGISTRY = None
-    
-    def generate_latest(registry=None):
+
+    def generate_latest(registry=None):  # type: ignore [misc]
         return "# Prometheus client not available - install prometheus_client for metrics\n"
+
 
 from ..core.metrics import MetricsCollector
 from .prometheus_exporter import PrometheusExporter
@@ -24,7 +26,7 @@ async def metrics_handler(request: web.Request) -> web.Response:
         )
         response.content_type = "text/plain"
         return response
-    
+
     exporter: PrometheusExporter = request.app["exporter"]
     collector: MetricsCollector = request.app["collector"]
 
