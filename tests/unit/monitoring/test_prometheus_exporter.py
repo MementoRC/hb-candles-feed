@@ -1,10 +1,16 @@
 """Unit tests for the PrometheusExporter."""
 
 import pytest
-from prometheus_client import REGISTRY
+
+try:
+    from prometheus_client import REGISTRY
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
+    REGISTRY = None
 
 from candles_feed.core.metrics import MetricsCollector
-from candles_feed.monitoring.prometheus_exporter import PrometheusExporter
+from candles_feed.monitoring.prometheus_exporter import PrometheusExporter, PROMETHEUS_AVAILABLE as EXPORTER_AVAILABLE
 
 
 @pytest.fixture
@@ -13,6 +19,7 @@ def metrics_collector() -> MetricsCollector:
     return MetricsCollector()
 
 
+@pytest.mark.skipif(not PROMETHEUS_AVAILABLE, reason="prometheus_client not available")
 @pytest.fixture
 def prometheus_exporter() -> PrometheusExporter:
     """Fixture for a PrometheusExporter instance.

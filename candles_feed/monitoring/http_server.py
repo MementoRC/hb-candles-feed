@@ -1,14 +1,30 @@
 """HTTP server for exposing Prometheus metrics."""
 
 from aiohttp import web
-from prometheus_client import REGISTRY, generate_latest
+
+try:
+    from prometheus_client import REGISTRY, generate_latest
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
+    REGISTRY = None
+    
+    def generate_latest(registry=None):
+        return "# Prometheus client not available\n"
 
 from ..core.metrics import MetricsCollector
-from .prometheus_exporter import PrometheusExporter
+from .prometheus_exporter import PrometheusExporter, PROMETHEUS_AVAILABLE as EXPORTER_AVAILABLE
 
 
 async def metrics_handler(request: web.Request) -> web.Response:
     """AIOHTTP handler for serving Prometheus metrics."""
+    if not PROMETHEUS_AVAILABLE:
+        response = web.Response(
+            text="# Prometheus client not available - install prometheus-client package\n"
+        )
+        response.content_type = "text/plain"
+        return response
+    
     exporter: PrometheusExporter = request.app["exporter"]
     collector: MetricsCollector = request.app["collector"]
 

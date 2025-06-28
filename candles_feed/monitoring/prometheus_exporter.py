@@ -1,6 +1,22 @@
 """Prometheus exporter for candles-feed metrics."""
 
-from prometheus_client import Counter, Gauge
+try:
+    from prometheus_client import Counter, Gauge
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
+    # Create dummy classes for when prometheus_client is not available
+    class Counter:
+        def __init__(self, *args, **kwargs):
+            pass
+        def inc(self, *args, **kwargs):
+            pass
+    
+    class Gauge:
+        def __init__(self, *args, **kwargs):
+            pass
+        def set(self, *args, **kwargs):
+            pass
 
 from candles_feed.core.metrics import MetricsCollector
 
