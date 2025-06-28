@@ -86,11 +86,12 @@ path = "candles_feed/__about__.py"
 packages = ["candles_feed"]
 
 # Conda dependencies
+# Note: prometheus-client is a pip-only optional dependency due to pixi/conda-forge resolution issues.
+# It is defined in [project.optional-dependencies.dev] and should be installed via pip.
 [tool.pixi.dependencies]
 cython = ">=3"
 wheel = ">=0.37.0"
 aioresponses = "*"
-prometheus_client = ">=0.17.0"
 
 # Tasks equivalent to hatch scripts
 [tool.pixi.tasks]
@@ -131,7 +132,6 @@ pytest-cov = ">=4.1.0"
 pytest-mock = ">=3.11.0"
 pytest-timeout = ">=2.1.0"
 pyupgrade = "*"
-prometheus_client = ">=0.17.0"
 ruff = ">=0.1.6"
 mypy = ">=1.5.1"
 cython-lint = ">=0.15.0"
