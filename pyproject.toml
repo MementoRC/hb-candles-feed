@@ -90,7 +90,7 @@ packages = ["candles_feed"]
 cython = ">=3"
 wheel = ">=0.37.0"
 aioresponses = "*"
-prometheus_client = "*"
+prometheus_client = ">=0.17.0"
 
 # Tasks equivalent to hatch scripts
 [tool.pixi.tasks]
