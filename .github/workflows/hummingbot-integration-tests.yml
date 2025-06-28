@@ -263,18 +263,18 @@ jobs:
           # Ensure XML file exists even if tests failed
           if [ ! -f hummingbot-integration-results.xml ]; then
             echo "⚠️ Creating fallback XML result file"
-            cat > hummingbot-integration-results.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <testsuites>
-            <testsuite name="hummingbot-integration" tests="1" failures="0" errors="1" skipped="0">
-              <testcase name="fallback_test" classname="HummingbotIntegration">
-                <error message="Test execution failed in CI environment" type="EnvironmentError">
-                  Tests could not complete due to CI environment issues. Exit code: $TEST_EXIT_CODE
-                </error>
-              </testcase>
-            </testsuite>
-          </testsuites>
-          EOF
+            cat > hummingbot-integration-results.xml << EOF
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="hummingbot-integration" tests="1" failures="0" errors="1" skipped="0">
+    <testcase name="fallback_test" classname="HummingbotIntegration">
+      <error message="Test execution failed in CI environment" type="EnvironmentError">
+        Tests could not complete due to CI environment issues. Exit code: $TEST_EXIT_CODE
+      </error>
+    </testcase>
+  </testsuite>
+</testsuites>
+EOF
           fi
           
           echo "📂 Directory contents after test:"
@@ -304,18 +304,18 @@ jobs:
           # Ensure XML file exists even if tests failed
           if [ ! -f hummingbot-compatibility-results.xml ]; then
             echo "⚠️ Creating fallback compatibility XML result file"
-            cat > hummingbot-compatibility-results.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <testsuites>
-            <testsuite name="hummingbot-compatibility" tests="1" failures="0" errors="1" skipped="0">
-              <testcase name="fallback_compatibility_test" classname="HummingbotCompatibility">
-                <error message="Compatibility test execution failed in CI environment" type="EnvironmentError">
-                  Compatibility tests could not complete due to CI environment issues. Exit code: $TEST_EXIT_CODE
-                </error>
-              </testcase>
-            </testsuite>
-          </testsuites>
-          EOF
+            cat > hummingbot-compatibility-results.xml << EOF
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="hummingbot-compatibility" tests="1" failures="0" errors="1" skipped="0">
+    <testcase name="fallback_compatibility_test" classname="HummingbotCompatibility">
+      <error message="Compatibility test execution failed in CI environment" type="EnvironmentError">
+        Compatibility tests could not complete due to CI environment issues. Exit code: $TEST_EXIT_CODE
+      </error>
+    </testcase>
+  </testsuite>
+</testsuites>
+EOF
           fi
           
           echo "✅ Hummingbot compatibility verification completed (exit code: $TEST_EXIT_CODE)"
@@ -345,18 +345,18 @@ jobs:
           # Ensure XML file exists even if tests failed
           if [ ! -f mock-integration-results.xml ]; then
             echo "⚠️ Creating fallback mock integration XML result file"
-            cat > mock-integration-results.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <testsuites>
-            <testsuite name="mock-integration" tests="1" failures="0" errors="1" skipped="0">
-              <testcase name="fallback_mock_test" classname="MockIntegration">
-                <error message="Mock integration test execution failed in CI environment" type="EnvironmentError">
-                  Mock integration tests could not complete due to CI environment issues. Exit code: $TEST_EXIT_CODE
-                </error>
-              </testcase>
-            </testsuite>
-          </testsuites>
-          EOF
+            cat > mock-integration-results.xml << EOF
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="mock-integration" tests="1" failures="0" errors="1" skipped="0">
+    <testcase name="fallback_mock_test" classname="MockIntegration">
+      <error message="Mock integration test execution failed in CI environment" type="EnvironmentError">
+        Mock integration tests could not complete due to CI environment issues. Exit code: $TEST_EXIT_CODE
+      </error>
+    </testcase>
+  </testsuite>
+</testsuites>
+EOF
           fi
           
           echo "✅ Mock server integration tests completed (exit code: $TEST_EXIT_CODE)"
