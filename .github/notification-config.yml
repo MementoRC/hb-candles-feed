@@ -1,0 +1,44 @@
+# This file outlines the notification strategy for the project.
+# Webhook URLs are stored as GitHub repository secrets.
+
+# Notification Channels Configuration
+# Defines which events trigger notifications and to which services.
+channels:
+  ci:
+    description: "Notifications for the main CI workflow (ci.yml)"
+    triggers:
+      - push on main/development branches
+    events:
+      - success
+      - failure
+    services:
+      - slack:
+          secret: SLACK_WEBHOOK_URL_CI
+      - discord:
+          secret: DISCORD_WEBHOOK_URL_CI
+
+  security:
+    description: "Notifications for the security scanning workflow (security.yml)"
+    triggers:
+      - push on main/development branches
+      - weekly schedule
+    events:
+      - failure # Only notify on failure to reduce noise
+    services:
+      - slack:
+          secret: SLACK_WEBHOOK_URL_SECURITY
+      - discord:
+          secret: DISCORD_WEBHOOK_URL_SECURITY
+
+  monitoring:
+    description: "Notifications for Prometheus monitoring alerts via Alertmanager"
+    triggers:
+      - Prometheus alert rules
+    events:
+      - firing (warning, critical)
+      - resolved
+    services:
+      - slack:
+          secret: SLACK_WEBHOOK_URL_MONITORING
+      - discord:
+          secret: DISCORD_WEBHOOK_URL_MONITORING
