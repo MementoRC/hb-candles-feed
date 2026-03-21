@@ -6,27 +6,55 @@ on:
       - main
     paths:
       - 'docs/**'
-      - '../../mkdocs.saved.yml'
-      - '.github/workflows/docs.yml'
+      - 'mkdocs.yml'
+      - '.github/workflows/gh-deploy.yml'
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   deploy-docs:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          python-version: "3.10"
-          auto-update-conda: true
-          auto-activate-base: true
+          fetch-depth: 0  # Full history for git-revision-date-localized
 
-      - name: Deploy documentation
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-docs-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-docs-
+            ${{ runner.os }}-pip-
+
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.4.1
+        with:
+          environments: docs
+
+      - name: Build documentation
         run: |
-          conda install -c conda-forge hatch
-          hatch run docs:deploy
+          pixi run -e docs docs-build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: site/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

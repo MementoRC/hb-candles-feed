@@ -1,0 +1,229 @@
+name: Enhanced Automation Workflows
+
+on:
+  pull_request_target: # Use pull_request_target for assigning reviewers/labels to PRs from forks
+    types: [opened, ready_for_review]
+  issues:
+    types: [opened, edited]
+  schedule:
+    - cron: '30 1 * * 0,2-6' # Run daily except Mondays to avoid conflict with intelligent stale management
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read # For reading file paths in PRs for review assignment
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # 3. Enhanced Code Review Assignment
+  enhanced-review-assignment:
+    name: Enhanced Review Assignment
+    if: github.event_name == 'pull_request_target' && (github.event.action == 'opened' || github.event.action == 'ready_for_review')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Assign Reviewers Based on File Changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.issue.number;
+
+            // Define expertise map (example, customize for your project)
+            // Users must have write access or be collaborators to be assigned.
+            const expertiseMap = {
+              'candles_feed/core/': ['MementoRC'], // Core logic maintainer
+              'candles_feed/adapters/': ['MementoRC'], // Adapters expert
+              'tests/': ['MementoRC'],             // QA / Test expert
+              'docs/': ['MementoRC'],              // Documentation maintainer
+              '.github/workflows/': ['MementoRC'], // CI/CD expert
+              'pyproject.toml': ['MementoRC'],
+              'pixi.toml': ['MementoRC'],
+              'default': ['MementoRC']             // Default reviewer
+            };
+
+            // Get changed files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            let reviewers = new Set();
+            for (const file of files) {
+              let assigned = false;
+              for (const pathPrefix in expertiseMap) {
+                if (pathPrefix !== 'default' && file.filename.startsWith(pathPrefix)) {
+                  expertiseMap[pathPrefix].forEach(reviewer => reviewers.add(reviewer));
+                  assigned = true;
+                }
+              }
+              if (!assigned) {
+                expertiseMap['default'].forEach(reviewer => reviewers.add(reviewer));
+              }
+            }
+
+            // Remove PR author from reviewers list
+            const prAuthor = context.payload.pull_request.user.login;
+            reviewers.delete(prAuthor);
+
+            if (reviewers.size > 0) {
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  reviewers: Array.from(reviewers),
+                });
+                console.log(`Requested reviews from: ${Array.from(reviewers).join(', ')} for PR #${prNumber}`);
+              } catch (error) {
+                console.error(`Error requesting reviewers for PR #${prNumber}: ${error.message}`);
+                // Common error: reviewer is not a collaborator.
+                // Consider adding a comment instead or logging the error.
+                 await github.rest.issues.createComment({
+                    owner, repo, issue_number: prNumber,
+                    body: `Could not automatically assign reviewers: ${Array.from(reviewers).join(', ')}. Error: ${error.message}. Please assign manually.`
+                  });
+              }
+            } else {
+              console.log(`No suitable reviewers found for PR #${prNumber} based on file changes or author is the only match.`);
+            }
+
+  # 4. Advanced Stale Issue/PR Management
+  advanced-stale-management:
+    name: Advanced Stale Issue/PR Management
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Mark and Close Stale Issues/PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # General settings
+          days-before-stale: 45 # Issues/PRs inactive for 45 days are marked stale
+          days-before-close: 15 # Stale items are closed after 15 more days of inactivity
+          stale-issue-label: 'status/stale'
+          stale-pr-label: 'status/stale'
+          exempt-issue-labels: 'keep-open,P0-Critical,P1-High,security,pinned'
+          exempt-pr-labels: 'keep-open,work-in-progress,pinned'
+          # exempt-assignees: 'core-maintainer,project-lead' # Example: exempt items assigned to specific people
+          # Messages
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had
+            recent activity for 45 days. It will be closed if no further activity occurs
+            within 15 days.
+
+            Thank you for your contributions.
+            Ways to keep this issue open:
+            - Add a comment with an update.
+            - Add the 'keep-open' label.
+            - If you are assigned, push an update or comment.
+          stale-pr-message: |
+            This PR has been automatically marked as stale because it has not had
+            recent activity for 45 days. It will be closed if no further activity occurs
+            within 15 days.
+
+            Thank you for your contributions.
+            Ways to keep this PR open:
+            - Push new commits.
+            - Add the 'keep-open' label.
+            - Request a review.
+          close-issue-message: |
+            This issue was automatically closed because it has been stale for 15 days
+            with no activity. You can reopen the issue if you believe it is still relevant.
+          close-pr-message: |
+            This PR was automatically closed because it has been stale for 15 days
+            with no activity. You can reopen the PR if you wish to continue working on it.
+          # Operations per run
+          operations-per-run: 30 # Limit API calls
+
+  # 5. Delegated Issue Triage (calls intelligent-issue-triage workflow)
+  delegated-issue-triage:
+    name: Delegated Issue Triage
+    if: github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Trigger Intelligent Issue Triage
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+
+            console.log(`Triggering intelligent triage for issue #${issueNumber}...`);
+
+            try {
+              // Trigger the intelligent-issue-triage workflow
+              await github.rest.actions.createWorkflowDispatch({
+                owner,
+                repo,
+                workflow_id: 'intelligent-issue-triage.yml',
+                ref: 'main', // or context.ref if you want to use current branch
+                inputs: {
+                  issue_number: issueNumber.toString(),
+                  dry_run: 'false'
+                }
+              });
+
+              console.log(`Successfully triggered intelligent triage workflow for issue #${issueNumber}`);
+
+              // Add a brief comment to indicate triage is in progress
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: `🤖 **Automated Triage**: Intelligent issue analysis has been triggered. Results will be posted shortly.`
+              });
+
+            } catch (error) {
+              console.error(`Failed to trigger intelligent triage: ${error.message}`);
+
+              // Fallback to basic triage if intelligent triage fails
+              console.log('Falling back to basic triage...');
+
+              const issueTitle = context.payload.issue.title.toLowerCase();
+              const issueBody = (context.payload.issue.body || '').toLowerCase();
+              const issueContent = `${issueTitle} ${issueBody}`;
+              const currentLabels = context.payload.issue.labels.map(label => label.name);
+
+              let labelsToAdd = new Set();
+
+              // Simplified fallback triage logic
+              const quickTriage = {
+                'needs-triage': true, // Always add for manual review
+                'type/bug': ['bug', 'error', 'failure', 'crash'].some(k => issueContent.includes(k)),
+                'type/feature': ['feature', 'enhancement', 'request'].some(k => issueContent.includes(k)),
+                'priority/P0-Critical': ['critical', 'urgent', 'blocker'].some(k => issueContent.includes(k)),
+                'area/security': ['security', 'vulnerability', 'exploit'].some(k => issueContent.includes(k))
+              };
+
+              for (const [label, shouldAdd] of Object.entries(quickTriage)) {
+                if (shouldAdd && !currentLabels.includes(label)) {
+                  labelsToAdd.add(label);
+                }
+              }
+
+              if (labelsToAdd.size > 0) {
+                await github.rest.issues.addLabels({
+                  owner, repo, issue_number: issueNumber, labels: Array.from(labelsToAdd)
+                });
+                console.log(`Fallback: Added labels: ${Array.from(labelsToAdd).join(', ')} to issue #${issueNumber}`);
+              }
+            }

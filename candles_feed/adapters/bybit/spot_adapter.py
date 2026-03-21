@@ -2,8 +2,6 @@
 Bybit spot exchange adapter for the Candle Feed framework.
 """
 
-from typing import Optional
-
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     SPOT_CANDLES_ENDPOINT,
@@ -18,7 +16,7 @@ from candles_feed.core.network_config import NetworkConfig
 class BybitSpotAdapter(BybitBaseAdapter):
     """Bybit spot exchange adapter."""
 
-    def __init__(self, *args, network_config: Optional[NetworkConfig] = None, **kwargs):
+    def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.
 
         :param network_config: Network configuration for testnet/production

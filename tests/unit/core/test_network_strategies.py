@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections import deque
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

@@ -1,0 +1,136 @@
+name: Centralized Notifier
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        description: 'Notification channel (e.g., ci, security, monitoring)'
+        required: true
+        type: string
+      status:
+        description: 'Status of the job/workflow (success, failure, cancelled)'
+        required: true
+        type: string
+      title:
+        description: 'Notification title'
+        required: true
+        type: string
+      run_url:
+        description: 'URL to the GitHub Actions run'
+        required: false
+        type: string
+      commit_sha:
+        description: 'Commit SHA'
+        required: false
+        type: string
+      author:
+        description: 'Commit author or workflow actor'
+        required: false
+        type: string
+      message:
+        description: 'Additional message content'
+        required: false
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: false
+      DISCORD_WEBHOOK_URL:
+        required: false
+
+jobs:
+  send-notification:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Status Color and Icon
+        id: status_style
+        run: |
+          if [ "${{ inputs.status }}" = "success" ]; then
+            echo "color=#2EB67D" >> $GITHUB_ENV
+            echo "icon=✅" >> $GITHUB_ENV
+          elif [ "${{ inputs.status }}" = "failure" ]; then
+            echo "color=#E01E5A" >> $GITHUB_ENV
+            echo "icon=❌" >> $GITHUB_ENV
+          else
+            echo "color=#FFC400" >> $GITHUB_ENV
+            echo "icon=⚠️" >> $GITHUB_ENV
+          fi
+
+      - name: Send Slack Notification
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "attachments": [
+                {
+                  "color": "${{ env.color }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*${{ env.icon }} ${{ inputs.title }} - ${{ inputs.status }}*"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        { "type": "mrkdwn", "text": "*Repository:*\n${{ github.repository }}" },
+                        { "type": "mrkdwn", "text": "*Author:*\n${{ inputs.author }}" },
+                        { "type": "mrkdwn", "text": "*Commit:*\n`${{ inputs.commit_sha && format('{0}...', substring(inputs.commit_sha, 0, 7)) || 'N/A' }}`" },
+                        { "type": "mrkdwn", "text": "*Channel:*\n`${{ inputs.channel }}`" }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "${{ inputs.message }}"
+                      }
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": { "type": "plain_text", "text": "View Workflow Run" },
+                          "url": "${{ inputs.run_url }}",
+                          "style": "primary"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Send Discord Notification
+        if: secrets.DISCORD_WEBHOOK_URL != ''
+        uses: avto-dev/action-discord-webhook@v1
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          message: ""
+          embeds: |
+            [
+              {
+                "title": "${{ env.icon }} ${{ inputs.title }} - ${{ inputs.status }}",
+                "description": "${{ inputs.message }}",
+                "url": "${{ inputs.run_url }}",
+                "color": "${{ env.color == '#2EB67D' && 3066993 || (env.color == '#E01E5A' && 14687834 || 16762880) }}",
+                "fields": [
+                  { "name": "Repository", "value": "${{ github.repository }}", "inline": true },
+                  { "name": "Author", "value": "${{ inputs.author }}", "inline": true },
+                  { "name": "Commit", "value": "`${{ inputs.commit_sha && format('{0}...', substring(inputs.commit_sha, 0, 7)) || 'N/A' }}`", "inline": true },
+                  { "name": "Channel", "value": "`${{ inputs.channel }}`", "inline": true }
+                ],
+                "footer": {
+                  "text": "GitHub Actions Notification"
+                }
+              }
+            ]

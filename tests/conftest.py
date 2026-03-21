@@ -3,6 +3,7 @@ Global test fixtures and configuration for the Candles Feed framework tests.
 """
 
 import logging
+import os
 from collections import deque
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
@@ -17,6 +18,16 @@ from candles_feed.core.network_client import NetworkClient, cleanup_unclosed_ses
 from candles_feed.core.protocols import WSAssistant
 from candles_feed.mocking_resources import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
+
+# CI Environment Detection
+IS_CI = any(
+    os.getenv(var, "").lower() in ("true", "1", "yes")
+    for var in ("CI", "GITHUB_ACTIONS", "CONTINUOUS_INTEGRATION")
+)
+
+# CI-specific configuration
+CI_TIMEOUT_MULTIPLIER = 3 if IS_CI else 1
+CI_RETRY_ATTEMPTS = 3 if IS_CI else 1
 
 
 # Configure logging for tests
@@ -35,6 +46,82 @@ async def cleanup_aiohttp_sessions():
     yield  # Run the test
     # Clean up any unclosed sessions after each test
     await cleanup_unclosed_sessions()
+
+
+# Add URL pollution prevention fixture
+@pytest.fixture(scope="function", autouse=True)
+def prevent_url_pollution():
+    """Prevent URL pollution between tests by preserving adapter class methods."""
+    # Store original methods for key adapter classes
+    original_methods = {}
+
+    # Try to import adapter classes - only process those that can be imported
+    adapter_classes = []
+
+    try:
+        from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+
+        adapter_classes.append(BinanceSpotAdapter)
+    except ImportError:
+        logging.debug("BinanceSpotAdapter could not be imported. Skipping.")
+
+    try:
+        from candles_feed.adapters.binance.perpetual_adapter import BinancePerpetualAdapter
+
+        adapter_classes.append(BinancePerpetualAdapter)
+    except ImportError:
+        logging.debug("BinancePerpetualAdapter could not be imported. Skipping.")
+
+    # Store original methods along with their static/instance/class method nature
+    import inspect
+
+    method_names_to_backup = ["_get_rest_url", "_get_ws_url"]
+
+    for adapter_class in adapter_classes:
+        methods_to_restore = {}
+        for method_name in method_names_to_backup:
+            if not hasattr(adapter_class, method_name):
+                continue
+
+            original_function = None
+            is_static = False
+            is_class = False
+
+            # Iterate through MRO to find where the method is defined
+            for cls_in_mro in inspect.getmro(adapter_class):
+                if method_name in cls_in_mro.__dict__:
+                    attr_descriptor = cls_in_mro.__dict__[method_name]
+                    if isinstance(attr_descriptor, staticmethod):
+                        is_static = True
+                        original_function = attr_descriptor.__func__
+                    elif isinstance(attr_descriptor, classmethod):
+                        is_class = True
+                        original_function = attr_descriptor.__func__
+                    else:  # Instance method (or other descriptor)
+                        original_function = attr_descriptor
+                    break  # Found the definition
+
+            if original_function is not None:
+                methods_to_restore[method_name] = {
+                    "func": original_function,
+                    "is_static": is_static,
+                    "is_class": is_class,
+                }
+        if methods_to_restore:
+            original_methods[adapter_class] = methods_to_restore
+
+    yield  # Run the test
+
+    # Restore original methods after the test, preserving their type
+    for adapter_class, methods_data in original_methods.items():
+        for method_name, data in methods_data.items():
+            original_function = data["func"]
+            if data["is_static"]:
+                setattr(adapter_class, method_name, staticmethod(original_function))
+            elif data["is_class"]:
+                setattr(adapter_class, method_name, classmethod(original_function))
+            else:
+                setattr(adapter_class, method_name, original_function)
 
 
 # Remove the custom event_loop fixture to avoid the deprecation warning

@@ -1,0 +1,135 @@
+# Quality Gates Configuration for Hummingbot Candles Feed
+# This file defines the quality standards and thresholds for the project
+
+# Coverage Requirements
+coverage:
+  target: 70%
+  threshold: 1%  # Allow 1% drop in coverage
+  sources:
+    - candles_feed/
+  exclusions:
+    - candles_feed/__about__.py
+    - "**/test_*.py"
+    - "**/*_test.py"
+    - "**/conftest.py"
+
+# Code Quality Standards
+code_quality:
+  # Ruff linting standards
+  ruff:
+    critical_rules:
+      - F  # Pyflakes errors
+      - E9 # Syntax errors
+    max_critical_violations: 0
+
+  # MyPy type checking
+  mypy:
+    strict_mode: false
+    ignore_missing_imports: true
+    max_errors: 10
+
+  # Bandit security analysis
+  bandit:
+    max_high_severity: 0
+    max_medium_severity: 5
+    confidence_level: high
+
+# SonarCloud Quality Gates
+sonarcloud:
+  organization: mementorc
+  project_key: MementoRC_hb-candles-feed
+
+  # Quality gate conditions
+  conditions:
+    new_coverage: 70.0
+    overall_coverage: 70.0
+    new_duplicated_lines_density: 3.0
+    new_maintainability_rating: A
+    new_reliability_rating: A
+    new_security_rating: A
+    new_security_hotspots_reviewed: 100.0
+
+# Branch Protection Requirements
+branch_protection:
+  required_status_checks:
+    - "CI / CI Success"
+    - "CI / Branch Policy"
+    - "Code Quality Analysis / Code Quality Status"
+    - "Hummingbot Integration Tests / Hummingbot Integration Status"
+
+  contexts:
+    - codecov/patch
+    - codecov/project
+    - sonarcloud
+
+# Performance Standards
+performance:
+  benchmark_thresholds:
+    max_regression: 20%  # Maximum allowed performance regression
+    timeout_ms: 10000   # Maximum benchmark timeout
+
+  memory_limits:
+    max_memory_mb: 512  # Maximum memory usage for tests
+
+# Documentation Requirements
+documentation:
+  required_files:
+    - README.md
+    - CHANGELOG.md
+    - LICENSE
+    - docs/
+
+  api_documentation:
+    required_coverage: 80%
+    formats:
+      - docstrings
+      - type_hints
+
+# Dependency Management
+dependencies:
+  security:
+    max_vulnerabilities: 0
+    severity_threshold: medium
+
+  updates:
+    auto_merge:
+      patch: true
+      minor: false
+      major: false
+
+  licenses:
+    allowed:
+      - MIT
+      - Apache-2.0
+      - BSD-3-Clause
+      - BSD-2-Clause
+      - ISC
+    forbidden:
+      - GPL-3.0
+      - AGPL-3.0
+
+# Release Criteria
+release:
+  requirements:
+    - all_tests_pass: true
+    - coverage_target_met: true
+    - no_critical_security_issues: true
+    - documentation_complete: true
+    - changelog_updated: true
+
+  quality_gates:
+    - sonarcloud_passed: true
+    - codecov_passed: true
+    - benchmark_regression_check: true
+
+# Notification Settings
+notifications:
+  channels:
+    - github_status_checks
+    - github_pull_request_comments
+
+  triggers:
+    - quality_gate_failure
+    - coverage_drop
+    - security_issue_found
+    - performance_regression

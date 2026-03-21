@@ -1,7 +1,61 @@
-# These owners will be the default owners for everything in the repo
-* @hummingbot/core-dev
+# CODEOWNERS file for hb-candles-feed
+# This file defines code ownership and review requirements for different parts of the repository.
+# Users and teams mentioned here will be automatically requested for review when changes are made.
 
-# Ownership of specific directories or files
-/candles_feed/adapters/ @hummingbot/exchange-connectors
-/candles_feed/core/ @hummingbot/core-dev
-/.github/ @hummingbot/devops
+# Default owners for everything in the repo
+* @MementoRC
+
+# Core Components - Critical business logic requiring careful review
+/candles_feed/core/ @MementoRC
+/candles_feed/integration.py @MementoRC
+
+# Exchange Adapters - Trading infrastructure requiring specialized knowledge
+/candles_feed/adapters/ @MementoRC
+/candles_feed/adapters/binance/ @MementoRC
+/candles_feed/adapters/bybit/ @MementoRC
+/candles_feed/adapters/coinbase_advanced_trade/ @MementoRC
+/candles_feed/adapters/gate_io/ @MementoRC
+/candles_feed/adapters/hyperliquid/ @MementoRC
+/candles_feed/adapters/kraken/ @MementoRC
+/candles_feed/adapters/kucoin/ @MementoRC
+/candles_feed/adapters/mexc/ @MementoRC
+/candles_feed/adapters/okx/ @MementoRC
+/candles_feed/adapters/ascend_ex/ @MementoRC
+
+# Testing Infrastructure - QA and reliability focus
+/tests/ @MementoRC
+/tests/integration/ @MementoRC
+/tests/performance/ @MementoRC
+/tests/load/ @MementoRC
+
+# Mock Resources - Testing and development infrastructure
+/candles_feed/mocking_resources/ @MementoRC
+
+# CI/CD and GitHub Workflows - DevOps and automation
+/.github/ @MementoRC
+/.github/workflows/ @MementoRC
+/.github/dependabot.yml @MementoRC
+
+# Configuration Files - Infrastructure and dependency management
+/pyproject.toml @MementoRC
+/pixi.toml @MementoRC
+/pixi.lock @MementoRC
+
+# Documentation - Content and structure review
+/docs/ @MementoRC
+/README.md @MementoRC
+/CHANGELOG.md @MementoRC
+/CONTRIBUTING.md @MementoRC
+
+# Security and Compliance
+/SECURITY.md @MementoRC
+/.github/SECURITY.md @MementoRC
+/.secrets.baseline @MementoRC
+
+# Examples and Demonstrations
+/examples/ @MementoRC
+
+# Performance and Monitoring
+/scripts/performance_analysis.py @MementoRC
+/scripts/repository_health_dashboard.py @MementoRC
+/benchmark-results/ @MementoRC

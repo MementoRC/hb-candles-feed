@@ -120,7 +120,7 @@ class TestFactory(unittest.TestCase):
         server = create_mock_server(exchange_type=ExchangeType.BINANCE_SPOT)
 
         self.assertEqual(server.host, "127.0.0.1")
-        self.assertEqual(server.port, 8080)
+        self.assertEqual(server.port, 8082)
 
         # Check that default trading pairs were added with expected prices
         # The implementation normalizes trading pairs, so we need to check values

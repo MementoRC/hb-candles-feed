@@ -1,0 +1,183 @@
+name: Performance Degradation Alerts
+
+on:
+  workflow_run:
+    workflows: ["Enhanced Package CI"] # Name of your CI workflow from ci.yml
+    types:
+      - completed
+
+permissions:
+  actions: read    # To download artifacts
+  issues: write    # To create alert issues
+  contents: read   # Default
+
+jobs:
+  check-performance:
+    name: Check Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' # Only run if the CI workflow itself succeeded
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Download benchmark artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results-${{ github.event.workflow_run.id }} # Matches upload name in ci.yml
+          path: benchmark-data
+          github-token: ${{ secrets.GITHUB_TOKEN }} # download-artifact needs token for workflow_run from other workflows
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Analyze benchmark results and alert
+        uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL_SECRET: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL_SECRET: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PERFORMANCE_ALERT_THRESHOLD_MS_VAR: ${{ vars.PERFORMANCE_ALERT_THRESHOLD_MS }}
+          DEGRADATION_THRESHOLD_PERCENT_VAR: ${{ vars.DEGRADATION_THRESHOLD_PERCENT }}
+          # GITHUB_TOKEN is implicitly available to github-script, but explicit pass is fine
+          # For github.rest.issues.create, it uses the token associated with the GITHUB_TOKEN secret
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }} # Standard practice for github-script
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const benchmarkFile = path.join('benchmark-data', 'benchmark-results', 'benchmark-results.json');
+            if (!fs.existsSync(benchmarkFile)) {
+              console.log('Benchmark results file not found. Skipping analysis.');
+              // This might happen if the benchmark job in ci.yml didn't run or produce an artifact
+              // Or if the artifact name/path is incorrect.
+              // Check if the benchmark job was skipped or failed in the CI workflow.
+              const benchmarkJob = ${{ toJson(github.event.workflow_run.actor) }}; // Example: how to get workflow info
+              // A more robust check would be to query the jobs of the workflow_run via API
+              console.log(`Workflow run actor: ${github.event.workflow_run.actor.login}`);
+              console.log(`Workflow run head_sha: ${github.event.workflow_run.head_sha}`);
+              return;
+            }
+
+            const benchmarkData = JSON.parse(fs.readFileSync(benchmarkFile, 'utf8'));
+            const benchmarks = benchmarkData.benchmarks;
+
+            // Read thresholds from environment variables, with defaults
+            const absoluteThresholdMsConfig = parseInt(process.env.PERFORMANCE_ALERT_THRESHOLD_MS_VAR) || 10000; // Default 10ms
+            const relativeRegressionThresholdConfig = parseFloat(process.env.DEGRADATION_THRESHOLD_PERCENT_VAR) / 100.0 || 0.20; // Default 20%
+            console.log(`Using Absolute Threshold: ${absoluteThresholdMsConfig} ms`);
+            console.log(`Using Relative Regression Threshold: ${relativeRegressionThresholdConfig * 100}% (Note: relative check is a TODO)`);
+
+            let regressionsFound = [];
+
+            for (const bench of benchmarks) {
+              const name = bench.name;
+              const meanTimeSeconds = bench.stats.mean;
+              const meanTimeMicroseconds = meanTimeSeconds * 1000000; // Convert seconds to microseconds
+
+              // Check against absolute threshold (convert configured ms to µs for comparison)
+              if (meanTimeMicroseconds > (absoluteThresholdMsConfig * 1000)) {
+                regressionsFound.push({
+                  name: name,
+                  mean: meanTimeMicroseconds.toFixed(2),
+                  reason: `Exceeded absolute threshold of ${absoluteThresholdMsConfig}ms (was ${(meanTimeMicroseconds / 1000).toFixed(2)}ms)`
+                });
+              }
+
+              // TODO: Implement comparison with a baseline for relative regression.
+              // This requires storing/fetching baseline data.
+              // Example: if (relativeChange > relativeRegressionThresholdConfig) { ... }
+            }
+
+            async function sendWebhookNotificationWithRetry(webhookUrl, messagePayload, serviceName, retries = 2, delayMs = 1500) {
+              if (!webhookUrl || webhookUrl === 'undefined' || webhookUrl === '') {
+                console.log(`${serviceName} webhook URL not configured or empty. Skipping notification.`);
+                return false;
+              }
+              console.log(`Attempting to send notification to ${serviceName}...`);
+
+              let requestBody;
+              if (serviceName === 'Slack') {
+                requestBody = JSON.stringify({ text: messagePayload });
+              } else if (serviceName === 'Discord') {
+                requestBody = JSON.stringify({ content: messagePayload });
+              } else { // Generic webhook
+                requestBody = JSON.stringify({ message: messagePayload }); // Adjust as needed
+              }
+
+              for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                  const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: requestBody
+                  });
+
+                  // Discord often returns 204 No Content on success
+                  if (response.ok || (serviceName === 'Discord' && response.status === 204)) {
+                    console.log(`${serviceName} notification sent successfully (Status: ${response.status}).`);
+                    return true;
+                  }
+                  const responseText = await response.text();
+                  throw new Error(`HTTP error ${response.status} ${response.statusText}. Response: ${responseText}`);
+                } catch (error) {
+                  console.error(`Attempt ${attempt + 1} to send ${serviceName} notification failed: ${error.message}`);
+                  if (attempt < retries) {
+                    await new Promise(resolve => setTimeout(resolve, delayMs * (attempt + 1)));
+                  } else {
+                    console.error(`Failed to send ${serviceName} notification after ${retries + 1} attempts.`);
+                    return false;
+                  }
+                }
+              }
+              return false; // Should be unreachable
+            }
+
+            if (regressionsFound.length > 0) {
+              const commitShaShort = context.payload.workflow_run.head_sha.substring(0, 7);
+              let baseMessage = `## 📉 Performance Regression Detected\n\n`;
+              baseMessage += `Workflow Run: ${context.payload.workflow_run.html_url}\n`;
+              baseMessage += `Commit: ${commitShaShort}\n\n`;
+              baseMessage += `The following benchmarks showed potential regressions:\n\n`;
+
+              let issueBody = baseMessage;
+              issueBody += `| Benchmark Name | Mean Time (µs) | Reason |\n`;
+              issueBody += `|----------------|----------------|--------|\n`;
+
+              let notificationText = `📉 Performance Regression Detected in ${context.repo.owner}/${context.repo.repo} (Commit: ${commitShaShort})\n`;
+              notificationText += `Workflow: ${context.payload.workflow_run.html_url}\nRegressions:\n`;
+
+              for (const reg of regressionsFound) {
+                issueBody += `| ${reg.name} | ${reg.mean} | ${reg.reason} |\n`;
+                notificationText += `- ${reg.name}: ${reg.mean} µs (${reg.reason})\n`;
+              }
+              issueBody += `\nPlease investigate these performance changes.`;
+
+              const commitMessage = context.payload.workflow_run.head_commit.message;
+              const taskMatch = commitMessage.match(/Task ID.*?(\d+(?:\.\d+)?)/i);
+              if (taskMatch) {
+                const taskMasterInfo = `\n\nAssociated TaskMaster ID: ${taskMatch[1]}`;
+                issueBody += taskMasterInfo;
+                notificationText += `Associated TaskMaster ID: ${taskMatch[1]}\n`;
+              }
+              notificationText += `\nSee issue for details (if created) and full benchmark run.`;
+
+              // Send external notifications
+              const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL_SECRET;
+              const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL_SECRET;
+
+              await sendWebhookNotificationWithRetry(slackWebhookUrl, notificationText, 'Slack');
+              await sendWebhookNotificationWithRetry(discordWebhookUrl, notificationText, 'Discord');
+
+              // Create GitHub issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🚨 Performance Alert: Regression detected in benchmarks`,
+                body: issueBody,
+                labels: ['performance', 'regression', 'needs-investigation']
+              });
+              console.log('Performance regression issue created.');
+            } else {
+              console.log('No significant performance regressions detected based on current thresholds.');
+            }

@@ -1,0 +1,341 @@
+name: Project Management Sync
+
+on:
+  issues:
+    types: [opened, labeled, unlabeled, edited, closed, reopened]
+  pull_request:
+    types: [opened, labeled, unlabeled, edited, closed, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      force_sync_issue_number:
+        description: 'Issue/PR number to force sync. Leave empty for event-based sync.'
+        required: false
+        type: string
+
+concurrency:
+  group: project-sync-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync with Project Management Tool
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install yq to parse YAML config
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+
+      - name: Read and Parse Configuration
+        id: config
+        run: |
+          CONFIG_FILE=".github/project-management-config.yml"
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "Configuration file not found at $CONFIG_FILE"
+            exit 1
+          fi
+
+          ENABLED_TOOL=$(yq '... | to_entries | .[] | select(.value.enabled == true) | .key' $CONFIG_FILE)
+          if [ -z "$ENABLED_TOOL" ]; then
+            echo "No enabled PM tool found in $CONFIG_FILE. Disabling sync."
+            echo "enabled_tool=none" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "enabled_tool=$ENABLED_TOOL" >> $GITHUB_OUTPUT
+          yq ".$ENABLED_TOOL" $CONFIG_FILE | yq 'to_entries | .[] | "pm_config_\(.key)=\(.value)"' >> $GITHUB_OUTPUT
+          yq ".sync_config" $CONFIG_FILE | yq 'to_entries | .[] | "sync_config_\(.key)=\(.value)"' >> $GITHUB_OUTPUT
+
+      - name: Sync with PM Tool
+        if: steps.config.outputs.enabled_tool != 'none'
+        uses: actions/github-script@v7
+        env:
+          # PM Tool Secrets
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          ASANA_ACCESS_TOKEN: ${{ secrets.ASANA_ACCESS_TOKEN }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          # Configuration from previous step
+          ENABLED_TOOL: ${{ steps.config.outputs.enabled_tool }}
+          PM_CONFIG_PROJECT_KEY: ${{ steps.config.outputs.pm_config_project_key }}
+          PM_CONFIG_INSTANCE_URL: ${{ steps.config.outputs.pm_config_instance_url }}
+          PM_CONFIG_TEAM_ID: ${{ steps.config.outputs.pm_config_team_id }}
+          PM_CONFIG_PROJECT_GID: ${{ steps.config.outputs.pm_config_project_gid }}
+          PM_CONFIG_DATABASE_ID: ${{ steps.config.outputs.pm_config_database_id }}
+          PM_CONFIG_PROJECT_NUMBER: ${{ steps.config.outputs.pm_config_project_number }}
+          SYNC_CONFIG_CREATION_LABEL: ${{ steps.config.outputs.sync_config_creation_label }}
+          SYNC_CONFIG_GITHUB_LINK_FIELD: ${{ steps.config.outputs.sync_config_github_link_field }}
+          SYNC_CONFIG_DEFAULT_STATUS: ${{ steps.config.outputs.sync_config_default_status }}
+          SYNC_CONFIG_STATUS_MAPPING: ${{ steps.config.outputs.sync_config_status_mapping }}
+          SYNC_CONFIG_CLOSED_STATUS: ${{ steps.config.outputs.sync_config_closed_status }}
+        with:
+          script: |
+            const { context, github, core } = require('@actions/github');
+
+            // --- Main Execution ---
+            async function main() {
+              const config = loadConfig();
+              if (!config.tool) {
+                core.info('Project management sync is not enabled.');
+                return;
+              }
+
+              const item = await getContextItem();
+              if (!item) {
+                core.info('No issue or PR context found for this event. Skipping.');
+                return;
+              }
+
+              core.info(`Syncing ${item.type} #${item.number} with ${config.tool}`);
+
+              const toolSyncer = getToolSyncer(config.tool);
+              if (!toolSyncer) {
+                core.setFailed(`Unsupported PM tool: ${config.tool}`);
+                return;
+              }
+
+              await toolSyncer({ github, context, core, config, item });
+            }
+
+            // --- Configuration and Context ---
+            function loadConfig() {
+              const statusMappingRaw = process.env.SYNC_CONFIG_STATUS_MAPPING || '{}';
+              let statusMapping = {};
+              try {
+                // yq formats this as a multi-line string, not valid JSON. We need to parse it carefully.
+                statusMapping = statusMappingRaw.split('\n')
+                  .filter(line => line.includes(':'))
+                  .reduce((obj, line) => {
+                    const [key, ...valueParts] = line.split(':');
+                    obj[key.trim().replace(/^- /, '')] = valueParts.join(':').trim();
+                    return obj;
+                  }, {});
+              } catch (e) {
+                core.warning(`Could not parse status mapping: ${e.message}`);
+              }
+
+              return {
+                tool: process.env.ENABLED_TOOL,
+                jira: {
+                  projectKey: process.env.PM_CONFIG_PROJECT_KEY,
+                  instanceUrl: process.env.PM_CONFIG_INSTANCE_URL,
+                  apiToken: process.env.JIRA_API_TOKEN,
+                  userEmail: process.env.JIRA_USER_EMAIL,
+                },
+                linear: {
+                  teamId: process.env.PM_CONFIG_TEAM_ID,
+                  apiKey: process.env.LINEAR_API_KEY,
+                },
+                asana: {
+                  projectGid: process.env.PM_CONFIG_PROJECT_GID,
+                  accessToken: process.env.ASANA_ACCESS_TOKEN,
+                },
+                notion: {
+                  databaseId: process.env.PM_CONFIG_DATABASE_ID,
+                  apiKey: process.env.NOTION_API_KEY,
+                },
+                github_projects: {
+                  projectNumber: parseInt(process.env.PM_CONFIG_PROJECT_NUMBER, 10),
+                },
+                sync: {
+                  creationLabel: process.env.SYNC_CONFIG_CREATION_LABEL,
+                  githubLinkField: process.env.SYNC_CONFIG_GITHUB_LINK_FIELD,
+                  defaultStatus: process.env.SYNC_CONFIG_DEFAULT_STATUS,
+                  closedStatus: process.env.SYNC_CONFIG_CLOSED_STATUS,
+                  statusMapping: statusMapping,
+                },
+              };
+            }
+
+            async function getContextItem() {
+              const { payload, eventName } = context;
+              let itemPayload = payload.issue || payload.pull_request;
+              const itemType = payload.issue ? 'issue' : 'pull_request';
+
+              if (eventName === 'workflow_dispatch' && payload.inputs.force_sync_issue_number) {
+                const issueNumber = parseInt(payload.inputs.force_sync_issue_number, 10);
+                try {
+                  const { data } = await github.rest.issues.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                  });
+                  itemPayload = data;
+                } catch (e) {
+                  core.setFailed(`Failed to fetch issue #${issueNumber}: ${e.message}`);
+                  return null;
+                }
+              }
+
+              if (!itemPayload) return null;
+
+              return {
+                ...itemPayload,
+                type: itemPayload.pull_request ? 'pull_request' : 'issue',
+              };
+            }
+
+            function getToolSyncer(tool) {
+              const syncers = {
+                github_projects: syncWithGitHubProjects,
+                // Add other syncers here when implemented
+                // jira: syncWithJira,
+                // linear: syncWithLinear,
+                // asana: syncWithAsana,
+                // notion: syncWithNotion,
+              };
+              return syncers[tool];
+            }
+
+            // --- GitHub Projects Syncer ---
+            async function syncWithGitHubProjects({ github, context, core, config, item }) {
+              const { projectNumber } = config.github_projects;
+              const { owner, repo } = context.repo;
+
+              // 1. Get Project and Item Info
+              const projectData = await github.graphql(`
+                query($owner: String!, $repo: String!, $projectNumber: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    owner {
+                      ... on ProjectV2Owner {
+                        projectV2(number: $projectNumber) {
+                          id
+                          fields(first: 20) {
+                            nodes {
+                              ... on ProjectV2SingleSelectField {
+                                id
+                                name
+                                options {
+                                  id
+                                  name
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              `, { owner, repo, projectNumber });
+
+              const project = projectData.repository.owner.projectV2;
+              if (!project) {
+                return core.setFailed(`GitHub Project #${projectNumber} not found.`);
+              }
+              const statusField = project.fields.nodes.find(f => f.name === 'Status');
+              if (!statusField) {
+                return core.setFailed(`'Status' field not found in Project #${projectNumber}.`);
+              }
+
+              // 2. Check if item is already in project
+              const itemData = await github.graphql(`
+                query($nodeId: ID!) {
+                  node(id: $nodeId) {
+                    ... on ProjectV2ItemContent {
+                      projectItems(first: 10) {
+                        nodes {
+                          id
+                          project {
+                            id
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              `, { nodeId: item.node_id });
+
+              const projectItem = itemData.node.projectItems.nodes.find(pi => pi.project.id === project.id);
+
+              // 3. Add to project if not already present
+              if (!projectItem) {
+                const hasCreationLabel = item.labels.some(l => l.name === config.sync.creationLabel);
+                if (context.payload.action !== 'labeled' && !hasCreationLabel) {
+                  core.info(`Item #${item.number} does not have '${config.sync.creationLabel}' label. Skipping add.`);
+                  return;
+                }
+
+                core.info(`Adding item #${item.number} to project...`);
+                const addResponse = await github.graphql(`
+                  mutation($projectId: ID!, $contentId: ID!) {
+                    addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                      item {
+                        id
+                      }
+                    }
+                  }
+                `, { projectId: project.id, contentId: item.node_id });
+                const newProjectItemId = addResponse.addProjectV2ItemById.item.id;
+                core.info(`Added item to project with ID: ${newProjectItemId}`);
+                // Now update status for the new item
+                await updateStatus(newProjectItemId);
+              } else {
+                // 4. Update status if already in project
+                core.info(`Item #${item.number} already in project. Updating status...`);
+                await updateStatus(projectItem.id);
+              }
+
+              async function updateStatus(projectItemId) {
+                let newStatusName = null;
+                if (item.state === 'closed') {
+                  newStatusName = config.sync.closedStatus;
+                } else {
+                  for (const label of item.labels) {
+                    if (config.sync.statusMapping[label.name]) {
+                      newStatusName = config.sync.statusMapping[label.name];
+                      break;
+                    }
+                  }
+                }
+
+                if (!newStatusName) {
+                  core.info('No status change needed based on labels.');
+                  return;
+                }
+
+                const statusOption = statusField.options.find(o => o.name === newStatusName);
+                if (!statusOption) {
+                  core.warning(`Status '${newStatusName}' not found in project options.`);
+                  return;
+                }
+
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: $projectId,
+                      itemId: $itemId,
+                      fieldId: $fieldId,
+                      value: { singleSelectOptionId: $optionId }
+                    }) {
+                      projectV2Item {
+                        id
+                      }
+                    }
+                  }
+                `, {
+                  projectId: project.id,
+                  itemId: projectItemId,
+                  fieldId: statusField.id,
+                  optionId: statusOption.id,
+                });
+                core.info(`Updated status for item #${item.number} to '${newStatusName}'.`);
+              }
+            }
+
+            // --- Placeholder Syncers for Other Tools ---
+            // TODO: Implement sync logic for Jira, Linear, Asana, Notion
+            // The structure would be similar:
+            // 1. Check if a link to the PM tool task already exists in the issue body.
+            // 2. If not, and creation is triggered, call the tool's API to create a task.
+            // 3. Add a link to the new task in the GitHub issue body.
+            // 4. If a link exists, call the tool's API to update the task (e.g., title, status).
+            // Use the built-in `fetch` for API calls.
+
+            main().catch(error => {
+              core.setFailed(error.message);
+            });

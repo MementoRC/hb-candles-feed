@@ -1,0 +1,319 @@
+name: Intelligent Stale Management
+
+on:
+  schedule:
+    - cron: '0 2 * * 1' # Run weekly on Mondays at 2 AM UTC
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode (no actual changes)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  intelligent-stale-analysis:
+    name: Intelligent Stale and Closure Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      stale-candidates: ${{ steps.analysis.outputs.stale-candidates }}
+      close-candidates: ${{ steps.analysis.outputs.close-candidates }}
+      metrics: ${{ steps.analysis.outputs.metrics }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Analyze Stale and Closable Items
+        id: analysis
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const isDryRun = context.payload.inputs?.dry_run === 'true';
+            const { GITHUB_TOKEN } = process.env;
+
+            // --- CONFIGURATION ---
+            const staleConfig = {
+              'P0-Critical': { daysBefore: 90, exempt: true },
+              'P1-High': { daysBefore: 75, exempt: false },
+              'P2-Medium': { daysBefore: 45, exempt: false },
+              'P3-Low': { daysBefore: 30, exempt: false },
+              'default': { daysBefore: 45, exempt: false }
+            };
+            const closeConfig = {
+              daysBefore: 15, // Days after being marked stale to close
+              exemptLabels: ['keep-open', 'work-in-progress']
+            };
+            const globalExemptLabels = ['security', 'pinned'];
+
+            // --- SCRIPT LOGIC ---
+            const now = new Date();
+            let staleCandidates = [];
+            let closeCandidates = [];
+            let metrics = {
+              totalAnalyzed: 0,
+              alreadyStale: 0,
+              exemptFromStale: 0,
+              exemptFromClose: 0,
+              staleCandidatesFound: 0,
+              closeCandidatesFound: 0,
+              errors: 0
+            };
+
+            const iterator = github.paginate.iterator(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', per_page: 100
+            });
+
+            for await (const { data: issues } of iterator) {
+              for (const issue of issues) {
+                metrics.totalAnalyzed++;
+                try {
+                  const labels = issue.labels.map(l => l.name);
+                  const isStale = labels.includes('status/stale');
+
+                  // --- CLOSING LOGIC for items already marked stale ---
+                  if (isStale) {
+                    metrics.alreadyStale++;
+                    if (labels.some(label => closeConfig.exemptLabels.includes(label) || globalExemptLabels.includes(label))) {
+                      metrics.exemptFromClose++;
+                      continue;
+                    }
+
+                    const lastUpdate = new Date(issue.updated_at);
+                    const daysSinceUpdate = Math.floor((now - lastUpdate) / (1000 * 60 * 60 * 24));
+
+                    if (daysSinceUpdate >= closeConfig.daysBefore) {
+                      closeCandidates.push({
+                        number: issue.number,
+                        title: issue.title,
+                        type: issue.pull_request ? 'pr' : 'issue',
+                        url: issue.html_url,
+                        daysSinceUpdate: daysSinceUpdate
+                      });
+                      metrics.closeCandidatesFound++;
+                    }
+                    continue; // Done with this issue, it's already stale
+                  }
+
+                  // --- STALE MARKING LOGIC for items not yet stale ---
+                  let priority = 'default';
+                  for (const label of labels) {
+                    if (staleConfig[label]) { priority = label; break; }
+                  }
+                  const config = staleConfig[priority];
+
+                  if (config.exempt || labels.some(label => globalExemptLabels.includes(label) || closeConfig.exemptLabels.includes(label))) {
+                    metrics.exemptFromStale++;
+                    continue;
+                  }
+
+                  const lastActivity = new Date(issue.updated_at);
+                  const daysSinceActivity = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
+
+                  const reactions = issue.reactions.total_count || 0;
+                  const comments = issue.comments || 0;
+                  const isFeatureRequest = labels.includes('type/feature') || labels.includes('enhancement') || issue.title.toLowerCase().includes('feature');
+                  const hasHighEngagement = reactions >= 5 || comments >= 10;
+
+                  let adjustedDaysBefore = config.daysBefore;
+                  if (isFeatureRequest && hasHighEngagement) {
+                    adjustedDaysBefore *= 1.5; // 50% longer for engaged feature requests
+                  }
+
+                  if (daysSinceActivity >= adjustedDaysBefore) {
+                    staleCandidates.push({
+                      number: issue.number,
+                      title: issue.title,
+                      type: issue.pull_request ? 'pr' : 'issue',
+                      priority: priority,
+                      daysSinceActivity: daysSinceActivity,
+                      engagement: { reactions, comments },
+                      url: issue.html_url
+                    });
+                    metrics.staleCandidatesFound++;
+                  }
+                } catch (error) {
+                  console.error(`Error analyzing #${issue.number}: ${error.message}`);
+                  metrics.errors++;
+                }
+              }
+            }
+
+            console.log(`Analysis complete. Found ${staleCandidates.length} new stale candidates and ${closeCandidates.length} candidates for closure.`);
+            console.log(`Metrics:`, JSON.stringify(metrics, null, 2));
+
+            core.setOutput('stale-candidates', JSON.stringify(staleCandidates));
+            core.setOutput('close-candidates', JSON.stringify(closeCandidates));
+            core.setOutput('metrics', JSON.stringify(metrics));
+
+  apply-stale-actions:
+    name: Apply Stale Labels
+    needs: intelligent-stale-analysis
+    if: needs.intelligent-stale-analysis.outputs.stale-candidates != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Apply Intelligent Stale Labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const candidates = JSON.parse('${{ needs.intelligent-stale-analysis.outputs.stale-candidates }}');
+            const isDryRun = context.payload.inputs?.dry_run === 'true';
+            const { owner, repo } = context.repo;
+
+            console.log(`Processing ${candidates.length} stale candidates. Dry run: ${isDryRun}`);
+
+            for (const candidate of candidates) {
+              try {
+                const staleMessage = `🤖 **Intelligent Stale Detection**: This ${candidate.type} has been inactive for **${candidate.daysSinceActivity} days** (Priority: ${candidate.priority}). It will be closed in ${closeConfig.daysBefore} days if no further activity occurs.
+
+                  📊 **Engagement**: ${candidate.engagement.reactions} reactions, ${candidate.engagement.comments} comments
+
+                  🛠️ **To keep this active:**
+                  - Add a comment with updates or new information.
+                  - Add the \`keep-open\` label to prevent automatic closure.
+                  - For PRs, push new commits or request a review.`;
+
+                if (!isDryRun) {
+                  await github.rest.issues.addLabels({ owner, repo, issue_number: candidate.number, labels: ['status/stale'] });
+                  await github.rest.issues.createComment({ owner, repo, issue_number: candidate.number, body: staleMessage });
+                  console.log(`Marked ${candidate.type} #${candidate.number} as stale.`);
+                } else {
+                  console.log(`[DRY RUN] Would mark ${candidate.type} #${candidate.number} as stale.`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } catch (error) {
+                console.error(`Error processing ${candidate.type} #${candidate.number}: ${error.message}`);
+              }
+            }
+        env:
+          closeConfig: '{"daysBefore": 15}'
+
+  apply-close-actions:
+    name: Apply Close Actions
+    needs: intelligent-stale-analysis
+    if: needs.intelligent-stale-analysis.outputs.close-candidates != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Close Stale Items
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const candidates = JSON.parse('${{ needs.intelligent-stale-analysis.outputs.close-candidates }}');
+            const isDryRun = context.payload.inputs?.dry_run === 'true';
+            const { owner, repo } = context.repo;
+
+            console.log(`Processing ${candidates.length} candidates for closure. Dry run: ${isDryRun}`);
+
+            for (const candidate of candidates) {
+              try {
+                const closeMessage = `🤖 **Auto-Closure**: This ${candidate.type} has been automatically closed due to inactivity. It was marked as stale and has remained inactive for over 15 days.
+
+                  - If you believe this is still relevant, please feel free to reopen it with an update.
+                  - Thank you for your contributions!`;
+
+                if (!isDryRun) {
+                  await github.rest.issues.createComment({ owner, repo, issue_number: candidate.number, body: closeMessage });
+                  await github.rest.issues.update({ owner, repo, issue_number: candidate.number, state: 'closed' });
+                  console.log(`Closed ${candidate.type} #${candidate.number}.`);
+                } else {
+                  console.log(`[DRY RUN] Would close ${candidate.type} #${candidate.number}.`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } catch (error) {
+                console.error(`Error closing ${candidate.type} #${candidate.number}: ${error.message}`);
+              }
+            }
+
+  generate-stale-report:
+    name: Generate Stale Management Report
+    needs: [intelligent-stale-analysis, apply-stale-actions, apply-close-actions]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit
+
+      - name: Generate Report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const metrics = JSON.parse('${{ needs.intelligent-stale-analysis.outputs.metrics }}');
+            const staleCandidates = JSON.parse('${{ needs.intelligent-stale-analysis.outputs.stale-candidates }}');
+            const closeCandidates = JSON.parse('${{ needs.intelligent-stale-analysis.outputs.close-candidates }}');
+            const isDryRun = context.payload.inputs?.dry_run === 'true';
+
+            const report = `# 📊 Intelligent Stale Management Report
+
+            **Run Date**: ${new Date().toISOString()}
+            **Mode**: ${isDryRun ? 'Dry Run' : 'Production'}
+
+            ## Summary Metrics
+            - **Total Items Analyzed**: ${metrics.totalAnalyzed}
+            - **Items Already Stale**: ${metrics.alreadyStale}
+            - **Exempt from Stale Marking**: ${metrics.exemptFromStale}
+            - **Exempt from Closing**: ${metrics.exemptFromClose}
+            - **Errors Encountered**: ${metrics.errors}
+
+            ## Actions Summary
+            - **New Stale Candidates Found**: ${staleCandidates.length}
+            - **Candidates for Closure Found**: ${closeCandidates.length}
+            - **Actions Applied (Marked Stale)**: ${isDryRun ? 0 : metrics.staleCandidatesFound}
+            - **Actions Applied (Closed)**: ${isDryRun ? 0 : metrics.closeCandidatesFound}
+
+            ## Configuration Applied
+            - **Stale Marking**:
+              - P0-Critical: Never stale
+              - P1-High: 75 days
+              - P2-Medium: 45 days
+              - P3-Low: 30 days
+              - Feature Requests: +50% time if highly engaged
+            - **Closing**:
+              - **15 days** after being marked stale with no activity.
+
+            ${closeCandidates.length > 0 ? '## Items Closed This Run\n' + closeCandidates.map(c =>
+              `- [${c.type.toUpperCase()} #${c.number}](${c.url}): ${c.title} (inactive for ${c.daysSinceUpdate}d)`
+            ).join('\n') : ''}
+
+            ${staleCandidates.length > 0 ? '## Items Marked as Stale This Run\n' + staleCandidates.map(c =>
+              `- [${c.type.toUpperCase()} #${c.number}](${c.url}): ${c.title} (${c.daysSinceActivity}d inactive, ${c.priority})`
+            ).join('\n') : ''}
+
+            ${staleCandidates.length === 0 && closeCandidates.length === 0 ? '## No items required action in this run.' : ''}
+
+            ---
+            *Generated by Intelligent Stale Management System*`;
+
+            console.log(report);
+
+            // Optional: Create an issue with the report
+            if (!isDryRun) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Stale Management Report - ${new Date().toISOString().split('T')[0]}`,
+                body: report,
+                labels: ['automation', 'stale-report']
+              });
+            }
