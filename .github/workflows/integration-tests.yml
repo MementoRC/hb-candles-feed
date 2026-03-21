@@ -103,7 +103,7 @@ jobs:
             pixi-${{ runner.os }}-
 
       - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.8.8
+        uses: prefix-dev/setup-pixi@v0.9.4
         with:
           environments: ${{ matrix.pixi-environment }}
           cache: true
@@ -210,7 +210,7 @@ jobs:
             pixi-${{ runner.os }}-
 
       - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.8.8
+        uses: prefix-dev/setup-pixi@v0.9.4
         with:
           environments: py312
           cache: true
