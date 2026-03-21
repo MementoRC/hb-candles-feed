@@ -13,9 +13,6 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - name: Import GPG key and configure Git
         if: ${{ secrets.CI_BOT_GPG_KEY != '' }}

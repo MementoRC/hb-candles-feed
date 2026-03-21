@@ -33,8 +33,8 @@ jobs:
         ["CLAUDE.md", "GEMINI.md", ".claude/**", ".taskmaster/**", ".mcp.json", "ai_docs/**",
         ".cursor/**", ".aider*", "**/__pycache__/**", "**/*.pyc", ".pytest_cache/**",
         "htmlcov/**", "coverage.xml", ".mypy_cache/**", ".ruff_cache/**", "build/**",
-        "dist/**", "**/*.egg-info/**", "artifacts/**", "logs/**", "performance_data/**",
-        "tmp/**", "debug/**", ".vscode/settings.json", ".idea/**", "*.code-workspace",
+        "dist/**", "**/*.egg-info/**",
+        ".vscode/settings.json", ".idea/**", "*.code-workspace",
         "*.tmp", "*.dev", ".DS_Store", "Thumbs.db"]
       workflow_name: 'hb-candles-feed Cleanup'
     secrets: inherit
