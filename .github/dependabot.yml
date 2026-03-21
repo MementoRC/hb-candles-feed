@@ -3,6 +3,7 @@ updates:
   # Enable version updates for Python/pip dependencies
   - package-ecosystem: "pip"
     directory: "/"
+    target-branch: "development"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -47,6 +48,7 @@ updates:
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "development"
     schedule:
       interval: "weekly"
       day: "monday"
