@@ -1,0 +1,44 @@
+---
+name: Cleanup Development Artifacts
+
+on:
+  push:
+    branches: [main, development]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Branch to clean'
+        required: false
+        default: 'development'
+        type: choice
+        options:
+          - main
+          - development
+
+jobs:
+  cleanup:
+    uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@v2.5.1
+    with:
+      target_branches: >-
+        ${{
+          github.event_name == 'push'
+          && format('["{0}"]', github.ref_name)
+          || github.event_name == 'workflow_dispatch'
+          && format('["{0}"]', github.event.inputs.target_branch)
+          || '["main", "development"]'
+        }}
+      cleanup_patterns: >
+        ["CLAUDE.md", "GEMINI.md", ".claude/**", ".taskmaster/**", ".mcp.json", "ai_docs/**",
+        ".cursor/**", ".aider*", "**/__pycache__/**", "**/*.pyc", ".pytest_cache/**",
+        "htmlcov/**", "coverage.xml", ".mypy_cache/**", ".ruff_cache/**", "build/**",
+        "dist/**", "**/*.egg-info/**",
+        ".vscode/settings.json", ".idea/**", "*.code-workspace",
+        "*.tmp", "*.dev", ".DS_Store", "Thumbs.db"]
+      workflow_name: 'hb-candles-feed Cleanup'
+    secrets: inherit
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
