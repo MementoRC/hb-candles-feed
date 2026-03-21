@@ -1,0 +1,63 @@
+# This file configures the Prometheus Alertmanager.
+# It defines how alerts are routed and what notifications are sent.
+
+global:
+  resolve_timeout: 5m
+  # Webhook URLs should be stored securely and passed to Alertmanager at runtime,
+  # for example, via environment variables in your deployment configuration.
+  # slack_api_url: '${SLACK_WEBHOOK_URL_MONITORING}'
+
+route:
+  group_by: ['alertname', 'job', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'default-notifications'
+
+  routes:
+    # Send critical alerts to a receiver that might have special routing,
+    # like paging a user. Here we send to a specific channel.
+    - receiver: 'critical-notifications'
+      matchers:
+        - severity = "critical"
+      continue: false # Stop processing further routes for critical alerts
+
+receivers:
+- name: 'default-notifications'
+  slack_configs:
+    # This URL should be provided to Alertmanager as a secret.
+    - api_url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX' # Placeholder
+      channel: '#monitoring-alerts'
+      send_resolved: true
+      title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }} for {{ .CommonLabels.job }}'
+      text: >-
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Severity:* `{{ .Labels.severity }}`
+        *Description:* {{ .Annotations.description }}
+        *Details:*
+        {{ range .Labels.SortedPairs }} • `{{ .Name }}:` {{ .Value }}
+        {{ end }}
+        {{ end }}
+  webhook_configs:
+    # This URL should be provided to Alertmanager as a secret.
+    - url: 'https://discord.com/api/webhooks/your_webhook_id/your_webhook_token' # Placeholder
+      send_resolved: true
+      # Note: Discord webhook requires a specific JSON payload.
+      # A custom template is often needed for rich formatting.
+
+- name: 'critical-notifications'
+  slack_configs:
+    - api_url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX' # Placeholder
+      channel: '#critical-alerts'
+      send_resolved: true
+      title: '<!channel> [CRITICAL:{{ .Alerts.Firing | len }}] {{ .CommonLabels.alertname }} for {{ .CommonLabels.job }}'
+      text: >-
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        {{ end }}
+
+# Optional: Path to custom notification templates for advanced formatting.
+# templates:
+# - '/etc/alertmanager/templates/*.tmpl'

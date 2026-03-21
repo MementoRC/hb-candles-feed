@@ -46,33 +46,11 @@ This page documents the core classes and functions of the Candles Feed framework
       show_if_no_docstring: false
       heading_level: 3
 
-## NetworkStrategies
+## Collection Strategies
 
 ### WebSocketStrategy
 
-::: candles_feed.core.network_strategies.WebSocketStrategy
-    handler: python
-    selection:
-      docstring_style: restructured-text
-    rendering:
-      show_source: true
-      show_if_no_docstring: false
-      heading_level: 4
-
-### RESTPollingStrategy
-
-::: candles_feed.core.network_strategies.RESTPollingStrategy
-    handler: python
-    selection:
-      docstring_style: restructured-text
-    rendering:
-      show_source: true
-      show_if_no_docstring: false
-      heading_level: 4
-
-## Protocols
-
-::: candles_feed.core.protocols.CandleDataAdapter
+::: candles_feed.core.collection_strategies.WebSocketStrategy
     handler: python
     selection:
       docstring_style: restructured-text
@@ -81,7 +59,80 @@ This page documents the core classes and functions of the Candles Feed framework
       show_if_no_docstring: false
       heading_level: 3
 
-::: candles_feed.core.protocols.NetworkStrategy
+### RESTPollingStrategy
+
+::: candles_feed.core.collection_strategies.RESTPollingStrategy
+    handler: python
+    selection:
+      docstring_style: restructured-text
+    rendering:
+      show_source: true
+      show_if_no_docstring: false
+      heading_level: 3
+
+### CollectionStrategyFactory
+
+::: candles_feed.core.collection_strategies.CollectionStrategyFactory
+    handler: python
+    selection:
+      docstring_style: restructured-text
+    rendering:
+      show_source: true
+      show_if_no_docstring: false
+      heading_level: 3
+
+## Network Configuration
+
+::: candles_feed.core.network_config.NetworkConfig
+    handler: python
+    selection:
+      docstring_style: restructured-text
+    rendering:
+      show_source: true
+      show_if_no_docstring: false
+      heading_level: 3
+
+## Data Processor
+
+::: candles_feed.core.data_processor.DataProcessor
+    handler: python
+    selection:
+      docstring_style: restructured-text
+    rendering:
+      show_source: true
+      show_if_no_docstring: false
+      heading_level: 3
+
+## Protocols
+
+::: candles_feed.core.protocols.NetworkClientProtocol
+    handler: python
+    selection:
+      docstring_style: restructured-text
+    rendering:
+      show_source: true
+      show_if_no_docstring: false
+      heading_level: 3
+
+::: candles_feed.core.protocols.CollectionStrategy
+    handler: python
+    selection:
+      docstring_style: restructured-text
+    rendering:
+      show_source: true
+      show_if_no_docstring: false
+      heading_level: 3
+
+::: candles_feed.core.protocols.AsyncThrottlerProtocol
+    handler: python
+    selection:
+      docstring_style: restructured-text
+    rendering:
+      show_source: true
+      show_if_no_docstring: false
+      heading_level: 3
+
+::: candles_feed.core.protocols.WSAssistant
     handler: python
     selection:
       docstring_style: restructured-text

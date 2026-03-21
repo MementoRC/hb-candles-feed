@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    networks:
+      - monitoring_net
+
+  grafana:
+    image: grafana/grafana:10.1.5
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      # Optional: To automatically provision the Prometheus datasource, create a
+      # monitoring/grafana/datasources/prometheus.yml file and uncomment the next line.
+      # - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitoring_net
+
+  candles-feed-app:
+    build: .
+    container_name: candles-feed-app
+    ports:
+      - "8080:8080" # Expose metrics port
+    networks:
+      - monitoring_net
+    # This is an example command. Users should replace it with their actual app entrypoint.
+    # It starts the metrics server for demonstration purposes.
+    command: >
+      python -c "
+      import asyncio, time
+      from candles_feed.core.metrics import MetricsCollector
+      from candles_feed.monitoring.http_server import start_http_server
+
+      async def main():
+          collector = MetricsCollector()
+          await start_http_server(collector, port=8080)
+          # Simulate metric changes
+          while True:
+              collector.record_request_started()
+              collector.record_request_completed(0.1, True)
+              collector.record_candles_processed(10)
+              await asyncio.sleep(5)
+
+      asyncio.run(main())
+      "
+
+networks:
+  monitoring_net:
+    driver: bridge

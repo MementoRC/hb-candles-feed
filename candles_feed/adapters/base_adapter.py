@@ -7,7 +7,7 @@ This module provides a base implementation for exchange adapters to reduce code 
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict
+from typing import Any  # Added Any
 
 from candles_feed.core.candle_data import CandleData
 
@@ -59,7 +59,7 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def parse_ws_message(self, data: Dict[str, Any]) -> list[CandleData] | None:
+    def parse_ws_message(self, data: dict[str, Any]) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message

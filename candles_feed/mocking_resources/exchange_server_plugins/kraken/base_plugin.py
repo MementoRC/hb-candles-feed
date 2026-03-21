@@ -6,7 +6,7 @@ This class provides shared functionality for Kraken plugins.
 
 import contextlib
 from abc import ABC
-from typing import Any, Union
+from typing import Any
 
 from aiohttp import web
 
@@ -124,7 +124,7 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
-    ) -> Union[list, dict]:
+    ) -> list | dict:
         """
         Format candle data as a Kraken WebSocket message.
 

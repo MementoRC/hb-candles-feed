@@ -7,7 +7,7 @@ Hummingbot's WebAssistantsFactory and AsyncThrottler when available.
 
 import json
 import logging
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from candles_feed.core.protocols import (
     AsyncThrottlerProtocol,
@@ -38,7 +38,7 @@ except ImportError:
 class HummingbotWSAssistantAdapter(WSAssistant):
     """Adapter for Hummingbot's WSAssistant to match our WSAssistant protocol."""
 
-    def __init__(self, ws_assistant, logger: Optional[Logger] = None):
+    def __init__(self, ws_assistant, logger: Logger | None = None):
         """Initialize the adapter.
 
         :param ws_assistant: Hummingbot's WSAssistant instance
@@ -124,7 +124,7 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         self,
         throttler: Any,  # Type as Any to avoid direct dependency
         web_assistants_factory: Any,  # Type as Any to avoid direct dependency
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
     ):
         """Initialize the client with Hummingbot components.
 
@@ -139,7 +139,7 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         self._web_assistants_factory = web_assistants_factory
         self._throttler_adapter = HummingbotThrottlerAdapter(throttler)
         self._logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
-        self._rest_assistant: Optional[RESTAssistant] = None
+        self._rest_assistant: RESTAssistant | None = None
 
     async def _ensure_rest_assistant(self):
         """Ensure REST assistant is initialized."""
@@ -233,7 +233,7 @@ class NetworkClientFactory:
 
     @staticmethod
     def create_client(
-        hummingbot_components: Optional[dict] = None, logger: Optional[Logger] = None
+        hummingbot_components: dict | None = None, logger: Logger | None = None
     ) -> NetworkClientProtocol:
         """Create a network client.
 

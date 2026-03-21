@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 from candles_feed.core.candle_data import CandleData
 
@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from candles_feed.core.protocols import NetworkClientProtocol
 
 
-NetworkClientProtocolT = TypeVar("NetworkClientProtocolT", bound="Optional[NetworkClientProtocol]")
+NetworkClientProtocolT = TypeVar("NetworkClientProtocolT", bound="NetworkClientProtocol | None")
 
 
 @runtime_checkable

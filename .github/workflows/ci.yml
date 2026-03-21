@@ -1,70 +1,61 @@
-name: Package CI
+name: CI
 
 on:
   push:
-    branches: [main, master, develop, development]
+    branches: [main, development]
   pull_request:
-    branches: [main, master, develop, development]
-  workflow_dispatch:
+    branches: [main, development]
+
+# Cancel in-progress CI runs for the same ref/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  ci:
+    uses: Claire-s-Monster/ci-framework/.github/workflows/reusable-ci.yml@v2.5.1
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+      actions: read
+      checks: write
+    with:
+      pixi-environment: "ci"
+      python-versions: '["3.10", "3.11", "3.12"]'
+      os-matrix: '["ubuntu-latest"]'
+      enable-performance: false
+      enable-hygiene-check: true
+      editable-install: true
+      package-path: "."
+      allowed-licenses: "MIT, Apache-2.0, BSD-3-Clause, BSD-2-Clause, ISC"
+    secrets: inherit
+
+  branch-policy:
+    name: "Branch Policy"
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10"]
-    defaults:
-      run:
-        shell: bash
-
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.8.8
-
-      - name: Install project dependencies (using Pixi)
+      - name: Check source branch
         run: |
-          pixi install # This will install dependencies based on pyproject.toml and create/use pixi.lock
-          pixi run pip install -e .
+          if [ "${{ github.head_ref }}" != "development" ]; then
+            echo "PRs to main must come from development branch"
+            echo "  Source: ${{ github.head_ref }}"
+            echo "  Expected: development"
+            exit 1
+          fi
+          echo "PR from development to main - allowed"
 
-      - name: Run unit tests with coverage
-        run: |
-          # Run unit tests first to avoid URL patching pollution from integration tests
-          pixi run pytest tests -m "not integration" --cov=candles_feed --cov-report=xml:coverage.xml
-          
-      - name: Run integration tests separately
-        run: |
-          # Run integration tests separately to prevent URL patching pollution
-          pixi run pytest tests -m "integration" --cov=candles_feed --cov-append
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
-
-  lint:
+  ci-success:
+    name: "CI Success"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
+    needs: [ci]
+    if: always()
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.8.8
-
-      - name: Install project dependencies (using Pixi)
+      - name: Check CI status
         run: |
-          pixi install # This will install dependencies based on pyproject.toml
-          pixi run pip install -e .
-
-      - name: Format and lint with ruff
-        run: |
-          pixi run ci-check
-
-      - name: Type check with mypy
-        run: |
-          pixi run ci-hints
+          if [ "${{ needs.ci.result }}" != "success" ]; then
+            echo "CI failed with result: ${{ needs.ci.result }}"
+            exit 1
+          fi
+          echo "All CI checks passed"

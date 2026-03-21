@@ -98,7 +98,7 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.plugin = self.SamplePlugin(ExchangeType.BINANCE_SPOT, BinanceSpotAdapter)
-        self.server = MockedExchangeServer(self.plugin, "127.0.0.1", 8080)
+        self.server = MockedExchangeServer(self.plugin, "127.0.0.1", 8082)
 
     @patch("candles_feed.mocking_resources.core.server.web.AppRunner")
     def test_init(self, mock_app_runner):
@@ -106,7 +106,7 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         self.assertEqual(self.server.plugin, self.plugin)
         self.assertEqual(self.server.exchange_type, ExchangeType.BINANCE_SPOT)
         self.assertEqual(self.server.host, "127.0.0.1")
-        self.assertEqual(self.server.port, 8080)
+        self.assertEqual(self.server.port, 8082)
         self.assertIsInstance(self.server.app, web.Application)
         self.assertEqual(self.server.candles, {})
         self.assertEqual(self.server.last_candle_time, {})
@@ -186,17 +186,17 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         mock_app_runner.return_value = mock_runner
 
         mock_site = AsyncMock()
-        mock_site._port = 8080  # Set the port number
+        mock_site._port = 8082  # Set the port number
         mock_tcp_site.return_value = mock_site
 
         url = await self.server.start()
 
         mock_app_runner.assert_called_once_with(self.server.app)
         mock_runner.setup.assert_called_once()
-        mock_tcp_site.assert_called_once_with(mock_runner, "127.0.0.1", 8080)
+        mock_tcp_site.assert_called_once_with(mock_runner, "127.0.0.1", 8082)
         mock_site.start.assert_called_once()
 
-        self.assertEqual(url, "http://127.0.0.1:8080")
+        self.assertEqual(url, "http://127.0.0.1:8082")
         self.assertEqual(len(self.server._tasks), 1)
 
     @pytest.mark.asyncio

@@ -130,8 +130,9 @@ class TestCandlesFeed:
     async def test_start_with_websocket(self, candles_feed):
         """Test starting the feed with WebSocket strategy."""
         # Patch internal CandlesFeed methods to avoid real network calls
-        with patch.object(CandlesFeed, "_create_ws_strategy"), patch.object(
-            WebSocketStrategy, "start", new_callable=AsyncMock
+        with (
+            patch.object(CandlesFeed, "_create_ws_strategy"),
+            patch.object(WebSocketStrategy, "start", new_callable=AsyncMock),
         ):
             # Setup adapter to report WebSocket is supported
             candles_feed._adapter.get_ws_supported_intervals.return_value = ["1m"]
@@ -147,8 +148,9 @@ class TestCandlesFeed:
     async def test_start_with_rest(self, candles_feed):
         """Test starting the feed with REST strategy."""
         # Patch internal CandlesFeed methods to avoid real network calls
-        with patch.object(CandlesFeed, "_create_rest_strategy"), patch.object(
-            RESTPollingStrategy, "start", new_callable=AsyncMock
+        with (
+            patch.object(CandlesFeed, "_create_rest_strategy"),
+            patch.object(RESTPollingStrategy, "start", new_callable=AsyncMock),
         ):
             # Start the feed with REST strategy
             await candles_feed.start(strategy="polling")
@@ -161,8 +163,9 @@ class TestCandlesFeed:
     async def test_start_with_auto_strategy_ws_available(self, candles_feed):
         """Test auto strategy selection when WS is available."""
         # Patch internal CandlesFeed methods to avoid real network calls
-        with patch.object(CandlesFeed, "_create_ws_strategy"), patch.object(
-            WebSocketStrategy, "start", new_callable=AsyncMock
+        with (
+            patch.object(CandlesFeed, "_create_ws_strategy"),
+            patch.object(WebSocketStrategy, "start", new_callable=AsyncMock),
         ):
             # Setup adapter to report WebSocket is supported
             candles_feed._adapter.get_ws_supported_intervals.return_value = ["1m"]
@@ -177,8 +180,9 @@ class TestCandlesFeed:
     async def test_start_with_auto_strategy_ws_unavailable(self, candles_feed):
         """Test auto strategy selection when WS is unavailable."""
         # Patch internal CandlesFeed methods to avoid real network calls
-        with patch.object(CandlesFeed, "_create_rest_strategy"), patch.object(
-            RESTPollingStrategy, "start", new_callable=AsyncMock
+        with (
+            patch.object(CandlesFeed, "_create_rest_strategy"),
+            patch.object(RESTPollingStrategy, "start", new_callable=AsyncMock),
         ):
             # Setup adapter to report WebSocket is not supported
             candles_feed._adapter.get_ws_supported_intervals.return_value = [
