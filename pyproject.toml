@@ -153,6 +153,21 @@ bandit = ">=1.8.0"
 pre-commit = ">=2.15.0"
 types-setuptools = "*"
 
+[tool.pixi.feature.quality-extended.dependencies]
+bandit = ">=1.8.0"
+pip-audit = "*"
+
+[tool.pixi.feature.quality-extended.tasks]
+security-scan = "bandit -c pyproject.toml -r candles_feed/"
+safety-check = "pip-audit"
+
+[tool.pixi.feature.quality-ci.dependencies]
+python-build = "*"
+hatchling = "*"
+
+[tool.pixi.feature.quality-ci.tasks]
+build = "python -m build"
+
 # Python version features
 [tool.pixi.feature.py310.dependencies]
 python = "3.10.*"
@@ -168,6 +183,8 @@ python = "3.12.*"
 default = { features = ["dev"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 ci = { features = ["ci", "dev"], solve-group = "default" }
+quality-extended = { features = ["quality-extended"], solve-group = "default" }
+quality-ci = { features = ["quality-ci"], solve-group = "default" }
 py310 = { features = ["py310", "dev"], solve-group = "py310" }
 py311 = { features = ["py311", "dev"], solve-group = "py311" }
 py312 = { features = ["py312", "dev"], solve-group = "py312" }
