@@ -206,6 +206,13 @@ class CandlesFeed:
         """
         self._candles.append(candle)
 
+    def clear_candles(self) -> None:
+        """Remove all candles from the feed.
+
+        :return: None
+        """
+        self._candles.clear()
+
     def get_candles_df(self) -> pd.DataFrame:
         """Get candles as a pandas DataFrame.
 

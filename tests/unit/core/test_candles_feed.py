@@ -336,6 +336,13 @@ class TestCandlesFeed:
         assert len(candles_feed._candles) == 1
         assert candles_feed._candles[0].timestamp == base_time
 
+    def test_clear_candles(self, candles_feed, sample_candle_data):
+        """clear_candles removes all candles from the feed."""
+        candles_feed.add_candle(sample_candle_data)
+        assert len(candles_feed.get_candles()) == 1
+        candles_feed.clear_candles()
+        assert len(candles_feed.get_candles()) == 0
+
     def test_interval_in_seconds_property(self, mock_exchange_registry):
         """interval_in_seconds delegates to the adapter's supported intervals map."""
         feed = CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="1m")

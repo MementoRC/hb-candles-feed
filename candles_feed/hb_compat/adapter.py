@@ -139,7 +139,7 @@ class CandlesBaseAdapter:
 
         :param df: DataFrame with standard 10 columns. Empty clears candles.
         """
-        self._feed._candles.clear()
+        self._feed.clear_candles()
         if df.empty:
             return
         for _, row in df.iterrows():
