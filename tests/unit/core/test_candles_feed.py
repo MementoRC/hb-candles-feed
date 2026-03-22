@@ -336,6 +336,14 @@ class TestCandlesFeed:
         assert len(candles_feed._candles) == 1
         assert candles_feed._candles[0].timestamp == base_time
 
+    def test_interval_in_seconds_property(self, mock_exchange_registry):
+        """interval_in_seconds exposes the interval duration without accessing _adapter."""
+        feed = CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="1m")
+        assert feed.interval_in_seconds == 60
+
+        feed_5m = CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="5m")
+        assert feed_5m.interval_in_seconds == 300
+
     @pytest.mark.asyncio
     async def test_max_records_limit(self, candles_feed):
         """Test the max records limit is enforced."""
