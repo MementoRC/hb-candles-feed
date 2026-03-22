@@ -320,6 +320,14 @@ class CandlesFeed:
             return None
         return self._candles[-1].timestamp
 
+    @property
+    def interval_in_seconds(self) -> int:
+        """Return the interval duration in seconds.
+
+        :return: Number of seconds in the configured interval
+        """
+        return self._adapter.get_supported_intervals()[self.interval]
+
     def _round_timestamp_to_interval_multiple(self, timestamp: int) -> int:
         """Round timestamp to nearest interval boundary.
 
