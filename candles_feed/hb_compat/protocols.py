@@ -1,4 +1,3 @@
-# candles_feed/hb_compat/protocols.py
 """Protocol defining hummingbot's expected CandlesBase interface.
 
 This protocol captures what MarketDataProvider actually calls on candle feed objects.
