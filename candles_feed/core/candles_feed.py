@@ -206,6 +206,13 @@ class CandlesFeed:
         """
         self._candles.append(candle)
 
+    def clear_candles(self) -> None:
+        """Remove all candles from the feed.
+
+        :return: None
+        """
+        self._candles.clear()
+
     def get_candles_df(self) -> pd.DataFrame:
         """Get candles as a pandas DataFrame.
 
@@ -319,6 +326,14 @@ class CandlesFeed:
         if not self._candles:
             return None
         return self._candles[-1].timestamp
+
+    @property
+    def interval_in_seconds(self) -> int:
+        """Return the interval duration in seconds.
+
+        :return: Number of seconds in the configured interval
+        """
+        return self._adapter.get_supported_intervals()[self.interval]
 
     def _round_timestamp_to_interval_multiple(self, timestamp: int) -> int:
         """Round timestamp to nearest interval boundary.
