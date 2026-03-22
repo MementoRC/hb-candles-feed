@@ -293,6 +293,14 @@ class CandlesFeed:
         )
 
     @property
+    def interval_in_seconds(self) -> int:
+        """Return the interval duration in seconds.
+
+        :return: Number of seconds for this feed's interval
+        """
+        return self._adapter.get_supported_intervals()[self.interval]
+
+    @property
     def ready(self) -> bool:
         """Check if the feed has filled its candle history.
 
