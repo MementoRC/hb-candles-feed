@@ -69,3 +69,23 @@ class TestUnsupportedConnectorException:
     def test_is_exception(self):
         from candles_feed.hb_compat.data_types import UnsupportedConnectorException
         assert issubclass(UnsupportedConnectorException, Exception)
+
+
+class TestPublicAPI:
+    """All public symbols must be importable from candles_feed.hb_compat."""
+
+    def test_import_all_public_symbols(self):
+        from candles_feed.hb_compat import (
+            CandlesBaseAdapter,
+            CandlesBaseProtocol,
+            CandlesConfig,
+            CandlesFactory,
+            HistoricalCandlesConfig,
+            UnsupportedConnectorException,
+        )
+        assert CandlesBaseAdapter is not None
+        assert CandlesBaseProtocol is not None
+        assert CandlesConfig is not None
+        assert CandlesFactory is not None
+        assert HistoricalCandlesConfig is not None
+        assert UnsupportedConnectorException is not None
