@@ -337,7 +337,7 @@ class TestCandlesFeed:
         assert candles_feed._candles[0].timestamp == base_time
 
     def test_interval_in_seconds_property(self, mock_exchange_registry):
-        """interval_in_seconds exposes the interval duration without accessing _adapter."""
+        """interval_in_seconds delegates to the adapter's supported intervals map."""
         feed = CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="1m")
         assert feed.interval_in_seconds == 60
 
