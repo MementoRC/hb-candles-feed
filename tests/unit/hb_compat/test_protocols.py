@@ -16,12 +16,17 @@ class TestCandlesBaseProtocol:
         from candles_feed.hb_compat.protocols import CandlesBaseProtocol
 
         class FakeCandles:
-            name = "test"
-            interval = "1m"
-            max_records = 500
-            ready = True
-            interval_in_seconds = 60
-
+            # Python 3.12+ requires @property for Protocol property members
+            @property
+            def name(self) -> str: return "test"
+            @property
+            def interval(self) -> str: return "1m"
+            @property
+            def max_records(self) -> int: return 500
+            @property
+            def ready(self) -> bool: return True
+            @property
+            def interval_in_seconds(self) -> int: return 60
             @property
             def candles_df(self) -> pd.DataFrame:
                 return pd.DataFrame()
