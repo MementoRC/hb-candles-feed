@@ -26,7 +26,7 @@ class HistoricalCandlesConfig(BaseModel):
     end_time: int
 
 
-class UnsupportedConnectorException(Exception):
+class UnsupportedConnectorError(Exception):
     """Raised when a connector is not supported by hb-candles-feed."""
 
     def __init__(self, connector: str):

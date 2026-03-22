@@ -76,11 +76,11 @@ class CandlesConfig:
 from candles_feed.hb_compat import (
     CandlesConfig,
     HistoricalCandlesConfig,
-    UnsupportedConnectorException,
+    UnsupportedConnectorError,
 )
 
 # Re-export for backward compatibility — existing imports still work
-__all__ = ["CandlesConfig", "HistoricalCandlesConfig", "UnsupportedConnectorException"]
+__all__ = ["CandlesConfig", "HistoricalCandlesConfig", "UnsupportedConnectorError"]
 ```
 
 ### 3. `hummingbot/data_feed/market_data_provider.py`
@@ -111,7 +111,7 @@ async def get_historical_candles_df(self, config: HistoricalCandlesConfig) -> pd
 For exchanges not yet supported by `hb-candles-feed`, use a fallback pattern:
 
 ```python
-from candles_feed.hb_compat import CandlesFactory, CandlesConfig, UnsupportedConnectorException
+from candles_feed.hb_compat import CandlesFactory, CandlesConfig, UnsupportedConnectorError
 
 # Import original factory as fallback
 from hummingbot.data_feed.candles_feed._original_candles_factory import OriginalCandlesFactory
@@ -121,7 +121,7 @@ class HybridCandlesFactory:
     def get_candle(cls, config: CandlesConfig):
         try:
             return CandlesFactory.get_candle(config)
-        except UnsupportedConnectorException:
+        except UnsupportedConnectorError:
             # Fall back to hummingbot's built-in implementation
             return OriginalCandlesFactory.get_candle(config)
 ```

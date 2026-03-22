@@ -34,12 +34,12 @@ class TestCandlesFactory:
     def test_unsupported_connector_raises(self):
         from candles_feed.hb_compat.data_types import (
             CandlesConfig,
-            UnsupportedConnectorException,
+            UnsupportedConnectorError,
         )
         from candles_feed.hb_compat.factory import CandlesFactory
 
         config = CandlesConfig(connector="dydx", trading_pair="BTC-USDT")
-        with pytest.raises(UnsupportedConnectorException, match="dydx"):
+        with pytest.raises(UnsupportedConnectorError, match="dydx"):
             CandlesFactory.get_candle(config)
 
     def test_all_supported_connectors(self):

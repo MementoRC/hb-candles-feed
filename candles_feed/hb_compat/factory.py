@@ -6,7 +6,7 @@ keys (e.g., "binance_spot").
 """
 
 from candles_feed.hb_compat.adapter import CandlesBaseAdapter
-from candles_feed.hb_compat.data_types import CandlesConfig, UnsupportedConnectorException
+from candles_feed.hb_compat.data_types import CandlesConfig, UnsupportedConnectorError
 
 
 class CandlesFactory:
@@ -35,11 +35,11 @@ class CandlesFactory:
 
         :param candles_config: Configuration matching hummingbot's CandlesConfig
         :return: CandlesBaseAdapter instance
-        :raises UnsupportedConnectorException: If connector is not supported
+        :raises UnsupportedConnectorError: If connector is not supported
         """
         registry_key = cls._CONNECTOR_MAP.get(candles_config.connector)
         if registry_key is None:
-            raise UnsupportedConnectorException(candles_config.connector)
+            raise UnsupportedConnectorError(candles_config.connector)
         return CandlesBaseAdapter(
             exchange=registry_key,
             trading_pair=candles_config.trading_pair,

@@ -58,17 +58,17 @@ class TestHistoricalCandlesConfig:
             HistoricalCandlesConfig(connector_name="binance", trading_pair="BTC-USDT")
 
 
-class TestUnsupportedConnectorException:
-    """UnsupportedConnectorException must include connector name in message."""
+class TestUnsupportedConnectorError:
+    """UnsupportedConnectorError must include connector name in message."""
 
     def test_message_includes_connector(self):
-        from candles_feed.hb_compat.data_types import UnsupportedConnectorException
-        exc = UnsupportedConnectorException("dydx")
+        from candles_feed.hb_compat.data_types import UnsupportedConnectorError
+        exc = UnsupportedConnectorError("dydx")
         assert "dydx" in str(exc)
 
     def test_is_exception(self):
-        from candles_feed.hb_compat.data_types import UnsupportedConnectorException
-        assert issubclass(UnsupportedConnectorException, Exception)
+        from candles_feed.hb_compat.data_types import UnsupportedConnectorError
+        assert issubclass(UnsupportedConnectorError, Exception)
 
 
 class TestPublicAPI:
@@ -81,11 +81,11 @@ class TestPublicAPI:
             CandlesConfig,
             CandlesFactory,
             HistoricalCandlesConfig,
-            UnsupportedConnectorException,
+            UnsupportedConnectorError,
         )
         assert CandlesBaseAdapter is not None
         assert CandlesBaseProtocol is not None
         assert CandlesConfig is not None
         assert CandlesFactory is not None
         assert HistoricalCandlesConfig is not None
-        assert UnsupportedConnectorException is not None
+        assert UnsupportedConnectorError is not None

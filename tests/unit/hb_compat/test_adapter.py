@@ -195,6 +195,19 @@ class TestCandlesBaseAdapterDataConversion:
             mock_hist.assert_called_once_with(start_time=1000, end_time=2000)
             assert isinstance(result, pd.DataFrame)
 
+    @pytest.mark.asyncio
+    async def test_fetch_candles_empty_returns_empty_ndarray(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+        adapter = CandlesBaseAdapter(
+            exchange="binance", trading_pair="BTC-USDT"
+        )
+        with patch.object(
+            adapter._feed, "fetch_candles", new_callable=AsyncMock, return_value=[]
+        ):
+            result = await adapter.fetch_candles(start_time=1000, end_time=1060)
+            assert isinstance(result, np.ndarray)
+            assert result.shape == (0, 10)
+
 
 class TestCandlesBaseAdapterResetWithDataFrame:
     """Test reset_with_dataframe for MarketDataProvider compatibility."""
@@ -221,6 +234,12 @@ class TestCandlesBaseAdapterResetWithDataFrame:
         assert len(candles) == 2
         assert candles[0].timestamp == 1000
         assert candles[1].timestamp == 1060
+        assert candles[0].open == 100.0
+        assert candles[0].close == 100.5
+        assert candles[0].volume == 1000.0
+        assert candles[1].open == 101.0
+        assert candles[1].close == 101.5
+        assert candles[1].volume == 1100.0
 
     def test_reset_with_empty_dataframe(self):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter

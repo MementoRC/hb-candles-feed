@@ -11,7 +11,7 @@ from candles_feed.hb_compat.adapter import CandlesBaseAdapter
 from candles_feed.hb_compat.data_types import (
     CandlesConfig,
     HistoricalCandlesConfig,
-    UnsupportedConnectorException,
+    UnsupportedConnectorError,
 )
 from candles_feed.hb_compat.factory import CandlesFactory
 from candles_feed.hb_compat.protocols import CandlesBaseProtocol
@@ -22,5 +22,5 @@ __all__ = [
     "CandlesConfig",
     "CandlesFactory",
     "HistoricalCandlesConfig",
-    "UnsupportedConnectorException",
+    "UnsupportedConnectorError",
 ]
