@@ -59,6 +59,7 @@ venv.bak/
 # Documentation
 docs/_build/
 docs/site/
+docs/superpowers/
 site/
 mkdocs.saved.yml
 

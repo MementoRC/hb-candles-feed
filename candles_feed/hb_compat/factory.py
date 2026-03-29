@@ -20,13 +20,30 @@ class CandlesFactory:
     # Hummingbot uses "binance" for spot; registry uses "binance_spot".
     # Perpetual names match directly (e.g., "binance_perpetual").
     _CONNECTOR_MAP: dict[str, str] = {
+        "aevo_perpetual": "aevo_perpetual",
+        "ascend_ex": "ascend_ex_spot",
         "binance": "binance_spot",
         "binance_perpetual": "binance_perpetual",
+        "bitget": "bitget_spot",
+        "bitget_perpetual": "bitget_perpetual",
+        "bitmart_perpetual": "bitmart_perpetual",
+        "btc_markets": "btc_markets_spot",
         "bybit": "bybit_spot",
+        "bybit_perpetual": "bybit_perpetual",
         "coinbase_advanced_trade": "coinbase_advanced_trade",
+        "dexalot": "dexalot_spot",
+        "gate_io": "gate_io_spot",
+        "gate_io_perpetual": "gate_io_perpetual",
+        "hyperliquid": "hyperliquid_spot",
+        "hyperliquid_perpetual": "hyperliquid_perpetual",
         "kraken": "kraken_spot",
         "kucoin": "kucoin_spot",
+        "kucoin_perpetual": "kucoin_perpetual",
+        "mexc": "mexc_spot",
+        "mexc_perpetual": "mexc_perpetual",
         "okx": "okx_spot",
+        "okx_perpetual": "okx_perpetual",
+        "pacifica_perpetual": "pacifica_perpetual",
     }
 
     @classmethod

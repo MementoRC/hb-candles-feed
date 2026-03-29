@@ -46,14 +46,31 @@ class TestCandlesFactory:
         from candles_feed.hb_compat.factory import CandlesFactory
 
         supported = CandlesFactory.get_supported_connectors()
+        assert "aevo_perpetual" in supported
+        assert "ascend_ex" in supported
         assert "binance" in supported
         assert "binance_perpetual" in supported
+        assert "bitget" in supported
+        assert "bitget_perpetual" in supported
+        assert "bitmart_perpetual" in supported
+        assert "btc_markets" in supported
         assert "bybit" in supported
+        assert "bybit_perpetual" in supported
         assert "coinbase_advanced_trade" in supported
+        assert "dexalot" in supported
+        assert "gate_io" in supported
+        assert "gate_io_perpetual" in supported
+        assert "hyperliquid" in supported
+        assert "hyperliquid_perpetual" in supported
         assert "kraken" in supported
         assert "kucoin" in supported
+        assert "kucoin_perpetual" in supported
+        assert "mexc" in supported
+        assert "mexc_perpetual" in supported
         assert "okx" in supported
-        assert len(supported) == 7
+        assert "okx_perpetual" in supported
+        assert "pacifica_perpetual" in supported
+        assert len(supported) == 24
 
     def test_get_supported_connectors_returns_copy(self):
         from candles_feed.hb_compat.factory import CandlesFactory
