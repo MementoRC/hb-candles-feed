@@ -21,14 +21,14 @@ COLUMNS = [
 ]
 
 
-def _safe_float(value: object, default: float = 0.0) -> float:
+def _safe_float(value: float | int | str | None, default: float = 0.0) -> float:
     """Convert value to float, returning default for NaN/None."""
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return default
     return float(value)
 
 
-def _safe_int(value: object, default: int = 0) -> int:
+def _safe_int(value: float | int | str | None, default: int = 0) -> int:
     """Convert value to int, returning default for NaN/None."""
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return default
