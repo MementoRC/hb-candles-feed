@@ -21,6 +21,29 @@ COLUMNS = [
 ]
 
 
+def _safe_float(value: float | int | str | None, default: float = 0.0) -> float:
+    """Convert value to float, returning default for NaN/None."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return default
+    return float(value)
+
+
+def _safe_int(value: float | int | str | None, default: int = 0) -> int:
+    """Convert value to int, returning default for NaN/None."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return default
+    return int(value)
+
+
+# Attribute names on CandleData corresponding to COLUMNS order.
+_CANDLE_ATTRS = [
+    "timestamp", "open", "high", "low", "close", "volume",
+    "quote_asset_volume", "n_trades",
+    "taker_buy_base_volume", "taker_buy_quote_volume",
+]
+assert _CANDLE_ATTRS == COLUMNS, "COLUMNS and _CANDLE_ATTRS must match"
+
+
 class CandlesBaseAdapter:
     """Adapter implementing hummingbot's CandlesBase interface via CandlesFeed.
 
@@ -150,10 +173,10 @@ class CandlesBaseAdapter:
                 low=float(row["low"]),
                 close=float(row["close"]),
                 volume=float(row["volume"]),
-                quote_asset_volume=float(row.get("quote_asset_volume", 0.0)),
-                n_trades=int(row.get("n_trades", 0)),
-                taker_buy_base_volume=float(row.get("taker_buy_base_volume", 0.0)),
-                taker_buy_quote_volume=float(row.get("taker_buy_quote_volume", 0.0)),
+                quote_asset_volume=_safe_float(row.get("quote_asset_volume", 0.0)),
+                n_trades=_safe_int(row.get("n_trades", 0)),
+                taker_buy_base_volume=_safe_float(row.get("taker_buy_base_volume", 0.0)),
+                taker_buy_quote_volume=_safe_float(row.get("taker_buy_quote_volume", 0.0)),
             )
             self._feed.add_candle(candle)
 
@@ -167,15 +190,8 @@ class CandlesBaseAdapter:
         :return: ndarray of shape (N, 10), dtype float
         """
         if not candles:
-            return np.array([]).reshape(0, 10)
+            return np.array([]).reshape(0, len(COLUMNS))
         return np.array(
-            [
-                [
-                    c.timestamp, c.open, c.high, c.low, c.close, c.volume,
-                    c.quote_asset_volume, c.n_trades,
-                    c.taker_buy_base_volume, c.taker_buy_quote_volume,
-                ]
-                for c in candles
-            ],
+            [[getattr(c, attr) for attr in _CANDLE_ATTRS] for c in candles],
             dtype=float,
         )

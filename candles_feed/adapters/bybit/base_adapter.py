@@ -127,11 +127,14 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return []
 
-        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+        if not isinstance(data, dict):
+            return []
         result_data = data.get("result", {})
-        assert isinstance(result_data, dict), "result field is not a dict"
+        if not isinstance(result_data, dict):
+            return []
         candle_list_data = result_data.get("list", [])
-        assert isinstance(candle_list_data, list), "list field is not a list"
+        if not isinstance(candle_list_data, list):
+            return []
 
         candles: list[CandleData] = []
         candles.extend(
