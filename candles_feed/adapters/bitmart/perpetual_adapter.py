@@ -127,9 +127,11 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return []
 
-        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
+        if not isinstance(data, dict):
+            return []
         candle_list = data.get("data", [])
-        assert isinstance(candle_list, list), "data field is not a list"
+        if not isinstance(candle_list, list):
+            return []
 
         candles: list[CandleData] = []
         candles.extend(
