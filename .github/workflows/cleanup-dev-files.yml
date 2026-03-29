@@ -1,24 +1,35 @@
 ---
 name: Cleanup Development Artifacts
 
+# Disabled: requires CI_BOT_TOKEN, CI_BOT_GPG_KEY, CI_BOT_GPG_KEY_ID secrets
+# Re-enable when bot secrets are configured in repository settings
+# on:
+#   push:
+#     branches: [main, development]
+#   schedule:
+#     - cron: '0 2 * * *'
+#   workflow_dispatch:
+#     inputs:
+#       target_branch:
+#         description: 'Branch to clean'
+#         required: false
+#         default: 'development'
+#         type: choice
+#         options:
+#           - main
+#           - development
+
 on:
-  push:
-    branches: [main, development]
-  schedule:
-    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
-      target_branch:
-        description: 'Branch to clean'
+      placeholder:
+        description: 'Disabled until bot secrets are configured'
         required: false
-        default: 'development'
-        type: choice
-        options:
-          - main
-          - development
+        default: 'disabled'
 
 jobs:
   cleanup:
+    if: false
     uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@v2.5.1
     with:
       target_branches: >-
