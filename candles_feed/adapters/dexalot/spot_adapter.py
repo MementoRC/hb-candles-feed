@@ -163,14 +163,16 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
             candles.append(
                 CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(
-                        candle_item.get("date", 0)
-                    ),
+                    timestamp_raw=self.ensure_timestamp_in_seconds(candle_item.get("date", 0)),
                     open=float(raw_open) if raw_open != "None" and raw_open is not None else 0.0,
                     high=float(raw_high) if raw_high != "None" and raw_high is not None else 0.0,
                     low=float(raw_low) if raw_low != "None" and raw_low is not None else 0.0,
-                    close=float(raw_close) if raw_close != "None" and raw_close is not None else 0.0,
-                    volume=float(raw_volume) if raw_volume != "None" and raw_volume is not None else 0.0,
+                    close=float(raw_close)
+                    if raw_close != "None" and raw_close is not None
+                    else 0.0,
+                    volume=float(raw_volume)
+                    if raw_volume != "None" and raw_volume is not None
+                    else 0.0,
                 )
             )
         return candles
@@ -262,13 +264,13 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return [
             CandleData(
-                timestamp_raw=self.ensure_timestamp_in_seconds(
-                    candle_item.get("date", 0)
-                ),
+                timestamp_raw=self.ensure_timestamp_in_seconds(candle_item.get("date", 0)),
                 open=float(raw_open) if raw_open != "None" and raw_open is not None else 0.0,
                 high=float(raw_high) if raw_high != "None" and raw_high is not None else 0.0,
                 low=float(raw_low) if raw_low != "None" and raw_low is not None else 0.0,
                 close=float(raw_close) if raw_close != "None" and raw_close is not None else 0.0,
-                volume=float(raw_volume) if raw_volume != "None" and raw_volume is not None else 0.0,
+                volume=float(raw_volume)
+                if raw_volume != "None" and raw_volume is not None
+                else 0.0,
             )
         ]

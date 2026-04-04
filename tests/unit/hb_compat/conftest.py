@@ -19,7 +19,10 @@ def mock_exchange_registry():
         mock_adapter = MagicMock(spec=BaseAdapter)
         mock_adapter.get_trading_pair_format.return_value = "BTCUSDT"
         mock_adapter.get_supported_intervals.return_value = {
-            "1m": 60, "5m": 300, "15m": 900, "1h": 3600,
+            "1m": 60,
+            "5m": 300,
+            "15m": 900,
+            "1h": 3600,
         }
         mock_adapter.get_ws_supported_intervals.return_value = ["1m", "5m", "1h"]
         mock.return_value = mock_adapter
