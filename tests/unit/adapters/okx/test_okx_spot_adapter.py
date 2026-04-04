@@ -142,7 +142,6 @@ class TestOKXSpotAdapter(BaseAdapterTest):
         assert adapter.get_trading_pair_format("BTC-USDT") == "BTC-USDT"
         assert adapter.get_trading_pair_format("ETH-BTC") == "ETH-BTC"
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_custom(self, adapter, trading_pair, interval):
         """Custom async test for fetch_rest_candles."""
         # Create a mock network client

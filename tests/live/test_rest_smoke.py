@@ -55,7 +55,6 @@ def _connector_id(val):
 
 
 @pytest.mark.live
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "registry_key,trading_pair,interval,min_candles",
     CONNECTOR_TEST_CASES,
@@ -118,28 +117,17 @@ async def test_rest_fetch_candles(
         assert candle.close > 0, f"{prefix}: close={candle.close} not positive"
 
         # OHLC consistency
-        assert candle.high >= candle.low, (
-            f"{prefix}: high={candle.high} < low={candle.low}"
-        )
-        assert candle.high >= candle.open, (
-            f"{prefix}: high={candle.high} < open={candle.open}"
-        )
-        assert candle.high >= candle.close, (
-            f"{prefix}: high={candle.high} < close={candle.close}"
-        )
-        assert candle.low <= candle.open, (
-            f"{prefix}: low={candle.low} > open={candle.open}"
-        )
-        assert candle.low <= candle.close, (
-            f"{prefix}: low={candle.low} > close={candle.close}"
-        )
+        assert candle.high >= candle.low, f"{prefix}: high={candle.high} < low={candle.low}"
+        assert candle.high >= candle.open, f"{prefix}: high={candle.high} < open={candle.open}"
+        assert candle.high >= candle.close, f"{prefix}: high={candle.high} < close={candle.close}"
+        assert candle.low <= candle.open, f"{prefix}: low={candle.low} > open={candle.open}"
+        assert candle.low <= candle.close, f"{prefix}: low={candle.low} > close={candle.close}"
 
         # Volume: non-negative (Aevo returns 0 for mark-price-only data)
         assert candle.volume >= 0, f"{prefix}: volume={candle.volume} negative"
 
 
 @pytest.mark.live
-@pytest.mark.asyncio
 async def test_all_connectors_registered():
     """Verify all expected connectors are in the ExchangeRegistry."""
     registered = ExchangeRegistry.get_registered_exchanges()
@@ -150,7 +138,6 @@ async def test_all_connectors_registered():
 
 
 @pytest.mark.live
-@pytest.mark.asyncio
 async def test_factory_roundtrip():
     """Verify CandlesFactory can create adapters for all hummingbot connector names."""
     from candles_feed.hb_compat.data_types import CandlesConfig

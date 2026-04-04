@@ -158,7 +158,6 @@ class TestAscendExSpotPlugin:
         # Check key format
         assert key == "bar:1:BTC/USDT"
 
-    @pytest.mark.asyncio
     async def test_handle_instruments(self):
         """Test handling instruments endpoint."""
         from unittest.mock import AsyncMock, MagicMock

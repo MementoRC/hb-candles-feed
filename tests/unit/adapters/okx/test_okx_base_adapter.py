@@ -152,7 +152,6 @@ class TestOKXBaseAdapter(BaseAdapterTest):
         # Convert from exchange format (should be in seconds)
         assert adapter.ensure_timestamp_in_seconds(timestamp_ms) == timestamp_seconds
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_custom(self, adapter, trading_pair, interval):
         """Custom async test for fetch_rest_candles."""
         # Create a mock network client

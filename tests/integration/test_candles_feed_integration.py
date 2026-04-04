@@ -127,7 +127,6 @@ class TestCandlesFeedIntegration:
                 "bypass_network_selection", False
             )
 
-    @pytest.mark.asyncio
     async def test_rest_strategy_integration(self, standalone_mock_server):
         """Test CandlesFeed with REST polling strategy."""
         mock_server = standalone_mock_server
@@ -197,7 +196,6 @@ class TestCandlesFeedIntegration:
             # Stop the feed
             await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_websocket_strategy_integration(self, standalone_mock_server):
         """Test CandlesFeed with WebSocket strategy."""
         mock_server = standalone_mock_server
@@ -367,7 +365,6 @@ class TestCandlesFeedIntegration:
             # Stop the feed
             await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_multiple_feeds_integration(self, standalone_mock_server):
         """Test running multiple CandlesFeed instances simultaneously."""
         mock_server = standalone_mock_server
@@ -492,7 +489,6 @@ class TestCandlesFeedIntegration:
             # Stop all feeds
             await asyncio.gather(btc_feed.stop(), eth_feed.stop(), sol_feed.stop())
 
-    @pytest.mark.asyncio
     async def test_different_intervals_integration(self, standalone_mock_server):
         """Test CandlesFeed with different intervals."""
         mock_server = standalone_mock_server
@@ -567,7 +563,6 @@ class TestCandlesFeedIntegration:
             for _, feed in interval_feeds:
                 await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_error_handling_integration(self, standalone_mock_server):
         """Test CandlesFeed error handling and recovery."""
         mock_server = standalone_mock_server
@@ -705,7 +700,6 @@ class TestCandlesFeedIntegration:
             # Stop the feed
             await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_historical_data_fetch(self, standalone_mock_server):
         """Test fetching historical candle data with specific time ranges."""
         mock_server = standalone_mock_server

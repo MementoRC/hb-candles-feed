@@ -160,7 +160,6 @@ class TestEnhancedDependencyManagement:
         except Exception as e:
             logger.warning(f"Error restoring URLs: {e}")
 
-    @pytest.mark.asyncio
     async def test_enhanced_network_condition_simulation(self, enhanced_mock_server):
         """Test enhanced network condition simulation for external dependencies."""
         logger.info("Testing enhanced network condition simulation")
@@ -247,7 +246,6 @@ class TestEnhancedDependencyManagement:
             if hasattr(feed, "_network_client") and feed._network_client:
                 await feed._network_client.close()
 
-    @pytest.mark.asyncio
     async def test_concurrent_external_dependency_access(self, enhanced_mock_server):
         """Test concurrent access to external dependencies with enhanced management."""
         logger.info("Testing concurrent external dependency access")
@@ -347,7 +345,6 @@ class TestEnhancedDependencyManagement:
                 if hasattr(feed_item, "_network_client") and feed_item._network_client:
                     await feed_item._network_client.close()
 
-    @pytest.mark.asyncio
     async def test_external_dependency_failure_recovery(self, enhanced_mock_server):
         """Test recovery from external dependency failures."""
         logger.info("Testing external dependency failure recovery")
@@ -449,7 +446,6 @@ class TestEnhancedDependencyManagement:
             )
             self.restore_feed_urls(feed, original_methods)
 
-    @pytest.mark.asyncio
     async def test_realistic_external_api_simulation(self, enhanced_mock_server):
         """Test realistic external API behavior simulation."""
         logger.info("Testing realistic external API behavior simulation")

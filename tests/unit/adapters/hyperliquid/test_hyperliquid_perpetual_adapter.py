@@ -111,7 +111,6 @@ class TestHyperliquidPerpetualAdapter(BaseAdapterTest):
         assert adapter.get_supported_intervals() == INTERVALS
         assert adapter.get_ws_supported_intervals() == WS_INTERVALS
 
-    @pytest.mark.asyncio
     async def test_hyperliquid_error_handling(self, adapter):
         """Test HyperLiquid-specific error handling."""
         # Create a mock network client

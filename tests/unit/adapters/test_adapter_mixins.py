@@ -224,7 +224,6 @@ class TestSyncOnlyAdapter:
             assert candles[0].timestamp == 1620000000
             assert candles[0].open == 100.0
 
-    @pytest.mark.asyncio
     async def test_sync_adapter_async_wrapper(self):
         """Test that the async wrapper calls the synchronous method correctly."""
         adapter = self.MockSyncAdapter()
@@ -261,7 +260,6 @@ class TestSyncOnlyAdapter:
         assert result[0].timestamp == 1620000000
         assert result[0].open == 100.0
 
-    @pytest.mark.asyncio
     async def test_sync_adapter_ignores_network_client(self):
         """Test that SyncOnlyAdapter ignores the network_client parameter."""
         adapter = self.MockSyncAdapter()
@@ -477,7 +475,6 @@ class TestAsyncOnlyAdapter:
         with pytest.raises(NotImplementedError):
             adapter.fetch_rest_candles_synchronous(trading_pair="BTC-USDT", interval="1m")
 
-    @pytest.mark.asyncio
     async def test_async_adapter_implementation(self):
         """Test that the async implementation works correctly."""
         adapter = self.MockAsyncAdapter()
@@ -498,7 +495,6 @@ class TestAsyncOnlyAdapter:
         assert result[0].timestamp == 1620000000
         assert result[0].open == 100.0
 
-    @pytest.mark.asyncio
     async def test_async_adapter_with_network_client(self):
         """Test that AsyncOnlyAdapter uses the network_client if provided."""
         adapter = self.MockAsyncAdapter()

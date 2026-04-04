@@ -169,7 +169,6 @@ class TestCoinbaseAdvancedTradeBaseAdapter(BaseAdapterTest):
         result = adapter.ensure_timestamp_in_seconds(test_data.get("timestamp"))
         assert result == timestamp
 
-    @pytest.mark.asyncio
     @patch.object(ConcreteCoinbaseAdvancedTradeAdapter, "_get_rest_url")
     async def test_fetch_rest_candles_custom(
         self, mock_get_rest_url, adapter, trading_pair, interval

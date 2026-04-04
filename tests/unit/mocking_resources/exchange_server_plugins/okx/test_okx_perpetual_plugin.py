@@ -40,7 +40,6 @@ class TestOKXPerpetualPlugin:
         assert "/api/v5/public/time" in routes
         assert "/api/v5/public/instruments" in routes
 
-    @pytest.mark.asyncio
     async def test_parse_rest_candles_params(self):
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters

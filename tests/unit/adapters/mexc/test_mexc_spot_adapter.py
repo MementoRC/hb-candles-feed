@@ -253,7 +253,6 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds * 1000) == timestamp_seconds
         assert adapter.ensure_timestamp_in_seconds(timestamp_seconds) == timestamp_seconds
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
         """Test fetch_rest_candles async method for MEXCSpotAdapter."""
         # Skip test for SyncOnlyAdapter adapters

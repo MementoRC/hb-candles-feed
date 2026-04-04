@@ -16,7 +16,6 @@ from candles_feed.mocking_resources.core.server import MockedExchangeServer
 class TestMockPluginIntegration:
     """Test the MockedPlugin integration with MockedExchangeServer."""
 
-    @pytest.mark.asyncio
     async def test_server_start(self, unused_tcp_port):
         """Test starting the server with the mock plugin."""
         # Get the mock plugin
@@ -43,7 +42,6 @@ class TestMockPluginIntegration:
         # Clean up
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_rest_candles_endpoint(self, mocked_server_fixture):
         """Test the REST API candles endpoint."""
         url = mocked_server_fixture.mocked_exchange_url
@@ -79,7 +77,6 @@ class TestMockPluginIntegration:
             assert "close" in candle
             assert "volume" in candle
 
-    @pytest.mark.asyncio
     async def test_websocket_connection(self, mocked_server_fixture):
         """Test WebSocket connection and subscription."""
         url = mocked_server_fixture.mocked_exchange_url

@@ -192,7 +192,6 @@ class TestCCXTBaseAdapter:
             adapter.parse_ws_message({})
 
     @patch("ccxt.binance")
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_async_wrapper(self, mock_binance):
         """Test async fetch_rest_candles wraps synchronous method."""
         # Setup

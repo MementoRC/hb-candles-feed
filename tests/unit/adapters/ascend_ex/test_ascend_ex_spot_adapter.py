@@ -136,7 +136,6 @@ class TestAscendExSpotAdapter(BaseAdapterTest):
         # Test with lowercase
         assert adapter.get_trading_pair_format("btc-usdt") == "btc/usdt"
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_custom(self, adapter, trading_pair, interval):
         """Custom async test for fetch_rest_candles."""
         # Create a mock network client

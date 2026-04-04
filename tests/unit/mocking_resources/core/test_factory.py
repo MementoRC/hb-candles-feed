@@ -2,8 +2,9 @@
 Unit tests for the server factory in mocking_resources.
 """
 
-import unittest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from candles_feed.mocking_resources.core import ExchangeType, create_mock_server
 from candles_feed.mocking_resources.core.factory import (
@@ -13,12 +14,12 @@ from candles_feed.mocking_resources.core.factory import (
 )
 
 
-class TestFactory(unittest.TestCase):
+class TestFactory:
     """Tests for the mock server factory functions."""
 
-    def setUp(self):
-        """Set up test fixtures."""
-        # Clear the plugin registry before each test
+    @pytest.fixture(autouse=True)
+    def clear_registry(self):
+        """Clear the plugin registry before each test."""
         _PLUGIN_REGISTRY.clear()
 
     def test_register_plugin(self):
@@ -28,8 +29,8 @@ class TestFactory(unittest.TestCase):
 
         register_plugin(exchange_type, mock_plugin)
 
-        self.assertIn(exchange_type, _PLUGIN_REGISTRY)
-        self.assertEqual(_PLUGIN_REGISTRY[exchange_type], mock_plugin)
+        assert exchange_type in _PLUGIN_REGISTRY
+        assert _PLUGIN_REGISTRY[exchange_type] == mock_plugin
 
     def test_register_plugin_duplicate(self):
         """Test that registering a duplicate plugin raises an error."""
@@ -38,7 +39,7 @@ class TestFactory(unittest.TestCase):
         register_plugin(exchange_type, mock_plugin)
 
         # Act/Assert
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             register_plugin(exchange_type, mock_plugin)
 
     def test_get_plugin_registered(self):
@@ -49,7 +50,7 @@ class TestFactory(unittest.TestCase):
 
         plugin = get_plugin(exchange_type)
 
-        self.assertEqual(plugin, mock_plugin)
+        assert plugin == mock_plugin
 
     def test_get_plugin_auto_import(self):
         """Test that get_plugin auto-imports plugins."""
@@ -66,10 +67,10 @@ class TestFactory(unittest.TestCase):
 
         plugin = get_plugin(exchange_type)
 
-        self.assertIsNotNone(plugin)
-        self.assertEqual(plugin, mock_plugin)
+        assert plugin is not None
+        assert plugin == mock_plugin
         # Verify the plugin was registered
-        self.assertIn(exchange_type, _PLUGIN_REGISTRY)
+        assert exchange_type in _PLUGIN_REGISTRY
 
     @patch("importlib.import_module")
     def test_get_plugin_import_error(self, mock_import):
@@ -79,8 +80,8 @@ class TestFactory(unittest.TestCase):
 
         plugin = get_plugin(exchange_type)
 
-        self.assertIsNone(plugin)
-        self.assertNotIn(exchange_type, _PLUGIN_REGISTRY)
+        assert plugin is None
+        assert exchange_type not in _PLUGIN_REGISTRY
 
     def test_create_mock_server(self):
         """Test creating a mock server directly."""
@@ -93,16 +94,16 @@ class TestFactory(unittest.TestCase):
             trading_pairs=[("BTCUSDT", "1m", 50000.0)],
         )
 
-        self.assertIsNotNone(server)
-        self.assertEqual(server.host, "test_host")
-        self.assertEqual(server.port, 1234)
-        self.assertEqual(server.exchange_type, ExchangeType.BINANCE_SPOT)
+        assert server is not None
+        assert server.host == "test_host"
+        assert server.port == 1234
+        assert server.exchange_type == ExchangeType.BINANCE_SPOT
 
         # Check that the trading pair is in the server's trading_pairs dictionary
         # The implementation uses the normalized trading pair as the key
         # This could be "BTC-USDT" or another format depending on the implementation
         # Just check that the 50000.0 price is in the values
-        self.assertIn(50000.0, server.trading_pairs.values())
+        assert 50000.0 in server.trading_pairs.values()
 
     def test_create_mock_server_no_plugin(self):
         """Test handling when no plugin is found."""
@@ -113,26 +114,22 @@ class TestFactory(unittest.TestCase):
 
         # We'll just verify that create_mock_server works
         server = create_mock_server(exchange_type=ExchangeType.BINANCE_SPOT)
-        self.assertIsNotNone(server)
+        assert server is not None
 
     def test_create_mock_server_default_trading_pairs(self):
         """Test creating a mock server with default trading pairs."""
         server = create_mock_server(exchange_type=ExchangeType.BINANCE_SPOT)
 
-        self.assertEqual(server.host, "127.0.0.1")
-        self.assertEqual(server.port, 8082)
+        assert server.host == "127.0.0.1"
+        assert server.port == 8082
 
         # Check that default trading pairs were added with expected prices
         # The implementation normalizes trading pairs, so we need to check values
         # rather than specific keys
         trading_pair_values = list(server.trading_pairs.values())
-        self.assertIn(50000.0, trading_pair_values)  # BTC price
-        self.assertIn(3000.0, trading_pair_values)  # ETH price
-        self.assertIn(100.0, trading_pair_values)  # SOL price
+        assert 50000.0 in trading_pair_values  # BTC price
+        assert 3000.0 in trading_pair_values  # ETH price
+        assert 100.0 in trading_pair_values  # SOL price
 
         # Also check that we have the expected number of trading pairs
-        self.assertEqual(len(server.trading_pairs), 3)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert len(server.trading_pairs) == 3

@@ -179,7 +179,6 @@ class TestBinanceSpotPlugin:
         # Check key format
         assert key == "btcusdt@kline_1m"
 
-    @pytest.mark.asyncio
     async def test_handle_instruments(self):
         """Test handling instruments endpoint."""
         from unittest.mock import AsyncMock, MagicMock

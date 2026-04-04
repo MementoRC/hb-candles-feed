@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.skip(reason="Requires network connection to Binance testnet")
-@pytest.mark.asyncio
 async def test_binance_testnet_rest():
     """Test that Binance testnet works with REST strategy."""
     # Create a feed with testnet configuration
@@ -53,7 +52,6 @@ async def test_binance_testnet_rest():
 
 
 @pytest.mark.skip(reason="Requires network connection to Binance testnet")
-@pytest.mark.asyncio
 async def test_binance_testnet_ws():
     """Test that Binance testnet works with WebSocket strategy."""
     # Create a feed with testnet configuration
@@ -81,7 +79,6 @@ async def test_binance_testnet_ws():
 
 
 @pytest.mark.skip(reason="Requires network connection to Binance")
-@pytest.mark.asyncio
 async def test_binance_hybrid_mode():
     """Test that hybrid mode works correctly."""
     # Create a hybrid config that uses testnet for orders but production for candles

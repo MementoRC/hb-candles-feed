@@ -49,7 +49,6 @@ class TestMockedPlugin:
         # Default for unknown interval
         assert self.plugin.get_interval_seconds("unknown") == 60
 
-    @pytest.mark.asyncio
     async def test_handle_klines(self):
         """Test handling klines (candles) REST API requests."""
         mock_server = Mock()
@@ -142,7 +141,6 @@ class TestMockedPlugin:
         timestamps = [int(candle["timestamp"]) for candle in response_2_json["data"]]
         assert timestamps == sorted(timestamps)
 
-    @pytest.mark.asyncio
     @patch(
         "candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.web.WebSocketResponse"
     )
