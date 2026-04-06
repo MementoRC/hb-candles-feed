@@ -14,6 +14,7 @@ class TestCandlesFactory:
         candle = CandlesFactory.get_candle(config)
 
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
         assert isinstance(candle, CandlesBaseAdapter)
 
     def test_get_candle_passes_config_fields(self):

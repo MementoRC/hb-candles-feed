@@ -96,7 +96,6 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
         # Test with multiple hyphens
         assert adapter.get_trading_pair_format("ETH-BTC-PERP") == "ETH"
 
-    @pytest.mark.asyncio
     async def test_hyperliquid_rest_get_implementation(self, adapter):
         """Test HyperLiquid's fetch_rest_candles implementation."""
         # Create a mock network client

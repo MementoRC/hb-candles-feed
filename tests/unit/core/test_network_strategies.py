@@ -64,7 +64,6 @@ def mock_logger():
     return MagicMock(logging.Logger)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "candles, expected_candles",
     [
@@ -126,7 +125,6 @@ async def test_ws_strategy_poll_once(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_id, initial_candles, expected_candles",
     [
@@ -230,7 +228,6 @@ async def test_listen_for_updates(
         initialize_candles_mock.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_initialize_candles_success(
     mock_network_client,
     mock_adapter,
@@ -268,7 +265,6 @@ async def test_initialize_candles_success(
     )
 
 
-@pytest.mark.asyncio
 async def test_initialize_candles_failure(
     mock_network_client,
     mock_adapter,
@@ -299,7 +295,6 @@ async def test_initialize_candles_failure(
     mock_logger.warning.assert_called_once_with("Failed to initialize candles, will retry")
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_id, new_candles, expected_calls",
     [
@@ -350,7 +345,6 @@ async def test_update_candles_ws_strategy(
 # These fixtures are already defined above, so we don't need to redefine them
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_id, start_time, end_time, limit",
     [
@@ -475,7 +469,6 @@ async def test_rest_strategy_poll_once(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_id, initial_candles",
     [
@@ -610,7 +603,6 @@ async def test_poll_for_updates(
             )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_id, new_candles, expected_calls",
     [

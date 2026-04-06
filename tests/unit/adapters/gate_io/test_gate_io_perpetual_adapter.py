@@ -132,7 +132,6 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
         """Test Gate.io channel name getter."""
         assert adapter.get_channel_name() == PERPETUAL_CHANNEL_NAME
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
         """Test fetch_rest_candles async method."""
         # Create a mock network client

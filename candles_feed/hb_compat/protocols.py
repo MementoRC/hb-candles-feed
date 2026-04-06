@@ -65,9 +65,7 @@ class CandlesBaseProtocol(Protocol):
         """Fetch candles as numpy array."""
         ...
 
-    async def get_historical_candles(
-        self, config: HistoricalCandlesConfig
-    ) -> pd.DataFrame:
+    async def get_historical_candles(self, config: HistoricalCandlesConfig) -> pd.DataFrame:
         """Get historical candles using config object."""
         ...
 

@@ -10,6 +10,7 @@ class TestCandlesBaseProtocol:
 
     def test_protocol_is_importable(self):
         from candles_feed.hb_compat.protocols import CandlesBaseProtocol
+
         assert CandlesBaseProtocol is not None
 
     def test_protocol_is_runtime_checkable(self):
@@ -18,15 +19,25 @@ class TestCandlesBaseProtocol:
         class FakeCandles:
             # Python 3.12+ requires @property for Protocol property members
             @property
-            def name(self) -> str: return "test"
+            def name(self) -> str:
+                return "test"
+
             @property
-            def interval(self) -> str: return "1m"
+            def interval(self) -> str:
+                return "1m"
+
             @property
-            def max_records(self) -> int: return 500
+            def max_records(self) -> int:
+                return 500
+
             @property
-            def ready(self) -> bool: return True
+            def ready(self) -> bool:
+                return True
+
             @property
-            def interval_in_seconds(self) -> int: return 60
+            def interval_in_seconds(self) -> int:
+                return 60
+
             @property
             def candles_df(self) -> pd.DataFrame:
                 return pd.DataFrame()

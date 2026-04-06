@@ -162,7 +162,6 @@ class TestPerformanceTracker:
             assert tracker.collector.metrics.total_requests == 1
             assert tracker.collector.metrics.failed_requests == 1
 
-    @pytest.mark.asyncio
     async def test_track_stream_context_manager(self):
         """Test stream tracking context manager."""
         tracker = PerformanceTracker()
@@ -200,7 +199,6 @@ class TestTrackingOperations:
         metrics = collector.monitoring.get_metrics()
         assert "operation_test_operation_duration" in metrics
 
-    @pytest.mark.asyncio
     async def test_track_async_operation_success(self):
         """Test track_async_operation context manager with success."""
         collector = MetricsCollector()

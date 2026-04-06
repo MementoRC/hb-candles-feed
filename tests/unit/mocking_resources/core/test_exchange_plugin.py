@@ -2,10 +2,10 @@
 Unit tests for the ExchangePlugin abstract base class in mocking_resources.
 """
 
-import unittest
 from typing import Any
 from unittest.mock import MagicMock
 
+import pytest
 from aiohttp import web
 
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
@@ -14,7 +14,7 @@ from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 
 
-class TestExchangePlugin(unittest.TestCase):
+class TestExchangePlugin:
     """Tests for the ExchangePlugin abstract base class."""
 
     class ConcreteExchangePlugin(ExchangePlugin):
@@ -94,29 +94,30 @@ class TestExchangePlugin(unittest.TestCase):
                 "limit": params.get("limit", "100"),
             }
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Set up test fixtures."""
         self.exchange_type = ExchangeType.BINANCE_SPOT
         self.plugin = self.ConcreteExchangePlugin(self.exchange_type, BinanceSpotAdapter)
 
     def test_init(self):
         """Test initialization of the plugin."""
-        self.assertEqual(self.plugin.exchange_type, self.exchange_type)
+        assert self.plugin.exchange_type == self.exchange_type
 
     def test_rest_routes(self):
         """Test the rest_routes property."""
         routes = self.plugin.rest_routes
-        self.assertIsInstance(routes, dict)
-        self.assertEqual(len(routes), 2)
-        self.assertEqual(routes["/api/test"], ("GET", "handle_test"))
-        self.assertEqual(routes["/api/candles"], ("GET", "handle_klines"))
+        assert isinstance(routes, dict)
+        assert len(routes) == 2
+        assert routes["/api/test"] == ("GET", "handle_test")
+        assert routes["/api/candles"] == ("GET", "handle_klines")
 
     def test_ws_routes(self):
         """Test the ws_routes property."""
         routes = self.plugin.ws_routes
-        self.assertIsInstance(routes, dict)
-        self.assertEqual(len(routes), 1)
-        self.assertEqual(routes["/ws"], "handle_websocket")
+        assert isinstance(routes, dict)
+        assert len(routes) == 1
+        assert routes["/ws"] == "handle_websocket"
 
     def test_format_rest_candles(self):
         """Test formatting REST candles response."""
@@ -137,14 +138,14 @@ class TestExchangePlugin(unittest.TestCase):
 
         result = self.plugin.format_rest_candles(candles, "BTCUSDT", "1m")
 
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["timestamp"], candles[0].timestamp)
-        self.assertEqual(result[0]["open"], candles[0].open)
-        self.assertEqual(result[0]["high"], candles[0].high)
-        self.assertEqual(result[0]["low"], candles[0].low)
-        self.assertEqual(result[0]["close"], candles[0].close)
-        self.assertEqual(result[0]["volume"], candles[0].volume)
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["timestamp"] == candles[0].timestamp
+        assert result[0]["open"] == candles[0].open
+        assert result[0]["high"] == candles[0].high
+        assert result[0]["low"] == candles[0].low
+        assert result[0]["close"] == candles[0].close
+        assert result[0]["volume"] == candles[0].volume
 
     def test_format_ws_candle_message(self):
         """Test formatting WebSocket candle message."""
@@ -163,17 +164,17 @@ class TestExchangePlugin(unittest.TestCase):
 
         result = self.plugin.format_ws_candle_message(candle, "BTCUSDT", "1m", is_final=True)
 
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result["type"], "candle")
-        self.assertEqual(result["data"]["timestamp"], candle.timestamp)
-        self.assertEqual(result["data"]["trading_pair"], "BTCUSDT")
-        self.assertEqual(result["data"]["interval"], "1m")
-        self.assertEqual(result["data"]["open"], candle.open)
-        self.assertEqual(result["data"]["high"], candle.high)
-        self.assertEqual(result["data"]["low"], candle.low)
-        self.assertEqual(result["data"]["close"], candle.close)
-        self.assertEqual(result["data"]["volume"], candle.volume)
-        self.assertEqual(result["data"]["final"], True)
+        assert isinstance(result, dict)
+        assert result["type"] == "candle"
+        assert result["data"]["timestamp"] == candle.timestamp
+        assert result["data"]["trading_pair"] == "BTCUSDT"
+        assert result["data"]["interval"] == "1m"
+        assert result["data"]["open"] == candle.open
+        assert result["data"]["high"] == candle.high
+        assert result["data"]["low"] == candle.low
+        assert result["data"]["close"] == candle.close
+        assert result["data"]["volume"] == candle.volume
+        assert result["data"]["final"] is True
 
     def test_parse_ws_subscription(self):
         """Test parsing WebSocket subscription message."""
@@ -186,9 +187,9 @@ class TestExchangePlugin(unittest.TestCase):
 
         result = self.plugin.parse_ws_subscription(message)
 
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], ("BTCUSDT", "1m"))
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0] == ("BTCUSDT", "1m")
 
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
@@ -202,19 +203,19 @@ class TestExchangePlugin(unittest.TestCase):
 
         result = self.plugin.create_ws_subscription_success(message, subscriptions)
 
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result["type"], "subscribed")
-        self.assertEqual(result["channel"], "candles")
-        self.assertEqual(len(result["subscriptions"]), 2)
-        self.assertEqual(result["subscriptions"][0]["trading_pair"], "BTCUSDT")
-        self.assertEqual(result["subscriptions"][0]["interval"], "1m")
-        self.assertEqual(result["subscriptions"][1]["trading_pair"], "ETHUSDT")
-        self.assertEqual(result["subscriptions"][1]["interval"], "5m")
+        assert isinstance(result, dict)
+        assert result["type"] == "subscribed"
+        assert result["channel"] == "candles"
+        assert len(result["subscriptions"]) == 2
+        assert result["subscriptions"][0]["trading_pair"] == "BTCUSDT"
+        assert result["subscriptions"][0]["interval"] == "1m"
+        assert result["subscriptions"][1]["trading_pair"] == "ETHUSDT"
+        assert result["subscriptions"][1]["interval"] == "5m"
 
     def test_create_ws_subscription_key(self):
         """Test creating WebSocket subscription key."""
         result = self.plugin.create_ws_subscription_key("BTCUSDT", "1m")
-        self.assertEqual(result, "BTCUSDT_1m")
+        assert result == "BTCUSDT_1m"
 
     def test_parse_rest_candles_params(self):
         """Test parsing REST candles parameters."""
@@ -230,18 +231,14 @@ class TestExchangePlugin(unittest.TestCase):
 
         result = self.plugin.parse_rest_candles_params(mock_request)
 
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result["symbol"], "BTCUSDT")
-        self.assertEqual(result["interval"], "1m")
-        self.assertEqual(result["start_time"], "1613677200000")
-        self.assertEqual(result["end_time"], "1613680800000")
-        self.assertEqual(result["limit"], "500")
+        assert isinstance(result, dict)
+        assert result["symbol"] == "BTCUSDT"
+        assert result["interval"] == "1m"
+        assert result["start_time"] == "1613677200000"
+        assert result["end_time"] == "1613680800000"
+        assert result["limit"] == "500"
 
     def test_normalize_trading_pair(self):
         """Test normalizing trading pair."""
         result = self.plugin.normalize_trading_pair("btcusdt")
-        self.assertEqual(result, "BTCUSDT")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert result == "BTCUSDT"

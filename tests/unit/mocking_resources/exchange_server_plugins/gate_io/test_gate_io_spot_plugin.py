@@ -34,7 +34,6 @@ class TestGateIoSpotPlugin:
         assert routes["/api/v4/spot/candlesticks"][0] == "GET"
         assert routes["/api/v4/spot/candlesticks"][1] == "handle_klines"
 
-    @pytest.mark.asyncio
     async def test_parse_rest_candles_params(self):
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters

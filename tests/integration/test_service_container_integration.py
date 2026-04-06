@@ -168,7 +168,6 @@ class TestServiceContainerIntegration:
         """Check if WebSocket echo server is available."""
         return os.getenv("TEST_WITH_SERVICES", "false").lower() == "true"
 
-    @pytest.mark.asyncio
     async def test_redis_caching_integration(self, redis_client, mock_server_with_caching):
         """Test integration with Redis for caching candle data."""
         if not HAS_REDIS:
@@ -229,7 +228,6 @@ class TestServiceContainerIntegration:
         # Clean up
         await redis_client.delete(cache_key)
 
-    @pytest.mark.asyncio
     async def test_websocket_echo_server_integration(self):
         """Test integration with WebSocket echo server for realistic WebSocket testing."""
         if not HAS_WEBSOCKETS:
@@ -365,7 +363,6 @@ class TestServiceContainerIntegration:
                 await websocket_connection.close()
                 logger.info("WebSocket connection closed.")
 
-    @pytest.mark.asyncio
     async def test_candles_feed_with_redis_state_management(
         self, redis_client, mock_server_with_caching
     ):
@@ -424,7 +421,6 @@ class TestServiceContainerIntegration:
         # Clean up
         await redis_client.delete(feed_state_key)
 
-    @pytest.mark.asyncio
     async def test_service_container_health_monitoring(self, redis_client):
         """Test monitoring and health checking of service containers."""
         if not HAS_REDIS:
@@ -471,7 +467,6 @@ class TestServiceContainerIntegration:
 
         logger.info("Service container health monitoring test passed")
 
-    @pytest.mark.asyncio
     async def test_integration_with_fallback_handling(self):
         """Test that integration tests gracefully handle missing service containers."""
         logger.info("Testing graceful fallback when service containers are not available")
@@ -506,7 +501,6 @@ class TestServiceContainerIntegration:
 
         logger.info("Integration test with fallback handling completed successfully")
 
-    @pytest.mark.asyncio
     async def test_concurrent_service_access(self, redis_client):
         """Test concurrent access to service containers."""
         if not HAS_REDIS:

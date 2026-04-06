@@ -144,7 +144,6 @@ class TestBybitPerpetualAdapter(BaseAdapterTest):
         """Test category param retrieval."""
         assert adapter.get_category_param() == "linear"
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
         """Custom async test for fetch_rest_candles."""
         # Create a mock network client

@@ -60,7 +60,6 @@ class TestMockServer:
         # Clean up
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_server_rest_endpoints(self, standalone_mock_server):
         """Test the REST endpoints of the mock server."""
         mock_server_url = standalone_mock_server.url
@@ -100,7 +99,6 @@ class TestMockServer:
                 assert isinstance(first_candle[4], str), "Close price should be a string"
                 assert isinstance(first_candle[5], str), "Volume should be a string"
 
-    @pytest.mark.asyncio
     async def test_server_websocket_connection_simple(self, standalone_mock_server):
         """Test basic WebSocket connection to the mock server."""
         server_host = standalone_mock_server.host
@@ -141,7 +139,6 @@ class TestMockServer:
             # This test is simplified to just verify we can establish a connection
             # and receive a subscription response
 
-    @pytest.mark.asyncio
     async def test_server_multiple_trading_pairs(self):
         """Test the mock server with multiple trading pairs."""
         # Create a new server instance for this test
@@ -214,7 +211,6 @@ class TestMockServer:
             # Stop the server
             await server.stop()
 
-    @pytest.mark.asyncio
     async def test_server_network_simulation(self, standalone_mock_server):
         """Test the network simulation features of the mock server."""
         mock_server_url = standalone_mock_server.url
@@ -282,7 +278,6 @@ class TestMockServer:
             data = await response.json()
             assert len(data) > 0
 
-    @pytest.mark.asyncio
     async def test_mock_candle_data_methods(self):
         """Test that the CandleData class can create realistic candle sequences."""
         # Start with a base timestamp and price
@@ -340,7 +335,6 @@ class TestMockServer:
         assert min_price >= base_price * 0.9, f"Min price {min_price} too low"
         assert max_price <= base_price * 1.1, f"Max price {max_price} too high"
 
-    @pytest.mark.asyncio
     async def test_mock_candle_data_creation(self):
         """Test creating and manipulating CandleData objects."""
         # Test creating a basic candle

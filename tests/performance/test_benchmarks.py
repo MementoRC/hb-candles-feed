@@ -27,7 +27,6 @@ from candles_feed.utils.profiling import BenchmarkSuite, PerformanceProfiler, pr
 class TestNetworkClientPerformance:
     """Performance tests for NetworkClient connection pooling and optimization."""
 
-    @pytest.mark.asyncio
     async def test_connection_pool_reuse(self, unused_tcp_port):
         """Test that connection pooling reduces connection establishment overhead."""
         config = NetworkConfig(connection_pool_size=50, enable_connection_pooling=True)
@@ -72,7 +71,6 @@ class TestNetworkClientPerformance:
             await network_client.close()
             await server.stop()
 
-    @pytest.mark.asyncio
     async def test_concurrent_request_performance(self, unused_tcp_port):
         """Test performance under concurrent load."""
         config = NetworkConfig(rest_api_timeout=10.0)
@@ -235,7 +233,6 @@ class TestDataProcessorPerformance:
 class TestAdapterPerformance:
     """Performance tests for adapter implementations."""
 
-    @pytest.mark.asyncio
     async def test_mock_adapter_throughput(self):
         """Test mock adapter performance to establish baseline."""
         config = NetworkConfig()
@@ -269,7 +266,6 @@ class TestAdapterPerformance:
         finally:
             await network_client.close()
 
-    @pytest.mark.asyncio
     async def test_memory_usage_scaling(self):
         """Test memory usage scaling with number of candles."""
         config = NetworkConfig()
@@ -322,7 +318,6 @@ class TestAdapterPerformance:
 class TestIntegrationPerformance:
     """End-to-end performance tests."""
 
-    @pytest.mark.asyncio
     async def test_multiple_adapters_concurrent(self):
         """Test performance with multiple adapters running concurrently."""
         config = NetworkConfig(connection_pool_size=200)
@@ -378,7 +373,6 @@ class TestIntegrationPerformance:
         finally:
             await network_client.close()
 
-    @pytest.mark.asyncio
     async def test_sustained_load_performance(self):
         """Test performance under sustained load to detect memory leaks."""
         config = NetworkConfig()

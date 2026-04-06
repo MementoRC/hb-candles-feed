@@ -17,7 +17,6 @@ from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.network_client import NetworkClient
 
 
-@pytest.mark.asyncio
 class TestCandlesFeedWithMockAdapters:
     """End-to-end tests for the Candles Feed with mock adapters."""
 
@@ -29,7 +28,6 @@ class TestCandlesFeedWithMockAdapters:
         # Make sure to close the client after the test
         await client.close()
 
-    @pytest.mark.asyncio
     async def test_candles_feed_with_sync_adapter(self, network_client):
         """Test CandlesFeed with SyncMockedAdapter."""
         # Setup - SyncMockedAdapter should already be registered with ExchangeRegistry
@@ -55,7 +53,6 @@ class TestCandlesFeedWithMockAdapters:
         # Stop the feed
         await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_candles_feed_with_async_adapter(self, network_client):
         """Test CandlesFeed with AsyncMockedAdapter."""
         # Setup - AsyncMockedAdapter should already be registered with ExchangeRegistry
@@ -81,7 +78,6 @@ class TestCandlesFeedWithMockAdapters:
         # Stop the feed
         await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_candles_feed_with_hybrid_adapter(self, network_client):
         """Test CandlesFeed with HybridMockedAdapter."""
         # Setup - HybridMockedAdapter should already be registered with ExchangeRegistry
@@ -115,7 +111,6 @@ class TestCandlesFeedWithMockAdapters:
         # Stop the feed
         await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_multiple_candles_feeds_concurrently(self, network_client):
         """Test running multiple CandlesFeeds concurrently with different adapters."""
         # Setup - all adapters should already be registered with ExchangeRegistry

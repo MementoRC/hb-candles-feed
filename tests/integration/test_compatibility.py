@@ -133,7 +133,6 @@ class TestCompatibilityWithOriginal:
 
         return {"original": original_format, "new": new_format}
 
-    @pytest.mark.asyncio
     async def test_dataframe_format_compatibility(self, sample_candles_data):
         """Test that the DataFrame format is compatible with the original."""
         # Set up
@@ -200,7 +199,6 @@ class TestCompatibilityWithOriginal:
                         f"Value mismatch for {col} at index {i}"
                     )
 
-    @pytest.mark.asyncio
     async def test_historical_data_fetch_compatibility(self, sample_candles_data):
         """Test that historical data fetching is compatible with the original."""
         # Mock adapter
@@ -261,7 +259,6 @@ class TestCompatibilityWithOriginal:
             assert df.iloc[0]["timestamp"] == 1609459200, "First candle timestamp should match"
             assert df.iloc[1]["timestamp"] == 1609459260, "Second candle timestamp should match"
 
-    @pytest.mark.asyncio
     async def test_get_historical_candles_compatibility(self, sample_candles_data):
         """Test that get_historical_candles method is compatible with the original."""
         # Mock adapter
@@ -334,7 +331,6 @@ class TestCompatibilityWithOriginal:
                 "Second candle timestamp should match"
             )
 
-    @pytest.mark.asyncio
     async def test_timestamp_rounding_compatibility(self):
         """Test timestamp rounding compatibility."""
         # Mock adapter
@@ -401,7 +397,6 @@ class TestCompatibilityWithOriginal:
             rounded = feed_5m._round_timestamp_to_interval_multiple(timestamp)
             assert rounded == 1609459500, "5m rounding of boundary should not change"
 
-    @pytest.mark.asyncio
     async def test_ready_property_compatibility(self):
         """Test that the ready property is compatible with the original."""
         # Mock adapter
@@ -469,7 +464,6 @@ class TestCompatibilityWithOriginal:
             # Feed should be ready now (100% filled, which is > 90%)
             assert feed.ready, "Feed should be ready at 100% capacity"
 
-    @pytest.mark.asyncio
     async def test_check_candles_sorted_and_equidistant(self):
         """Test the check_candles_sorted_and_equidistant method for compatibility."""
         # Mock adapter
@@ -629,7 +623,6 @@ class TestCompatibilityWithOriginal:
                 "Should return False with non-equidistant candles"
             )
 
-    @pytest.mark.asyncio
     async def test_start_stop_compatibility(self):
         """Test that start/stop methods are compatible with the original."""
         # Mock adapter
@@ -716,7 +709,6 @@ class TestCompatibilityWithOriginal:
 class TestCandlesFeedWithHummingbotComponents:
     """Tests for compatibility with Hummingbot components."""
 
-    @pytest.mark.asyncio
     async def test_candles_feed_with_hummingbot_components(self):
         """Test candles feed with Hummingbot components."""
         # Initialize with a default value to satisfy static analysis

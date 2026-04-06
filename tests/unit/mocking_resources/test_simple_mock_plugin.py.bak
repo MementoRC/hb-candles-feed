@@ -48,7 +48,6 @@ class TestMockedPlugin:
         # Default for unknown interval
         assert self.plugin.get_interval_seconds("unknown") == 60
 
-    @pytest.mark.asyncio
     async def test_handle_rest_candles_request(self):
         """Test handling REST API candles requests."""
         # Test with minimal parameters
@@ -86,7 +85,6 @@ class TestMockedPlugin:
         timestamps = [int(candle["timestamp"]) for candle in response["data"]]
         assert timestamps == sorted(timestamps)
 
-    @pytest.mark.asyncio
     async def test_handle_ws_connection(self):
         """Test handling WebSocket connections."""
         # Create mock websocket

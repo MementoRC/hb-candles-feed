@@ -15,9 +15,16 @@ from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
 
 # Standard column order matching hummingbot's CandlesBase.columns
 COLUMNS = [
-    "timestamp", "open", "high", "low", "close", "volume",
-    "quote_asset_volume", "n_trades",
-    "taker_buy_base_volume", "taker_buy_quote_volume",
+    "timestamp",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "quote_asset_volume",
+    "n_trades",
+    "taker_buy_base_volume",
+    "taker_buy_quote_volume",
 ]
 
 
@@ -37,9 +44,16 @@ def _safe_int(value: float | int | str | None, default: int = 0) -> int:
 
 # Attribute names on CandleData corresponding to COLUMNS order.
 _CANDLE_ATTRS = [
-    "timestamp", "open", "high", "low", "close", "volume",
-    "quote_asset_volume", "n_trades",
-    "taker_buy_base_volume", "taker_buy_quote_volume",
+    "timestamp",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "quote_asset_volume",
+    "n_trades",
+    "taker_buy_base_volume",
+    "taker_buy_quote_volume",
 ]
 assert _CANDLE_ATTRS == COLUMNS, "COLUMNS and _CANDLE_ATTRS must match"
 
@@ -130,9 +144,7 @@ class CandlesBaseAdapter:
         )
         return self._candle_data_list_to_ndarray(candles)
 
-    async def get_historical_candles(
-        self, config: HistoricalCandlesConfig
-    ) -> pd.DataFrame:
+    async def get_historical_candles(self, config: HistoricalCandlesConfig) -> pd.DataFrame:
         """Get historical candles. Unpacks config, ignores redundant fields.
 
         :param config: Historical candles configuration

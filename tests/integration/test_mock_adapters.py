@@ -27,7 +27,6 @@ from candles_feed.mocking_resources.adapter import (
 )
 
 
-@pytest.mark.asyncio
 @pytest.mark.integration
 class TestMockAdaptersWithStrategies:
     """Test how mock adapters interact with collection strategies."""
@@ -50,7 +49,6 @@ class TestMockAdaptersWithStrategies:
         # Make sure to close the client after the test
         await client.close()
 
-    @pytest.mark.asyncio
     async def test_sync_adapter_with_rest_strategy(
         self, data_processor, candles_store, network_client
     ):
@@ -79,7 +77,6 @@ class TestMockAdaptersWithStrategies:
         timestamps = [c.timestamp for c in candles]
         assert timestamps == sorted(timestamps)
 
-    @pytest.mark.asyncio
     async def test_async_adapter_with_rest_strategy(
         self, data_processor, candles_store, network_client
     ):
@@ -104,7 +101,6 @@ class TestMockAdaptersWithStrategies:
         assert candles[1].open == 101.0
         assert candles[-1].open == 109.0
 
-    @pytest.mark.asyncio
     async def test_hybrid_adapter_with_rest_strategy(
         self, data_processor, candles_store, network_client
     ):
@@ -130,7 +126,6 @@ class TestMockAdaptersWithStrategies:
         assert candles[1].open == 202.0
         assert candles[-1].open == 218.0
 
-    @pytest.mark.asyncio
     async def test_factory_selects_websocket_strategy(
         self, data_processor, candles_store, network_client
     ):
@@ -156,7 +151,6 @@ class TestMockAdaptersWithStrategies:
         # Verify it's a WebSocketStrategy
         assert isinstance(strategy, WebSocketStrategy)
 
-    @pytest.mark.asyncio
     async def test_factory_gracefully_handles_websocket_not_supported(
         self, data_processor, candles_store, network_client
     ):
@@ -180,7 +174,6 @@ class TestMockAdaptersWithStrategies:
         # Verify it's a RESTPollingStrategy
         assert isinstance(strategy, RESTPollingStrategy)
 
-    @pytest.mark.asyncio
     async def test_adapter_with_collection_strategy_lifecycle(
         self, data_processor, candles_store, network_client
     ):

@@ -406,7 +406,6 @@ class TestBaseAdapter:
         candles = adapter._parse_rest_response({"not": "a list"})
         assert candles == []
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles(self):
         """Test fetching REST candles."""
         adapter = self.ConcreteAdapter()
@@ -425,7 +424,6 @@ class TestBaseAdapter:
         assert call["limit"] == 500
         assert call["network_client"] is None
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_with_network_client(self):
         """Test fetching REST candles with network client."""
         adapter = self.ConcreteAdapter()

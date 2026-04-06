@@ -3,8 +3,6 @@ Unit tests for the MockedExchangeServer class in mocking_resources.
 """
 
 import asyncio
-import unittest
-from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -17,7 +15,7 @@ from candles_feed.mocking_resources.core.server import MockedExchangeServer
 from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import MockedPlugin
 
 
-class TestMockExchangeServer(IsolatedAsyncioTestCase):
+class TestMockExchangeServer:
     """Tests for the MockedExchangeServer class."""
 
     class SamplePlugin(ExchangePlugin):
@@ -95,7 +93,8 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
                 "limit": params.get("limit", "100"),
             }
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Set up test fixtures."""
         self.plugin = self.SamplePlugin(ExchangeType.BINANCE_SPOT, BinanceSpotAdapter)
         self.server = MockedExchangeServer(self.plugin, "127.0.0.1", 8082)
@@ -103,26 +102,26 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
     @patch("candles_feed.mocking_resources.core.server.web.AppRunner")
     def test_init(self, mock_app_runner):
         """Test initialization of the server."""
-        self.assertEqual(self.server.plugin, self.plugin)
-        self.assertEqual(self.server.exchange_type, ExchangeType.BINANCE_SPOT)
-        self.assertEqual(self.server.host, "127.0.0.1")
-        self.assertEqual(self.server.port, 8082)
-        self.assertIsInstance(self.server.app, web.Application)
-        self.assertEqual(self.server.candles, {})
-        self.assertEqual(self.server.last_candle_time, {})
-        self.assertEqual(self.server.trading_pairs, {})
-        self.assertEqual(self.server.subscriptions, {})
+        assert self.server.plugin == self.plugin
+        assert self.server.exchange_type == ExchangeType.BINANCE_SPOT
+        assert self.server.host == "127.0.0.1"
+        assert self.server.port == 8082
+        assert isinstance(self.server.app, web.Application)
+        assert self.server.candles == {}
+        assert self.server.last_candle_time == {}
+        assert self.server.trading_pairs == {}
+        assert self.server.subscriptions == {}
 
     def test_routes_initialization(self):
         """Test that the app is initialized properly."""
         # Just test that the app is a valid aiohttp Application
-        self.assertIsInstance(self.server.app, web.Application)
+        assert isinstance(self.server.app, web.Application)
 
         # Replace the route checking with mock verification
         # since our test plugin doesn't actually define working handlers
         plugin = MockedPlugin(ExchangeType.MOCK)
-        self.assertIsNotNone(plugin.rest_routes)
-        self.assertIsNotNone(plugin.ws_routes)
+        assert plugin.rest_routes is not None
+        assert plugin.ws_routes is not None
 
     def test_add_trading_pair(self):
         """Test adding a trading pair."""
@@ -139,12 +138,12 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
             self.server.add_trading_pair(trading_pair, interval, initial_price)
 
             # Verify trading pair was added to the right collections
-            self.assertIn(trading_pair, self.server.trading_pairs)
-            self.assertEqual(self.server.trading_pairs[trading_pair], initial_price)
+            assert trading_pair in self.server.trading_pairs
+            assert self.server.trading_pairs[trading_pair] == initial_price
 
             # Verify dictionaries were initialized
-            self.assertIn(trading_pair, self.server.candles)
-            self.assertIn(trading_pair, self.server.last_candle_time)
+            assert trading_pair in self.server.candles
+            assert trading_pair in self.server.last_candle_time
 
             # Verify correct method was called to generate candles
             mock_generate.assert_called_once_with(trading_pair, interval, initial_price)
@@ -153,9 +152,9 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         """Test setting network conditions."""
         self.server.set_network_conditions(latency_ms=50, packet_loss_rate=0.1, error_rate=0.05)
 
-        self.assertEqual(self.server.latency_ms, 50)
-        self.assertEqual(self.server.packet_loss_rate, 0.1)
-        self.assertEqual(self.server.error_rate, 0.05)
+        assert self.server.latency_ms == 50
+        assert self.server.packet_loss_rate == 0.1
+        assert self.server.error_rate == 0.05
 
     def test_update_rate_limits(self):
         """Test updating rate limits directly."""
@@ -172,12 +171,11 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         self.server.rate_limits["ws"]["burst"] = 20
 
         # Check that values were updated
-        self.assertEqual(self.server.rate_limits["rest"]["limit"], 500)
-        self.assertEqual(self.server.rate_limits["rest"]["period_ms"], 30000)
-        self.assertEqual(self.server.rate_limits["ws"]["limit"], 10)
-        self.assertEqual(self.server.rate_limits["ws"]["burst"], 20)
+        assert self.server.rate_limits["rest"]["limit"] == 500
+        assert self.server.rate_limits["rest"]["period_ms"] == 30000
+        assert self.server.rate_limits["ws"]["limit"] == 10
+        assert self.server.rate_limits["ws"]["burst"] == 20
 
-    @pytest.mark.asyncio
     @patch("candles_feed.mocking_resources.core.server.web.AppRunner")
     @patch("candles_feed.mocking_resources.core.server.web.TCPSite")
     async def test_start(self, mock_tcp_site, mock_app_runner):
@@ -196,10 +194,9 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         mock_tcp_site.assert_called_once_with(mock_runner, "127.0.0.1", 8082)
         mock_site.start.assert_called_once()
 
-        self.assertEqual(url, "http://127.0.0.1:8082")
-        self.assertEqual(len(self.server._tasks), 1)
+        assert url == "http://127.0.0.1:8082"
+        assert len(self.server._tasks) == 1
 
-    @pytest.mark.asyncio
     async def test_stop(self):
         """Test stopping the server."""
         self.server.runner = AsyncMock()
@@ -223,7 +220,7 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         await self.server.stop()
 
         # Verify the task was cancelled
-        self.assertTrue(task.cancelled())
+        assert task.cancelled()
 
         # Check WebSocket connection is closed
         mock_ws.close.assert_called_once()
@@ -233,9 +230,9 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         self.server.runner.cleanup.assert_called_once()
 
         # Connection state should be cleared
-        self.assertEqual(self.server._tasks, [])
-        self.assertEqual(self.server.ws_connections, set())
-        self.assertEqual(self.server.subscriptions, {})
+        assert self.server._tasks == []
+        assert self.server.ws_connections == set()
+        assert self.server.subscriptions == {}
 
     @patch("time.time")
     def test_interval_to_seconds(self, mock_time):
@@ -244,14 +241,12 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         plugin = MockedPlugin(ExchangeType.MOCK)
         self.server.plugin = plugin
 
-        self.assertEqual(self.server.plugin._interval_to_seconds("1s"), 1)
-        self.assertEqual(self.server.plugin._interval_to_seconds("1m"), 60)
-        self.assertEqual(self.server.plugin._interval_to_seconds("5m"), 300)
-        self.assertEqual(self.server.plugin._interval_to_seconds("1h"), 3600)
-        self.assertEqual(self.server.plugin._interval_to_seconds("1d"), 86400)
-        self.assertEqual(self.server.plugin._interval_to_seconds("1w"), 604800)
-
-        # Default case - no need to test invalid intervals since that's delegated
+        assert self.server.plugin._interval_to_seconds("1s") == 1
+        assert self.server.plugin._interval_to_seconds("1m") == 60
+        assert self.server.plugin._interval_to_seconds("5m") == 300
+        assert self.server.plugin._interval_to_seconds("1h") == 3600
+        assert self.server.plugin._interval_to_seconds("1d") == 86400
+        assert self.server.plugin._interval_to_seconds("1w") == 604800
 
     def test_check_rate_limit(self):
         """Test rate limit checking."""
@@ -271,27 +266,24 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         # Test REST API rate limiting - make sure we're below the limit
         for _ in range(10):
             result = self.server._check_rate_limit(ip, "rest")
-            self.assertTrue(result)
+            assert result
 
         # Verify request counts were tracked
-        self.assertIn(ip, self.server.request_counts["rest"])
-        self.assertEqual(len(self.server.request_counts["rest"][ip]["timestamps"]), 10)
+        assert ip in self.server.request_counts["rest"]
+        assert len(self.server.request_counts["rest"][ip]["timestamps"]) == 10
 
         # Test WebSocket API rate limiting - below the burst limit
         if "ws" in self.server.rate_limits and "burst" in self.server.rate_limits["ws"]:
             burst_limit = self.server.rate_limits["ws"]["burst"]
             for _ in range(burst_limit - 1):
                 result = self.server._check_rate_limit(ip, "ws")
-                self.assertTrue(result)
+                assert result
 
             # Verify request counts
-            self.assertIn(ip, self.server.request_counts["ws"])
+            assert ip in self.server.request_counts["ws"]
             if "timestamps" in self.server.request_counts["ws"][ip]:
-                self.assertEqual(
-                    len(self.server.request_counts["ws"][ip]["timestamps"]), burst_limit - 1
-                )
+                assert len(self.server.request_counts["ws"][ip]["timestamps"]) == burst_limit - 1
 
-    @pytest.mark.asyncio
     @patch("candles_feed.mocking_resources.core.server.asyncio.sleep")
     async def test_simulate_network_conditions_latency(self, mock_sleep):
         """Test simulating network latency."""
@@ -302,10 +294,7 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         await self.server._simulate_network_conditions()
 
         mock_sleep.assert_called_once_with(0.05)  # 50ms = 0.05s
-        # Return None to fix deprecation warning
-        return None
 
-    @pytest.mark.asyncio
     @patch("candles_feed.mocking_resources.core.server.random.random")
     @patch("candles_feed.mocking_resources.core.server.asyncio.sleep")
     async def test_simulate_network_conditions_packet_loss(self, mock_sleep, mock_random):
@@ -318,13 +307,9 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         mock_random.return_value = 0.4
 
         # Act & Assert
-        with self.assertRaises(web.HTTPRequestTimeout):
+        with pytest.raises(web.HTTPRequestTimeout):
             await self.server._simulate_network_conditions()
 
-        # Return None to fix deprecation warning
-        return None
-
-    @pytest.mark.asyncio
     @patch("candles_feed.mocking_resources.core.server.random.random")
     @patch("candles_feed.mocking_resources.core.server.random.choice")
     @patch("candles_feed.mocking_resources.core.server.asyncio.sleep")
@@ -341,12 +326,5 @@ class TestMockExchangeServer(IsolatedAsyncioTestCase):
         mock_choice.return_value = 500
 
         # Act & Assert
-        with self.assertRaises(web.HTTPInternalServerError):
+        with pytest.raises(web.HTTPInternalServerError):
             await self.server._simulate_network_conditions()
-
-        # Return None to fix deprecation warning
-        return None
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -106,7 +106,6 @@ class TestCandlesFeed:
 
             return feed
 
-    @pytest.mark.asyncio
     async def test_initialization(self, mock_exchange_registry):
         """Test CandlesFeed initialization."""
         feed = CandlesFeed(
@@ -126,7 +125,6 @@ class TestCandlesFeed:
         assert feed._candles.maxlen == 100
         assert feed._active is False
 
-    @pytest.mark.asyncio
     async def test_start_with_websocket(self, candles_feed):
         """Test starting the feed with WebSocket strategy."""
         # Patch internal CandlesFeed methods to avoid real network calls
@@ -144,7 +142,6 @@ class TestCandlesFeed:
             assert candles_feed._active is True
             assert candles_feed._using_ws is True
 
-    @pytest.mark.asyncio
     async def test_start_with_rest(self, candles_feed):
         """Test starting the feed with REST strategy."""
         # Patch internal CandlesFeed methods to avoid real network calls
@@ -159,7 +156,6 @@ class TestCandlesFeed:
             assert candles_feed._active is True
             assert candles_feed._using_ws is False
 
-    @pytest.mark.asyncio
     async def test_start_with_auto_strategy_ws_available(self, candles_feed):
         """Test auto strategy selection when WS is available."""
         # Patch internal CandlesFeed methods to avoid real network calls
@@ -176,7 +172,6 @@ class TestCandlesFeed:
             # Verify WebSocket was chosen
             assert candles_feed._using_ws is True
 
-    @pytest.mark.asyncio
     async def test_start_with_auto_strategy_ws_unavailable(self, candles_feed):
         """Test auto strategy selection when WS is unavailable."""
         # Patch internal CandlesFeed methods to avoid real network calls
@@ -195,7 +190,6 @@ class TestCandlesFeed:
             # Verify REST was chosen
             assert candles_feed._using_ws is False
 
-    @pytest.mark.asyncio
     async def test_stop(self, candles_feed):
         """Test stopping the feed."""
         # Patch the stop method to avoid real network calls
@@ -210,7 +204,6 @@ class TestCandlesFeed:
             # Verify feed state after stopping
             assert candles_feed._active is False
 
-    @pytest.mark.asyncio
     async def test_get_candles(self, candles_feed):
         """Test getting candles."""
         # Create some test candles
@@ -240,7 +233,6 @@ class TestCandlesFeed:
         assert candles[0].timestamp == base_time
         assert candles[1].timestamp == base_time + 60
 
-    @pytest.mark.asyncio
     async def test_fetch_candles(self, candles_feed):
         """Test fetching historical candles."""
         # Setup test data
@@ -280,7 +272,6 @@ class TestCandlesFeed:
             # Verify the candles were added
             assert len(candles_feed._candles) == 2
 
-    @pytest.mark.asyncio
     async def test_fetch_candles_with_limit(self, candles_feed):
         """Test fetching historical candles."""
         # Setup test data
@@ -320,7 +311,6 @@ class TestCandlesFeed:
             # Verify the candles were added
             assert len(candles_feed._candles) == 2
 
-    @pytest.mark.asyncio
     async def test_add_candle(self, candles_feed):
         """Test adding a single candle."""
         # Create a test candle
@@ -351,7 +341,6 @@ class TestCandlesFeed:
         feed_5m = CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="5m")
         assert feed_5m.interval_in_seconds == 300
 
-    @pytest.mark.asyncio
     async def test_max_records_limit(self, candles_feed):
         """Test the max records limit is enforced."""
         # Set a small max records limit

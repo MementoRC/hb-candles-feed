@@ -130,7 +130,6 @@ def mock_hummingbot_components(binance_rest_candles_response):
     return create_mock_hummingbot_components(rest_responses=rest_responses, ws_messages=ws_messages)
 
 
-@pytest.mark.asyncio
 async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
     """Test creating a CandlesFeed with Hummingbot components.
 
@@ -179,7 +178,6 @@ async def test_create_candles_feed_with_hummingbot(mock_hummingbot_components):
         )
 
 
-@pytest.mark.asyncio
 async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
     """Test fetching candles with Hummingbot REST integration.
 
@@ -239,7 +237,6 @@ async def test_candles_feed_rest_with_hummingbot(mock_hummingbot_components):
             assert candles[0].close == 35050.3
 
 
-@pytest.mark.asyncio
 async def test_candles_feed_ws_with_hummingbot(mock_hummingbot_components):
     """Test WebSocket connection with Hummingbot integration.
 

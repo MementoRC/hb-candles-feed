@@ -224,7 +224,6 @@ async def mock_server():
     await server.stop()
 
 
-@pytest.mark.asyncio
 async def test_basic_load_klines(mock_server):
     """Test basic load on the klines endpoint."""
     async with CandlesFeedLoadTester(mock_server) as tester:
@@ -242,7 +241,6 @@ async def test_basic_load_klines(mock_server):
         assert summary["requests_per_second"] > 10, f"RPS too low: {summary['requests_per_second']}"
 
 
-@pytest.mark.asyncio
 async def test_server_endpoints_load(mock_server):
     """Test load on basic server endpoints."""
     async with CandlesFeedLoadTester(mock_server) as tester:
@@ -259,7 +257,6 @@ async def test_server_endpoints_load(mock_server):
         )
 
 
-@pytest.mark.asyncio
 async def test_mixed_workload(mock_server):
     """Test mixed workload scenario."""
     async with CandlesFeedLoadTester(mock_server) as tester:

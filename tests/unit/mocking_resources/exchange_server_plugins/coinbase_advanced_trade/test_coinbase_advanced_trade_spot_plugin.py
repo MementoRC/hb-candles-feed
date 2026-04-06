@@ -185,7 +185,6 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         # Check key format
         assert key == "candles_BTC-USD_60"
 
-    @pytest.mark.asyncio
     async def test_handle_products(self):
         """Test handling products endpoint."""
         from unittest.mock import AsyncMock, MagicMock
@@ -210,7 +209,6 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         # Response should not be None
         assert response is not None
 
-    @pytest.mark.asyncio
     async def test_handle_time(self):
         """Test handling time endpoint."""
         from unittest.mock import AsyncMock, MagicMock

@@ -294,7 +294,6 @@ class TestBinanceSpotAdapter:
         )
         return feed
 
-    @pytest.mark.asyncio
     async def test_rest_candle_retrieval(self, binance_mock_server, binance_candles_feed):
         """Test REST API candle retrieval for Binance."""
         logger.info("Testing Binance REST candle retrieval")
@@ -328,7 +327,6 @@ class TestBinanceSpotAdapter:
 
         logger.info(f"  Binance REST: Fetched {len(candles)} candles successfully")
 
-    @pytest.mark.asyncio
     async def test_websocket_streaming(self, binance_mock_server, binance_candles_feed):
         """Test WebSocket streaming for Binance."""
         logger.info("Testing Binance WebSocket streaming")
@@ -366,7 +364,6 @@ class TestBinanceSpotAdapter:
 
         logger.info(f"  Binance WebSocket: Received {len(received_candles)} candles successfully")
 
-    @pytest.mark.asyncio
     async def test_multiple_intervals(self, binance_mock_server):
         """Test Binance adapter with multiple time intervals."""
         logger.info("Testing Binance multiple intervals")
@@ -396,7 +393,6 @@ class TestBinanceSpotAdapter:
 
             logger.info(f"  Binance {interval}: Fetched {len(candles)} candles")
 
-    @pytest.mark.asyncio
     async def test_error_handling(self, binance_mock_server, binance_candles_feed):
         """Test error handling and recovery for Binance."""
         logger.info("Testing Binance error handling")
@@ -422,7 +418,6 @@ class TestBinanceSpotAdapter:
 
         # The fixture's teardown will handle restarting/stopping the server cleanly for subsequent tests.
 
-    @pytest.mark.asyncio
     async def test_volume_and_trading_variations(self, binance_mock_server):
         """Test Binance adapter with different trading pairs and volumes."""
         logger.info("Testing Binance trading variations")
@@ -505,7 +500,6 @@ class TestCoinbaseAdvancedTradeAdapter:
         )
         return feed
 
-    @pytest.mark.asyncio
     async def test_rest_candle_retrieval(self, coinbase_mock_server, coinbase_candles_feed):
         """Test REST API candle retrieval for Coinbase."""
         logger.info("Testing Coinbase REST candle retrieval")
@@ -524,7 +518,6 @@ class TestCoinbaseAdvancedTradeAdapter:
 
         logger.info(f"  Coinbase REST: Fetched {len(candles)} candles successfully")
 
-    @pytest.mark.asyncio
     async def test_websocket_streaming(self, coinbase_mock_server, coinbase_candles_feed):
         """Test WebSocket streaming for Coinbase."""
         logger.info("Testing Coinbase WebSocket streaming")
@@ -547,7 +540,6 @@ class TestCoinbaseAdvancedTradeAdapter:
 
         logger.info(f"  Coinbase WebSocket: Received {len(received_candles)} candles")
 
-    @pytest.mark.asyncio
     async def test_usd_pairs_handling(self, coinbase_mock_server):
         """Test Coinbase's USD-based trading pairs."""
         logger.info("Testing Coinbase USD pairs")
@@ -572,7 +564,6 @@ class TestCoinbaseAdvancedTradeAdapter:
 
             logger.info(f"  Coinbase {pair}: {len(candles)} candles fetched")
 
-    @pytest.mark.asyncio
     async def test_coinbase_error_scenarios(self, coinbase_mock_server, coinbase_candles_feed):
         """Test Coinbase-specific error handling."""
         logger.info("Testing Coinbase error scenarios")
@@ -651,7 +642,6 @@ class TestBybitSpotAdapter:
         )
         return feed
 
-    @pytest.mark.asyncio
     async def test_rest_candle_retrieval(self, bybit_mock_server, bybit_candles_feed):
         """Test REST API candle retrieval for Bybit."""
         logger.info("Testing Bybit REST candle retrieval")
@@ -671,7 +661,6 @@ class TestBybitSpotAdapter:
 
         logger.info(f"  Bybit REST: Fetched {len(candles)} candles successfully")
 
-    @pytest.mark.asyncio
     async def test_websocket_streaming(self, bybit_mock_server, bybit_candles_feed):
         """Test WebSocket streaming for Bybit."""
         logger.info("Testing Bybit WebSocket streaming")
@@ -702,7 +691,6 @@ class TestBybitSpotAdapter:
         # The test passes if the WebSocket strategy can be started and stopped without crashing
         logger.info("Bybit WebSocket streaming test completed successfully")
 
-    @pytest.mark.asyncio
     async def test_bybit_specific_features(self, bybit_mock_server):
         """Test Bybit-specific features and data handling."""
         logger.info("Testing Bybit specific features")
@@ -738,7 +726,6 @@ class TestBybitSpotAdapter:
 class TestCrossAdapterCompatibility:
     """Test compatibility and consistency across different exchange adapters."""
 
-    @pytest.mark.asyncio
     async def test_data_format_consistency(self, unused_tcp_port):
         """Test that all adapters return data in consistent format."""
         logger.info("Testing cross-adapter data format consistency")
@@ -828,7 +815,6 @@ class TestCrossAdapterCompatibility:
 
                 logger.info(f"  {adapter_name} format matches {reference_adapter}")
 
-    @pytest.mark.asyncio
     async def test_performance_comparison(self, unused_tcp_port):
         """Test performance characteristics across adapters using mock servers."""
         logger.info("Testing adapter performance comparison")
@@ -908,7 +894,6 @@ class TestCrossAdapterCompatibility:
             assert metrics["duration"] < 5.0, f"{exchange} should fetch data in reasonable time"
             assert metrics["candles_count"] > 0, f"{exchange} should return candles"
 
-    @pytest.mark.asyncio
     async def test_error_handling_consistency(self, unused_tcp_port):
         """Test that all adapters handle errors consistently using mock servers."""
         logger.info("Testing consistent error handling across adapters")
@@ -987,7 +972,6 @@ class TestCrossAdapterCompatibility:
 class TestIntegrationSummary:
     """Summary and validation of all integration tests."""
 
-    @pytest.mark.asyncio
     async def test_integration_coverage_summary(self):
         """Validate that integration tests cover all required scenarios."""
         logger.info("=== Integration Test Coverage Summary ===")
