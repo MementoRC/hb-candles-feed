@@ -114,13 +114,17 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return []
 
+        if not isinstance(data, dict):
+            return []
+
         candles: list[CandleData] = []
-        assert isinstance(data, dict), f"Unexpected data type: {type(data)}"
 
         for candle_item in data.get("data", []):
-            assert isinstance(candle_item, dict)
+            if not isinstance(candle_item, dict):
+                continue
             candle_payload = candle_item.get("data")
-            assert isinstance(candle_payload, dict)
+            if not isinstance(candle_payload, dict):
+                continue
 
             timestamp = self.ensure_timestamp_in_seconds(candle_payload["ts"])
             # timestamp = self.ensure_timestamp_in_seconds(candle["data"]["ts"]) # Erroneous duplicate line removed
@@ -207,7 +211,8 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         # Check if this is a candle message
         if data.get("m") == "bar" and "data" in data:
             candle_payload = data["data"]
-            assert isinstance(candle_payload, dict)
+            if not isinstance(candle_payload, dict):
+                return None
             timestamp = self.ensure_timestamp_in_seconds(candle_payload["ts"])
             return [
                 CandleData(

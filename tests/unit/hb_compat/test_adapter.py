@@ -154,7 +154,18 @@ class TestCandlesBaseAdapterDataConversion:
             result = await adapter.fetch_candles(start_time=1000, end_time=1060)
             assert isinstance(result, np.ndarray)
             assert result.shape == (2, 10)
-            assert result[0, 0] == 1000
+            # Validate full column values for first row match _make_candle(1000, 100.0)
+            row = result[0]
+            assert row[0] == 1000        # timestamp
+            assert row[1] == 100.0       # open
+            assert row[2] == 101.0       # high
+            assert row[3] == 99.0        # low
+            assert row[4] == 100.5       # close
+            assert row[5] == 1000.0      # volume
+            assert row[6] == 100000.0    # quote_asset_volume
+            assert row[7] == 50          # n_trades
+            assert row[8] == 500.0       # taker_buy_base_volume
+            assert row[9] == 50000.0     # taker_buy_quote_volume
 
     @pytest.mark.asyncio
     async def test_fetch_candles_none_limit_defaults_to_500(self):
@@ -240,6 +251,47 @@ class TestCandlesBaseAdapterResetWithDataFrame:
         assert candles[1].open == 101.0
         assert candles[1].close == 101.5
         assert candles[1].volume == 1100.0
+
+    def test_reset_with_missing_optional_columns(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+        adapter = CandlesBaseAdapter(
+            exchange="binance", trading_pair="BTC-USDT", max_records=10
+        )
+        df = pd.DataFrame([
+            [1000, 100.0, 101.0, 99.0, 100.5, 1000.0],
+        ], columns=["timestamp", "open", "high", "low", "close", "volume"])
+        adapter.reset_with_dataframe(df)
+
+        candles = adapter._feed.get_candles()
+        assert len(candles) == 1
+        assert candles[0].timestamp == 1000
+        assert candles[0].open == 100.0
+        assert candles[0].quote_asset_volume == 0.0
+        assert candles[0].n_trades == 0
+        assert candles[0].taker_buy_base_volume == 0.0
+        assert candles[0].taker_buy_quote_volume == 0.0
+
+    def test_reset_with_nan_optional_columns(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+        adapter = CandlesBaseAdapter(
+            exchange="binance", trading_pair="BTC-USDT", max_records=10
+        )
+        df = pd.DataFrame([
+            [1000, 100.0, 101.0, 99.0, 100.5, 1000.0, float("nan"), float("nan"), float("nan"), float("nan")],
+        ], columns=[
+            "timestamp", "open", "high", "low", "close", "volume",
+            "quote_asset_volume", "n_trades",
+            "taker_buy_base_volume", "taker_buy_quote_volume",
+        ])
+        adapter.reset_with_dataframe(df)
+
+        candles = adapter._feed.get_candles()
+        assert len(candles) == 1
+        assert candles[0].open == 100.0
+        assert candles[0].quote_asset_volume == 0.0
+        assert candles[0].n_trades == 0
+        assert candles[0].taker_buy_base_volume == 0.0
+        assert candles[0].taker_buy_quote_volume == 0.0
 
     def test_reset_with_empty_dataframe(self):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
