@@ -244,7 +244,6 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
         assert adapter.convert_timestamp_to_exchange(timestamp_seconds) == timestamp_seconds
 
     # Override the BaseAdapterTest method for async test
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
         """Custom test for fetch_rest_candles_async for Kraken."""
         # Skip test for SyncOnlyAdapter adapters

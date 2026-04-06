@@ -147,7 +147,6 @@ class TestEndToEnd:
         # Teardown: stop the server
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
         """Test retrieving candles via REST API using aioresponses."""
         # Create a CandlesFeed instance
@@ -181,7 +180,6 @@ class TestEndToEnd:
             # Clean up resources
             await feed.stop()
 
-    @pytest.mark.asyncio
     async def test_multiple_trading_pairs(self, aioresponses_mock_binance_server):
         """Test working with multiple trading pairs simultaneously."""
         # Create feeds for different trading pairs

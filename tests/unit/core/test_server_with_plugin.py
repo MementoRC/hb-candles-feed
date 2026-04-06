@@ -46,7 +46,6 @@ async def client(aiohttp_client, binance_server):
     return client
 
 
-@pytest.mark.asyncio
 async def test_server_uses_plugin_rate_limits(client, binance_server):
     """Test that the server uses rate limits from the plugin."""
     # Get the rate limits from the server
@@ -71,7 +70,6 @@ async def test_server_uses_plugin_rate_limits(client, binance_server):
     assert response.status == 200
 
 
-@pytest.mark.asyncio
 async def test_server_uses_plugin_api_keys(client, binance_server):
     """Test that the server uses API keys from the plugin."""
     # Get the API keys from the server
@@ -93,7 +91,6 @@ async def test_server_uses_plugin_api_keys(client, binance_server):
     assert response.status != 401
 
 
-@pytest.mark.asyncio
 async def test_network_conditions_simulation(client, binance_server):
     """Test that the server can simulate network conditions."""
     # First test with no latency
@@ -114,7 +111,6 @@ async def test_network_conditions_simulation(client, binance_server):
     assert elapsed >= 0.2  # Should be at least 200ms
 
 
-@pytest.mark.asyncio
 async def test_url_patcher(binance_server):
     """Test that the URL patcher works correctly."""
     # Create a URL patcher

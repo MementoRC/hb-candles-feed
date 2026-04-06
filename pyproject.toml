@@ -51,6 +51,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
     "pytest-timeout>=2.1.0",
+    "pytest-xdist>=3.0.0",
     "pyupgrade",
     "ruff>=0.1.6",
     "mypy>=1.5.1",
@@ -131,6 +132,7 @@ pytest-asyncio = ">=0.21.0"
 pytest-cov = ">=4.1.0"
 pytest-mock = ">=3.11.0"
 pytest-timeout = ">=2.1.0"
+pytest-xdist = ">=3.0.0"
 pytest-benchmark = ">=4.0.0"
 pyupgrade = "*"
 ruff = ">=0.1.6"
@@ -252,6 +254,7 @@ markers = [
     "e2e: marks tests as end-to-end tests",
     "asyncio: marks tests as asyncio tests",
     "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
+    "live: marks tests that hit real exchange APIs (deselect with '-m \"not live\"')",
 ]
 log_cli = true
 log_cli_level = "DEBUG"
@@ -279,3 +282,43 @@ exclude = [
 [tool.bandit]
 exclude_dirs = ["tests"]
 skips = ["B101"]
+
+# Hummingbot sub-package supersession metadata.
+# Declares which hummingbot module this sub-package replaces, enabling automated
+# compatibility checking and test-skipping in hummingbot CI when this package is installed.
+[tool.hummingbot.supersedes]
+module = "hummingbot.data_feed.candles_feed"
+import_path = "candles_feed.hb_compat"
+factory_class = "CandlesFactory"
+config_class = "CandlesConfig"
+# Hummingbot test paths that this sub-package replaces.
+# When this package is importable, these tests are auto-skipped in CI.
+test_paths = ["test/hummingbot/data_feed/candles_feed"]
+# Only skip tests for exchanges/modules with adapters in this sub-package.
+# Tests for HB-only modules keep running unconditionally.
+connectors = [
+    "aevo_perpetual",
+    "ascend_ex",
+    "binance",
+    "binance_perpetual",
+    "bitget",
+    "bitget_perpetual",
+    "bitmart_perpetual",
+    "btc_markets",
+    "bybit",
+    "bybit_perpetual",
+    "coinbase_advanced_trade",
+    "dexalot",
+    "gate_io",
+    "gate_io_perpetual",
+    "hyperliquid",
+    "hyperliquid_perpetual",
+    "kraken",
+    "kucoin",
+    "kucoin_perpetual",
+    "mexc",
+    "mexc_perpetual",
+    "okx",
+    "okx_perpetual",
+    "pacifica_perpetual",
+]

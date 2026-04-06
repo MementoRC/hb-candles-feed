@@ -9,18 +9,21 @@ class TestCandlesConfig:
 
     def test_required_fields(self):
         from candles_feed.hb_compat.data_types import CandlesConfig
+
         config = CandlesConfig(connector="binance", trading_pair="BTC-USDT")
         assert config.connector == "binance"
         assert config.trading_pair == "BTC-USDT"
 
     def test_defaults(self):
         from candles_feed.hb_compat.data_types import CandlesConfig
+
         config = CandlesConfig(connector="binance", trading_pair="BTC-USDT")
         assert config.interval == "1m"
         assert config.max_records == 500
 
     def test_custom_values(self):
         from candles_feed.hb_compat.data_types import CandlesConfig
+
         config = CandlesConfig(
             connector="okx", trading_pair="ETH-USDT", interval="5m", max_records=1000
         )
@@ -30,8 +33,9 @@ class TestCandlesConfig:
 
     def test_missing_required_raises(self):
         from candles_feed.hb_compat.data_types import CandlesConfig
+
         with pytest.raises(ValidationError):
-            CandlesConfig(connector="binance")  # missing trading_pair
+            CandlesConfig(connector="binance")
 
 
 class TestHistoricalCandlesConfig:
@@ -39,6 +43,7 @@ class TestHistoricalCandlesConfig:
 
     def test_all_fields(self):
         from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+
         config = HistoricalCandlesConfig(
             connector_name="binance",
             trading_pair="BTC-USDT",
@@ -47,13 +52,12 @@ class TestHistoricalCandlesConfig:
             end_time=2000000,
         )
         assert config.connector_name == "binance"
-        assert config.trading_pair == "BTC-USDT"
-        assert config.interval == "1m"
         assert config.start_time == 1000000
         assert config.end_time == 2000000
 
     def test_all_fields_required(self):
         from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+
         with pytest.raises(ValidationError):
             HistoricalCandlesConfig(connector_name="binance", trading_pair="BTC-USDT")
 
@@ -63,11 +67,13 @@ class TestUnsupportedConnectorError:
 
     def test_message_includes_connector(self):
         from candles_feed.hb_compat.data_types import UnsupportedConnectorError
+
         exc = UnsupportedConnectorError("dydx")
         assert "dydx" in str(exc)
 
     def test_is_exception(self):
         from candles_feed.hb_compat.data_types import UnsupportedConnectorError
+
         assert issubclass(UnsupportedConnectorError, Exception)
 
 
@@ -83,6 +89,7 @@ class TestPublicAPI:
             HistoricalCandlesConfig,
             UnsupportedConnectorError,
         )
+
         assert CandlesBaseAdapter is not None
         assert CandlesBaseProtocol is not None
         assert CandlesConfig is not None

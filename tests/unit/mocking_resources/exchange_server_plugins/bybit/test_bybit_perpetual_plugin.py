@@ -36,7 +36,6 @@ class TestBybitPerpetualPlugin:
         assert "/v5/market/time" in routes
         assert "/v5/market/instruments-info" in routes
 
-    @pytest.mark.asyncio
     async def test_parse_rest_candles_params(self):
         """Test parsing REST API parameters."""
         # Create a mock request with query parameters

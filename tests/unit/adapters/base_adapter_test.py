@@ -267,7 +267,6 @@ class BaseAdapterTest(abc.ABC):
             args, kwargs = mock_get.call_args
             assert args[0] == adapter._get_rest_url()
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
         """Test fetch_rest_candles async method (for AsyncOnlyAdapter adapters)."""
         # Skip test for SyncOnlyAdapter adapters

@@ -70,11 +70,3 @@ async def binance_mock_server():
 
     # Clean up
     await server.stop()
-
-
-# @pytest.fixture
-# def event_loop():
-#     """Create an event loop for each test."""
-#     loop = asyncio.get_event_loop_policy().new_event_loop()
-#     yield loop
-#     loop.close()

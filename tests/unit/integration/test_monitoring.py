@@ -69,7 +69,6 @@ class TestPrometheusMetricsExporter:
         assert "candles_feed_test_metric_2 3.14" in metrics_text
         assert "candles_feed_test_metric_with_dashes 100" in metrics_text
 
-    @pytest.mark.asyncio
     async def test_metrics_handler(self, exporter, monitoring_manager):
         """Test metrics HTTP handler."""
         from aiohttp.test_utils import make_mocked_request
@@ -113,7 +112,6 @@ class TestHealthCheckServer:
         """Create health check server for testing."""
         return HealthCheckServer(monitoring_manager, integration_config)
 
-    @pytest.mark.asyncio
     async def test_health_handler(self, health_server, monitoring_manager):
         """Test health check handler."""
         from aiohttp.test_utils import make_mocked_request
@@ -139,7 +137,6 @@ class TestHealthCheckServer:
         assert response_data["error_count"] == 0
         assert "checks" in response_data
 
-    @pytest.mark.asyncio
     async def test_readiness_handler(self, health_server, monitoring_manager):
         """Test readiness check handler."""
         from aiohttp.test_utils import make_mocked_request
@@ -160,7 +157,6 @@ class TestHealthCheckServer:
         response_data = json.loads(response.text)
         assert response_data["ready"] is True
 
-    @pytest.mark.asyncio
     async def test_liveness_handler(self, health_server):
         """Test liveness check handler."""
         from aiohttp.test_utils import make_mocked_request

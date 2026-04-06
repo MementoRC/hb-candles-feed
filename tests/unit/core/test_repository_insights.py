@@ -38,7 +38,6 @@ def collector():
 
 
 class TestRepositoryInsightsCollector:
-    @pytest.mark.asyncio
     async def test_init(self, collector):
         assert collector.repo_owner == REPO_OWNER
         assert collector.repo_name == REPO_NAME
@@ -46,7 +45,6 @@ class TestRepositoryInsightsCollector:
         assert "Authorization" in collector.headers
         assert collector.headers["Authorization"] == f"Bearer {MOCK_TOKEN}"
 
-    @pytest.mark.asyncio
     async def test_make_request_success(self, collector):
         with aioresponses() as m:
             url = f"{collector.BASE_URL}/test_endpoint"
@@ -58,7 +56,6 @@ class TestRepositoryInsightsCollector:
             assert result == {"data": "success"}
             m.assert_called_once_with(url, params=None, headers=collector.headers)
 
-    @pytest.mark.asyncio
     async def test_make_request_http_error(self, collector):
         with aioresponses() as m:
             url = f"{collector.BASE_URL}/test_endpoint"
@@ -70,7 +67,6 @@ class TestRepositoryInsightsCollector:
 
             assert excinfo.value.status == 404
 
-    @pytest.mark.asyncio
     async def test_fetch_paginated_data_success(self, collector):
         endpoint = "/paginated_endpoint"
         base_url = collector.BASE_URL
@@ -94,7 +90,6 @@ class TestRepositoryInsightsCollector:
             # Example: Check call count if needed, though specific params are checked by matching URLs
             assert len(m.requests) == 2
 
-    @pytest.mark.asyncio
     async def test_get_issue_metrics_basic(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
             now = datetime.now(timezone.utc)
@@ -181,7 +176,6 @@ class TestRepositoryInsightsCollector:
             assert call_args2.args[2] is session  # client
             assert call_args2.kwargs == {}
 
-    @pytest.mark.asyncio
     async def test_get_pull_request_metrics_stubbed(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
             # Currently stubbed, so it should return default PullRequestMetrics
@@ -191,7 +185,6 @@ class TestRepositoryInsightsCollector:
             assert isinstance(metrics, PullRequestMetrics)
             assert metrics.total_open_prs == 0  # Default value
 
-    @pytest.mark.asyncio
     async def test_get_commit_activity_success(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
             mock_activity_data = [
@@ -212,7 +205,6 @@ class TestRepositoryInsightsCollector:
         assert metrics.commits_last_30_days == (10 + 15 + 5 + 20)
         assert metrics.commit_frequency_per_week == (10 + 15 + 5 + 20) / 4
 
-    @pytest.mark.asyncio
     async def test_get_commit_activity_empty_or_error(self, collector):
         url = f"{collector.BASE_URL}/repos/{REPO_OWNER}/{REPO_NAME}/stats/commit_activity"
 
@@ -237,7 +229,6 @@ class TestRepositoryInsightsCollector:
                 metrics = await collector.get_commit_activity(client=session)
                 assert metrics.commits_last_7_days == 0
 
-    @pytest.mark.asyncio
     async def test_get_release_metrics_success(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
             now = datetime.now(timezone.utc).replace(
@@ -265,7 +256,6 @@ class TestRepositoryInsightsCollector:
         expected_avg_days = (30 + 60) / 2.0
         assert metrics.average_time_between_releases_days == pytest.approx(expected_avg_days)
 
-    @pytest.mark.asyncio
     async def test_get_contributor_stats_success(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
             now_utc = datetime.now(timezone.utc)
@@ -348,7 +338,6 @@ class TestRepositoryInsightsCollector:
         assert ci_snapshot_none is None
         assert cq_snapshot_none is None
 
-    @pytest.mark.asyncio
     async def test_collect_all_metrics_success(self, collector):
         # Mock all get_* methods
         with (
@@ -409,7 +398,6 @@ class TestRepositoryInsightsCollector:
             m_community.assert_called_once()
             m_parse_qg.assert_called_once_with(quality_data)
 
-    @pytest.mark.asyncio
     async def test_collect_all_metrics_partial_failure(self, collector, caplog):
         with (
             patch.object(

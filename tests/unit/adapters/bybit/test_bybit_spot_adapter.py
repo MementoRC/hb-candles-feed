@@ -146,7 +146,6 @@ class TestBybitSpotAdapter(BaseAdapterTest):
         # Bybit spot uses "spot" as category
         assert adapter.get_category_param() == "spot"
 
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_custom(self, adapter, trading_pair, interval):
         """Custom async test for fetch_rest_candles."""
         # Create a mock network client

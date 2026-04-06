@@ -14,7 +14,6 @@ from candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin import
 class TestServerWithSimplePlugin:
     """Test the MockedExchangeServer with MockedPlugin."""
 
-    @pytest.mark.asyncio
     async def test_server_initialization(self, unused_tcp_port):
         """Test server initialization with MockedPlugin."""
         # Create server with MockedPlugin
@@ -34,7 +33,6 @@ class TestServerWithSimplePlugin:
         # Clean up
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_rest_candles_endpoint(self, unused_tcp_port):
         """Test the REST candles endpoint."""
         # Create server with MockedPlugin
@@ -86,7 +84,6 @@ class TestServerWithSimplePlugin:
         # Clean up
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_websocket_connection(self, unused_tcp_port):
         """Test WebSocket connection and subscription."""
         # Create server with MockedPlugin
@@ -142,7 +139,6 @@ class TestServerWithSimplePlugin:
         # Clean up
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_multiple_trading_pairs(self, unused_tcp_port):
         """Test handling multiple trading pairs."""
         # Create server with MockedPlugin
@@ -189,7 +185,6 @@ class TestServerWithSimplePlugin:
         # Clean up
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_time_endpoint(self, unused_tcp_port):
         """Test the time endpoint."""
         # Create server with MockedPlugin
@@ -221,7 +216,6 @@ class TestServerWithSimplePlugin:
         # Clean up
         await server.stop()
 
-    @pytest.mark.asyncio
     async def test_instruments_endpoint(self, unused_tcp_port):
         """Test the instruments endpoint."""
         # Create server with MockedPlugin

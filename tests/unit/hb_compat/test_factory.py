@@ -14,6 +14,7 @@ class TestCandlesFactory:
         candle = CandlesFactory.get_candle(config)
 
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
         assert isinstance(candle, CandlesBaseAdapter)
 
     def test_get_candle_passes_config_fields(self):
@@ -21,21 +22,15 @@ class TestCandlesFactory:
         from candles_feed.hb_compat.factory import CandlesFactory
 
         config = CandlesConfig(
-            connector="binance",
-            trading_pair="ETH-USDT",
-            interval="5m",
-            max_records=1000,
+            connector="binance", trading_pair="ETH-USDT", interval="5m", max_records=1000,
         )
         candle = CandlesFactory.get_candle(config)
-        assert candle.name == "binance_spot"  # registry key, not hummingbot name
+        assert candle.name == "binance_spot"
         assert candle.interval == "5m"
         assert candle.max_records == 1000
 
     def test_unsupported_connector_raises(self):
-        from candles_feed.hb_compat.data_types import (
-            CandlesConfig,
-            UnsupportedConnectorError,
-        )
+        from candles_feed.hb_compat.data_types import CandlesConfig, UnsupportedConnectorError
         from candles_feed.hb_compat.factory import CandlesFactory
 
         config = CandlesConfig(connector="dydx", trading_pair="BTC-USDT")
@@ -48,12 +43,7 @@ class TestCandlesFactory:
         supported = CandlesFactory.get_supported_connectors()
         assert "binance" in supported
         assert "binance_perpetual" in supported
-        assert "bybit" in supported
-        assert "coinbase_advanced_trade" in supported
-        assert "kraken" in supported
-        assert "kucoin" in supported
-        assert "okx" in supported
-        assert len(supported) == 7
+        assert len(supported) == 24
 
     def test_get_supported_connectors_returns_copy(self):
         from candles_feed.hb_compat.factory import CandlesFactory

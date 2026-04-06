@@ -151,7 +151,6 @@ async def spot_adapter(client):
 
 
 # Test cases
-@pytest.mark.asyncio
 async def test_ping_endpoint(client):
     """Test the ping endpoint."""
     # Send a request to the ping endpoint
@@ -163,7 +162,6 @@ async def test_ping_endpoint(client):
     assert data == {}
 
 
-@pytest.mark.asyncio
 async def test_time_endpoint(client):
     """Test the time endpoint."""
     # Send a request to the time endpoint
@@ -176,7 +174,6 @@ async def test_time_endpoint(client):
     assert isinstance(data["serverTime"], int)
 
 
-@pytest.mark.asyncio
 async def test_klines_endpoint(client):
     """Test the klines endpoint."""
     # Send a request to the klines endpoint
@@ -203,7 +200,6 @@ async def test_klines_endpoint(client):
         assert isinstance(candle[5], str)  # Volume
 
 
-@pytest.mark.asyncio
 async def test_error_handling(client):
     """Test error handling for invalid parameters."""
     # Send a request with an invalid symbol

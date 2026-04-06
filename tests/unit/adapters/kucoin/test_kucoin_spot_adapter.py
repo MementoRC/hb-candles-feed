@@ -258,7 +258,6 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
         assert ws_intervals == ["1m"]
 
     # Override the BaseAdapterTest method for async test
-    @pytest.mark.asyncio
     async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
         """Custom test for fetch_rest_candles_async for KuCoin."""
         # Skip test for SyncOnlyAdapter adapters

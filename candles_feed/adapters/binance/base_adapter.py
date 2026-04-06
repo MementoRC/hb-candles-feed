@@ -115,7 +115,8 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             return []
 
         candles: list[CandleData] = []
-        assert isinstance(data, list), f"Unexpected data type: {type(data)}"
+        if not isinstance(data, list):
+            return []
         candles.extend(
             CandleData(
                 timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),

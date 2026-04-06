@@ -43,7 +43,6 @@ class TestAsyncThrottlerIntegration:
         ]
         return MockAsyncThrottler(rate_limits)
 
-    @pytest.mark.asyncio
     async def test_throttler_adapter_basic_functionality(self, rate_limited_throttler):
         """Test basic functionality of HummingbotThrottlerAdapter."""
         adapter = HummingbotThrottlerAdapter(rate_limited_throttler)
@@ -61,7 +60,6 @@ class TestAsyncThrottlerIntegration:
         assert len(rate_limited_throttler.task_logs) == 1
         assert rate_limited_throttler.task_logs[0][0] == "api_calls"
 
-    @pytest.mark.asyncio
     async def test_throttler_adapter_rate_limiting(self, rate_limited_throttler):
         """Test rate limiting behavior of throttler adapter."""
         adapter = HummingbotThrottlerAdapter(rate_limited_throttler)
@@ -79,7 +77,6 @@ class TestAsyncThrottlerIntegration:
         assert len(rate_limited_throttler.task_logs) == 3
         assert all(log[0] == "api_calls" for log in rate_limited_throttler.task_logs)
 
-    @pytest.mark.asyncio
     async def test_throttler_different_limit_ids(self, rate_limited_throttler):
         """Test that different limit IDs work independently."""
         adapter = HummingbotThrottlerAdapter(rate_limited_throttler)
@@ -97,7 +94,6 @@ class TestAsyncThrottlerIntegration:
         task_ids = [log[0] for log in rate_limited_throttler.task_logs]
         assert task_ids == ["api_calls", "heavy_operations", "api_calls"]
 
-    @pytest.mark.asyncio
     async def test_throttler_error_handling(self):
         """Test error handling in throttler adapter."""
 
@@ -169,7 +165,6 @@ class TestWebAssistantsFactoryIntegration:
 
         return MockWebAssistantsFactory(rest_responses=rest_responses, ws_messages=ws_messages)
 
-    @pytest.mark.asyncio
     async def test_rest_assistant_creation(self, configured_factory):
         """Test REST assistant creation from factory."""
         rest_assistant = await configured_factory.get_rest_assistant()
@@ -177,7 +172,6 @@ class TestWebAssistantsFactoryIntegration:
         assert isinstance(rest_assistant, MockRESTAssistant)
         assert rest_assistant.connection is configured_factory.rest_connection
 
-    @pytest.mark.asyncio
     async def test_ws_assistant_creation(self, configured_factory):
         """Test WebSocket assistant creation from factory."""
         ws_assistant = await configured_factory.get_ws_assistant()
@@ -185,7 +179,6 @@ class TestWebAssistantsFactoryIntegration:
         assert isinstance(ws_assistant, MockWSAssistant)
         assert ws_assistant.connection is configured_factory.ws_connection
 
-    @pytest.mark.asyncio
     async def test_rest_assistant_api_calls(self, configured_factory):
         """Test REST API calls through assistant."""
         rest_assistant = await configured_factory.get_rest_assistant()
@@ -210,7 +203,6 @@ class TestWebAssistantsFactoryIntegration:
         assert requests[0]["method"] == "GET"
         assert requests[0]["params"]["symbol"] == "BTCUSDT"
 
-    @pytest.mark.asyncio
     async def test_ws_assistant_connection_and_messaging(self, configured_factory):
         """Test WebSocket connection and message handling."""
         ws_assistant = await configured_factory.get_ws_assistant()
@@ -240,7 +232,6 @@ class TestWebAssistantsFactoryIntegration:
         assert message_data["e"] == "kline"
         assert message_data["s"] == "BTCUSDT"
 
-    @pytest.mark.asyncio
     async def test_factory_async_context_manager(self, configured_factory):
         """Test factory as async context manager."""
         async with configured_factory as factory:
@@ -276,7 +267,6 @@ class TestHummingbotNetworkClientIntegration:
             rate_limits=[{"limit_id": "api_requests", "limit": 10, "time_interval": 1.0}],
         )
 
-    @pytest.mark.asyncio
     async def test_network_client_creation_with_components(self, integrated_components):
         """Test creating HummingbotNetworkClient with components."""
         with patch(
@@ -291,7 +281,6 @@ class TestHummingbotNetworkClientIntegration:
             assert client._web_assistants_factory is integrated_components["web_assistants_factory"]
             assert isinstance(client._throttler_adapter, HummingbotThrottlerAdapter)
 
-    @pytest.mark.asyncio
     async def test_network_client_rest_operations(self, integrated_components):
         """Test REST operations through network client."""
         with patch(
@@ -316,7 +305,6 @@ class TestHummingbotNetworkClientIntegration:
             throttler_logs = integrated_components["throttler"].task_logs
             assert len(throttler_logs) >= 1
 
-    @pytest.mark.asyncio
     async def test_network_client_websocket_operations(self, integrated_components):
         """Test WebSocket operations through network client."""
         with patch(
@@ -342,7 +330,6 @@ class TestHummingbotNetworkClientIntegration:
             assert len(sent_messages) == 1
             assert sent_messages[0]["method"] == "SUBSCRIBE"
 
-    @pytest.mark.asyncio
     async def test_network_client_context_manager(self, integrated_components):
         """Test network client as async context manager."""
         with patch(
@@ -359,7 +346,6 @@ class TestHummingbotNetworkClientIntegration:
                 response = await client.get_rest_data("https://api.test.com/ticker")
                 assert response["symbol"] == "BTCUSDT"
 
-    @pytest.mark.asyncio
     async def test_network_client_error_handling(self, integrated_components):
         """Test error handling in network client operations."""
         with patch(
@@ -381,7 +367,6 @@ class TestHummingbotNetworkClientIntegration:
 class TestNetworkClientFactory:
     """Test NetworkClientFactory component selection logic."""
 
-    @pytest.mark.asyncio
     async def test_factory_with_hummingbot_components(self):
         """Test factory creates HummingbotNetworkClient when components provided."""
         components = create_mock_hummingbot_components()
@@ -395,7 +380,6 @@ class TestNetworkClientFactory:
             assert client._throttler is components["throttler"]
             assert client._web_assistants_factory is components["web_assistants_factory"]
 
-    @pytest.mark.asyncio
     async def test_factory_fallback_to_standalone(self):
         """Test factory falls back to standalone client when components unavailable."""
         # Test with no components
@@ -409,7 +393,6 @@ class TestNetworkClientFactory:
 
             assert isinstance(client, NetworkClient)
 
-    @pytest.mark.asyncio
     async def test_factory_partial_components(self):
         """Test factory behavior with partial component set."""
         # Only provide throttler, no web_assistants_factory
@@ -449,7 +432,6 @@ class TestWSAssistantAdapter:
         ws_mock.iter_messages = mock_iter_messages
         return ws_mock
 
-    @pytest.mark.asyncio
     async def test_ws_adapter_basic_operations(self, mock_ws_assistant):
         """Test basic WebSocket adapter operations."""
         adapter = HummingbotWSAssistantAdapter(mock_ws_assistant)
@@ -464,7 +446,6 @@ class TestWSAssistantAdapter:
         await adapter.send("ping")
         mock_ws_assistant.send.assert_called_with("ping")
 
-    @pytest.mark.asyncio
     async def test_ws_adapter_message_iteration(self, mock_ws_assistant):
         """Test WebSocket message iteration and parsing."""
         adapter = HummingbotWSAssistantAdapter(mock_ws_assistant)
@@ -478,7 +459,6 @@ class TestWSAssistantAdapter:
         assert messages[0]["value"] == 123
         assert messages[1]["type"] == "ping"
 
-    @pytest.mark.asyncio
     async def test_ws_adapter_error_handling(self):
         """Test WebSocket adapter error handling."""
         # Create a mock that raises an exception
@@ -500,7 +480,6 @@ class TestWSAssistantAdapter:
             async for _ in adapter.iter_messages():
                 pass
 
-    @pytest.mark.asyncio
     async def test_ws_adapter_json_parse_error_handling(self, mock_ws_assistant):
         """Test handling of invalid JSON messages."""
 
