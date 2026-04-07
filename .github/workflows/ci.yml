@@ -55,7 +55,7 @@ jobs:
       - name: Check CI status
         run: |
           if [ "${{ needs.checks.result }}" != "success" ]; then
-            echo "CI failed with result: ${{ needs.ci.result }}"
+            echo "CI failed with result: ${{ needs.checks.result }}"
             exit 1
           fi
           echo "All CI checks passed"
