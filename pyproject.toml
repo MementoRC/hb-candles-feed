@@ -57,7 +57,7 @@ dev = [
     "mypy>=1.5.1",
     "cython-lint>=0.15.0",
     # Enhanced integration testing dependencies
-    "redis>=4.5.0",
+    "redis>=7.4.0",
     "websockets>=11.0.0",
     # Load testing dependencies
     "locust>=2.20.0",
