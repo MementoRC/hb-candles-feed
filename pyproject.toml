@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "hatchling>=1.18.0",
+    "hatchling>=1.29.0",
     "Cython>=3",
     "wheel>=0.37.0",
 ]
