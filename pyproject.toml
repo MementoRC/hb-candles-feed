@@ -60,7 +60,7 @@ dev = [
     "redis>=4.5.0",
     "websockets>=11.0.0",
     # Load testing dependencies
-    "locust>=2.20.0",
+    "locust>=2.43.4",
 ]
 doc = [
     "mkdocs",
