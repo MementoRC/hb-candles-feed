@@ -2,7 +2,7 @@
 Tests for the base adapter functionality.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, Mock
 
 import pytest

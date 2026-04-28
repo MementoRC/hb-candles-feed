@@ -17,7 +17,7 @@ Key adapters tested:
 import asyncio
 import logging
 import re
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest.mock import patch
 from urllib.parse import urlparse, urlunparse
 

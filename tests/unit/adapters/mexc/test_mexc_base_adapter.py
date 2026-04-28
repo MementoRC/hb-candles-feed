@@ -2,7 +2,7 @@
 Tests for the MEXCBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 from candles_feed.adapters.mexc.base_adapter import MEXCBaseAdapter
 from candles_feed.adapters.mexc.constants import (

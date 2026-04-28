@@ -2,7 +2,7 @@
 Tests for the HyperliquidSpotAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

@@ -2,7 +2,7 @@
 Unit tests for the RepositoryInsightsCollector.
 """
 
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
 import aiohttp  # Changed from httpx

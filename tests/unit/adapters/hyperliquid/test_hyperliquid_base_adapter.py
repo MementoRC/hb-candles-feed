@@ -2,7 +2,7 @@
 Tests for the HyperliquidBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 from candles_feed.adapters.hyperliquid.base_adapter import HyperliquidBaseAdapter
 from candles_feed.adapters.hyperliquid.constants import (

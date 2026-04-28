@@ -2,7 +2,7 @@
 Tests for the KrakenBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 from candles_feed.adapters.kraken.base_adapter import KrakenBaseAdapter
 from candles_feed.adapters.kraken.constants import (

@@ -2,7 +2,7 @@
 Tests for the GateIoBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 from candles_feed.adapters.gate_io.base_adapter import GateIoBaseAdapter
 from candles_feed.adapters.gate_io.constants import (

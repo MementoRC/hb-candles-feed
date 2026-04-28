@@ -5,7 +5,7 @@ This class provides shared functionality for Coinbase Advanced Trade plugins.
 """
 
 from abc import ABC
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 from aiohttp import web

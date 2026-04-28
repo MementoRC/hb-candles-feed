@@ -3,7 +3,7 @@ Unit tests for the CandlesFeed class.
 """
 
 from collections import deque
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

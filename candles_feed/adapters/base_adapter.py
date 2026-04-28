@@ -5,7 +5,7 @@ This module provides a base implementation for exchange adapters to reduce code 
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Any  # Added Any
 

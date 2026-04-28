@@ -3,7 +3,7 @@ Tests for the KrakenSpotAdapter using the base adapter test class.
 """
 
 import contextlib
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest import mock
 
 import pytest

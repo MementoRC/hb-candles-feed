@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 

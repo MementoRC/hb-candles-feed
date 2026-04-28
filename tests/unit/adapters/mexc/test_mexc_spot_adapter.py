@@ -3,7 +3,7 @@ Unit tests for the MEXCSpotAdapter class using the BaseAdapterTest class.
 """
 
 import contextlib
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest import mock
 
 import pytest

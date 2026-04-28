@@ -2,7 +2,7 @@
 Unit tests for the CoinbaseAdvancedTradeSpotPlugin class.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 import pytest
 

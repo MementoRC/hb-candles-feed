@@ -7,7 +7,7 @@ work correctly with different exchange plugins.
 
 import asyncio
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 import aiohttp
 import pytest

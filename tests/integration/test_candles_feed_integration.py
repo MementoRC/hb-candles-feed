@@ -7,7 +7,7 @@ the CandlesFeed component with different exchange adapters.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 

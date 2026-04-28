@@ -3,7 +3,7 @@ Unit tests for the KucoinPerpetualAdapter class.
 """
 
 import contextlib
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest import mock
 from unittest.mock import patch
 

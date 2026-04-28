@@ -3,7 +3,7 @@ Structured candle data representation for the Candle Feed V2 framework.
 """
 
 from dataclasses import InitVar, dataclass, field
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from typing import ClassVar
 
 

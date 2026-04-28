@@ -2,7 +2,7 @@
 Tests for the KucoinBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest import mock
 
 from candles_feed.adapters.kucoin.base_adapter import KucoinBaseAdapter

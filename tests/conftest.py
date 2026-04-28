@@ -5,7 +5,7 @@ Global test fixtures and configuration for the Candles Feed framework tests.
 import logging
 import os
 from collections import deque
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

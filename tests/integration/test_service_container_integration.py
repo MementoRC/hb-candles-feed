@@ -14,7 +14,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 import pytest
 

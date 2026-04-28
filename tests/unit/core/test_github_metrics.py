@@ -2,7 +2,7 @@
 Unit tests for GitHub metrics data classes.
 """
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime, timezone
 
 from candles_feed.core.github_metrics import (
     CICDPerformanceSnapshot,
