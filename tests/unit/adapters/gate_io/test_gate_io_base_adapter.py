@@ -2,7 +2,7 @@
 Tests for the GateIoBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 from candles_feed.adapters.gate_io.base_adapter import GateIoBaseAdapter
 from candles_feed.adapters.gate_io.constants import (
@@ -88,7 +88,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return [
             [
@@ -115,7 +115,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "method": "update",
@@ -172,7 +172,7 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
     def test_candle_data_field_mapping(self, adapter):
         """Test mapping of raw API data to CandleData fields."""
         # Test parsing a single candle record
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         candle_data = [
             str(timestamp),  # timestamp
             "50000.0",  # open

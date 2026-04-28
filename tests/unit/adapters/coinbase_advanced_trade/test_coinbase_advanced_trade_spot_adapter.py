@@ -2,7 +2,7 @@
 Tests for the CoinbaseAdvancedTradeSpotAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -64,7 +64,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
+        base_time = datetime(2023, 1, 1, tzinfo=UTC).isoformat()
 
         return {
             "candles": [
@@ -77,7 +77,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
                     "volume": "100.0",
                 },
                 {
-                    "start": (datetime(2023, 1, 1, 0, 1, tzinfo=timezone.utc)).isoformat(),
+                    "start": (datetime(2023, 1, 1, 0, 1, tzinfo=UTC)).isoformat(),
                     "low": "50000.0",
                     "high": "52000.0",
                     "open": "50500.0",
@@ -89,12 +89,12 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
+        base_time = datetime(2023, 1, 1, tzinfo=UTC).isoformat()
 
         return {
             "channel": "candles",
             "client_id": "test-client",
-            "timestamp": datetime(2023, 1, 1, 0, 0, 1, tzinfo=timezone.utc).isoformat(),
+            "timestamp": datetime(2023, 1, 1, 0, 0, 1, tzinfo=UTC).isoformat(),
             "sequence_num": 1234,
             "events": [
                 {
@@ -167,7 +167,7 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
         """Test Coinbase Advanced Trade-specific ISO datetime parsing."""
         # Test parsing ISO datetime strings
         iso_datetime = "2023-01-01T00:00:00Z"
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         # Create a simple object with ISO datetime string
         test_data = {"timestamp": iso_datetime}

@@ -3,7 +3,7 @@ Unit tests for the KucoinPerpetualAdapter class.
 """
 
 import contextlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest import mock
 from unittest.mock import patch
 
@@ -93,7 +93,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
     def test_kucoin_perpetual_rest_response_parsing(self, adapter):
         """Test KuCoin perpetual-specific REST response parsing."""
         # Create a custom response in KuCoin perpetual format
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         response = {
             "code": "200000",
@@ -136,7 +136,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
     def test_kucoin_perpetual_ws_message_parsing(self, adapter):
         """Test KuCoin perpetual-specific WebSocket message parsing."""
         # Create a custom WebSocket message in KuCoin perpetual format
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         message = {
             "type": "message",
@@ -174,7 +174,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
         # For perpetual, KuCoin uses numeric values, not strings
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "code": "200000",
@@ -202,7 +202,7 @@ class TestKucoinPerpetualAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "type": "message",

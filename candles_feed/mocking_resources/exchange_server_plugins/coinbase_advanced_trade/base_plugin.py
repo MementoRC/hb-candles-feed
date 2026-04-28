@@ -5,7 +5,7 @@ This class provides shared functionality for Coinbase Advanced Trade plugins.
 """
 
 from abc import ABC
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from typing import Any
 
 from aiohttp import web
@@ -92,7 +92,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
 
         formatted_candles = []
         for candle in candles:
-            timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime(
+            timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=UTC).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
             )
             formatted_candles.append(
@@ -143,10 +143,10 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         #   ]
         # }
 
-        timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime(
+        timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=UTC).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
-        current_time_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
+        current_time_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
 
         return {
             "channel": "candles",
@@ -346,7 +346,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         if not server._check_rate_limit(client_ip, "rest"):
             return web.json_response({"error": "Rate limit exceeded"}, status=429)
 
-        current_time = datetime.fromtimestamp(server._time(), tz=timezone.utc)
+        current_time = datetime.fromtimestamp(server._time(), tz=UTC)
         iso_time = current_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
 
         return web.json_response({"iso": iso_time, "epoch": server._time()})

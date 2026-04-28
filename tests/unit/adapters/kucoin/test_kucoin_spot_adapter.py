@@ -3,7 +3,7 @@ Unit tests for the KucoinSpotAdapter class.
 """
 
 import contextlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest import mock
 from unittest.mock import patch
 
@@ -85,7 +85,7 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
     def test_kucoin_specific_rest_response_parsing(self, adapter):
         """Test KuCoin-specific REST response parsing."""
         # Create a custom response in KuCoin format
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         response = {
             "code": "200000",
@@ -128,7 +128,7 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
     def test_kucoin_specific_ws_message_parsing(self, adapter):
         """Test KuCoin-specific WebSocket message parsing."""
         # Create a custom WebSocket message in KuCoin format
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         message = {
             "type": "message",
@@ -167,7 +167,7 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
         # Use the fixture format defined in conftest.py
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "code": "200000",
@@ -196,7 +196,7 @@ class TestKucoinSpotAdapter(BaseAdapterTest):
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
         # Use the fixture format defined in conftest.py
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "type": "message",

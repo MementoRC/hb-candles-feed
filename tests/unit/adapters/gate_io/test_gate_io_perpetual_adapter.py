@@ -2,7 +2,7 @@
 Tests for the GateIoPerpetualAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest import mock
 
 import pytest
@@ -73,7 +73,7 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return [
             [
@@ -100,7 +100,7 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "method": "update",

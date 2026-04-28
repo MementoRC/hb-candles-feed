@@ -2,7 +2,7 @@
 Tests for the HyperliquidBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 from candles_feed.adapters.hyperliquid.base_adapter import HyperliquidBaseAdapter
 from candles_feed.adapters.hyperliquid.constants import (
@@ -81,7 +81,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return [
             [base_time, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
@@ -90,7 +90,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "channel": CHANNEL_NAME,
@@ -126,7 +126,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
 
     def test_parse_rest_response_field_mapping(self, adapter):
         """Test correct mapping of REST response fields."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         candle_data = [timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]
 
         # Parse a mocked rest response with a single candle
@@ -149,7 +149,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
 
     def test_parse_ws_message_field_mapping(self, adapter):
         """Test correct mapping of WebSocket message fields."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         candle_data = [timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]
 
         # Parse a mocked WebSocket message
@@ -171,7 +171,7 @@ class TestHyperliquidBaseAdapter(BaseAdapterTest):
 
     def test_parse_ws_message_validation(self, adapter):
         """Test WebSocket message validation."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         # Test with invalid channel
         invalid_channel = {

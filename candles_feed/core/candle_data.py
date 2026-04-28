@@ -3,7 +3,7 @@ Structured candle data representation for the Candle Feed V2 framework.
 """
 
 from dataclasses import InitVar, dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from typing import ClassVar
 
 
@@ -102,8 +102,8 @@ class CandleData:
         :return: UTC timestamp in seconds
         """
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return int(dt.astimezone(timezone.utc).timestamp())
+            dt = dt.replace(tzinfo=UTC)
+        return int(dt.astimezone(UTC).timestamp())
 
     def to_array(self) -> list[float]:
         """Convert to array format for backward compatibility.

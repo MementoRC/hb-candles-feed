@@ -2,7 +2,7 @@
 Tests for the HyperliquidSpotAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -71,7 +71,7 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return [
             [base_time, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
@@ -80,7 +80,7 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "channel": "candles",
@@ -129,7 +129,7 @@ class TestHyperliquidSpotAdapter(BaseAdapterTest):
     def test_hyperliquid_parse_rest_response_details(self, adapter):
         """Test HyperLiquid-specific response parsing details."""
         # Test with a minimal valid response
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         minimal_response = [
             [timestamp, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"]
         ]

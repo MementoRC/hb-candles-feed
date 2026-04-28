@@ -7,7 +7,7 @@ the CandlesFeed component with different exchange adapters.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 
 import pytest
 
@@ -634,7 +634,7 @@ class TestCandlesFeedIntegration:
                         success_count += 1
                         logging.info(f"Attempt {attempt} succeeded with {candle_count} candles")
 
-                except (asyncio.TimeoutError, Exception) as e:
+                except (TimeoutError, Exception) as e:
                     # Expected errors due to network conditions
                     logging.info(f"Expected error on attempt {attempt}: {e}")
 
@@ -738,7 +738,7 @@ class TestCandlesFeedIntegration:
 
             # Calculate a time range
             # The mock server has data within a reasonable range of "now"
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             logging.info(f"Current time: {now}")
 
             # Try to fetch a specific range (last 10 minutes)

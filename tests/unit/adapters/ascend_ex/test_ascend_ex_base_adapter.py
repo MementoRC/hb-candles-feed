@@ -2,7 +2,7 @@
 Tests for the AscendExBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 from candles_feed.adapters.ascend_ex.base_adapter import AscendExBaseAdapter
 from candles_feed.adapters.ascend_ex.constants import (
@@ -73,7 +73,7 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
 
         return {
             "status": "ok",
@@ -103,7 +103,7 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
 
         return {
             "m": "bar",
@@ -168,7 +168,7 @@ class TestAscendExBaseAdapter(BaseAdapterTest):
     def test_parse_rest_response_no_volume(self, adapter):
         """Test that AscendEx REST response parsing correctly handles volume data."""
         # AscendEx provides quote asset volume but not base asset volume
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
         response = {
             "status": "ok",
             "data": [

@@ -3,7 +3,7 @@ Unit tests for the MEXCPerpetualAdapter class using the BaseAdapterTest class.
 """
 
 import contextlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest import mock
 
 import pytest
@@ -70,9 +70,7 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(
-            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()
-        )  # In seconds for perpetual
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())  # In seconds for perpetual
 
         return {
             "success": True,
@@ -101,9 +99,7 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(
-            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()
-        )  # In seconds for perpetual
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())  # In seconds for perpetual
 
         return {
             "channel": "push.kline",
@@ -170,7 +166,7 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
 
     def test_parse_rest_response_field_mapping(self, adapter):
         """Test field mapping for REST API response parsing."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         # Create a mock response data
         response = {
@@ -206,7 +202,7 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
 
     def test_parse_ws_message_field_mapping(self, adapter):
         """Test field mapping for WebSocket message parsing."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         # Create a mock WebSocket message
         message = {

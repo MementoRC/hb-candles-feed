@@ -3,7 +3,7 @@ Time-related utility functions for the Candle Feed framework.
 """
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 
 def round_timestamp_to_interval(timestamp: int, interval_seconds: int) -> int:
@@ -58,7 +58,7 @@ def timestamp_to_datetime(timestamp: int) -> datetime:
     :param timestamp: Timestamp in seconds
     :returns: Datetime object
     """
-    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return datetime.fromtimestamp(timestamp, tz=UTC)
 
 
 def datetime_to_timestamp(dt: datetime) -> int:
@@ -68,5 +68,5 @@ def datetime_to_timestamp(dt: datetime) -> int:
     :returns: Timestamp in seconds
     """
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return int(dt.timestamp())

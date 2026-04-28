@@ -2,7 +2,7 @@
 Tests for the KucoinBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest import mock
 
 from candles_feed.adapters.kucoin.base_adapter import KucoinBaseAdapter
@@ -197,9 +197,7 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(
-            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
-        )  # In milliseconds
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)  # In milliseconds
 
         return {
             "code": "200000",
@@ -227,9 +225,7 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(
-            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
-        )  # In milliseconds
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)  # In milliseconds
 
         return {
             "type": "message",
@@ -287,7 +283,7 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
 
     def test_parse_rest_response_field_mapping(self, adapter):
         """Test field mapping for REST response parsing."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)
 
         # Create a mock response
         mock_response = {
@@ -322,7 +318,7 @@ class TestKucoinBaseAdapter(BaseAdapterTest):
 
     def test_parse_ws_message_field_mapping(self, adapter):
         """Test field mapping for WebSocket message parsing."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)
 
         # Create a mock WebSocket message
         message = {

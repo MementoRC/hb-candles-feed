@@ -10,7 +10,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from enum import Enum
 from typing import Any
 
@@ -213,7 +213,7 @@ class DiscordNotificationProvider(NotificationProvider):
             "color": color_map.get(message.level, 0x36A64F),
             "fields": fields,
             "footer": {"text": "Hummingbot Candles Feed"},
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         payload = {"embeds": [embed]}

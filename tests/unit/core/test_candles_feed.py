@@ -3,7 +3,7 @@ Unit tests for the CandlesFeed class.
 """
 
 from collections import deque
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -207,7 +207,7 @@ class TestCandlesFeed:
     async def test_get_candles(self, candles_feed):
         """Test getting candles."""
         # Create some test candles
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         test_candles = [
             CandleData(
                 timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
@@ -236,7 +236,7 @@ class TestCandlesFeed:
     async def test_fetch_candles(self, candles_feed):
         """Test fetching historical candles."""
         # Setup test data
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         mock_candles = [
             CandleData(
                 timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
@@ -275,7 +275,7 @@ class TestCandlesFeed:
     async def test_fetch_candles_with_limit(self, candles_feed):
         """Test fetching historical candles."""
         # Setup test data
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         mock_candles = [
             CandleData(
                 timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
@@ -314,7 +314,7 @@ class TestCandlesFeed:
     async def test_add_candle(self, candles_feed):
         """Test adding a single candle."""
         # Create a test candle
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         candle = CandleData(
             timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
         )
@@ -348,7 +348,7 @@ class TestCandlesFeed:
         candles_feed._candles = deque(maxlen=3)
 
         # Create some test candles
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         for i in range(5):
             candle = CandleData(
                 timestamp_raw=base_time + i * 60,

@@ -3,7 +3,7 @@ Unit tests for the MEXCSpotAdapter class using the BaseAdapterTest class.
 """
 
 import contextlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from unittest import mock
 
 import pytest
@@ -71,9 +71,7 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(
-            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
-        )  # In milliseconds
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)  # In milliseconds
 
         return [
             [
@@ -108,9 +106,7 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(
-            datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
-        )  # In milliseconds
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)  # In milliseconds
 
         return {
             "d": {
@@ -159,7 +155,7 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
 
     def test_parse_rest_response_field_mapping(self, adapter):
         """Test field mapping for REST response parsing."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)
 
         # Create a mock response row
         row = [
@@ -197,7 +193,7 @@ class TestMEXCSpotAdapter(BaseAdapterTest):
 
     def test_parse_ws_message_field_mapping(self, adapter):
         """Test field mapping for WebSocket message parsing."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)
 
         # Create a mock WebSocket message
         message = {

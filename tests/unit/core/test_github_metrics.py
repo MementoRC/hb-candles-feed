@@ -2,7 +2,7 @@
 Unit tests for GitHub metrics data classes.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 from candles_feed.core.github_metrics import (
     CICDPerformanceSnapshot,
@@ -103,7 +103,7 @@ class TestRepositoryMetricsReport:
         assert report.repo_owner == "test_owner"
         assert report.repo_name == "test_repo"
         assert isinstance(report.timestamp, str)
-        now = datetime.now(timezone.utc)  # Changed from utcnow()
+        now = datetime.now(UTC)  # Changed from utcnow()
         report_time = datetime.fromisoformat(report.timestamp.replace("Z", "+00:00"))
         assert abs((now - report_time).total_seconds()) < 5  # Check if timestamp is recent
 
