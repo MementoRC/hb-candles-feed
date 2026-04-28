@@ -2,7 +2,7 @@
 Unit tests for the RepositoryInsightsCollector.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
 import aiohttp  # Changed from httpx
@@ -92,7 +92,7 @@ class TestRepositoryInsightsCollector:
 
     async def test_get_issue_metrics_basic(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             # seven_days_ago = now - timedelta(days=7) # Not directly used in this version of test logic
 
         mock_open_issues_resp = [
@@ -231,7 +231,7 @@ class TestRepositoryInsightsCollector:
 
     async def test_get_release_metrics_success(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
-            now = datetime.now(timezone.utc).replace(
+            now = datetime.now(UTC).replace(
                 microsecond=0
             )  # Ensure microseconds are zero for consistent comparison
             mock_releases_data = [
@@ -258,7 +258,7 @@ class TestRepositoryInsightsCollector:
 
     async def test_get_contributor_stats_success(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
-            now_utc = datetime.now(timezone.utc)
+            now_utc = datetime.now(UTC)
             thirty_days_ago_ts = (now_utc - timedelta(days=30)).timestamp()
 
         mock_contributors_data = [

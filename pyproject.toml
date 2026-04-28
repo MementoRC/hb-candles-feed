@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 name = "hb-candles-feed"
 description = "A Hummingbot candles-feed sub-package"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Memento RC Mori", email = "claude.rc@gmail.com"}
@@ -19,8 +19,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Cython",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -171,24 +169,16 @@ hatchling = "*"
 build = "python -m build"
 
 # Python version features
-[tool.pixi.feature.py310.dependencies]
-python = "3.10.*"
-
-[tool.pixi.feature.py311.dependencies]
-python = "3.11.*"
-
 [tool.pixi.feature.py312.dependencies]
-python = "3.12.*"
+python = ">=3.12,<3.13"
 
 # Environments
 [tool.pixi.environments]
-default = { features = ["dev"], solve-group = "default" }
-docs = { features = ["docs"], solve-group = "default" }
-ci = { features = ["ci", "dev"], solve-group = "default" }
-quality-extended = { features = ["quality-extended"], solve-group = "default" }
-quality-ci = { features = ["quality-ci"], solve-group = "default" }
-py310 = { features = ["py310", "dev"], solve-group = "py310" }
-py311 = { features = ["py311", "dev"], solve-group = "py311" }
+default = { features = ["dev", "py312"], solve-group = "default" }
+docs = { features = ["docs", "py312"], solve-group = "default" }
+ci = { features = ["ci", "dev", "py312"], solve-group = "default" }
+quality-extended = { features = ["quality-extended", "py312"], solve-group = "default" }
+quality-ci = { features = ["quality-ci", "py312"], solve-group = "default" }
 py312 = { features = ["py312", "dev"], solve-group = "py312" }
 
 # Keep existing tool configurations
@@ -208,7 +198,7 @@ skip_empty = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:", "raise NotImplementedError"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 100
 
 [tool.ruff.format]
@@ -266,7 +256,7 @@ addopts = "--strict-markers --strict-config"
 minversion = "7.0"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 ignore_missing_imports = true
 strict_optional = false
 warn_return_any = false

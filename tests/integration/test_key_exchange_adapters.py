@@ -17,7 +17,7 @@ Key adapters tested:
 import asyncio
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import patch
 from urllib.parse import urlparse, urlunparse
 
@@ -299,8 +299,8 @@ class TestBinanceSpotAdapter:
         logger.info("Testing Binance REST candle retrieval")
 
         # Fetch historical candles
-        start_time = int(datetime.now(timezone.utc).timestamp()) - 3600  # 1 hour ago
-        end_time = int(datetime.now(timezone.utc).timestamp())
+        start_time = int(datetime.now(UTC).timestamp()) - 3600  # 1 hour ago
+        end_time = int(datetime.now(UTC).timestamp())
 
         candles = await binance_candles_feed.fetch_candles(
             start_time=start_time, end_time=end_time, limit=50

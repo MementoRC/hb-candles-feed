@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any  # Added Any
 
 import aiohttp  # Using aiohttp for async requests
@@ -138,7 +138,7 @@ class RepositoryInsightsCollector:
 
     async def get_issue_metrics(self, client: aiohttp.ClientSession) -> IssueMetrics:
         metrics = IssueMetrics()
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         seven_days_ago_utc = now_utc - timedelta(days=7)
 
         open_issues_data = await self._fetch_paginated_data(
@@ -152,7 +152,7 @@ class RepositoryInsightsCollector:
             oldest_issue_date_str = open_issues_data[0]["created_at"]  # Due to sort direction
             oldest_issue_date = datetime.strptime(
                 oldest_issue_date_str, "%Y-%m-%dT%H:%M:%SZ"
-            ).replace(tzinfo=timezone.utc)
+            ).replace(tzinfo=UTC)
             metrics.oldest_open_issue_days = (now_utc - oldest_issue_date).total_seconds() / (
                 24 * 3600
             )
@@ -174,7 +174,7 @@ class RepositoryInsightsCollector:
 
         for issue in all_issues_last_period:
             created_at = datetime.strptime(issue["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(
-                tzinfo=timezone.utc
+                tzinfo=UTC
             )
 
             if created_at >= seven_days_ago_utc and (
@@ -184,7 +184,7 @@ class RepositoryInsightsCollector:
 
             if issue["closed_at"]:
                 closed_at = datetime.strptime(issue["closed_at"], "%Y-%m-%dT%H:%M:%SZ").replace(
-                    tzinfo=timezone.utc
+                    tzinfo=UTC
                 )
                 if closed_at >= seven_days_ago_utc:  # Check if closed within the last 7 days
                     metrics.closed_issues_last_7_days += 1
@@ -284,7 +284,7 @@ class RepositoryInsightsCollector:
             if last_release_date_str:
                 metrics.last_release_date = (
                     datetime.strptime(last_release_date_str, "%Y-%m-%dT%H:%M:%SZ")
-                    .replace(tzinfo=timezone.utc)
+                    .replace(tzinfo=UTC)
                     .isoformat()
                 )
 
@@ -293,7 +293,7 @@ class RepositoryInsightsCollector:
                     [
                         datetime.strptime(
                             r.get("published_at") or r.get("created_at"), "%Y-%m-%dT%H:%M:%SZ"
-                        ).replace(tzinfo=timezone.utc)
+                        ).replace(tzinfo=UTC)
                         for r in releases
                         if r.get("published_at") or r.get("created_at")
                     ],
@@ -322,7 +322,7 @@ class RepositoryInsightsCollector:
                 metrics.total_contributors = len(contributors_data)
 
                 active_count = 0
-                thirty_days_ago_ts = (datetime.now(timezone.utc) - timedelta(days=30)).timestamp()
+                thirty_days_ago_ts = (datetime.now(UTC) - timedelta(days=30)).timestamp()
 
                 for contrib_stat in contributors_data:
                     if "weeks" in contrib_stat:

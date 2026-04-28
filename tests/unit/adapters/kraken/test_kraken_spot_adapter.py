@@ -3,7 +3,7 @@ Tests for the KrakenSpotAdapter using the base adapter test class.
 """
 
 import contextlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest import mock
 
 import pytest
@@ -86,7 +86,7 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "error": [],
@@ -119,7 +119,7 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return [
             12345,  # channelID
@@ -143,7 +143,7 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
     def test_kraken_rest_response_structure(self, adapter):
         """Test Kraken-specific REST response structure handling."""
         # Create a custom response with Kraken's unique structure
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         response = {
             "error": [],
@@ -200,7 +200,7 @@ class TestKrakenSpotAdapter(BaseAdapterTest):
     def test_kraken_ws_message_parsing(self, adapter):
         """Test parsing Kraken's unique WebSocket message format."""
         # Kraken's WebSocket messages follow a specific array structure
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         ws_message = [
             42,  # channelID

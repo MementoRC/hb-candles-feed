@@ -219,7 +219,7 @@ class TestEnhancedDependencyManagement:
                     if len(candles) > 0:
                         success_count += 1
                     logger.info(f"Attempt {attempt + 1}: {len(candles)} candles")
-                except (asyncio.TimeoutError, Exception) as e:
+                except (TimeoutError, Exception) as e:
                     logger.info(f"Expected error on attempt {attempt + 1}: {type(e).__name__}")
 
                 await asyncio.sleep(0.5)  # Brief pause between attempts
@@ -381,7 +381,7 @@ class TestEnhancedDependencyManagement:
                 try:
                     await asyncio.wait_for(feed.fetch_candles(limit=3), timeout=5.0)
                     logger.info(f"Unexpected success on attempt {attempt + 1}")
-                except (asyncio.TimeoutError, Exception) as e:
+                except (TimeoutError, Exception) as e:
                     failure_count += 1
                     logger.info(f"Expected failure {failure_count}: {type(e).__name__}")
 

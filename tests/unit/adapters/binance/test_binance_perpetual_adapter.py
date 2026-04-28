@@ -2,7 +2,7 @@
 Tests for the BinancePerpetualAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -67,7 +67,7 @@ class TestBinancePerpetualAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
 
         return [
             [
@@ -102,7 +102,7 @@ class TestBinancePerpetualAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
 
         return {
             "e": "kline",  # Event type

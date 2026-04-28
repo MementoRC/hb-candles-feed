@@ -2,7 +2,7 @@
 Tests for the KrakenBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from candles_feed.adapters.kraken.base_adapter import KrakenBaseAdapter
 from candles_feed.adapters.kraken.constants import (
@@ -103,7 +103,7 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
             "error": [],
@@ -136,7 +136,7 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return [
             12345,  # channelID
@@ -190,7 +190,7 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
     def test_parse_rest_response_field_mapping(self, adapter):
         """Test field mapping in REST response parsing."""
         # Create a mock response with a single pair
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         mock_response = {
             "error": [],
             "result": {
@@ -227,7 +227,7 @@ class TestKrakenBaseAdapter(BaseAdapterTest):
 
     def test_parse_ws_message_field_mapping(self, adapter):
         """Test field mapping in WebSocket message parsing."""
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         ws_message = [
             42,  # channelID
             [

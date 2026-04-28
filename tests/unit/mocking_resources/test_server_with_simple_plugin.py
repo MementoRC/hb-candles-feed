@@ -132,7 +132,7 @@ class TestServerWithSimplePlugin:
                     assert "low" in update["data"]
                     assert "close" in update["data"]
                     assert "volume" in update["data"]
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # It's okay if we don't get an update in this short timeframe
                 pass
 

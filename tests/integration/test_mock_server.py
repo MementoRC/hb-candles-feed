@@ -7,7 +7,7 @@ work correctly with different exchange plugins.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import aiohttp
 import pytest
@@ -130,7 +130,7 @@ class TestMockServer:
                         break
                     # Otherwise, this might be a candle update message, which we can ignore
                     self.logger.info(f"Received non-subscription message: {response}")
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     break
 
             # Make sure we found the subscription response
@@ -250,7 +250,7 @@ class TestMockServer:
                                 success_count += 1
                         else:
                             error_count += 1
-                except (asyncio.TimeoutError, aiohttp.ClientError):
+                except (TimeoutError, aiohttp.ClientError):
                     error_count += 1
 
                 await asyncio.sleep(0.1)
@@ -281,7 +281,7 @@ class TestMockServer:
     async def test_mock_candle_data_methods(self):
         """Test that the CandleData class can create realistic candle sequences."""
         # Start with a base timestamp and price
-        base_timestamp = int(datetime.now(timezone.utc).timestamp())
+        base_timestamp = int(datetime.now(UTC).timestamp())
         base_price = 50000.0
 
         # Create a sequence of candles

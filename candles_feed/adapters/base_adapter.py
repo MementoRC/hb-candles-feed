@@ -5,7 +5,7 @@ This module provides a base implementation for exchange adapters to reduce code 
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Any  # Added Any
 
@@ -130,9 +130,7 @@ class BaseAdapter(ABC):
         if self.TIMESTAMP_UNIT.lower() == "milliseconds":
             return int(timestamp * 1000)
         if self.TIMESTAMP_UNIT == "iso8601":
-            return datetime.fromtimestamp(float(timestamp), timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
+            return datetime.fromtimestamp(float(timestamp), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         raise NotImplementedError("Exchange must define TIMESTAMP_UNIT.")
 
     @staticmethod
@@ -145,7 +143,7 @@ class BaseAdapter(ABC):
         """
         if timestamp is None:
             # Return current time in seconds if None is provided
-            return int(datetime.now(timezone.utc).timestamp())
+            return int(datetime.now(UTC).timestamp())
 
         if isinstance(timestamp, str) and ":" in timestamp:
             return int(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp())
