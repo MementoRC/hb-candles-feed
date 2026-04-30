@@ -78,7 +78,6 @@ class PacificaPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return f"{REST_URL}{CANDLES_ENDPOINT}"
 
-    @override
     def _get_ws_url(self) -> str:
         """Get WebSocket URL (internal implementation).
 
