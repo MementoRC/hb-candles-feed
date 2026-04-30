@@ -7,6 +7,7 @@ to reduce code duplication across spot and perpetual markets.
 
 import time
 from abc import abstractmethod
+from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -45,6 +46,7 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -53,6 +55,7 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         return self._get_ws_url()
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -88,6 +91,7 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -114,6 +118,7 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -140,6 +145,7 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -147,6 +153,7 @@ class KucoinBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 

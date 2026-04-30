@@ -2,6 +2,8 @@
 Kraken spot exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 from .base_adapter import KrakenBaseAdapter
@@ -17,6 +19,7 @@ class KrakenSpotAdapter(KrakenBaseAdapter):
     """Kraken spot exchange adapter."""
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -25,6 +28,7 @@ class KrakenSpotAdapter(KrakenBaseAdapter):
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 
