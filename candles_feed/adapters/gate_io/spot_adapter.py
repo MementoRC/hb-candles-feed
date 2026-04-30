@@ -2,6 +2,8 @@
 Gate.io spot exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 from .base_adapter import GateIoBaseAdapter
@@ -17,6 +19,7 @@ from .constants import (
 class GateIoSpotAdapter(GateIoBaseAdapter):
     """Gate.io spot exchange adapter."""
 
+    @override
     @staticmethod
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
@@ -25,6 +28,7 @@ class GateIoSpotAdapter(GateIoBaseAdapter):
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
+    @override
     @staticmethod
     def _get_ws_url() -> str:
         """Get WebSocket URL.
@@ -33,6 +37,7 @@ class GateIoSpotAdapter(GateIoBaseAdapter):
         """
         return SPOT_WSS_URL
 
+    @override
     def get_channel_name(self) -> str:
         """Get WebSocket channel name.
 
