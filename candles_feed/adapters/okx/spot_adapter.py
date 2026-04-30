@@ -2,6 +2,8 @@
 OKX spot exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 from .base_adapter import OKXBaseAdapter
@@ -16,6 +18,7 @@ from .constants import (
 class OKXSpotAdapter(OKXBaseAdapter):
     """OKX spot exchange adapter."""
 
+    @override
     @staticmethod
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
@@ -24,6 +27,7 @@ class OKXSpotAdapter(OKXBaseAdapter):
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
+    @override
     @staticmethod
     def _get_ws_url() -> str:
         """Get WebSocket URL (internal implementation).

@@ -2,6 +2,8 @@
 OKX perpetual exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 from .base_adapter import OKXBaseAdapter
@@ -16,8 +18,9 @@ from .constants import (
 class OKXPerpetualAdapter(OKXBaseAdapter):
     """OKX perpetual exchange adapter."""
 
+    @override
     @staticmethod
-    def get_trading_pair_format(trading_pair: str) -> str:  # type: ignore[override]
+    def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
         For perpetual contracts, OKX requires the SWAP suffix to be added.
@@ -30,14 +33,16 @@ class OKXPerpetualAdapter(OKXBaseAdapter):
             return trading_pair
         return f"{trading_pair}-SWAP"
 
-    def _get_rest_url(self) -> str:  # type: ignore[override]
+    @override
+    def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
         :returns: REST API URL
         """
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
-    def _get_ws_url(self) -> str:  # type: ignore[override]
+    @override
+    def _get_ws_url(self) -> str:
         """Get WebSocket URL.
 
         :returns: WebSocket URL
