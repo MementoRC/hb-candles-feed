@@ -24,8 +24,8 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
 
     TIMESTAMP_UNIT = "milliseconds"
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -33,8 +33,8 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
-    @override
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL (internal implementation).
 

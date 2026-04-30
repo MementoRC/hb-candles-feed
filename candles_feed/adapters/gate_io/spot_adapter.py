@@ -19,8 +19,8 @@ from .constants import (
 class GateIoSpotAdapter(GateIoBaseAdapter):
     """Gate.io spot exchange adapter."""
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -28,8 +28,8 @@ class GateIoSpotAdapter(GateIoBaseAdapter):
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
-    @override
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 

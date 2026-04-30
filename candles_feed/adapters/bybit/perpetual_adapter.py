@@ -17,8 +17,8 @@ from candles_feed.core.exchange_registry import ExchangeRegistry
 class BybitPerpetualAdapter(BybitBaseAdapter):
     """Bybit perpetual exchange adapter."""
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -26,8 +26,8 @@ class BybitPerpetualAdapter(BybitBaseAdapter):
         """
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
-    @override
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 

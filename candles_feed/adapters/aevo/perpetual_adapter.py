@@ -42,8 +42,8 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     ticker messages is used to construct synthetic candles.
     """
 
-    @override
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to Aevo instrument name.
 
@@ -77,8 +77,8 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WS_INTERVALS
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for the mark-history endpoint.
 

@@ -93,8 +93,8 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
             options = {"defaultType": "spot"}
         return options
 
-    @override
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to CCXT format.
 

@@ -29,8 +29,8 @@ class BybitSpotAdapter(BybitBaseAdapter):
         self.network_config = network_config
         super().__init__(*args, **kwargs)
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -38,8 +38,8 @@ class BybitSpotAdapter(BybitBaseAdapter):
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
-    @override
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 

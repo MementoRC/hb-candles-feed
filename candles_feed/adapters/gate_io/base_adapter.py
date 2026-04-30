@@ -62,8 +62,8 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
-    @override
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 

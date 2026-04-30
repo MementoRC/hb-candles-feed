@@ -28,8 +28,8 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
 
-    @override
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -62,8 +62,8 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WS_INTERVALS
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 

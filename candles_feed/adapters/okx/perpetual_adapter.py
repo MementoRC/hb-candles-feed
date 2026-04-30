@@ -18,8 +18,8 @@ from .constants import (
 class OKXPerpetualAdapter(OKXBaseAdapter):
     """OKX perpetual exchange adapter."""
 
-    @override
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 

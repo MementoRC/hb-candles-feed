@@ -23,8 +23,8 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
 
     TIMESTAMP_UNIT = "seconds"
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -32,8 +32,8 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         return PERPETUAL_REST_URL
 
-    @override
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 

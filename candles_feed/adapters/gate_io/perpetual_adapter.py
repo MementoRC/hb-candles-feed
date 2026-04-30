@@ -19,8 +19,8 @@ from .constants import (
 class GateIoPerpetualAdapter(GateIoBaseAdapter):
     """Gate.io perpetual exchange adapter."""
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -28,8 +28,8 @@ class GateIoPerpetualAdapter(GateIoBaseAdapter):
         """
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
-    @override
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 

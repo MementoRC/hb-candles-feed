@@ -31,8 +31,8 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "iso8601"
 
-    @override
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to Dexalot exchange format.
 
@@ -65,8 +65,8 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WS_INTERVALS
 
-    @override
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 

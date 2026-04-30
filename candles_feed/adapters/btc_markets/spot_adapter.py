@@ -36,8 +36,8 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
 
     TIMESTAMP_UNIT: str = "iso8601"
 
-    @override
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to BTC Markets exchange format.
 
