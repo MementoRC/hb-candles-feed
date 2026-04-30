@@ -2,6 +2,8 @@
 Bybit spot exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     SPOT_CANDLES_ENDPOINT,
@@ -27,6 +29,7 @@ class BybitSpotAdapter(BybitBaseAdapter):
         self.network_config = network_config
         super().__init__(*args, **kwargs)
 
+    @override
     @staticmethod
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
@@ -35,6 +38,7 @@ class BybitSpotAdapter(BybitBaseAdapter):
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
+    @override
     @staticmethod
     def _get_ws_url() -> str:
         """Get WebSocket URL.
@@ -43,6 +47,7 @@ class BybitSpotAdapter(BybitBaseAdapter):
         """
         return SPOT_WSS_URL
 
+    @override
     def get_category_param(self) -> str:
         """Get the category parameter for the market type.
 

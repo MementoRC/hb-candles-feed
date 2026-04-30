@@ -4,7 +4,7 @@ CCXT base adapter for the Candle Feed framework.
 This module provides a base implementation for exchange adapters using CCXT.
 """
 
-from typing import Any, Literal
+from typing import Any, Literal, override
 
 import ccxt  # type: ignore
 
@@ -26,6 +26,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
     TIMESTAMP_UNIT: str = "milliseconds"
 
     # NoWebSocketSupportMixin methods
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -33,6 +34,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         raise NotImplementedError("This adapter does not support WebSocket")
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
@@ -40,6 +42,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         raise NotImplementedError("This adapter does not support WebSocket")
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -49,6 +52,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         raise NotImplementedError("This adapter does not support WebSocket")
 
+    @override
     def parse_ws_message(self, data: Any) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
@@ -89,6 +93,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
             options = {"defaultType": "spot"}
         return options
 
+    @override
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to CCXT format.
@@ -98,6 +103,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         return trading_pair.replace("-", "/")
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -121,6 +127,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         }
         return params
 
+    @override
     def _parse_rest_response(self, data: dict[Any, Any] | list[Any] | None) -> list[CandleData]:
         """Parse CCXT OHLCV response into CandleData objects.
 
@@ -149,6 +156,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
                 )
         return candles
 
+    @override
     def fetch_rest_candles_synchronous(
         self,
         trading_pair: str,
@@ -173,6 +181,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         )
         return self._parse_rest_response(ohlcv)
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals from CCXT.
 
