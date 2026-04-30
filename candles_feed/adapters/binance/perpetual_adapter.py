@@ -2,6 +2,8 @@
 Binance perpetual exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.adapters.binance.base_adapter import BinanceBaseAdapter
 from candles_feed.adapters.binance.constants import (
     PERPETUAL_CANDLES_ENDPOINT,
@@ -15,6 +17,7 @@ from candles_feed.core.exchange_registry import ExchangeRegistry
 class BinancePerpetualAdapter(BinanceBaseAdapter):
     """Binance perpetual exchange adapter."""
 
+    @override
     @staticmethod
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
@@ -23,6 +26,7 @@ class BinancePerpetualAdapter(BinanceBaseAdapter):
         """
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
+    @override
     @staticmethod
     def _get_ws_url() -> str:
         """Get WebSocket URL.

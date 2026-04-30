@@ -6,7 +6,7 @@ price data (not OHLCV), so open/high/low/close are all set to the mark price
 and volume is set to 0.0.
 """
 
-from typing import Any
+from typing import Any, override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -42,6 +42,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     ticker messages is used to construct synthetic candles.
     """
 
+    @override
     @staticmethod
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to Aevo instrument name.
@@ -52,6 +53,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         base, _ = trading_pair.split("-", 1)
         return f"{base}-PERP"
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -59,6 +61,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -66,6 +69,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return self._get_ws_url()
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
@@ -73,6 +77,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WS_INTERVALS
 
+    @override
     @staticmethod
     def _get_rest_url() -> str:
         """Get REST API URL for the mark-history endpoint.
@@ -89,6 +94,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WSS_URL
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -118,6 +124,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse the REST API response into CandleData objects.
 
@@ -162,6 +169,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -188,6 +196,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get the WebSocket subscription payload.
 
@@ -205,6 +214,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             "data": [f"ticker-500ms:{instrument_name}"],
         }
 
+    @override
     def parse_ws_message(self, data: dict[str, Any] | None) -> list[CandleData] | None:
         """Parse a WebSocket message into CandleData objects.
 
