@@ -2,6 +2,8 @@
 KuCoin spot exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
@@ -18,6 +20,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
     """KuCoin spot exchange adapter."""
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -26,6 +29,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL (internal implementation).
 
@@ -33,6 +37,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
         """
         return SPOT_WSS_URL
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -66,6 +71,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -138,6 +144,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
                 )
         return candles
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 

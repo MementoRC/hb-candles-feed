@@ -2,6 +2,8 @@
 Bybit perpetual exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     PERPETUAL_CANDLES_ENDPOINT,
@@ -16,6 +18,7 @@ class BybitPerpetualAdapter(BybitBaseAdapter):
     """Bybit perpetual exchange adapter."""
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -24,6 +27,7 @@ class BybitPerpetualAdapter(BybitBaseAdapter):
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 
@@ -31,6 +35,7 @@ class BybitPerpetualAdapter(BybitBaseAdapter):
         """
         return PERPETUAL_WSS_URL
 
+    @override
     def get_category_param(self) -> str:
         """Get the category parameter for the market type.
 

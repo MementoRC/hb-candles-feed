@@ -2,6 +2,8 @@
 Hyperliquid spot exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.core.exchange_registry import ExchangeRegistry
 
 from .base_adapter import HyperliquidBaseAdapter
@@ -16,6 +18,7 @@ class HyperliquidSpotAdapter(HyperliquidBaseAdapter):
     """Hyperliquid spot exchange adapter."""
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -24,6 +27,7 @@ class HyperliquidSpotAdapter(HyperliquidBaseAdapter):
         return SPOT_REST_URL
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 

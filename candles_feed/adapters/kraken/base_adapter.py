@@ -3,6 +3,7 @@ Kraken spot exchange adapter for the Candle Feed framework.
 """
 
 from abc import abstractmethod
+from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -38,6 +39,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -46,6 +48,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         return self._get_ws_url()
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -69,6 +72,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return base + quote
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -97,6 +101,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -186,6 +191,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                     )
         return parsed_candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -212,6 +218,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -230,6 +237,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             },
         }
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
@@ -321,6 +329,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             ]
         return None
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -328,6 +337,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 

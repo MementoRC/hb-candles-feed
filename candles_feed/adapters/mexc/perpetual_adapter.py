@@ -3,6 +3,7 @@ MEXC perpetual exchange adapter for the Candle Feed framework.
 """
 
 import contextlib
+from typing import override
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
@@ -23,6 +24,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
     TIMESTAMP_UNIT = "seconds"
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -31,6 +33,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         return PERPETUAL_REST_URL
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 
@@ -38,6 +41,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         return PERPETUAL_WSS_URL
 
+    @override
     def get_kline_topic(self) -> str:
         """Get WebSocket kline topic prefix.
 
@@ -45,6 +49,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         return PERPETUAL_KLINE_TOPIC
 
+    @override
     def get_interval_format(self, interval: str) -> str:
         """Get exchange-specific interval format.
 
@@ -53,6 +58,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         return INTERVAL_TO_PERPETUAL_FORMAT.get(interval, interval)
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -82,6 +88,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -132,6 +139,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         )
         return candles
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
