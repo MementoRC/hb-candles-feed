@@ -110,7 +110,10 @@ type-check = "mypy candles_feed"
 security = "bandit -c pyproject.toml -r candles_feed/"
 lint-cython = "cython-lint candles_feed"
 quality = { depends-on = ["lint", "type-check"] }
-check = { depends-on = ["format", "lint", "type-check", "test"] }
+# live tests excluded — they hit real exchange APIs and fail under geo-restrictions
+test-no-live = "pytest tests -m 'not live'"
+check = { depends-on = ["format", "lint", "type-check", "test-no-live"] }
+check-live = { depends-on = ["format", "lint", "type-check", "test"] }
 
 # Documentation tasks
 docs-build = "mkdocs build --clean"
