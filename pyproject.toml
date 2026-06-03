@@ -111,7 +111,8 @@ security = "bandit -c pyproject.toml -r candles_feed/"
 lint-cython = "cython-lint candles_feed"
 quality = { depends-on = ["lint", "type-check"] }
 # live tests excluded — they hit real exchange APIs and fail under geo-restrictions
-test-no-live = "pytest tests -m 'not live'"
+# slow tests excluded — probabilistic timing-sensitive tests unsuitable for default check
+test-no-live = "pytest tests -m 'not live and not slow'"
 check = { depends-on = ["format", "lint", "type-check", "test-no-live"] }
 check-live = { depends-on = ["format", "lint", "type-check", "test"] }
 
@@ -252,6 +253,7 @@ markers = [
     "asyncio: marks tests as asyncio tests",
     "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
     "live: marks tests that hit real exchange APIs (deselect with '-m \"not live\"')",
+    "slow: marks probabilistic/timing-sensitive tests excluded from default check (deselect with '-m \"not slow\"')",
 ]
 log_cli = true
 log_cli_level = "DEBUG"

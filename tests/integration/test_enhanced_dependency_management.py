@@ -42,8 +42,16 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.integration
+@pytest.mark.slow
 class TestEnhancedDependencyManagement:
-    """Enhanced integration tests with improved external dependency management."""
+    """Enhanced integration tests with improved external dependency management.
+
+    Marked ``slow`` because each test combines probabilistic mock-server network
+    simulation (error/packet-loss injection) with statistical success-rate
+    assertions and ``asyncio.sleep`` pacing.  The resulting non-determinism makes
+    the suite unsuitable for the default ``check`` task; use ``pixi run test``
+    or ``pixi run test-integration`` to opt in.
+    """
 
     @pytest.fixture
     async def enhanced_mock_server(self, unused_tcp_port):
