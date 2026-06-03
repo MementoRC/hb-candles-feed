@@ -133,3 +133,6 @@ Thumbs.db
 *.sln
 *.sw?
 benchmark-results/*.json
+
+# Git worktrees (per submodule worktree workflow)
+.worktrees/
