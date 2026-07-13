@@ -5,21 +5,24 @@ This module provides functions and utilities to simplify the integration
 of CandlesFeed with Hummingbot or other frameworks.
 """
 
+import importlib.util
 from typing import Any
 
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.protocols import Logger
 
-# Try to import Hummingbot components, but don't fail if they're not available
+# Detect Hummingbot availability WITHOUT importing it. This module ships as part
+# of the candles_feed package and must honor the import boundary that only the
+# hb_compat layer may import hummingbot. The throttler / web-assistants-factory
+# objects are supplied by the caller and validated by class name below, so the
+# hummingbot types are never needed here.
 try:
-    from hummingbot.core.api_throttler.async_throttler_base import AsyncThrottlerBase
-    from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
-
-    HUMMINGBOT_AVAILABLE = True
-except ImportError:
-    # Create placeholders for type checking when Hummingbot is not available
-    AsyncThrottlerBase = Any
-    WebAssistantsFactory = Any
+    HUMMINGBOT_AVAILABLE = (
+        importlib.util.find_spec("hummingbot.core.api_throttler.async_throttler_base") is not None
+        and importlib.util.find_spec("hummingbot.core.web_assistant.web_assistants_factory")
+        is not None
+    )
+except (ImportError, ValueError):
     HUMMINGBOT_AVAILABLE = False
 
 
