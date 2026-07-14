@@ -33,7 +33,7 @@ def mock_exchange_registry():
 def mock_network_client_factory():
     """Mock NetworkClientFactory to prevent real network client creation."""
     with patch(
-        "candles_feed.core.hummingbot_network_client_adapter.NetworkClientFactory.create_client"
+        "candles_feed.hb_compat.hummingbot_network_client_adapter.NetworkClientFactory.create_client"
     ) as mock:
         mock_client = MagicMock()
         mock.return_value = mock_client

@@ -1,7 +1,9 @@
 """Hummingbot compatibility layer for hb-candles-feed.
 
 Provides drop-in replacements for hummingbot's CandlesFactory, CandlesConfig,
-and related classes. No hummingbot import required.
+and related classes. No hummingbot import required, with one exception:
+``hummingbot_network_client_adapter`` is a bridging shim that conditionally
+imports hummingbot (guarded by try/except ImportError) when it is installed.
 
 Usage in hummingbot fork:
     from candles_feed.hb_compat import CandlesFactory, CandlesConfig
