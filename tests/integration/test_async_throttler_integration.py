@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from candles_feed.core.hummingbot_network_client_adapter import (
+from candles_feed.hb_compat.hummingbot_network_client_adapter import (
     HummingbotNetworkClient,
     HummingbotThrottlerAdapter,
     HummingbotWSAssistantAdapter,
@@ -270,7 +270,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_creation_with_components(self, integrated_components):
         """Test creating HummingbotNetworkClient with components."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -284,7 +284,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_rest_operations(self, integrated_components):
         """Test REST operations through network client."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -308,7 +308,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_websocket_operations(self, integrated_components):
         """Test WebSocket operations through network client."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -333,7 +333,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_context_manager(self, integrated_components):
         """Test network client as async context manager."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             async with HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -349,7 +349,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_error_handling(self, integrated_components):
         """Test error handling in network client operations."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -372,7 +372,7 @@ class TestNetworkClientFactory:
         components = create_mock_hummingbot_components()
 
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = NetworkClientFactory.create_client(hummingbot_components=components)
 
@@ -384,7 +384,7 @@ class TestNetworkClientFactory:
         """Test factory falls back to standalone client when components unavailable."""
         # Test with no components
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", False
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", False
         ):
             client = NetworkClientFactory.create_client()
 
@@ -399,7 +399,7 @@ class TestNetworkClientFactory:
         partial_components = {"throttler": MockAsyncThrottler()}
 
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = NetworkClientFactory.create_client(hummingbot_components=partial_components)
 

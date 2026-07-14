@@ -48,7 +48,7 @@ class TestCandlesFeed:
     def candles_feed(self, mock_exchange_registry, mock_network_client):
         """Create a CandlesFeed instance with mocked dependencies."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.NetworkClientFactory.create_client",
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.NetworkClientFactory.create_client",
             return_value=mock_network_client,
         ):
             # Create a feed

@@ -18,9 +18,6 @@ from candles_feed.core.collection_strategies import (
 )
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
-
-# Import the adapter factory
-from candles_feed.core.hummingbot_network_client_adapter import NetworkClientFactory
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
@@ -74,7 +71,13 @@ class CandlesFeed:
         # Initialize components
         self._candles: deque[CandleData] = deque(maxlen=max_records)
 
-        # Create the appropriate network client based on available components
+        # Create the appropriate network client based on available components.
+        # Imported locally to avoid a circular import: hb_compat's package
+        # __init__ imports CandlesBaseAdapter, which imports CandlesFeed.
+        from candles_feed.hb_compat.hummingbot_network_client_adapter import (
+            NetworkClientFactory,
+        )
+
         self._network_client = NetworkClientFactory.create_client(
             hummingbot_components=hummingbot_components, logger=self.logger
         )
