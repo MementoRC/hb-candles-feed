@@ -28,7 +28,7 @@ dependencies = [
     # (ABI break in integration-test mocks). Keep <3.12 in sync with the
     # [tool.pixi.dependencies] pin until aioresponses ships a fix.
     # Upstream: https://github.com/pnuckowski/aioresponses/issues/289
-    "aiohttp>=3.8.0,<3.12",
+    "aiohttp>=3.8.0,<3.15",
     "ccxt",
     "numpy>=1.20.0",
     "pandas>=1.0.0",
