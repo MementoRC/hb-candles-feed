@@ -79,12 +79,6 @@ hummingbot = []
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 
-[tool.pixi.activation.env]
-# Make pixi environments hermetic: ignore user-site (~/.local) so runner-image
-# packages (e.g. a stray aiohttp>=3.12) cannot shadow pixi-pinned deps and break
-# aioresponses mocks in integration tests.
-PYTHONNOUSERSITE = "1"
-
 # Note: Version info is kept in the project section with dynamic = ["version"]
 # and managed via candles_feed/__about__.py
 
@@ -161,10 +155,6 @@ redis-py = ">=4.5.0"
 websockets = ">=11.0.0"
 # Load testing dependencies
 locust = ">=2.20.0"
-c-compiler = "*"
-
-[tool.pixi.feature.dev.pypi-dependencies]
-hb-cython-framework = { git = "https://github.com/MementoRC/hb-cython-framework.git", branch = "development" }
 
 [tool.pixi.feature.ci.dependencies]
 ruff = ">=0.1.6"
@@ -190,6 +180,19 @@ hatchling = "*"
 [tool.pixi.feature.quality-ci.tasks]
 build = "python -m build"
 
+# Accelerated-tier tooling — ISOLATED to the `accel` environment only.
+# hb-cython-framework is maintainer-local/unpublished and adds a pypi/uv layer;
+# keeping it out of default/ci/py312 keeps those envs pure-conda (== development)
+# so `pip install -e .` installs into the pixi env, not user/system-site.
+[tool.pixi.feature.accel.dependencies]
+c-compiler = "*"
+
+[tool.pixi.feature.accel.pypi-dependencies]
+hb-cython-framework = { git = "https://github.com/MementoRC/hb-cython-framework.git", branch = "development" }
+
+[tool.pixi.feature.accel.tasks]
+test-parity = "pytest tests/unit/core/test_data_processor_parity.py -v"
+
 # Python version features
 [tool.pixi.feature.py312.dependencies]
 python = ">=3.12,<3.13"
@@ -202,6 +205,7 @@ ci = { features = ["ci", "dev", "py312"], solve-group = "default" }
 quality-extended = { features = ["quality-extended", "py312"], solve-group = "default" }
 quality-ci = { features = ["quality-ci", "py312"], solve-group = "default" }
 py312 = { features = ["py312", "dev"], solve-group = "py312" }
+accel = { features = ["accel", "dev", "py312"] }
 
 # Keep existing tool configurations
 [tool.coverage.run]
