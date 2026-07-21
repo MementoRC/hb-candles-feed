@@ -65,6 +65,48 @@ def test_delegate_fails_closed_when_framework_missing(monkeypatch):
     assert warnings and "hb-cython-framework is unavailable" in warnings[0]
 
 
+def test_delegate_succeeds_and_reconstructs_hook_args(monkeypatch):
+    """Gate on and framework present -> construct the framework hook from the
+    exact hatchling args, call initialize(), and return True (AC2 delegation)."""
+    recorded = {}
+
+    class _StubFrameworkHook:
+        def __init__(self, root, config, build_config, metadata, directory, target_name, app):
+            recorded["ctor"] = (root, config, build_config, metadata, directory, target_name, app)
+
+        def initialize(self, version, build_data):
+            recorded["init"] = (version, build_data)
+
+    fake_module = SimpleNamespace(AugmentedCythonBuildHook=_StubFrameworkHook)
+    for _name in ("cython_framework", "cython_framework.buildhook"):
+        monkeypatch.setitem(sys.modules, _name, SimpleNamespace())
+    monkeypatch.setitem(sys.modules, "cython_framework.buildhook.hook", fake_module)
+
+    hook = SimpleNamespace(
+        root="/repo",
+        config={"path": "hatch_build.py"},
+        build_config={"bc": 1},
+        metadata="META",
+        directory="/dist",
+        target_name="wheel",
+        app=SimpleNamespace(display_warning=lambda *_args, **_kwargs: None),
+    )
+
+    delegated = hatch_build._delegate_to_framework(hook, "3.0.0", {"pure_python": False})
+
+    assert delegated is True
+    assert recorded["ctor"] == (
+        "/repo",
+        {"path": "hatch_build.py"},
+        {"bc": 1},
+        "META",
+        "/dist",
+        "wheel",
+        hook.app,
+    )
+    assert recorded["init"] == ("3.0.0", {"pure_python": False})
+
+
 def test_initialize_under_gate_delegates(monkeypatch):
     """Gate on -> initialize() routes through _delegate_to_framework (AC2 dispatch)."""
     monkeypatch.setenv("HB_COMPILE_AUGMENTED", "1")
