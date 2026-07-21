@@ -108,6 +108,7 @@ jobs:
           REDIS_URL: redis://localhost:6379
           WEBSOCKET_ECHO_URL: ws://localhost:8080
           TEST_WITH_SERVICES: true
+          PYTHONNOUSERSITE: "1"
         run: |
           pixi run -e ${{ matrix.pixi-environment }} pytest tests \
             -m "integration and not benchmark" \

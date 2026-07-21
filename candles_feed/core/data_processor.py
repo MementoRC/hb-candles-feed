@@ -1,3 +1,5 @@
+# cython: language_level=3str
+# cython: augmented_pure_python=True
 """
 Data processing utilities for the Candle Feed framework.
 """
@@ -7,10 +9,16 @@ import logging
 from collections import deque
 from collections.abc import Sequence
 
+try:  # pragma: no cover - real Cython present in build/dev/compiled envs
+    import cython
+except ImportError:  # pragma: no cover - passive runtime, no Cython installed
+    from candles_feed.core import _cython_shim as cython  # type: ignore[no-redef]
+
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import Logger
 
 
+@cython.cclass
 class DataProcessor:
     """Handles data processing, validation, and sanitization.
 
@@ -18,6 +26,9 @@ class DataProcessor:
     ensuring that the data is consistent and reliable. Optimized for performance
     with binary search and efficient data structures.
     """
+
+    logger: Logger
+    _timestamp_cache: dict
 
     def __init__(self, logger: Logger | None = None):
         """Initialize the DataProcessor.
