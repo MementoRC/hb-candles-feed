@@ -73,6 +73,17 @@ doc = [
     "pymdown-extensions>=8.0.0",
 ]
 hummingbot = []
+# Accelerated (compile-on-accelerated) build tier — issue #76, Phase 3.
+# Exposes REAL Cython for the optional native compile of augmented-pure-python
+# modules; installed via `pip install candles-feed[accelerated]`. Build/dev-only:
+# it adds NOTHING to the passive runtime (AC1/AC3). The maintainer-local
+# hb-cython-framework is deliberately NOT listed here — it is unpublished and is
+# supplied on the build path by the hummingbot accelerated env / the `accel` pixi
+# env, never by this package's published metadata. The build hook (hatch_build.py)
+# imports it lazily and fails closed if it is absent.
+accelerated = [
+    "Cython>=3.2.4",
+]
 
 # Pixi configuration
 [tool.pixi.workspace]
@@ -87,6 +98,12 @@ path = "candles_feed/__about__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["candles_feed"]
+
+# Repo-owned build hook (hatch_build.py) — issue #76, Phase 3. Passive no-op
+# unless HB_COMPILE_AUGMENTED is truthy; then it delegates to hb-cython-framework
+# to compile augmented-pure-python modules to native extensions. See hatch_build.py.
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
 
 # Conda dependencies
 # Note: prometheus_client (underscore) is available on conda-forge and included in pixi dev dependencies.

@@ -13,6 +13,7 @@ installed (e.g. minimal/CI-lite environments), so this file carries no
 from __future__ import annotations
 
 import importlib.util
+import os
 from collections import deque
 from datetime import datetime
 from pathlib import Path
@@ -22,11 +23,22 @@ import pytest
 from candles_feed.core import data_processor as passive_dp
 from candles_feed.core.candle_data import CandleData
 
-variant_builder = pytest.importorskip(
-    "cython_framework.buildhook.variant_builder",
-    reason="hb-cython-framework not installed (dev/CI-only)",
-)
-pytest.importorskip("Cython")
+# Under the accelerated gate (HB_COMPILE_AUGMENTED truthy) the compiled variant
+# MUST be buildable, so a missing framework/Cython is a hard failure rather than
+# a skip — this is the compiled-variant assertion "exercised under
+# HB_COMPILE_AUGMENTED=1" (issue #76 AC4). When the gate is unset the module
+# skips cleanly in framework-less environments, exactly as before.
+_GATE_ON = os.environ.get("HB_COMPILE_AUGMENTED", "").strip().lower() in {"1", "true", "yes", "on"}
+
+if _GATE_ON:
+    variant_builder = importlib.import_module("cython_framework.buildhook.variant_builder")
+    importlib.import_module("Cython")
+else:
+    variant_builder = pytest.importorskip(
+        "cython_framework.buildhook.variant_builder",
+        reason="hb-cython-framework not installed (dev/CI-only)",
+    )
+    pytest.importorskip("Cython")
 
 
 @pytest.fixture(scope="module")
@@ -44,6 +56,8 @@ def compiled_dp(tmp_path_factory):
             variants=[CythonModuleType.COMPILED_AUGMENTED_PYTHON],
         )
     except variant_builder.VariantBuildError as exc:
+        if _GATE_ON:
+            raise
         pytest.skip(f"compiled variant unavailable (toolchain): {exc}")
 
     so_path = Path(artifacts[CythonModuleType.COMPILED_AUGMENTED_PYTHON])
