@@ -30,6 +30,11 @@ dependencies = [
     # Upstream: https://github.com/pnuckowski/aioresponses/issues/289
     "aiohttp>=3.8.0,<3.15",
     "ccxt",
+    # ADR 0001 Group D (issue #78): canonical structured-logging sub-package,
+    # replacing the bespoke StructuredLogger/MonitoringManager/JSONFormatter
+    # stack in candles_feed/core/monitoring.py. Git-pinned (not a published
+    # wheel), following the hb-event-bus precedent (Group D Target 1).
+    "hb-logger @ git+https://github.com/MementoRC/hb-logger.git@06534b7708a13b4425a06dd154976db96c2c45be",
     "numpy>=1.20.0",
     "pandas>=1.0.0",
     "pydantic>=2",
@@ -95,6 +100,12 @@ platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 
 [tool.hatch.version]
 path = "candles_feed/__about__.py"
+
+# Required for the hb-logger git+ dependency in [project.dependencies] (ADR 0001
+# Group D, issue #78) — hatchling rejects direct references (git/url/path) unless
+# explicitly allowed. Same fix as hb-market-connector PR #43.
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["candles_feed"]

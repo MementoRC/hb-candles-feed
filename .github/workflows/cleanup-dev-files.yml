@@ -30,7 +30,7 @@ on:
 jobs:
   cleanup:
     if: false
-    uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@fe3991399e33c62e9b56a9336694ce4e9deb63c5  # v2.9.7
+    uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@0483e3dcb80aa9b0a7e06f9df8f8128fc73c0746  # v2.9.9
     with:
       target_branches: >-
         ${{
