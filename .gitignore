@@ -64,10 +64,11 @@ site/
 mkdocs.saved.yml
 
 # Cython generated files
+# candles_feed/ has no hand-written C sources: every *.c/*.cpp under it is
+# cythonized output from the HB_COMPILE_AUGMENTED build hook, same as the
+# *.so it links into (ignored above). Do not re-include them.
 *.c
 *.cpp
-!candles_feed/**/*.c
-!candles_feed/**/*.cpp
 
 # CMake
 _skbuild/
