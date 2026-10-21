@@ -140,11 +140,15 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+        limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         network_client: NetworkClientProtocol | None = None,
     ) -> list[CandleData]:
-        """Fetch candles from the REST API asynchronously."""
-        return await AsyncOnlyAdapter._fetch_rest_candles(
+        """Fetch candles asynchronously, trimmed to ``limit`` rows.
+
+        The endpoint has no limit parameter, so the response is trimmed to the earliest
+        rows when ``start_time`` is given, else to the newest.
+        """
+        candles = await AsyncOnlyAdapter._fetch_rest_candles(
             adapter_implementation=self,
             trading_pair=trading_pair,
             interval=interval,
@@ -152,6 +156,11 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             limit=limit,
             network_client=network_client,
         )
+        count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
+        count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
+        if len(candles) <= count:
+            return candles
+        return candles[:count] if start_time is not None else candles[-count:]
 
     @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
