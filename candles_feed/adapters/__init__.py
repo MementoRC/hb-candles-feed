@@ -4,6 +4,7 @@ Exchange adapters for the Candles Feed package.
 
 from .aevo.perpetual_adapter import AevoPerpetualAdapter
 from .ascend_ex.spot_adapter import AscendExSpotAdapter
+from .backpack.spot_adapter import BackpackSpotAdapter
 from .binance.perpetual_adapter import BinancePerpetualAdapter
 from .binance.spot_adapter import BinanceSpotAdapter
 from .bitget.perpetual_adapter import BitgetPerpetualAdapter
@@ -30,6 +31,7 @@ from .pacifica.perpetual_adapter import PacificaPerpetualAdapter
 __all__ = [
     # Spot adapters
     "AscendExSpotAdapter",
+    "BackpackSpotAdapter",
     "BinanceSpotAdapter",
     "BitgetSpotAdapter",
     "BTCMarketsSpotAdapter",

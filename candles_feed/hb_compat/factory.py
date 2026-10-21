@@ -22,6 +22,7 @@ class CandlesFactory:
     _CONNECTOR_MAP: dict[str, str] = {
         "aevo_perpetual": "aevo_perpetual",
         "ascend_ex": "ascend_ex_spot",
+        "backpack": "backpack_spot",
         "binance": "binance_spot",
         "binance_perpetual": "binance_perpetual",
         "bitget": "bitget_spot",
