@@ -132,7 +132,8 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                 taker_buy_quote_volume=0.0,
             )
             for row in data
-            if isinstance(row, dict) and row.get("open") is not None
+            if isinstance(row, dict)
+            and all(row.get(field) is not None for field in ("open", "high", "low", "close"))
         ]
 
     @override

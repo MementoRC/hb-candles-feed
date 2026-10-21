@@ -156,6 +156,12 @@ class BackpackAdapterContract:
             time.tzset()
         assert candles[0].timestamp == T0
 
+    @pytest.mark.parametrize("null_field", ["high", "low", "close"])
+    def test_parse_rest_response_skips_partial_ohlc_rows(self, adapter, null_field):
+        partial = {**REST_FIXTURE[0], null_field: None}
+        candles = adapter._parse_rest_response([partial, REST_FIXTURE[1]])
+        assert [c.timestamp for c in candles] == [T0 + 60]
+
     @pytest.mark.parametrize("bad", [None, {}, "x", []])
     def test_parse_rest_response_empty_inputs(self, adapter, bad):
         assert adapter._parse_rest_response(bad) == []
