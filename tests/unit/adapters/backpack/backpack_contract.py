@@ -213,6 +213,31 @@ class BackpackAdapterContract:
             params={"symbol": self.SYMBOL, "interval": "1m", "startTime": T0},
         )
 
+    @staticmethod
+    def _many_rows(count: int) -> list[dict]:
+        return [
+            {
+                **REST_FIXTURE[0],
+                "start": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(T0 + 60 * i)),
+                "end": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(T0 + 60 * (i + 1))),
+            }
+            for i in range(count)
+        ]
+
+    async def test_fetch_rest_candles_with_start_time_returns_earliest_n(self, adapter):
+        client = MagicMock()
+        client.get_rest_data = AsyncMock(return_value=self._many_rows(8))
+        candles = await adapter.fetch_rest_candles(
+            "BTC-USDC", "1m", start_time=T0, limit=5, network_client=client
+        )
+        assert [c.timestamp for c in candles] == [T0 + 60 * i for i in range(5)]
+
+    async def test_fetch_rest_candles_without_start_time_returns_newest_n(self, adapter):
+        client = MagicMock()
+        client.get_rest_data = AsyncMock(return_value=self._many_rows(8))
+        candles = await adapter.fetch_rest_candles("BTC-USDC", "1m", limit=5, network_client=client)
+        assert [c.timestamp for c in candles] == [T0 + 60 * i for i in range(3, 8)]
+
     def test_registry_lookup(self):
         assert ExchangeRegistry.get_adapter_class(self.REGISTRY_NAME) is self.ADAPTER_CLS
 

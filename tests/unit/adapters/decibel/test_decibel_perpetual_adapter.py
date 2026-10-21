@@ -255,6 +255,24 @@ class TestDecibelFetch:
         ]
         assert len(market_calls) == 2
 
+    @pytest.mark.parametrize(
+        "client_kwargs",
+        [{"markets_error": RuntimeError("boom")}, {"markets": []}],
+        ids=["lookup_error", "market_not_listed"],
+    )
+    async def test_failed_lookup_never_yields_name_based_ws_topic(self, adapter, client_kwargs):
+        client = self._client(**client_kwargs)
+        await adapter.prepare_ws_subscription("BTC-USD", client)
+        assert "BTC-USD" not in adapter._market_addrs
+        with pytest.raises((ValueError, RuntimeError, LookupError)):
+            adapter.get_ws_subscription_payload("BTC-USD", "1m")
+
+    async def test_prepare_ws_subscription_enables_address_topic(self, adapter):
+        await adapter.prepare_ws_subscription("BTC-USD", self._client())
+        assert adapter.get_ws_subscription_payload("BTC-USD", "1m")["topic"] == (
+            f"market_candlestick:{MARKET_ADDR}:1m"
+        )
+
     async def test_api_key_sent_as_bearer_header(self):
         adapter = DecibelPerpetualAdapter(api_key="secret")
         client = self._client()
