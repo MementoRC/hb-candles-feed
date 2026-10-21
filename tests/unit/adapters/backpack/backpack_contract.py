@@ -114,6 +114,12 @@ class BackpackAdapterContract:
         params = adapter._get_rest_params("BTC-USDC", "1M", start_time=T0, limit=500)
         assert params == {"symbol": self.SYMBOL, "interval": "1month", "startTime": T0}
 
+    @pytest.mark.parametrize("limit", [0, -3])
+    def test_rest_params_non_positive_limit_means_one_interval(self, adapter, limit):
+        before = int(time.time())
+        params = adapter._get_rest_params("BTC-USDC", "1m", limit=limit)
+        assert abs(params["startTime"] - (before - 60)) <= 5
+
     def test_rest_params_default_start_time_is_present(self, adapter):
         before = int(time.time())
         params = adapter._get_rest_params("BTC-USDC", "1m", limit=10)
@@ -146,6 +152,7 @@ class BackpackAdapterContract:
         assert candles[1].timestamp == T0 + 60
         assert candles[1].n_trades == 14
 
+    @pytest.mark.skipif(not hasattr(time, "tzset"), reason="POSIX only")
     def test_naive_iso_is_utc_regardless_of_local_tz(self, adapter, monkeypatch):
         monkeypatch.setenv("TZ", "America/New_York")
         time.tzset()

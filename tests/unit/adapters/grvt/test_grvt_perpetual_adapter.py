@@ -124,6 +124,13 @@ class TestGrvtRestBody:
         body = adapter._get_rest_params("BTC-USDT", "1m", start_time=T0, limit=limit)
         assert body["limit"] == 1000
 
+    @pytest.mark.parametrize("limit", [0, -3])
+    def test_non_positive_limit_means_one_interval_window(self, adapter, limit):
+        now = time.time()
+        body = adapter._get_rest_params("BTC-USDT", "1m", limit=limit)
+        assert int(body["end_time"]) - int(body["start_time"]) == 60 * NS
+        assert abs(int(body["start_time"]) / NS - (now - 60)) < 5
+
     def test_default_window_ends_now(self, adapter):
         now = time.time()
         body = adapter._get_rest_params("BTC-USDT", "1h", limit=24)
@@ -202,6 +209,20 @@ class TestGrvtFetch:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+
+    async def test_limit_plus_one_rows_are_trimmed_to_earliest_limit(self, adapter):
+        # Inclusive window bounds make the exchange return limit + 1 rows.
+        limit = 10
+        rows = [
+            {**REST_FIXTURE["result"][1], "open_time": str((T0 + i * 60) * NS)}
+            for i in range(limit + 1)
+        ]
+        client = MagicMock()
+        client.get_rest_data = AsyncMock(return_value={"result": list(reversed(rows))})
+        candles = await adapter.fetch_rest_candles(
+            "BTC-USDT", "1m", start_time=T0, limit=limit, network_client=client
+        )
+        assert [c.timestamp for c in candles] == [T0 + i * 60 for i in range(limit)]
 
     async def test_requires_network_client(self, adapter):
         with pytest.raises(ValueError, match="network_client"):

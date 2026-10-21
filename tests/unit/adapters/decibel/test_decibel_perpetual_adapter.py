@@ -125,6 +125,13 @@ class TestDecibelRestParams:
             params = adapter._get_rest_params("BTC-USD", "1m", start_time=T0, limit=limit)
             assert params["endTime"] - params["startTime"] == 1000 * 60 * 1000
 
+    @pytest.mark.parametrize("limit", [0, -3])
+    def test_non_positive_limit_means_one_interval_window(self, adapter, limit):
+        before = int(time.time())
+        params = adapter._get_rest_params("BTC-USD", "1m", limit=limit)
+        assert params["endTime"] - params["startTime"] == 60 * 1000
+        assert abs(params["startTime"] // 1000 - (before - 60)) <= 5
+
     def test_default_start_time(self, adapter):
         before = int(time.time())
         params = adapter._get_rest_params("BTC-USD", "1m", limit=10)
@@ -177,11 +184,17 @@ class TestDecibelParsing:
     def test_parse_rest_empty(self, adapter, bad):
         assert adapter._parse_rest_response(bad) == []
 
-    def test_ws_subscription_payload(self, adapter):
+    def test_ws_subscription_payload_uses_resolved_address(self, adapter):
+        adapter._market_addrs["BTC-USD"] = MARKET_ADDR
         assert adapter.get_ws_subscription_payload("BTC-USD", "1m") == {
             "method": "subscribe",
-            "topic": "market_candlestick:BTC/USD:1m",
+            "topic": f"market_candlestick:{MARKET_ADDR}:1m",
         }
+
+    def test_ws_subscription_without_address_raises_instead_of_name_fallback(self, adapter):
+        assert adapter._market_addrs == {}
+        with pytest.raises((ValueError, RuntimeError, LookupError)):
+            adapter.get_ws_subscription_payload("BTC-USD", "1m")
 
     def test_ws_parse(self, adapter):
         (candle,) = adapter.parse_ws_message(WS_FIXTURE)

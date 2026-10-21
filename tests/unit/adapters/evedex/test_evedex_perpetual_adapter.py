@@ -98,6 +98,12 @@ class TestEvedexRestParams:
             params = adapter._get_rest_params("BTC-USD", "1m", start_time=T0, limit=limit)
             assert params["before"] == "2024-01-01T16:40:00.000Z"
 
+    @pytest.mark.parametrize("limit", [0, -3])
+    def test_non_positive_limit_means_one_interval_window(self, adapter, limit):
+        params = adapter._get_rest_params("BTC-USD", "1m", start_time=T0, limit=limit)
+        assert params["after"] == "2024-01-01T00:00:00.000Z"
+        assert params["before"] == "2024-01-01T00:01:00.000Z"
+
     def test_default_window_ends_now(self, adapter):
         now = time.time()
         params = adapter._get_rest_params("BTC-USD", "1m", limit=10)
@@ -184,6 +190,31 @@ class TestEvedexFetch:
         client = MagicMock()
         client.get_rest_data = AsyncMock(side_effect=get_rest_data)
         return client
+
+    async def test_weekly_candle_keeps_monday_timestamp(self, adapter):
+        monday = 1704067200  # 2024-01-01T00:00:00Z, a Monday (not a multiple of 604800)
+        client = self._client(candles=[[monday * 1000, "1", "2", "3", "0.5", "7"]])
+        candles = await adapter.fetch_rest_candles(
+            "BTC-USDT", "1w", start_time=monday, limit=5, network_client=client
+        )
+        assert [c.timestamp for c in candles] == [monday]
+
+    async def test_monthly_candles_keep_exact_timestamps_and_stay_distinct(self, adapter):
+        months = [1704067200, 1706745600, 1709251200]  # 2024-01-01, 02-01, 03-01 UTC
+        rows = [[ts * 1000, "1", "2", "3", "0.5", "7"] for ts in months]
+        client = self._client(candles=rows)
+        candles = await adapter.fetch_rest_candles(
+            "BTC-USDT", "1M", start_time=months[0], limit=5, network_client=client
+        )
+        assert [c.timestamp for c in candles] == months
+
+    async def test_sub_day_interval_still_floors(self, adapter):
+        rows = [[(T0 + 60) * 1000 + 17, "1", "2", "3", "0.5", "7"]]
+        client = self._client(candles=rows)
+        candles = await adapter.fetch_rest_candles(
+            "BTC-USDT", "1m", start_time=T0, limit=5, network_client=client
+        )
+        assert [c.timestamp for c in candles] == [T0 + 60]
 
     async def test_resolves_instrument_name_then_fetches(self, adapter):
         client = self._client()
