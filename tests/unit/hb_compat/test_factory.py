@@ -37,26 +37,24 @@ class TestCandlesFactory:
         from candles_feed.hb_compat.factory import CandlesFactory
 
         config = CandlesConfig(connector="binance", trading_pair="BTC-USDT")
-        assert CandlesFactory.get_candle(config).connector is None
+        assert not hasattr(CandlesFactory.get_candle(config), "connector")
 
     def test_get_candle_accepts_connector_kwarg(self):
         """MarketDataProvider calls get_candle(config, connector=...)."""
         from candles_feed.hb_compat.data_types import CandlesConfig
         from candles_feed.hb_compat.factory import CandlesFactory
 
-        connector = object()
         config = CandlesConfig(connector="binance", trading_pair="BTC-USDT")
-        candle = CandlesFactory.get_candle(config, connector=connector)
-        assert candle.connector is connector
+        candle = CandlesFactory.get_candle(config, connector=object())
+        assert candle.name == "binance_spot"
 
     def test_get_candle_accepts_connector_positionally(self):
         from candles_feed.hb_compat.data_types import CandlesConfig
         from candles_feed.hb_compat.factory import CandlesFactory
 
-        connector = object()
         config = CandlesConfig(connector="binance", trading_pair="BTC-USDT")
-        candle = CandlesFactory.get_candle(config, connector)
-        assert candle.connector is connector
+        candle = CandlesFactory.get_candle(config, object())
+        assert candle.name == "binance_spot"
 
     def test_get_candle_screener_volatility_call_shape(self):
         """scripts/screener_volatility.py:49 -- single positional CandlesConfig, no connector."""
@@ -75,16 +73,26 @@ class TestCandlesFactory:
         assert candle.name == "binance_perpetual"
         assert candle.interval == "3m"
         assert candle.max_records == 200
-        assert candle.connector is None
+        assert not hasattr(candle, "connector")
 
-    def test_connector_is_read_only(self):
+    def test_connector_is_not_retained(self):
+        import gc
+        import weakref
+
         from candles_feed.hb_compat.data_types import CandlesConfig
         from candles_feed.hb_compat.factory import CandlesFactory
 
+        class FakeConnector:
+            pass
+
+        connector = FakeConnector()
+        ref = weakref.ref(connector)
         config = CandlesConfig(connector="binance", trading_pair="BTC-USDT")
-        candle = CandlesFactory.get_candle(config, connector=object())
-        with pytest.raises(AttributeError):
-            candle.connector = object()
+        candle = CandlesFactory.get_candle(config, connector=connector)
+        del connector
+        gc.collect()
+        assert ref() is None
+        assert candle is not None
 
     def test_unsupported_connector_raises(self):
         from candles_feed.hb_compat.data_types import (

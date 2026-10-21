@@ -71,9 +71,7 @@ class CandlesBaseAdapter:
         trading_pair: str,
         interval: str = "1m",
         max_records: int = 500,
-        connector: object | None = None,
     ):
-        self._connector = connector
         self._feed = CandlesFeed(
             exchange=exchange,
             trading_pair=trading_pair,
@@ -82,11 +80,6 @@ class CandlesBaseAdapter:
         )
 
     # --- Properties delegating to CandlesFeed ---
-
-    @property
-    def connector(self) -> object | None:
-        """Host connector supplied by the caller (stored only, not used)."""
-        return self._connector
 
     @property
     def name(self) -> str:

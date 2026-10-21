@@ -53,11 +53,14 @@ class CandlesFactory:
         """Create a candle feed adapter from config.
 
         :param candles_config: Configuration matching hummingbot's CandlesConfig
-        :param connector: Optional host connector; exposed as ``adapter.connector``
-            but not otherwise used (no throttler/symbol-map sharing)
+        :param connector: Accepted for upstream signature compatibility; intentionally
+            unused and not retained until #89 (optional shared rate-limit budget).
         :return: CandlesBaseAdapter instance
         :raises UnsupportedConnectorError: If connector is not supported
         """
+        # Accepted for upstream signature compatibility; intentionally unused until #89
+        # (optional shared rate-limit budget).
+        del connector
         registry_key = cls._CONNECTOR_MAP.get(candles_config.connector)
         if registry_key is None:
             raise UnsupportedConnectorError(candles_config.connector)
@@ -66,7 +69,6 @@ class CandlesFactory:
             trading_pair=candles_config.trading_pair,
             interval=candles_config.interval,
             max_records=candles_config.max_records,
-            connector=connector,
         )
 
     @classmethod
