@@ -33,6 +33,7 @@ class CandlesFactory:
         "bybit": "bybit_spot",
         "bybit_perpetual": "bybit_perpetual",
         "coinbase_advanced_trade": "coinbase_advanced_trade",
+        "decibel_perpetual": "decibel_perpetual",
         "dexalot": "dexalot_spot",
         "gate_io": "gate_io_spot",
         "gate_io_perpetual": "gate_io_perpetual",

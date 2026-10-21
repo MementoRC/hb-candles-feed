@@ -60,6 +60,7 @@ class TestCandlesFactory:
         assert "bybit" in supported
         assert "bybit_perpetual" in supported
         assert "coinbase_advanced_trade" in supported
+        assert "decibel_perpetual" in supported
         assert "dexalot" in supported
         assert "gate_io" in supported
         assert "gate_io_perpetual" in supported
@@ -73,7 +74,7 @@ class TestCandlesFactory:
         assert "okx" in supported
         assert "okx_perpetual" in supported
         assert "pacifica_perpetual" in supported
-        assert len(supported) == 26
+        assert len(supported) == 27
 
     def test_get_supported_connectors_returns_copy(self):
         from candles_feed.hb_compat.factory import CandlesFactory
