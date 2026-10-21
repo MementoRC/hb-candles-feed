@@ -106,10 +106,8 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
         :param limit: Number of candles wanted (capped at the per-request maximum)
         :returns: Request parameters
         """
-        count = min(
-            limit or MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-            MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-        )
+        count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
+        count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
         span = count * INTERVALS.get(interval, 60)
         if start_time is None:
             end_s = int(time.time())
@@ -150,7 +148,8 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
             seconds = self._timestamp_seconds(ts)
         except ValueError:
             return None
-        if interval_seconds:
+        # Weekly/monthly buckets are not epoch-aligned (Monday / month start): keep as returned
+        if interval_seconds and interval_seconds < INTERVALS["1w"]:
             seconds -= seconds % interval_seconds
         return CandleData(
             timestamp_raw=seconds,
@@ -172,8 +171,8 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
         """Parse the REST response into candles sorted ascending.
 
         :param data: A list of rows, or a dict wrapping them under data/result/candles
-        :param interval_seconds: When given, timestamps are floored to the interval multiple
-            and rows landing in the same bucket collapse to the latest one
+        :param interval_seconds: When given (and below one week), timestamps are floored to
+            the interval multiple and rows landing in the same bucket collapse to the latest one
         :returns: Parsed candles
         """
         rows = _pick(data, _WRAPPER_KEYS, []) if isinstance(data, dict) else data

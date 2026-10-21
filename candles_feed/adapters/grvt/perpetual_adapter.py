@@ -108,10 +108,8 @@ class GrvtPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param limit: Number of candles wanted
         :returns: Request body
         """
-        count = min(
-            limit or MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-            MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-        )
+        count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
+        count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
         span = count * INTERVALS.get(interval, 60)
         if start_time is None:
             end_s = int(time.time())
@@ -164,7 +162,11 @@ class GrvtPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         limit: int | None = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         network_client: NetworkClientProtocol | None = None,
     ) -> list[CandleData]:
-        """Fetch candles with a JSON POST."""
+        """Fetch candles with a JSON POST, trimmed back to ``limit`` rows.
+
+        The ``limit + 1`` boundary request is trimmed to the earliest rows when
+        ``start_time`` is given, else to the newest.
+        """
         if network_client is None:
             raise ValueError("network_client is required for async operations")
         response = await network_client.get_rest_data(
@@ -173,7 +175,12 @@ class GrvtPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        return self._parse_rest_response(response)
+        candles = self._parse_rest_response(response)
+        count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
+        count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
+        if len(candles) <= count:
+            return candles
+        return candles[:count] if start_time is not None else candles[-count:]
 
     @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:

@@ -98,10 +98,8 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: Request parameters
         """
         if start_time is None:
-            count = min(
-                limit or MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-                MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-            )
+            count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
+            count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
             start_time = int(time.time()) - count * INTERVALS.get(interval, 60)
         return {
             "symbol": self.get_trading_pair_format(trading_pair),

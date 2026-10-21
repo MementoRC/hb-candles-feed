@@ -135,10 +135,8 @@ class DecibelPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param limit: Number of candles wanted (capped to the maximum window)
         :returns: Request parameters
         """
-        count = min(
-            limit or MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-            MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
-        )
+        count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
+        count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
         span = count * INTERVALS.get(interval, 60)
         if start_time is None:
             end_s = int(time.time())
@@ -231,16 +229,27 @@ class DecibelPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         )
         return self._parse_rest_response(response)
 
+    async def prepare_ws_subscription(
+        self, trading_pair: str, network_client: NetworkClientProtocol
+    ) -> None:
+        """Resolve the market address before subscribing (the WS topic requires it)."""
+        await self._resolve_market_address(trading_pair, network_client)
+
     @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get the subscription payload.
 
-        Uses the market address once a REST fetch has resolved it, else the market name.
+        The WS topic needs the market address, so the name fallback is not used.
+
+        :raises ValueError: If the market address has not been resolved
         """
+        address = self._market_addrs.get(trading_pair)
+        if address is None:
+            raise ValueError(f"Decibel market address for {trading_pair} is not resolved")
         exchange_interval = INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
         return {
             "method": "subscribe",
-            "topic": f"{WS_CANDLES_CHANNEL}:{self._market_param(trading_pair)}:{exchange_interval}",
+            "topic": f"{WS_CANDLES_CHANNEL}:{address}:{exchange_interval}",
         }
 
     @override

@@ -6,6 +6,7 @@ including both WebSocket and REST-based approaches.
 """
 
 import asyncio
+import inspect
 import logging
 import time
 from collections import deque
@@ -139,6 +140,13 @@ class WebSocketStrategy:
             try:
                 ws_url = self.adapter.get_ws_url()
                 self._ws_assistant = await self.network_client.establish_ws_connection(ws_url)
+
+                # Let adapters that need exchange metadata resolve it before subscribing
+                prepare = getattr(self.adapter, "prepare_ws_subscription", None)
+                if callable(prepare) and inspect.isawaitable(
+                    pending := prepare(self.trading_pair, self.network_client)
+                ):
+                    await pending
 
                 # Subscribe to candle updates
                 payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
