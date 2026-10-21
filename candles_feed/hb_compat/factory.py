@@ -44,6 +44,7 @@ class CandlesFactory:
         "kraken": "kraken_spot",
         "kucoin": "kucoin_spot",
         "kucoin_perpetual": "kucoin_perpetual",
+        "lighter": "lighter_spot",
         "mexc": "mexc_spot",
         "mexc_perpetual": "mexc_perpetual",
         "okx": "okx_spot",

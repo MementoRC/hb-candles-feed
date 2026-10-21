@@ -26,6 +26,7 @@ from .hyperliquid.spot_adapter import HyperliquidSpotAdapter
 from .kraken.spot_adapter import KrakenSpotAdapter
 from .kucoin.perpetual_adapter import KucoinPerpetualAdapter
 from .kucoin.spot_adapter import KucoinSpotAdapter
+from .lighter.spot_adapter import LighterSpotAdapter
 from .mexc.perpetual_adapter import MEXCPerpetualAdapter
 from .mexc.spot_adapter import MEXCSpotAdapter
 from .okx.perpetual_adapter import OKXPerpetualAdapter
@@ -46,6 +47,7 @@ __all__ = [
     "HyperliquidSpotAdapter",
     "KrakenSpotAdapter",
     "KucoinSpotAdapter",
+    "LighterSpotAdapter",
     "MEXCSpotAdapter",
     "OKXSpotAdapter",
     # Perpetual adapters
