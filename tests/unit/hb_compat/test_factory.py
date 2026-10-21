@@ -72,12 +72,13 @@ class TestCandlesFactory:
         assert "kucoin" in supported
         assert "kucoin_perpetual" in supported
         assert "lighter" in supported
+        assert "lighter_perpetual" in supported
         assert "mexc" in supported
         assert "mexc_perpetual" in supported
         assert "okx" in supported
         assert "okx_perpetual" in supported
         assert "pacifica_perpetual" in supported
-        assert len(supported) == 30
+        assert len(supported) == 31
 
     def test_get_supported_connectors_returns_copy(self):
         from candles_feed.hb_compat.factory import CandlesFactory
