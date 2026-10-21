@@ -260,11 +260,49 @@ class TestAdapterPerformance:
                 f"Mock adapter too slow: {result.avg_latency_ms:.2f}ms"
             )
             assert result.success_rate == 1.0, f"Mock adapter failures: {result.success_rate:.1%}"
-            assert result.memory_peak_mb < 300, (
-                f"Memory usage too high: {result.memory_peak_mb:.1f}MB"
+            # memory_peak_mb is the tracemalloc peak allocated during the measured loop (not
+            # process RSS). Observed ~0.20MB locally; limit is ~2x so a real leak still fails.
+            assert result.memory_peak_mb < 0.4, (
+                f"Memory usage too high: {result.memory_peak_mb:.3f}MB"
             )
         finally:
             await network_client.close()
+
+    async def test_benchmark_memory_peak_detects_known_allocation(self):
+        """memory_peak_mb must be non-zero when the benchmarked code allocates ~8MB."""
+        benchmark = BenchmarkSuite()
+
+        async def allocate():
+            buffer = bytearray(8 * 1024 * 1024)
+            await asyncio.sleep(0)
+            return len(buffer)
+
+        result = await benchmark.run_benchmark(
+            "known_allocation", allocate, iterations=3, warmup_iterations=1
+        )
+
+        assert 4 < result.memory_peak_mb < 32, f"Peak not measured: {result.memory_peak_mb:.3f}MB"
+
+    async def test_benchmark_memory_peak_excludes_profiler_records(self):
+        """A no-op operation must not report memory from the profiler's own metric records."""
+        benchmark = BenchmarkSuite()
+        iterations = 5000
+
+        async def noop():
+            return None
+
+        result = await benchmark.run_benchmark(
+            "noop_many_iterations", noop, iterations=iterations, warmup_iterations=10
+        )
+
+        assert result.total_operations == iterations
+        assert result.success_rate == 1.0
+        assert result.avg_latency_ms > 0
+        assert result.p95_latency_ms > 0
+        assert result.p99_latency_ms >= result.p95_latency_ms
+        assert result.memory_peak_mb < 0.4, (
+            f"Profiler bookkeeping leaked into peak: {result.memory_peak_mb:.3f}MB"
+        )
 
     async def test_memory_usage_scaling(self):
         """Test memory usage scaling with number of candles."""
@@ -357,8 +395,10 @@ class TestIntegrationPerformance:
             assert result.success_rate > 0.95, (
                 f"Success rate too low under load: {result.success_rate:.1%}"
             )
-            assert result.memory_peak_mb < 300, (
-                f"Memory usage too high under load: {result.memory_peak_mb:.1f}MB"
+            # tracemalloc peak during the loop (see test_mock_adapter_throughput); observed
+            # ~0.07MB locally, limit is ~2x.
+            assert result.memory_peak_mb < 0.15, (
+                f"Memory usage too high under load: {result.memory_peak_mb:.3f}MB"
             )
 
             # Check connection pool efficiency
