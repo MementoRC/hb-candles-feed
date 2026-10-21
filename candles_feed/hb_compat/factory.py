@@ -47,10 +47,14 @@ class CandlesFactory:
     }
 
     @classmethod
-    def get_candle(cls, candles_config: CandlesConfig) -> CandlesBaseAdapter:
+    def get_candle(
+        cls, candles_config: CandlesConfig, connector: object | None = None
+    ) -> CandlesBaseAdapter:
         """Create a candle feed adapter from config.
 
         :param candles_config: Configuration matching hummingbot's CandlesConfig
+        :param connector: Optional host connector; exposed as ``adapter.connector``
+            but not otherwise used (no throttler/symbol-map sharing)
         :return: CandlesBaseAdapter instance
         :raises UnsupportedConnectorError: If connector is not supported
         """
@@ -62,6 +66,7 @@ class CandlesFactory:
             trading_pair=candles_config.trading_pair,
             interval=candles_config.interval,
             max_records=candles_config.max_records,
+            connector=connector,
         )
 
     @classmethod
