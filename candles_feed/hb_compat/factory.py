@@ -23,6 +23,7 @@ class CandlesFactory:
         "aevo_perpetual": "aevo_perpetual",
         "ascend_ex": "ascend_ex_spot",
         "backpack": "backpack_spot",
+        "backpack_perpetual": "backpack_perpetual",
         "binance": "binance_spot",
         "binance_perpetual": "binance_perpetual",
         "bitget": "bitget_spot",
