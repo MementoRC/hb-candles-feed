@@ -283,6 +283,27 @@ class TestAdapterPerformance:
 
         assert 4 < result.memory_peak_mb < 32, f"Peak not measured: {result.memory_peak_mb:.3f}MB"
 
+    async def test_benchmark_memory_peak_excludes_profiler_records(self):
+        """A no-op operation must not report memory from the profiler's own metric records."""
+        benchmark = BenchmarkSuite()
+        iterations = 5000
+
+        async def noop():
+            return None
+
+        result = await benchmark.run_benchmark(
+            "noop_many_iterations", noop, iterations=iterations, warmup_iterations=10
+        )
+
+        assert result.total_operations == iterations
+        assert result.success_rate == 1.0
+        assert result.avg_latency_ms > 0
+        assert result.p95_latency_ms > 0
+        assert result.p99_latency_ms >= result.p95_latency_ms
+        assert result.memory_peak_mb < 0.4, (
+            f"Profiler bookkeeping leaked into peak: {result.memory_peak_mb:.3f}MB"
+        )
+
     async def test_memory_usage_scaling(self):
         """Test memory usage scaling with number of candles."""
         config = NetworkConfig()
