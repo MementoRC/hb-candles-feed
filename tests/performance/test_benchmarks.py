@@ -268,6 +268,21 @@ class TestAdapterPerformance:
         finally:
             await network_client.close()
 
+    async def test_benchmark_memory_peak_detects_known_allocation(self):
+        """memory_peak_mb must be non-zero when the benchmarked code allocates ~8MB."""
+        benchmark = BenchmarkSuite()
+
+        async def allocate():
+            buffer = bytearray(8 * 1024 * 1024)
+            await asyncio.sleep(0)
+            return len(buffer)
+
+        result = await benchmark.run_benchmark(
+            "known_allocation", allocate, iterations=3, warmup_iterations=1
+        )
+
+        assert 4 < result.memory_peak_mb < 32, f"Peak not measured: {result.memory_peak_mb:.3f}MB"
+
     async def test_memory_usage_scaling(self):
         """Test memory usage scaling with number of candles."""
         config = NetworkConfig()
