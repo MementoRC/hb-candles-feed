@@ -28,6 +28,11 @@ COLUMNS = [
 ]
 
 
+def _to_compat_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Shape a frame to the hummingbot contract: the 10 columns in order, all float64."""
+    return df.reindex(columns=COLUMNS).astype(float)
+
+
 def _safe_float(value: float | int | str | None, default: float = 0.0) -> float:
     """Convert value to float, returning default for NaN/None."""
     if value is None or (isinstance(value, float) and pd.isna(value)):
@@ -104,7 +109,7 @@ class CandlesBaseAdapter:
     @property
     def candles_df(self) -> pd.DataFrame:
         """OHLCV data as DataFrame. Property, not method."""
-        return self._feed.get_candles_df()
+        return _to_compat_frame(self._feed.get_candles_df())
 
     @property
     def interval_in_seconds(self) -> int:
@@ -150,9 +155,10 @@ class CandlesBaseAdapter:
         :param config: Historical candles configuration
         :return: DataFrame with candle data
         """
-        return await self._feed.get_historical_candles(
+        df = await self._feed.get_historical_candles(
             start_time=config.start_time, end_time=config.end_time
         )
+        return _to_compat_frame(df)
 
     # --- Trading pair ---
 

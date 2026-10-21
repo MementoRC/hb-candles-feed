@@ -82,6 +82,25 @@ class TestCandlesBaseAdapterProperties:
         ]
         assert list(df.columns) == expected_columns
 
+    def test_empty_candles_df_keeps_columns_and_float_dtype(self):
+        from candles_feed.hb_compat.adapter import COLUMNS, CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        df = adapter.candles_df
+        assert df.empty
+        assert list(df.columns) == COLUMNS
+        assert (df.dtypes == "float64").all()
+
+    def test_non_empty_candles_df_is_all_float64_in_order(self):
+        from candles_feed.hb_compat.adapter import COLUMNS, CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT", max_records=2)
+        adapter._feed.add_candle(_make_candle(1000))
+        df = adapter.candles_df
+        assert list(df.columns) == COLUMNS
+        assert (df.dtypes == "float64").all()
+        assert df["n_trades"].iloc[0] == 50.0
+
     def test_interval_in_seconds(self):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
 
@@ -193,6 +212,29 @@ class TestCandlesBaseAdapterDataConversion:
             result = await adapter.get_historical_candles(config)
             mock_hist.assert_called_once_with(start_time=1000, end_time=2000)
             assert isinstance(result, pd.DataFrame)
+
+    async def test_get_historical_candles_empty_keeps_columns(self):
+        from candles_feed.hb_compat.adapter import COLUMNS, CandlesBaseAdapter
+        from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        config = HistoricalCandlesConfig(
+            connector_name="binance",
+            trading_pair="BTC-USDT",
+            interval="1m",
+            start_time=1000,
+            end_time=2000,
+        )
+        with patch.object(
+            adapter._feed,
+            "get_historical_candles",
+            new_callable=AsyncMock,
+            return_value=pd.DataFrame(),
+        ):
+            result = await adapter.get_historical_candles(config)
+        assert result.empty
+        assert list(result.columns) == COLUMNS
+        assert (result.dtypes == "float64").all()
 
     async def test_fetch_candles_empty_returns_empty_ndarray(self):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
