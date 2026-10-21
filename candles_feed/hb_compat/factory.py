@@ -47,13 +47,20 @@ class CandlesFactory:
     }
 
     @classmethod
-    def get_candle(cls, candles_config: CandlesConfig) -> CandlesBaseAdapter:
+    def get_candle(
+        cls, candles_config: CandlesConfig, connector: object | None = None
+    ) -> CandlesBaseAdapter:
         """Create a candle feed adapter from config.
 
         :param candles_config: Configuration matching hummingbot's CandlesConfig
+        :param connector: Accepted for upstream signature compatibility; intentionally
+            unused and not retained until #89 (optional shared rate-limit budget).
         :return: CandlesBaseAdapter instance
         :raises UnsupportedConnectorError: If connector is not supported
         """
+        # Accepted for upstream signature compatibility; intentionally unused until #89
+        # (optional shared rate-limit budget).
+        del connector
         registry_key = cls._CONNECTOR_MAP.get(candles_config.connector)
         if registry_key is None:
             raise UnsupportedConnectorError(candles_config.connector)
