@@ -38,6 +38,7 @@ class CandlesFactory:
         "evedex_perpetual": "evedex_perpetual",
         "gate_io": "gate_io_spot",
         "gate_io_perpetual": "gate_io_perpetual",
+        "grvt_perpetual": "grvt_perpetual",
         "hyperliquid": "hyperliquid_spot",
         "hyperliquid_perpetual": "hyperliquid_perpetual",
         "kraken": "kraken_spot",

@@ -65,6 +65,7 @@ class TestCandlesFactory:
         assert "evedex_perpetual" in supported
         assert "gate_io" in supported
         assert "gate_io_perpetual" in supported
+        assert "grvt_perpetual" in supported
         assert "hyperliquid" in supported
         assert "hyperliquid_perpetual" in supported
         assert "kraken" in supported
@@ -75,7 +76,7 @@ class TestCandlesFactory:
         assert "okx" in supported
         assert "okx_perpetual" in supported
         assert "pacifica_perpetual" in supported
-        assert len(supported) == 28
+        assert len(supported) == 29
 
     def test_get_supported_connectors_returns_copy(self):
         from candles_feed.hb_compat.factory import CandlesFactory

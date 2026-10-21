@@ -20,6 +20,7 @@ from .dexalot.spot_adapter import DexalotSpotAdapter
 from .evedex.perpetual_adapter import EvedexPerpetualAdapter
 from .gate_io.perpetual_adapter import GateIoPerpetualAdapter
 from .gate_io.spot_adapter import GateIoSpotAdapter
+from .grvt.perpetual_adapter import GrvtPerpetualAdapter
 from .hyperliquid.perpetual_adapter import HyperliquidPerpetualAdapter
 from .hyperliquid.spot_adapter import HyperliquidSpotAdapter
 from .kraken.spot_adapter import KrakenSpotAdapter
@@ -57,6 +58,7 @@ __all__ = [
     "DecibelPerpetualAdapter",
     "EvedexPerpetualAdapter",
     "GateIoPerpetualAdapter",
+    "GrvtPerpetualAdapter",
     "HyperliquidPerpetualAdapter",
     "KucoinPerpetualAdapter",
     "MEXCPerpetualAdapter",
