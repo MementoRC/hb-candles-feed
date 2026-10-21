@@ -17,6 +17,7 @@ from .bybit.spot_adapter import BybitSpotAdapter
 from .coinbase_advanced_trade.spot_adapter import CoinbaseAdvancedTradeSpotAdapter
 from .decibel.perpetual_adapter import DecibelPerpetualAdapter
 from .dexalot.spot_adapter import DexalotSpotAdapter
+from .evedex.perpetual_adapter import EvedexPerpetualAdapter
 from .gate_io.perpetual_adapter import GateIoPerpetualAdapter
 from .gate_io.spot_adapter import GateIoSpotAdapter
 from .hyperliquid.perpetual_adapter import HyperliquidPerpetualAdapter
@@ -54,6 +55,7 @@ __all__ = [
     "BitmartPerpetualAdapter",
     "BybitPerpetualAdapter",
     "DecibelPerpetualAdapter",
+    "EvedexPerpetualAdapter",
     "GateIoPerpetualAdapter",
     "HyperliquidPerpetualAdapter",
     "KucoinPerpetualAdapter",

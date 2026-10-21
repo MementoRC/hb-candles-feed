@@ -35,6 +35,7 @@ class CandlesFactory:
         "coinbase_advanced_trade": "coinbase_advanced_trade",
         "decibel_perpetual": "decibel_perpetual",
         "dexalot": "dexalot_spot",
+        "evedex_perpetual": "evedex_perpetual",
         "gate_io": "gate_io_spot",
         "gate_io_perpetual": "gate_io_perpetual",
         "hyperliquid": "hyperliquid_spot",
