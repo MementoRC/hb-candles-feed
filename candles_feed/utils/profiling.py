@@ -11,6 +11,7 @@ import gc
 import logging
 import time
 import tracemalloc
+from array import array
 from collections.abc import Callable
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
@@ -39,7 +40,11 @@ class PerformanceMetrics:
 
 @dataclass
 class BenchmarkResult:
-    """Container for benchmark test results."""
+    """Container for benchmark test results.
+
+    ``memory_peak_mb`` is the Python-heap (tracemalloc) peak above the pre-loop baseline
+    and excludes native allocations. ``memory_final_mb`` is process RSS after the run.
+    """
 
     scenario_name: str
     total_operations: int
@@ -247,6 +252,9 @@ class BenchmarkSuite:
     ) -> BenchmarkResult:
         """Run a benchmark scenario.
 
+        Uses process-wide tracemalloc state (``reset_peak``), so it is not safe to run
+        concurrently with another ``run_benchmark`` call.
+
         :param scenario_name: Name of the benchmark scenario
         :param operation_func: Function to benchmark
         :param iterations: Number of iterations to run
@@ -281,14 +289,18 @@ class BenchmarkSuite:
         tracemalloc.reset_peak()
         baseline_traced, _ = tracemalloc.get_traced_memory()
         errors = []
+        # Compact preallocated-style storage so per-iteration bookkeeping does not
+        # inflate the traced peak (no PerformanceMetrics record per iteration).
+        durations = array("d")
 
         for i in range(iterations):
             try:
-                with self.profiler.measure(f"{scenario_name}_iteration_{i}"):
-                    if asyncio.iscoroutinefunction(operation_func):
-                        await operation_func(**operation_kwargs)
-                    else:
-                        operation_func(**operation_kwargs)
+                t0 = time.perf_counter()
+                if asyncio.iscoroutinefunction(operation_func):
+                    await operation_func(**operation_kwargs)
+                else:
+                    operation_func(**operation_kwargs)
+                durations.append((time.perf_counter() - t0) * 1000)
             except Exception as e:
                 error_msg = f"Iteration {i}: {str(e)}"
                 errors.append(error_msg)
@@ -301,22 +313,20 @@ class BenchmarkSuite:
         peak_delta_mb = max(traced_peak - baseline_traced, 0) / 1024 / 1024
 
         # Calculate statistics
-        successful_metrics = [m for m in self.profiler.metrics if m.success]
-        durations = [m.duration_ms for m in successful_metrics]
+        successful = len(durations)
+        sorted_durations = sorted(durations)
 
         result = BenchmarkResult(
             scenario_name=scenario_name,
             total_operations=iterations,
             duration_seconds=total_duration,
-            operations_per_second=len(successful_metrics) / total_duration
-            if total_duration > 0
-            else 0,
-            avg_latency_ms=sum(durations) / len(durations) if durations else 0,
-            p95_latency_ms=self.profiler._percentile(durations, 0.95),
-            p99_latency_ms=self.profiler._percentile(durations, 0.99),
+            operations_per_second=successful / total_duration if total_duration > 0 else 0,
+            avg_latency_ms=sum(durations) / successful if successful else 0,
+            p95_latency_ms=self.profiler._percentile(sorted_durations, 0.95),
+            p99_latency_ms=self.profiler._percentile(sorted_durations, 0.99),
             memory_peak_mb=peak_delta_mb,
             memory_final_mb=final_memory,
-            success_rate=len(successful_metrics) / iterations if iterations > 0 else 0,
+            success_rate=successful / iterations if iterations > 0 else 0,
             errors=errors[:10],  # Limit to first 10 errors
         )
 
