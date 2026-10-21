@@ -260,8 +260,10 @@ class TestAdapterPerformance:
                 f"Mock adapter too slow: {result.avg_latency_ms:.2f}ms"
             )
             assert result.success_rate == 1.0, f"Mock adapter failures: {result.success_rate:.1%}"
-            assert result.memory_peak_mb < 300, (
-                f"Memory usage too high: {result.memory_peak_mb:.1f}MB"
+            # memory_peak_mb is the tracemalloc peak allocated during the measured loop (not
+            # process RSS). Observed ~0.20MB locally; limit is ~2x so a real leak still fails.
+            assert result.memory_peak_mb < 0.4, (
+                f"Memory usage too high: {result.memory_peak_mb:.3f}MB"
             )
         finally:
             await network_client.close()
@@ -357,8 +359,10 @@ class TestIntegrationPerformance:
             assert result.success_rate > 0.95, (
                 f"Success rate too low under load: {result.success_rate:.1%}"
             )
-            assert result.memory_peak_mb < 300, (
-                f"Memory usage too high under load: {result.memory_peak_mb:.1f}MB"
+            # tracemalloc peak during the loop (see test_mock_adapter_throughput); observed
+            # ~0.07MB locally, limit is ~2x.
+            assert result.memory_peak_mb < 0.15, (
+                f"Memory usage too high under load: {result.memory_peak_mb:.3f}MB"
             )
 
             # Check connection pool efficiency

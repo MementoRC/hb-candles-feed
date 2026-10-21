@@ -273,7 +273,13 @@ class BenchmarkSuite:
 
         # Actual benchmark
         start_time = time.perf_counter()
-        start_memory = self.profiler._get_memory_usage()
+        # Benchmark memory is the tracemalloc peak above the baseline taken here, i.e. what
+        # the benchmarked code itself allocated. Whole-process RSS includes interpreter,
+        # imports, allocator arenas and earlier tests, which makes it runner/order dependent.
+        if not tracemalloc.is_tracing():
+            tracemalloc.start()
+        tracemalloc.reset_peak()
+        baseline_traced, _ = tracemalloc.get_traced_memory()
         errors = []
 
         for i in range(iterations):
@@ -291,6 +297,8 @@ class BenchmarkSuite:
         end_time = time.perf_counter()
         total_duration = end_time - start_time
         final_memory = self.profiler._get_memory_usage()
+        _, traced_peak = tracemalloc.get_traced_memory()
+        peak_delta_mb = max(traced_peak - baseline_traced, 0) / 1024 / 1024
 
         # Calculate statistics
         successful_metrics = [m for m in self.profiler.metrics if m.success]
@@ -306,9 +314,7 @@ class BenchmarkSuite:
             avg_latency_ms=sum(durations) / len(durations) if durations else 0,
             p95_latency_ms=self.profiler._percentile(durations, 0.95),
             p99_latency_ms=self.profiler._percentile(durations, 0.99),
-            memory_peak_mb=max(
-                [m.memory_peak_mb for m in self.profiler.metrics], default=start_memory
-            ),
+            memory_peak_mb=peak_delta_mb,
             memory_final_mb=final_memory,
             success_rate=len(successful_metrics) / iterations if iterations > 0 else 0,
             errors=errors[:10],  # Limit to first 10 errors
