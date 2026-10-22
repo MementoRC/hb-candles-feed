@@ -65,7 +65,9 @@ def test_week_floor_is_idempotent_on_monday():
     assert floor_timestamp(monday, "1w", WEEK) == monday
 
 
-@pytest.mark.parametrize(("interval", "seconds"), [("1m", 60), ("1h", 3600), ("1d", 86400), (None, 300)])
+@pytest.mark.parametrize(
+    ("interval", "seconds"), [("1m", 60), ("1h", 3600), ("1d", 86400), (None, 300)]
+)
 def test_fixed_intervals_match_modulo(interval, seconds):
     t = 1_700_000_123
     assert floor_timestamp(t, interval, seconds) == t - t % seconds

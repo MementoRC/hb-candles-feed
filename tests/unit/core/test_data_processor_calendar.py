@@ -35,8 +35,9 @@ def test_sanitize_without_interval_collapses_monthly_series():
     """Legacy behaviour: no interval means fixed 2592000s diffs, so real months collapse."""
     stamps = _month_starts(13)
     result = DataProcessor().sanitize_candles([_candle(t) for t in stamps], MONTH)
-    assert len(result) == 1
-    assert result[0].timestamp == stamps[-1]
+    # Only 30-day months (Apr->May, Jun->Jul, ...) match the fixed diff; longest run is 2.
+    assert len(result) == 2
+    assert len(result) < len(stamps)
 
 
 def test_sanitize_splits_on_missing_month():
@@ -56,7 +57,10 @@ def test_validate_true_for_real_months_with_interval():
 def test_validate_false_for_missing_month():
     stamps = _month_starts(6)
     del stamps[2]
-    assert DataProcessor().validate_candle_intervals([_candle(t) for t in stamps], MONTH, "1M") is False
+    assert (
+        DataProcessor().validate_candle_intervals([_candle(t) for t in stamps], MONTH, "1M")
+        is False
+    )
 
 
 def test_weekly_monday_runs_still_work():
