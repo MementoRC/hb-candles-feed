@@ -61,9 +61,12 @@ class TestRestRateLimit:
             limit.max_requests = 10  # type: ignore[misc]
 
     def test_base_adapter_has_conservative_default(self):
-        assert isinstance(BaseAdapter.REST_RATE_LIMIT, RestRateLimit)
-        assert BaseAdapter.REST_RATE_LIMIT.max_requests >= 1
-        assert BaseAdapter.REST_RATE_LIMIT.period_seconds > 0
+        assert RestRateLimit(5, 1.0) == BaseAdapter.REST_RATE_LIMIT
+
+    @pytest.mark.parametrize("period", [float("nan"), float("inf"), float("-inf"), 0, -1.0])
+    def test_rejects_non_finite_or_non_positive_period(self, period):
+        with pytest.raises(ValueError):
+            RestRateLimit(1, period)
 
 
 class TestAsyncRateLimiter:
@@ -84,10 +87,12 @@ class TestAsyncRateLimiter:
     async def test_pacing_over_many_calls(self, clock):
         limiter = make_limiter(clock, max_requests=2, period=1.0)
         start = clock.now
+        admitted: list[float] = []
         for _ in range(6):
             await limiter.acquire()
-        # 6 calls at 2 per second: third and fifth windows need 2 full waits
-        assert clock.now - start == pytest.approx(2.0)
+            admitted.append(clock.now - start)
+        # 2 per second: admissions at 0, 0, 1, 1, 2, 2 (no burst-then-long-wait)
+        assert admitted == [pytest.approx(t) for t in (0.0, 0.0, 1.0, 1.0, 2.0, 2.0)]
 
     async def test_window_expiry_frees_budget(self, clock):
         limiter = make_limiter(clock, max_requests=2, period=1.0)
@@ -157,13 +162,28 @@ class TestPools:
 
 class TestRateLimitedNetworkClient:
     async def test_get_rest_data_acquires_then_delegates(self, clock):
+        calls: list[str] = []
         inner = MagicMock()
-        inner.get_rest_data = AsyncMock(return_value={"ok": True})
+
+        async def fake_get(*args, **kwargs):
+            calls.append("delegate")
+            return {"ok": True}
+
+        inner.get_rest_data = AsyncMock(side_effect=fake_get)
         limiter = make_limiter(clock, max_requests=1, period=2.0)
+        real_acquire = limiter.acquire
+
+        async def recording_acquire() -> None:
+            calls.append("acquire")
+            await real_acquire()
+
+        limiter.acquire = recording_acquire  # type: ignore[method-assign]
         client = RateLimitedNetworkClient(inner, limiter)
 
         assert await client.get_rest_data(url="http://x", params={"a": 1}) == {"ok": True}
+        assert calls == ["acquire", "delegate"]
         await client.get_rest_data(url="http://x")
+        assert calls == ["acquire", "delegate", "acquire", "delegate"]
 
         assert inner.get_rest_data.await_count == 2
         inner.get_rest_data.assert_any_await(url="http://x", params={"a": 1})
@@ -180,9 +200,27 @@ class TestRateLimitedNetworkClient:
         inner.__aenter__ = AsyncMock(return_value=inner)
         inner.__aexit__ = AsyncMock(return_value=None)
         client = RateLimitedNetworkClient(inner, make_limiter(clock))
-        async with client:
-            pass
+        async with client as c:
+            assert c is client
         inner.__aenter__.assert_awaited_once()
+        inner.__aexit__.assert_awaited_once()
+
+    async def test_entered_object_is_kept_and_delegated_to(self, clock):
+        entered = MagicMock()
+        entered.get_rest_data = AsyncMock(return_value="from-entered")
+        entered.marker = "entered-attr"
+        inner = MagicMock()
+        inner.__aenter__ = AsyncMock(return_value=entered)
+        inner.__aexit__ = AsyncMock(return_value=None)
+        inner.get_rest_data = AsyncMock(return_value="from-inner")
+        client = RateLimitedNetworkClient(inner, make_limiter(clock))
+
+        async with client as c:
+            assert c is client
+            assert await c.get_rest_data(url="http://x") == "from-entered"
+            assert c.marker == "entered-attr"
+
+        inner.get_rest_data.assert_not_awaited()
         inner.__aexit__.assert_awaited_once()
 
 

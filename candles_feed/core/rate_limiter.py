@@ -7,9 +7,15 @@ explicit ``REST_RATE_LIMIT_POOL`` string when several adapters (e.g. spot and
 perpetual of one exchange) draw from the same exchange-side budget.
 
 Request weights are not modelled yet (every call costs 1); that is a follow-up.
+
+Known limitations: limiters assume a single asyncio thread, so concurrent use from
+other threads or event loops may exceed the budget. ``SyncOnlyAdapter`` acquires the
+permit before handing work to the executor, so calls queued behind busy executor
+workers can start close together.
 """
 
 import asyncio
+import math
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -27,8 +33,8 @@ class RestRateLimit:
     def __post_init__(self) -> None:
         if self.max_requests < 1:
             raise ValueError("max_requests must be >= 1")
-        if self.period_seconds <= 0:
-            raise ValueError("period_seconds must be > 0")
+        if not math.isfinite(self.period_seconds) or self.period_seconds <= 0:
+            raise ValueError("period_seconds must be a finite number > 0")
 
 
 # Used when an adapter does not declare REST_RATE_LIMIT.
@@ -134,19 +140,22 @@ class RateLimitedNetworkClient:
 
     def __init__(self, client: Any, limiter: AsyncRateLimiter) -> None:
         self._client = client
+        self._target = client  # object entered via __aenter__, if it differs from the client
         self._limiter = limiter
 
     async def get_rest_data(self, *args: Any, **kwargs: Any) -> Any:
         """Wait for the rate limiter, then perform the REST request."""
         await self._limiter.acquire()
-        return await self._client.get_rest_data(*args, **kwargs)
+        return await self._target.get_rest_data(*args, **kwargs)
 
     async def __aenter__(self) -> Any:
-        await self._client.__aenter__()
+        entered = await self._client.__aenter__()
+        if entered is not None and entered is not self._client:
+            self._target = entered
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
         return await self._client.__aexit__(exc_type, exc_val, exc_tb)
 
     def __getattr__(self, name: str) -> Any:
-        return getattr(self._client, name)
+        return getattr(self._target, name)
