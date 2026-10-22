@@ -14,6 +14,7 @@ from collections import deque
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
+from candles_feed.core.intervals import ceil_timestamp, floor_timestamp
 from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.protocols import (
     CollectionStrategy,
@@ -118,7 +119,9 @@ class WebSocketStrategy:
                 )
 
             interval_seconds = self.adapter.get_supported_intervals()[self.interval]
-            processed_candles = self.data_processor.sanitize_candles(candles, interval_seconds)
+            processed_candles = self.data_processor.sanitize_candles(
+                candles, interval_seconds, self.interval
+            )
             self.logger.debug(
                 f"Fetched {len(processed_candles)} candles via REST for {self.trading_pair}"
             )
@@ -160,7 +163,7 @@ class WebSocketStrategy:
                     if candles := self.adapter.parse_ws_message(message):
                         interval_seconds = self.adapter.get_supported_intervals()[self.interval]
                         validated_candles = self.data_processor.sanitize_candles(
-                            candles, interval_seconds
+                            candles, interval_seconds, self.interval
                         )
                         self._update_candles(validated_candles)
 
@@ -281,12 +284,15 @@ class RESTPollingStrategy:
             end_time = int(time.time())
 
         # Round down to nearest interval
-        end_time = end_time - (end_time % interval_seconds)
+        end_time = floor_timestamp(end_time, self.interval, interval_seconds)
 
         if start_time is None and limit is not None:
-            start_time = end_time - (limit * interval_seconds)
+            # Ceil-align: adapters derive end as start + limit * nominal step, which must reach end_time
+            start_time = ceil_timestamp(
+                end_time - limit * interval_seconds, self.interval, interval_seconds
+            )
         elif start_time is not None:
-            start_time = start_time - (start_time % interval_seconds)
+            start_time = floor_timestamp(start_time, self.interval, interval_seconds)
 
         candles: list[CandleData] = []
         try:
@@ -318,7 +324,7 @@ class RESTPollingStrategy:
         except Exception as e:
             self.logger.exception(f"Failed fetching candles: {e}")
 
-        return self.data_processor.sanitize_candles(candles, interval_seconds)
+        return self.data_processor.sanitize_candles(candles, interval_seconds, self.interval)
 
     async def _poll_for_updates(self) -> None:
         """Poll for updates at regular intervals."""

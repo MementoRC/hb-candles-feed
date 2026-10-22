@@ -18,6 +18,7 @@ from candles_feed.core.collection_strategies import (
 )
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.intervals import floor_timestamp, is_valid_step, is_variable_length_interval
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
@@ -362,7 +363,7 @@ class CandlesFeed:
         :return: Rounded timestamp
         """
         interval_seconds = self._adapter.get_supported_intervals()[self.interval]
-        return int(timestamp - timestamp % interval_seconds)
+        return floor_timestamp(int(timestamp), self.interval, interval_seconds)
 
     def check_candles_sorted_and_equidistant(self, candles_data=None) -> bool:
         """Check if candles are sorted by timestamp and have equal intervals.
@@ -392,7 +393,14 @@ class CandlesFeed:
         if len(timestamp_diffs) > 0:
             unique_diffs = np.unique(timestamp_diffs)
             interval_seconds = self._adapter.get_supported_intervals()[self.interval]
-            if not np.all(np.isclose(unique_diffs, interval_seconds, rtol=1e-5)):
+            if is_variable_length_interval(self.interval):
+                equidistant = all(
+                    is_valid_step(int(a), int(b), self.interval, interval_seconds)
+                    for a, b in zip(timestamps[:-1], timestamps[1:], strict=True)
+                )
+            else:
+                equidistant = bool(np.all(np.isclose(unique_diffs, interval_seconds, rtol=1e-5)))
+            if not equidistant:
                 self.logger.warning("Candles do not have equal intervals")
                 return False
 
