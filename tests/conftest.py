@@ -17,6 +17,7 @@ from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_client import NetworkClient, cleanup_unclosed_sessions
 from candles_feed.core.protocols import WSAssistant
+from candles_feed.core.rate_limiter import reset_rate_limiters
 from candles_feed.mocking_resources import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
@@ -47,6 +48,15 @@ async def cleanup_aiohttp_sessions():
     yield  # Run the test
     # Clean up any unclosed sessions after each test
     await cleanup_unclosed_sessions()
+
+
+# Keep the process-wide REST rate-limit budget from leaking between tests
+@pytest.fixture(scope="function", autouse=True)
+def reset_rest_rate_limiters():
+    """Reset shared REST rate limiters before and after each test."""
+    reset_rate_limiters()
+    yield
+    reset_rate_limiters()
 
 
 # Add URL pollution prevention fixture

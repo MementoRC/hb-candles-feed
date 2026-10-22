@@ -4,6 +4,7 @@ Tests for framework-level REST rate limiting (#93).
 All timing uses a fake clock; nothing here really sleeps.
 """
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -95,6 +96,24 @@ class TestAsyncRateLimiter:
         clock.now += 1.5
         await limiter.acquire()
         assert clock.sleeps == []
+
+
+class TestLockPerEventLoop:
+    def test_limiter_usable_across_event_loops(self):
+        clock = FakeClock()
+
+        async def yielding_sleep(seconds: float) -> None:
+            await asyncio.sleep(0)
+            clock.now += seconds
+
+        limiter = AsyncRateLimiter(RestRateLimit(1, 1.0), clock=clock, sleep=yielding_sleep)
+
+        async def contend() -> None:
+            # Three waiters on a budget of one force real lock contention.
+            await asyncio.gather(*(limiter.acquire() for _ in range(3)))
+
+        asyncio.run(contend())
+        asyncio.run(contend())
 
 
 class TestPools:

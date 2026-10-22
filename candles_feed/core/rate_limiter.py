@@ -49,13 +49,23 @@ class AsyncRateLimiter:
         self._sleep = sleep
         self._timestamps: deque[float] = deque()
         self._lock: asyncio.Lock | None = None
+        self._lock_loop: asyncio.AbstractEventLoop | None = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        """Return a lock bound to the running loop.
+
+        Limiters are process-wide but an asyncio.Lock binds to the first loop that
+        contends on it, so the lock is recreated per loop. The timestamps stay shared.
+        """
+        loop = asyncio.get_running_loop()
+        if self._lock is None or self._lock_loop is not loop:
+            self._lock = asyncio.Lock()
+            self._lock_loop = loop
+        return self._lock
 
     async def acquire(self) -> None:
         """Wait until a request may be sent, then record it."""
-        # Created lazily so the limiter can be built outside a running loop.
-        if self._lock is None:
-            self._lock = asyncio.Lock()
-        async with self._lock:
+        async with self._get_lock():
             now = self._clock()
             self._evict(now)
             if len(self._timestamps) >= self.limit.max_requests:
