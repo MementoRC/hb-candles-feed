@@ -14,6 +14,7 @@ from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.collection_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.data_processor import DataProcessor
+from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_client import NetworkClient, cleanup_unclosed_sessions
 from candles_feed.core.protocols import WSAssistant
 from candles_feed.mocking_resources import ExchangeType
@@ -126,6 +127,18 @@ def prevent_url_pollution():
 
 # Remove the custom event_loop fixture to avoid the deprecation warning
 # pytest-asyncio now provides this functionality natively
+
+
+@pytest.fixture(scope="function", autouse=True)
+def isolate_exchange_registry():
+    """Snapshot ExchangeRegistry before each test and restore it afterwards.
+
+    Adapters register once at import time, so a test that clears or replaces the
+    registry would otherwise leave every later test without adapters.
+    """
+    snapshot = dict(ExchangeRegistry._registry)
+    yield
+    ExchangeRegistry._registry = snapshot
 
 
 @pytest.fixture

@@ -18,7 +18,7 @@ from candles_feed.core.network_config import EndpointType, NetworkConfig
 
 
 @ExchangeRegistry.register("binance_spot")
-class BinanceSpotAdapter(BinanceBaseAdapter, TestnetSupportMixin):
+class BinanceSpotAdapter(TestnetSupportMixin, BinanceBaseAdapter):
     """Binance spot exchange adapter with testnet support."""
 
     def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):

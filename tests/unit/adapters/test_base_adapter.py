@@ -2,6 +2,8 @@
 Tests for the base adapter functionality.
 """
 
+import logging
+import typing
 from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, Mock
 
@@ -10,6 +12,26 @@ import pytest
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
+
+
+def test_init_annotations_resolve_at_runtime():
+    """Runtime annotation resolution must not raise NameError."""
+    hints = typing.get_type_hints(BaseAdapter.__init__)
+    assert "network_config" in hints
+
+
+def test_testnet_adapter_does_not_log_production_status(caplog):
+    """A testnet config through a TestnetSupportMixin adapter must not log PRODUCTION."""
+    from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+    from candles_feed.core.network_config import NetworkConfig
+
+    config = NetworkConfig.testnet()
+    with caplog.at_level(logging.INFO):
+        adapter = BinanceSpotAdapter(network_config=config)
+
+    assert adapter.network_config is config
+    assert "PRODUCTION" not in caplog.text
+    assert "TESTNET" in caplog.text
 
 
 class TestTimestampConversion:
