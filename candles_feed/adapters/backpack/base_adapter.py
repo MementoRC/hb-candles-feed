@@ -12,6 +12,7 @@ from typing import Any, override
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.intervals import is_variable_length_interval, shift_boundaries
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
 
@@ -100,7 +101,12 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if start_time is None:
             count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
             count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
-            start_time = int(time.time()) - count * INTERVALS.get(interval, 60)
+            now = int(time.time())
+            step = INTERVALS.get(interval, 60)
+            if is_variable_length_interval(interval):
+                start_time = shift_boundaries(now, interval, step, -count)
+            else:
+                start_time = now - count * step
         return {
             "symbol": self.get_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),

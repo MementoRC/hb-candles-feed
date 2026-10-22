@@ -125,6 +125,26 @@ class BackpackAdapterContract:
         params = adapter._get_rest_params("BTC-USDC", "1m", limit=10)
         assert abs(params["startTime"] - (before - 600)) <= 5
 
+    @pytest.mark.parametrize(
+        ("now", "limit", "expected_start"),
+        [
+            (1707566400, 1, 1704067200),  # 2024-02-10 -> 2024-01-01
+            (1710504000, 3, 1701388800),  # 2024-03-15 -> 2023-12-01
+            (1710504000, 13, 1675209600),  # across the 2024 leap year -> 2023-02-01
+        ],
+    )
+    def test_rest_params_monthly_default_start_spans_calendar_months(
+        self, adapter, monkeypatch, now, limit, expected_start
+    ):
+        monkeypatch.setattr(time, "time", lambda: now)
+        params = adapter._get_rest_params("BTC-USDC", "1M", limit=limit)
+        assert params["startTime"] == expected_start
+
+    def test_rest_params_hourly_default_start_unchanged(self, adapter, monkeypatch):
+        monkeypatch.setattr(time, "time", lambda: 1710504000 + 123)
+        params = adapter._get_rest_params("BTC-USDC", "1h", limit=10)
+        assert params["startTime"] == 1710504000 + 123 - 10 * 3600
+
     @pytest.mark.parametrize("limit", [None, 50000])
     def test_rest_params_limit_none_or_oversized_uses_max(self, adapter, limit):
         # RESTPollingStrategy.poll_once passes limit=None for incremental polls.

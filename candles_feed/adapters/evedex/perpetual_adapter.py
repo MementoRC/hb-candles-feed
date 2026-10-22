@@ -15,6 +15,7 @@ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter, NoWebSocketSu
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.intervals import is_variable_length_interval, shift_boundaries
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
 
@@ -108,13 +109,22 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
         """
         count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
         count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
-        span = count * INTERVALS.get(interval, 60)
+        step = INTERVALS.get(interval, 60)
+        calendar = is_variable_length_interval(interval)
         if start_time is None:
             end_s = int(time.time())
-            start_s = end_s - span
+            start_s = (
+                shift_boundaries(end_s, interval, step, -count)
+                if calendar
+                else end_s - count * step
+            )
         else:
             start_s = int(start_time)
-            end_s = start_s + span
+            end_s = (
+                shift_boundaries(start_s, interval, step, count)
+                if calendar
+                else start_s + count * step
+            )
         return {
             "group": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "after": self._to_iso(start_s),
