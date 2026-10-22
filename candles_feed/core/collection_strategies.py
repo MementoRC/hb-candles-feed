@@ -350,6 +350,13 @@ class RESTPollingStrategy:
                     # Fetch new or updated candles
                     candles = await self.poll_once(start_time=last_complete_ts)
                     self._update_candles(candles)
+                else:
+                    # Initial fetch failed or returned nothing: retry the full fetch
+                    initial_candles = await self.poll_once(limit=self._candles.maxlen)
+                    if initial_candles:
+                        for candle in initial_candles:
+                            self._candles.append(candle)
+                        self._ready_event.set()
 
                 # Sleep until next interval
                 sleep_time = max(

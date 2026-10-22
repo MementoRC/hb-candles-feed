@@ -144,8 +144,9 @@ class CandlesFeed:
         if strategy == "auto":
             # Use websocket only if the adapter supports it for this interval;
             # REST-only adapters raise NotImplementedError.
+            get_ws_intervals = getattr(self._adapter, "get_ws_supported_intervals", None)
             try:
-                use_websocket = self.interval in self._adapter.get_ws_supported_intervals()
+                use_websocket = get_ws_intervals is not None and self.interval in get_ws_intervals()
             except NotImplementedError:
                 use_websocket = False
             if not use_websocket:

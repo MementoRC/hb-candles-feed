@@ -86,6 +86,55 @@ async def test_auto_falls_back_to_polling_for_rest_only_adapter():
         await feed.stop()
 
 
+class _DuckAdapter:
+    """REST-only adapter that has no get_ws_supported_intervals at all."""
+
+    def __init__(self):
+        self.fetch_rest_candles = AsyncMock(return_value=_candles())
+
+    def get_trading_pair_format(self, trading_pair: str) -> str:
+        return trading_pair
+
+    def get_supported_intervals(self) -> dict[str, int]:
+        return {"1m": 60}
+
+
+@pytest.mark.asyncio
+async def test_auto_tolerates_adapter_without_ws_intervals_method():
+    adapter = _DuckAdapter()
+    feed = _make_feed(adapter)  # type: ignore[arg-type]
+    try:
+        await feed.start("auto")
+        await _wait_for_candles(feed)
+
+        assert feed._using_ws is False
+        assert len(feed.get_candles_df()) == 3
+    finally:
+        await feed.stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("first_result", [RuntimeError("boom"), []])
+async def test_polling_retries_initial_fetch_while_store_empty(first_result):
+    adapter = _FakeAdapter(ws_intervals=None)
+    adapter.fetch_rest_candles = AsyncMock(side_effect=[first_result, _candles(), _candles()])
+    feed = _make_feed(adapter)
+    real_sleep = asyncio.sleep
+
+    async def fast_sleep(_delay: float) -> None:
+        await real_sleep(0.001)
+
+    try:
+        with patch("candles_feed.core.collection_strategies.asyncio.sleep", fast_sleep):
+            await feed.start("auto")
+            await _wait_for_candles(feed)
+
+        assert len(feed.get_candles_df()) == 3
+        assert adapter.fetch_rest_candles.await_count >= 2
+    finally:
+        await feed.stop()
+
+
 @pytest.mark.asyncio
 async def test_auto_falls_back_to_polling_when_interval_not_ws_supported():
     adapter = _FakeAdapter(ws_intervals=["5m"])
