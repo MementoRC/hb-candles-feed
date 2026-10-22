@@ -141,6 +141,29 @@ class TestCandlesBaseAdapterLifecycle:
             await asyncio.sleep(0.1)
             mock_start.assert_called_once()
 
+    async def test_start_task_exception_is_logged_not_dropped(self, caplog):
+        import asyncio
+        import logging
+
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        with (
+            patch.object(
+                adapter._feed, "start", new_callable=AsyncMock, side_effect=RuntimeError("boom-95")
+            ),
+            caplog.at_level(logging.ERROR),
+        ):
+            adapter.start()
+            await asyncio.sleep(0.1)
+
+        assert any(
+            r.name.startswith("candles_feed")
+            and r.levelno >= logging.ERROR
+            and "boom-95" in r.getMessage() + str(r.exc_info)
+            for r in caplog.records
+        )
+
     async def test_stop_schedules_async_task(self):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
 
