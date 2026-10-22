@@ -14,6 +14,7 @@ from typing import Any, override
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter, NoWebSocketSupportMixin
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.intervals import next_boundary
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
 
@@ -71,7 +72,7 @@ class LighterBaseAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapter)
         count = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST if limit is None else limit
         count = max(1, min(count, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
         now = int(time.time())
-        bucket_end = now - now % interval_s + interval_s
+        bucket_end = next_boundary(now, interval, interval_s)
         if start_time is None:
             end_s = bucket_end
             start_s = end_s - count * interval_s
