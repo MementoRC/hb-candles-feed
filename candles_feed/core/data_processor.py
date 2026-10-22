@@ -15,7 +15,7 @@ except ImportError:  # pragma: no cover - passive runtime, no Cython installed
     from candles_feed.core import _cython_shim as cython  # type: ignore[no-redef]
 
 from candles_feed.core.candle_data import CandleData
-from candles_feed.core.intervals import is_calendar_interval, next_boundary
+from candles_feed.core.intervals import is_valid_step
 from candles_feed.core.protocols import Logger
 
 
@@ -90,15 +90,8 @@ class DataProcessor:
         current_start = 0
         current_length = 1
 
-        calendar = is_calendar_interval(interval)
-        for i, diff in enumerate(differences):
-            if calendar:
-                step_ok = timestamps[i + 1] == next_boundary(
-                    timestamps[i], interval, interval_in_seconds
-                )
-            else:
-                step_ok = diff == interval_in_seconds
-            if step_ok:
+        for i in range(len(differences)):
+            if is_valid_step(timestamps[i], timestamps[i + 1], interval, interval_in_seconds):
                 current_length += 1
             else:
                 # Check if current sequence is better
@@ -140,15 +133,13 @@ class DataProcessor:
 
         sorted_candles = sorted(candles, key=lambda x: x.timestamp)
 
-        if is_calendar_interval(interval):
-            return all(
-                sorted_candles[i + 1].timestamp
-                == next_boundary(sorted_candles[i].timestamp, interval, interval_in_seconds)
-                for i in range(len(sorted_candles) - 1)
-            )
-
         return all(
-            sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp == interval_in_seconds
+            is_valid_step(
+                sorted_candles[i].timestamp,
+                sorted_candles[i + 1].timestamp,
+                interval,
+                interval_in_seconds,
+            )
             for i in range(len(sorted_candles) - 1)
         )
 

@@ -18,7 +18,7 @@ from candles_feed.core.collection_strategies import (
 )
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
-from candles_feed.core.intervals import floor_timestamp, is_calendar_interval, next_boundary
+from candles_feed.core.intervals import floor_timestamp, is_valid_step, is_variable_length_interval
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
@@ -393,9 +393,9 @@ class CandlesFeed:
         if len(timestamp_diffs) > 0:
             unique_diffs = np.unique(timestamp_diffs)
             interval_seconds = self._adapter.get_supported_intervals()[self.interval]
-            if is_calendar_interval(self.interval):
+            if is_variable_length_interval(self.interval):
                 equidistant = all(
-                    int(b) == next_boundary(int(a), self.interval, interval_seconds)
+                    is_valid_step(int(a), int(b), self.interval, interval_seconds)
                     for a, b in zip(timestamps[:-1], timestamps[1:], strict=True)
                 )
             else:

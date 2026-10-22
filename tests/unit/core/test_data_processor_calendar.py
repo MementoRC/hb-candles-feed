@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime
 
+import pytest
+
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
 
@@ -63,9 +65,18 @@ def test_validate_false_for_missing_month():
     )
 
 
-def test_weekly_monday_runs_still_work():
-    monday = _ts(2023, 5, 1)
-    stamps = [monday + i * WEEK for i in range(10)]
+def test_validate_false_and_sanitize_drops_mid_month_first_candle():
+    stamps = [_ts(2023, 1, 15), *_month_starts(6)[1:]]
+    candles = [_candle(t) for t in stamps]
+    dp = DataProcessor()
+    assert dp.validate_candle_intervals(candles, MONTH, "1M") is False
+    assert [c.timestamp for c in dp.sanitize_candles(candles, MONTH, "1M")] == stamps[1:]
+
+
+@pytest.mark.parametrize("day", [1, 4, 7])  # Monday, Thursday, Sunday
+def test_weekly_any_weekday_uses_fixed_step(day):
+    start = _ts(2023, 5, day)
+    stamps = [start + i * WEEK for i in range(10)]
     dp = DataProcessor()
     candles = [_candle(t) for t in stamps]
     assert [c.timestamp for c in dp.sanitize_candles(candles, WEEK, "1w")] == stamps

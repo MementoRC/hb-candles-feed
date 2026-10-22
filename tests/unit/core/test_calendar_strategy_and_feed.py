@@ -50,16 +50,35 @@ def _strategy(interval: str, fetched: list[CandleData]):
 
 
 @pytest.mark.asyncio
-async def test_poll_once_monthly_window_and_full_series():
+async def test_poll_once_monthly_start_covers_end_and_is_month_start():
     stamps = _month_starts(13)
     strategy, adapter = _strategy("1M", [_candle(t) for t in stamps])
     end_time = _ts(2024, 1, 17) + 4321
 
-    result = await strategy.poll_once(end_time=end_time, limit=12)
+    result = await strategy.poll_once(end_time=end_time, limit=500)
 
     start = adapter.fetch_rest_candles.await_args.kwargs["start_time"]
-    assert start == _ts(2023, 1, 1)
+    assert start + 500 * 2592000 >= _ts(2024, 1, 1)
+    assert _dt(start).day == 1
+    assert (_dt(start).hour, _dt(start).minute, _dt(start).second) == (0, 0, 0)
     assert [c.timestamp for c in result] == stamps
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("interval", ["1m", "1h"])
+async def test_poll_once_fixed_start_is_exact_limit_back(interval):
+    strategy, adapter = _strategy("1m", [])
+    seconds = 60
+    if interval == "1h":
+        adapter.get_supported_intervals.return_value = {**INTERVALS, "1h": 3600}
+        strategy.interval = "1h"
+        seconds = 3600
+    end_time = 1_700_000_123
+
+    await strategy.poll_once(end_time=end_time, limit=200)
+
+    start = adapter.fetch_rest_candles.await_args.kwargs["start_time"]
+    assert start == end_time - end_time % seconds - 200 * seconds
 
 
 @pytest.mark.asyncio
@@ -72,7 +91,7 @@ async def test_poll_once_monthly_explicit_start_floors_to_month():
 @pytest.mark.asyncio
 async def test_poll_once_weekly_start_is_monday():
     strategy, adapter = _strategy("1w", [])
-    end_time = _ts(2023, 5, 4) + 5000  # Thursday
+    end_time = _ts(2023, 5, 4) + 5000  # Thursday; floored to Monday 2023-05-01
 
     await strategy.poll_once(end_time=end_time, limit=4)
 
@@ -125,8 +144,16 @@ def test_equidistant_rejects_missing_month(feed_factory):
     assert feed.check_candles_sorted_and_equidistant(rows) is False
 
 
-def test_equidistant_weekly_monday_aligned(feed_factory):
+@pytest.mark.parametrize("day", [1, 4, 7])  # Monday, Thursday, Sunday
+def test_equidistant_weekly_any_weekday_fixed_step(feed_factory, day):
     feed = feed_factory("1w")
-    monday = _ts(2023, 5, 1)
-    rows = [[monday + i * 604800, 1, 2, 0.5, 1.5, 10] for i in range(6)]
+    start = _ts(2023, 5, day)
+    rows = [[start + i * 604800, 1, 2, 0.5, 1.5, 10] for i in range(6)]
     assert feed.check_candles_sorted_and_equidistant(rows) is True
+
+
+def test_equidistant_rejects_mid_month_first_candle(feed_factory):
+    feed = feed_factory("1M")
+    stamps = [_ts(2023, 1, 15), *_month_starts(6)[1:]]
+    rows = [[t, 1, 2, 0.5, 1.5, 10] for t in stamps]
+    assert feed.check_candles_sorted_and_equidistant(rows) is False

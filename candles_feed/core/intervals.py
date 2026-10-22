@@ -9,7 +9,18 @@ from datetime import UTC, datetime
 
 CALENDAR_INTERVALS = frozenset({"1w", "1M"})
 
+VARIABLE_LENGTH_INTERVALS = frozenset({"1M"})
+
 _DAY = 86400
+
+
+def is_variable_length_interval(interval: str | None) -> bool:
+    """Return True if candles of this interval vary in length (only "1M").
+
+    :param interval: Interval string such as "1m" or "1M"
+    :return: True for "1M"
+    """
+    return interval in VARIABLE_LENGTH_INTERVALS
 
 
 def is_calendar_interval(interval: str | None) -> bool:
@@ -57,6 +68,38 @@ def next_boundary(ts: int, interval: str | None, interval_seconds: int) -> int:
     :return: Start of the next bucket
     """
     return shift_boundaries(ts, interval, interval_seconds, 1)
+
+
+def ceil_timestamp(ts: int, interval: str | None, interval_seconds: int) -> int:
+    """Round a timestamp up to the nearest bucket start (unchanged if already aligned).
+
+    :param ts: Timestamp in seconds
+    :param interval: Interval string such as "1m", "1w" or "1M"
+    :param interval_seconds: Nominal interval length in seconds
+    :return: ts if aligned, otherwise the start of the next bucket
+    """
+    if ts == floor_timestamp(ts, interval, interval_seconds):
+        return ts
+    return next_boundary(ts, interval, interval_seconds)
+
+
+def is_valid_step(prev_ts: int, next_ts: int, interval: str | None, interval_seconds: int) -> bool:
+    """Return True if next_ts is the expected candle following prev_ts.
+
+    Variable-length intervals (1M) require both timestamps on calendar boundaries;
+    all others require an exact fixed-size gap.
+
+    :param prev_ts: Earlier candle timestamp in seconds
+    :param next_ts: Later candle timestamp in seconds
+    :param interval: Interval string such as "1m" or "1M"
+    :param interval_seconds: Nominal interval length in seconds
+    :return: True if the step is valid
+    """
+    if is_variable_length_interval(interval):
+        return prev_ts == floor_timestamp(prev_ts, interval, interval_seconds) and (
+            next_ts == next_boundary(prev_ts, interval, interval_seconds)
+        )
+    return next_ts - prev_ts == interval_seconds
 
 
 def shift_boundaries(ts: int, interval: str | None, interval_seconds: int, n: int) -> int:

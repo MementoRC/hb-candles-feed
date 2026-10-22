@@ -6,8 +6,11 @@ import pytest
 
 from candles_feed.core.intervals import (
     CALENDAR_INTERVALS,
+    ceil_timestamp,
     floor_timestamp,
     is_calendar_interval,
+    is_valid_step,
+    is_variable_length_interval,
     next_boundary,
     shift_boundaries,
 )
@@ -18,6 +21,27 @@ WEEK = 604800
 
 def ts(year, month, day, hour=0, minute=0, second=0) -> int:
     return int(datetime(year, month, day, hour, minute, second, tzinfo=UTC).timestamp())
+
+
+def test_variable_length_only_month():
+    assert is_variable_length_interval("1M")
+    assert not is_variable_length_interval("1w")
+    assert not is_variable_length_interval(None)
+
+
+def test_ceil_timestamp():
+    assert ceil_timestamp(ts(2024, 2, 1), "1M", MONTH) == ts(2024, 2, 1)
+    assert ceil_timestamp(ts(2024, 2, 1, 0, 0, 1), "1M", MONTH) == ts(2024, 3, 1)
+    assert ceil_timestamp(120, "1m", 60) == 120
+    assert ceil_timestamp(121, "1m", 60) == 180
+
+
+def test_is_valid_step():
+    assert is_valid_step(ts(2024, 1, 1), ts(2024, 2, 1), "1M", MONTH)
+    assert not is_valid_step(ts(2024, 1, 15), ts(2024, 2, 1), "1M", MONTH)
+    assert not is_valid_step(ts(2024, 1, 1), ts(2024, 1, 1) + MONTH, "1M", MONTH)
+    assert is_valid_step(ts(2023, 5, 4), ts(2023, 5, 4) + WEEK, "1w", WEEK)
+    assert not is_valid_step(100, 170, "1m", 60)
 
 
 def test_calendar_interval_membership():
