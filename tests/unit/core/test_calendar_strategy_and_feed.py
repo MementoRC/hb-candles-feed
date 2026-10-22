@@ -50,7 +50,7 @@ def _strategy(interval: str, fetched: list[CandleData]):
 
 
 @pytest.mark.asyncio
-async def test_poll_once_monthly_start_covers_end_and_is_month_start():
+async def test_poll_once_monthly_start_is_exactly_limit_calendar_months_back():
     stamps = _month_starts(13)
     strategy, adapter = _strategy("1M", [_candle(t) for t in stamps])
     end_time = _ts(2024, 1, 17) + 4321
@@ -58,9 +58,8 @@ async def test_poll_once_monthly_start_covers_end_and_is_month_start():
     result = await strategy.poll_once(end_time=end_time, limit=500)
 
     start = adapter.fetch_rest_candles.await_args.kwargs["start_time"]
-    assert start + 500 * 2592000 >= _ts(2024, 1, 1)
-    assert _dt(start).day == 1
-    assert (_dt(start).hour, _dt(start).minute, _dt(start).second) == (0, 0, 0)
+    assert start == _ts(1982, 5, 1)  # 2024-01 minus 500 calendar months
+    assert [c.timestamp for c in result] == stamps
     assert [c.timestamp for c in result] == stamps
 
 

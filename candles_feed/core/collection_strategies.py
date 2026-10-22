@@ -14,7 +14,7 @@ from collections import deque
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
-from candles_feed.core.intervals import ceil_timestamp, floor_timestamp
+from candles_feed.core.intervals import floor_timestamp, shift_boundaries
 from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.protocols import (
     CollectionStrategy,
@@ -287,10 +287,7 @@ class RESTPollingStrategy:
         end_time = floor_timestamp(end_time, self.interval, interval_seconds)
 
         if start_time is None and limit is not None:
-            # Ceil-align: adapters derive end as start + limit * nominal step, which must reach end_time
-            start_time = ceil_timestamp(
-                end_time - limit * interval_seconds, self.interval, interval_seconds
-            )
+            start_time = shift_boundaries(end_time, self.interval, interval_seconds, -limit)
         elif start_time is not None:
             start_time = floor_timestamp(start_time, self.interval, interval_seconds)
 
