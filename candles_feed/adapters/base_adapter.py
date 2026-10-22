@@ -7,9 +7,12 @@ This module provides a base implementation for exchange adapters to reduce code 
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime, timezone
 from decimal import Decimal
-from typing import Any  # Added Any
+from typing import TYPE_CHECKING, Any  # Added Any
 
 from candles_feed.core.candle_data import CandleData
+
+if TYPE_CHECKING:
+    from candles_feed.core.network_config import NetworkConfig
 
 
 class BaseAdapter(ABC):
@@ -21,6 +24,18 @@ class BaseAdapter(ABC):
 
     # Common timestamp handling
     TIMESTAMP_UNIT: str = ""
+
+    def __init__(self, *args: Any, network_config: "NetworkConfig | None" = None, **kwargs: Any):
+        """Initialize the adapter, accepting an optional network configuration.
+
+        Mixins (e.g. TestnetSupportMixin) may already have set ``network_config``
+        before calling ``super().__init__()``; do not overwrite it with None.
+
+        :param network_config: Optional network configuration for the adapter
+        """
+        super().__init__(*args, **kwargs)
+        if network_config is not None or not hasattr(self, "network_config"):
+            self.network_config = network_config
 
     @staticmethod
     @abstractmethod
