@@ -11,6 +11,7 @@ from typing import Any
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.network_config import NetworkConfig
+from candles_feed.core.rate_limiter import DEFAULT_REST_RATE_LIMIT, RestRateLimit
 
 
 class BaseAdapter(ABC):
@@ -19,6 +20,17 @@ class BaseAdapter(ABC):
     This abstract base class provides timestamp handling utilities and defines
     the required interface methods for all exchange adapters.
     """
+
+    # REST pacing for every request this adapter makes (fetch, pagination, polling).
+    # The default of 5 requests/second (300/min) is deliberately conservative: it sits
+    # below the documented public-endpoint budgets of the major exchanges while still
+    # allowing historical pagination to finish quickly. Override per adapter once the
+    # exchange's documented limit is known. Weights are not modelled yet.
+    REST_RATE_LIMIT: RestRateLimit = DEFAULT_REST_RATE_LIMIT
+
+    # Adapters sharing one exchange-side budget (e.g. spot and perpetual) set the same
+    # pool name; None means one pool per adapter class.
+    REST_RATE_LIMIT_POOL: str | None = None
 
     # Common timestamp handling
     TIMESTAMP_UNIT: str = ""

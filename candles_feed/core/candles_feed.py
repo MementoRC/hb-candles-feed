@@ -22,6 +22,7 @@ from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
 )
+from candles_feed.core.rate_limiter import RateLimitedNetworkClient, get_adapter_rate_limiter
 
 
 class CandlesFeed:
@@ -78,8 +79,12 @@ class CandlesFeed:
             NetworkClientFactory,
         )
 
-        self._network_client = NetworkClientFactory.create_client(
-            hummingbot_components=hummingbot_components, logger=self.logger
+        # All REST calls made through this client are paced by the adapter's shared limiter.
+        self._network_client = RateLimitedNetworkClient(
+            NetworkClientFactory.create_client(
+                hummingbot_components=hummingbot_components, logger=self.logger
+            ),
+            get_adapter_rate_limiter(self._adapter),
         )
         self._network_client_context_entered = False
         self._data_processor = DataProcessor()
