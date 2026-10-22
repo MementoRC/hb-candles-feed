@@ -11,6 +11,7 @@ import pytest
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
 from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.rate_limiter import (
     AsyncRateLimiter,
     RateLimitedNetworkClient,
@@ -129,10 +130,10 @@ class TestPools:
         assert pool_key_for(Shared) == pool_key_for(Shared2) == "exchange-x"
 
     def test_pool_key_works_on_instances(self):
-        class AdapterA(BaseAdapter):
-            pass
+        class Plain:
+            REST_RATE_LIMIT_POOL = None
 
-        assert pool_key_for(AdapterA.__new__(AdapterA)) == pool_key_for(AdapterA)
+        assert pool_key_for(Plain()) == pool_key_for(Plain)
 
 
 class TestRateLimitedNetworkClient:
@@ -178,7 +179,9 @@ class TestSyncOnlyAdapterIsLimited:
             ):
                 return []
 
-        get_rate_limiter(pool_key_for(FakeSync), FakeSync.REST_RATE_LIMIT, clock=clock, sleep=clock.sleep)
+        get_rate_limiter(
+            pool_key_for(FakeSync), FakeSync.REST_RATE_LIMIT, clock=clock, sleep=clock.sleep
+        )
         adapter = FakeSync()
         await adapter.fetch_rest_candles("BTC-USDT", "1m")
         await adapter.fetch_rest_candles("BTC-USDT", "1m")
@@ -188,10 +191,15 @@ class TestSyncOnlyAdapterIsLimited:
 class TestAdapterRestFetchIsLimited:
     @staticmethod
     def _make_feed(inner_client) -> CandlesFeed:
-        with patch(
-            "candles_feed.hb_compat.hummingbot_network_client_adapter."
-            "NetworkClientFactory.create_client",
-            return_value=inner_client,
+        with (
+            patch(
+                "candles_feed.hb_compat.hummingbot_network_client_adapter."
+                "NetworkClientFactory.create_client",
+                return_value=inner_client,
+            ),
+            patch.object(
+                ExchangeRegistry, "get_adapter_instance", return_value=BinanceSpotAdapter()
+            ),
         ):
             return CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="1m")
 
