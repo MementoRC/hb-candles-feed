@@ -5,6 +5,7 @@ and hb-candles-feed's native API. No hummingbot imports.
 """
 
 import asyncio
+import logging
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,8 @@ import pandas as pd
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+
+logger = logging.getLogger(__name__)
 
 # Standard column order matching hummingbot's CandlesBase.columns
 COLUMNS = [
@@ -26,6 +29,12 @@ COLUMNS = [
     "taker_buy_base_volume",
     "taker_buy_quote_volume",
 ]
+
+
+def _log_task_exception(task: asyncio.Task) -> None:
+    """Done-callback: log an exception from the fire-and-forget start task."""
+    if not task.cancelled() and (exc := task.exception()) is not None:
+        logger.error("CandlesFeed start failed: %r", exc, exc_info=exc)
 
 
 def _to_compat_frame(df: pd.DataFrame) -> pd.DataFrame:
@@ -121,7 +130,8 @@ class CandlesBaseAdapter:
     def start(self) -> None:
         """Start the feed. Schedules async start on the running event loop."""
         loop = asyncio.get_running_loop()
-        loop.create_task(self._feed.start())
+        self._start_task = loop.create_task(self._feed.start())
+        self._start_task.add_done_callback(_log_task_exception)
 
     def stop(self) -> None:
         """Stop the feed. Schedules async stop on the running event loop."""

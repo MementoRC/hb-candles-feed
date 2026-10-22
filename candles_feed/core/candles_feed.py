@@ -124,7 +124,9 @@ class CandlesFeed:
     async def start(self, strategy: str = "auto") -> None:
         """Start the feed.
 
-        :param strategy: Strategy to use ("auto", "websocket", or "polling")
+        :param strategy: Strategy to use ("auto", "websocket", or "polling").
+            "auto" uses websocket when the adapter supports it for the interval, otherwise
+            REST polling. Polling latency is roughly max(interval / 2, 1) seconds.
         """
         if self._active:
             return
@@ -140,9 +142,18 @@ class CandlesFeed:
         use_websocket = False
 
         if strategy == "auto":
-            # Check if the interval is supported by websocket
-            ws_intervals = self._adapter.get_ws_supported_intervals()
-            use_websocket = self.interval in ws_intervals
+            # Use websocket only if the adapter supports it for this interval;
+            # REST-only adapters raise NotImplementedError.
+            try:
+                use_websocket = self.interval in self._adapter.get_ws_supported_intervals()
+            except NotImplementedError:
+                use_websocket = False
+            if not use_websocket:
+                poll_seconds = max(self.interval_in_seconds / 2, 1)
+                self.logger.info(
+                    f"{self.exchange} has no websocket for {self.interval}; "
+                    f"using REST polling every {poll_seconds:g}s"
+                )
         elif strategy == "websocket":
             use_websocket = True
         elif strategy not in ["auto", "websocket", "rest", "polling"]:
