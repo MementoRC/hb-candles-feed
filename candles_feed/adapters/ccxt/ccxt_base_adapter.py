@@ -135,12 +135,10 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         :returns: List of CandleData objects
         """
         candles: list[CandleData] = []
-        if data is None:
-            return candles
 
         # CCXT returns a list of OHLCV data
         if not isinstance(data, list):
-            return candles
+            raise self._bad_response(data)
 
         for row in data:
             if isinstance(row, list) and len(row) >= 6:

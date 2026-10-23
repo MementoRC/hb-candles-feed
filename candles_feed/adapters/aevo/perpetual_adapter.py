@@ -42,6 +42,8 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     ticker messages is used to construct synthetic candles.
     """
 
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
     @staticmethod
     @override
     def get_trading_pair_format(trading_pair: str) -> str:
@@ -136,11 +138,11 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None or not isinstance(data, dict):
-            return []
+        if not isinstance(data, dict) or not isinstance(data.get("history"), list):
+            raise self._bad_response(data)
 
-        history = data.get("history")
-        if not history or not isinstance(history, list):
+        history = data["history"]
+        if not history:
             return []
 
         candles: list[CandleData] = []

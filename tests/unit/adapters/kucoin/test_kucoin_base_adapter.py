@@ -58,7 +58,7 @@ class ConcreteKucoinAdapter(KucoinBaseAdapter):
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects."""
         if data is None:
-            return []
+            raise ValueError("unparseable REST response")
 
         candles = []
 

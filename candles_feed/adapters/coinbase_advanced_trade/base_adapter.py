@@ -21,6 +21,7 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Coinbase Advanced Trade exchange adapter."""
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -106,12 +107,10 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         # }
 
         candles_data: list[CandleData] = []
-        if not isinstance(data, dict) or "candles" not in data:
-            return candles_data
+        if not isinstance(data, dict) or not isinstance(data.get("candles"), list):
+            raise self._bad_response(data)
 
         raw_candles = data["candles"]
-        if not isinstance(raw_candles, list):
-            return candles_data
 
         for candle_item in raw_candles:
             if isinstance(candle_item, dict):

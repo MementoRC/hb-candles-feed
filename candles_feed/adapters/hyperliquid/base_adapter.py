@@ -30,6 +30,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -105,8 +106,8 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None or not isinstance(data, list):
-            return []
+        if not isinstance(data, list):
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for candle_row in data:

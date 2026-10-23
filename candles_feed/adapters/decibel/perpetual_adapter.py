@@ -55,6 +55,7 @@ class DecibelPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     def __init__(
         self,
@@ -181,7 +182,7 @@ class DecibelPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         if isinstance(rows, dict):
             rows = [rows]
         if not isinstance(rows, list):
-            return []
+            raise self._bad_response(data)
         return [candle for candle in map(self._parse_row, rows) if candle is not None]
 
     async def _resolve_market_address(

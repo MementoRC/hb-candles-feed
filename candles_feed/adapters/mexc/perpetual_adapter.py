@@ -95,13 +95,8 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if (
-            data is None
-            or not isinstance(data, dict)
-            or "data" not in data
-            or not isinstance(data["data"], list)
-        ):
-            return []
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise self._bad_response(data)
 
         # MEXC Contract REST API format:
         # {

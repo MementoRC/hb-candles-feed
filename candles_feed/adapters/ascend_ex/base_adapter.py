@@ -27,6 +27,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -116,15 +117,12 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #     ]
         # }
 
-        if data is None:
-            return []
-
-        if not isinstance(data, dict):
-            return []
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
 
-        for candle_item in data.get("data", []):
+        for candle_item in data["data"]:
             if not isinstance(candle_item, dict):
                 continue
             candle_payload = candle_item.get("data")

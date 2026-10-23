@@ -302,10 +302,9 @@ class TestMEXCPerpetualAdapter(BaseAdapterTest):
 
     def test_parse_rest_response_invalid(self, adapter):
         """Test parsing invalid REST API response."""
-        # Test with missing data field
-        candles = adapter._parse_rest_response({"success": True})
-        assert candles == []
+        # Missing data field and non-list data field are unparseable
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response({"success": True})
 
-        # Test with non-list data field
-        candles = adapter._parse_rest_response({"success": True, "data": "not a list"})
-        assert candles == []
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response({"success": True, "data": "not a list"})

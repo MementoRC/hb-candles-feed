@@ -29,6 +29,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -129,17 +130,14 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   }
         # }
 
-        if data is None:
-            return []
-
-        if not isinstance(data, dict):
-            return []
+        if not isinstance(data, dict) or data.get("retCode", 0) != 0:
+            raise self._bad_response(data)
         result_data = data.get("result", {})
         if not isinstance(result_data, dict):
-            return []
+            raise self._bad_response(data)
         candle_list_data = result_data.get("list", [])
         if not isinstance(candle_list_data, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         candles.extend(

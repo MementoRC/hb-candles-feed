@@ -31,7 +31,7 @@ class ConcreteCoinbaseAdvancedTradeAdapter(CoinbaseAdvancedTradeBaseAdapter):
     # Override _parse_rest_response to handle None properly
     def _parse_rest_response(self, data: dict | list | None) -> list:
         if data is None:
-            return []
+            raise ValueError("unparseable REST response")
         return super()._parse_rest_response(data)
 
     # Override get_supported_intervals to include needed intervals for tests

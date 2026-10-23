@@ -7,7 +7,7 @@ This module provides a base implementation for exchange adapters to reduce code 
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, ClassVar
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.network_config import NetworkConfig
@@ -31,6 +31,9 @@ class BaseAdapter(ABC):
     # Adapters sharing one exchange-side budget (e.g. spot and perpetual) set the same
     # pool name; None means one pool per adapter class.
     REST_RATE_LIMIT_POOL: str | None = None
+
+    # Maximum candles one REST request returns; historical pagination uses it as page size.
+    MAX_CANDLES_PER_REQUEST: ClassVar[int] = 500
 
     # Common timestamp handling
     TIMESTAMP_UNIT: str = ""
@@ -142,6 +145,17 @@ class BaseAdapter(ABC):
         :returns: List of CandleData objects
         """
         raise NotImplementedError("Subclasses must implement _parse_rest_response")
+
+    def _bad_response(self, data: object) -> ValueError:
+        """Build the error raised when a REST response cannot be parsed at all.
+
+        An empty candle list is legitimate "no data"; a missing/wrongly-typed payload
+        (e.g. an error body served with HTTP 200) must not be mistaken for it.
+
+        :param data: The unparseable REST response
+        :returns: ValueError to raise
+        """
+        return ValueError(f"{type(self).__name__}: unexpected REST response: {str(data)[:200]}")
 
     def convert_timestamp_to_exchange(self, timestamp: int | float | Decimal) -> int | str:
         """Convert timestamp from seconds to exchange timestamp format.

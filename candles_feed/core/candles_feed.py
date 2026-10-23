@@ -4,6 +4,7 @@ Core candles feed class for the Candle Feed framework.
 This module provides the main class for managing candle data feeds.
 """
 
+import asyncio
 import logging
 import typing
 from collections import deque
@@ -18,12 +19,34 @@ from candles_feed.core.collection_strategies import (
 )
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
-from candles_feed.core.intervals import floor_timestamp, is_valid_step, is_variable_length_interval
+from candles_feed.core.intervals import (
+    floor_timestamp,
+    is_valid_step,
+    is_variable_length_interval,
+    next_boundary,
+)
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
 )
 from candles_feed.core.rate_limiter import RateLimitedNetworkClient, get_adapter_rate_limiter
+
+HISTORICAL_MAX_ATTEMPTS = 3
+HISTORICAL_RETRY_BASE_DELAY = 0.5  # seconds; doubles after each failed attempt
+_MAX_LOGGED_GAPS = 5
+
+
+class HistoricalCandlesError(Exception):
+    """Raised when a historical page keeps failing, so the result would be silently truncated.
+
+    :ivar partial: Candles fetched before the failure (same columns as normal output)
+    :ivar failed_at: Start timestamp of the page that kept failing
+    """
+
+    def __init__(self, message: str, partial: pd.DataFrame, failed_at: int):
+        super().__init__(message)
+        self.partial = partial
+        self.failed_at = failed_at
 
 
 class CandlesFeed:
@@ -292,16 +315,116 @@ class CandlesFeed:
         return candles
 
     async def get_historical_candles(self, start_time: int, end_time: int) -> pd.DataFrame:
-        """Get historical candles between start and end time.
+        """Get historical candles between start and end time (inclusive).
 
-        This is a compatibility method for the original implementation.
+        Pages forward from start_time in chunks of the adapter's
+        ``MAX_CANDLES_PER_REQUEST`` until end_time is reached, the exchange runs out of
+        data, or pagination stops making progress. Results are returned without being
+        written to the live candle store.
 
         :param start_time: Start time in seconds
         :param end_time: End time in seconds
-        :return: DataFrame with candle data
+        :return: DataFrame with candle data, ascending by timestamp
         """
-        candles = await self.fetch_candles(start_time=start_time, end_time=end_time)
-        return pd.DataFrame(
+        if not self._network_client_context_entered:
+            await self._network_client.__aenter__()
+            self._network_client_context_entered = True
+
+        strategy = self._rest_strategy or self._create_rest_strategy()
+        step = self.interval_in_seconds
+        start_time = floor_timestamp(start_time, self.interval, step)
+        end_time = floor_timestamp(end_time, self.interval, step)
+        page_limit = int(getattr(self._adapter, "MAX_CANDLES_PER_REQUEST", 500))
+        max_pages = max(0, end_time - start_time) // (step * page_limit) + 3
+
+        merged: dict[int, CandleData] = {}
+        page_start = start_time
+        for _ in range(max_pages):
+            page = await self._fetch_historical_page(strategy, page_start, page_limit, merged)
+            if not page:
+                break
+            for candle in page:
+                if page_start <= candle.timestamp <= end_time:
+                    merged[candle.timestamp] = candle
+            last_ts = max(c.timestamp for c in page)
+            if last_ts >= end_time or last_ts < page_start:
+                break
+            next_start = next_boundary(last_ts, self.interval, step)
+            if next_start <= page_start:
+                break
+            page_start = next_start
+        else:
+            self.logger.warning(
+                f"Historical candle pagination for {self.trading_pair} on {self.exchange} "
+                f"hit the page cap ({max_pages}); result may be incomplete"
+            )
+
+        df = self._candles_to_df([merged[ts] for ts in sorted(merged)])
+        gaps = self._find_gaps(df["timestamp"].tolist() if not df.empty else [], step)
+        if gaps:
+            shown = ", ".join(f"{a}->{b}" for a, b in gaps[:_MAX_LOGGED_GAPS])
+            self.logger.warning(
+                f"Historical candles for {self.trading_pair} on {self.exchange} contain "
+                f"{len(gaps)} gap(s) (first: {shown}); exchange has no data there"
+            )
+        df.attrs["gaps"] = gaps
+        return df
+
+    async def _fetch_historical_page(
+        self,
+        strategy: RESTPollingStrategy,
+        page_start: int,
+        page_limit: int,
+        merged: dict[int, CandleData],
+    ) -> list[CandleData]:
+        """Fetch one historical page, retrying transient failures with exponential backoff.
+
+        :param strategy: REST strategy used for the request
+        :param page_start: Start timestamp of the page in seconds
+        :param page_limit: Maximum candles per page
+        :param merged: Candles collected so far (used as partial result on failure)
+        :return: Raw candles of the page; empty list means end of data
+        :raises HistoricalCandlesError: If every attempt fails
+        """
+        last_exc: Exception | None = None
+        for attempt in range(HISTORICAL_MAX_ATTEMPTS):
+            try:
+                return await strategy.fetch_rest_page(start_time=page_start, limit=page_limit)
+            except Exception as e:
+                last_exc = e
+                if attempt < HISTORICAL_MAX_ATTEMPTS - 1:
+                    await asyncio.sleep(HISTORICAL_RETRY_BASE_DELAY * 2**attempt)
+        self.logger.error(
+            f"Historical candle fetch for {self.trading_pair} on {self.exchange} failed at "
+            f"{page_start} after {HISTORICAL_MAX_ATTEMPTS} attempts: {last_exc!r}"
+        )
+        raise HistoricalCandlesError(
+            f"Failed fetching historical candles at {page_start}: {last_exc!r}",
+            partial=self._candles_to_df([merged[ts] for ts in sorted(merged)]),
+            failed_at=page_start,
+        ) from last_exc
+
+    def _find_gaps(self, timestamps: list[int], step: int) -> list[tuple[int, int]]:
+        """Return (previous, next) timestamp pairs that are not consecutive candles.
+
+        :param timestamps: Ascending candle timestamps
+        :param step: Nominal interval length in seconds
+        :return: List of gap boundaries
+        """
+        return [
+            (prev, nxt)
+            for prev, nxt in zip(timestamps, timestamps[1:], strict=False)
+            if not is_valid_step(prev, nxt, self.interval, step)
+        ]
+
+    @staticmethod
+    def _candles_to_df(candles: list[CandleData]) -> pd.DataFrame:
+        """Convert candles to a DataFrame with the standard columns.
+
+        :param candles: Candles to convert
+        :return: DataFrame (``attrs["gaps"]`` set to an empty list)
+        """
+        df = pd.DataFrame(
             [
                 {
                     "timestamp": c.timestamp,
@@ -316,9 +439,10 @@ class CandlesFeed:
                     "taker_buy_quote_volume": c.taker_buy_quote_volume,
                 }
                 for c in candles
-                if start_time <= c.timestamp <= end_time
             ]
         )
+        df.attrs["gaps"] = []
+        return df
 
     @property
     def ready(self) -> bool:

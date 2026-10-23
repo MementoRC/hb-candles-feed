@@ -2,6 +2,8 @@
 Unit tests for the BybitBaseAdapter class.
 """
 
+import pytest
+
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
@@ -96,9 +98,9 @@ class TestBybitBaseAdapter:
         assert candles[0].quote_asset_volume == 5000000.0
 
     def test_parse_rest_response_none(self):
-        """Test parsing None REST API response."""
-        candles = self.adapter._parse_rest_response(None)
-        assert candles == []
+        """A None REST response is unparseable and must raise, not read as 'no data'."""
+        with pytest.raises(ValueError):
+            self.adapter._parse_rest_response(None)
 
     def test_get_ws_subscription_payload(self):
         """Test WebSocket subscription payload generation."""

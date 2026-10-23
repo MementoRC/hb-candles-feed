@@ -29,6 +29,7 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -121,12 +122,9 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   ...
         # ]
 
-        if data is None:
-            return []
-
         candles: list[CandleData] = []
         if not isinstance(data, list):  # Gate.io returns a list of lists
-            return candles
+            raise self._bad_response(data)
 
         candles.extend(
             CandleData(

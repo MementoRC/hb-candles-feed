@@ -189,9 +189,13 @@ class BackpackAdapterContract:
         candles = adapter._parse_rest_response([partial, REST_FIXTURE[1]])
         assert [c.timestamp for c in candles] == [T0 + 60]
 
-    @pytest.mark.parametrize("bad", [None, {}, "x", []])
-    def test_parse_rest_response_empty_inputs(self, adapter, bad):
-        assert adapter._parse_rest_response(bad) == []
+    def test_parse_rest_response_empty_list(self, adapter):
+        assert adapter._parse_rest_response([]) == []
+
+    @pytest.mark.parametrize("bad", [None, {}, "x"])
+    def test_parse_rest_response_unparseable_raises(self, adapter, bad):
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response(bad)
 
     def test_ws_subscription_payload(self, adapter):
         assert adapter.get_ws_subscription_payload("BTC-USDC", "1M") == {

@@ -51,6 +51,7 @@ class BitgetPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Bitget perpetual exchange adapter."""
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @staticmethod
     @override
@@ -148,18 +149,15 @@ class BitgetPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None:
-            return []
-
         # Bitget may wrap data in a "data" key or return direct array
         if isinstance(data, dict):
             candle_list = data.get("data")
             if not isinstance(candle_list, list):
-                return []
+                raise self._bad_response(data)
         elif isinstance(data, list):
             candle_list = data
         else:
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for row in candle_list:

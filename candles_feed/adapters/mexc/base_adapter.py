@@ -28,6 +28,8 @@ class MEXCBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     Child classes only need to implement methods that differ between the markets.
     """
 
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
     @abstractmethod
     def _get_rest_url(self) -> str:
         """Get REST API URL for candles.

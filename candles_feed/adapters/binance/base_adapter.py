@@ -29,6 +29,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -116,12 +117,9 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   ]
         # ]
 
-        if data is None:
-            return []
-
         candles: list[CandleData] = []
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
         candles.extend(
             CandleData(
                 timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),

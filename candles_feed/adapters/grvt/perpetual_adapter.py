@@ -44,6 +44,7 @@ class GrvtPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # Seconds are the framework-facing unit; nanosecond strings are built explicitly.
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Initialize the adapter.
@@ -149,7 +150,7 @@ class GrvtPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """Parse ``{"result": [...]}`` into candles sorted ascending by open time."""
         rows = data.get("result") if isinstance(data, dict) else None
         if not isinstance(rows, list):
-            return []
+            raise self._bad_response(data)
         candles = [c for c in map(self._to_candle, rows) if c is not None]
         return sorted(candles, key=lambda c: c.timestamp)
 
