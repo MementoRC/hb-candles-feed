@@ -93,6 +93,34 @@ class TestEvedexRestParams:
     def test_monthly_group(self, adapter):
         assert adapter._get_rest_params("BTC-USD", "1M", start_time=T0, limit=1)["group"] == "1M"
 
+    @pytest.mark.parametrize(
+        ("start", "limit", "expected_before"),
+        [
+            (1706745600, 1, "2024-03-01T00:00:00.000Z"),  # Feb 2024 (leap): 29 days
+            (1675209600, 1, "2023-03-01T00:00:00.000Z"),  # Feb 2023: 28 days
+            (1675209600, 13, "2024-03-01T00:00:00.000Z"),  # Feb 2023 + 13 months across leap year
+        ],
+    )
+    def test_monthly_window_spans_calendar_months(self, adapter, start, limit, expected_before):
+        params = adapter._get_rest_params("BTC-USD", "1M", start_time=start, limit=limit)
+        assert params["after"] == adapter._to_iso(start)
+        assert params["before"] == expected_before
+
+    def test_monthly_default_window_starts_n_months_back(self, adapter, monkeypatch):
+        monkeypatch.setattr(time, "time", lambda: 1710504000)  # 2024-03-15T12:00:00Z
+        params = adapter._get_rest_params("BTC-USD", "1M", limit=13)
+        assert params["after"] == "2023-02-01T00:00:00.000Z"
+        assert params["before"] == "2024-03-15T12:00:00.000Z"
+
+    def test_hourly_window_unchanged(self, adapter, monkeypatch):
+        monkeypatch.setattr(time, "time", lambda: T0 + 123)
+        params = adapter._get_rest_params("BTC-USD", "1h", start_time=T0 + 17, limit=5)
+        assert params["after"] == "2024-01-01T00:00:17.000Z"
+        assert params["before"] == "2024-01-01T05:00:17.000Z"
+        params = adapter._get_rest_params("BTC-USD", "1h", limit=5)
+        assert params["after"] == "2023-12-31T19:02:03.000Z"
+        assert params["before"] == "2024-01-01T00:02:03.000Z"
+
     def test_limit_none_and_oversized_cap_to_1000(self, adapter):
         for limit in (None, 99999):
             params = adapter._get_rest_params("BTC-USD", "1m", start_time=T0, limit=limit)

@@ -113,6 +113,19 @@ class LighterAdapterContract:
             "count_back": 12,
         }
 
+    def test_weekly_window_ends_on_monday_boundary(self, resolved, monkeypatch):
+        monkeypatch.setattr(time, "time", lambda: 1710417600)  # Thursday 2024-03-14T12:00Z
+        params = resolved._get_rest_params(PAIR, "1w", limit=2)
+        assert params["end_timestamp"] == 1710720000 * 1000  # Monday 2024-03-18
+        assert params["start_timestamp"] == 1709510400 * 1000  # Monday 2024-03-04
+        assert params["count_back"] == 2
+
+    def test_hourly_window_end_unchanged(self, resolved, monkeypatch):
+        monkeypatch.setattr(time, "time", lambda: 1710417600 + 123)
+        params = resolved._get_rest_params(PAIR, "1h", limit=3)
+        assert params["end_timestamp"] == (1710417600 + 3600) * 1000
+        assert params["start_timestamp"] == (1710417600 - 2 * 3600) * 1000
+
     def test_zero_limit_requests_one_candle(self, resolved):
         params = resolved._get_rest_params(PAIR, "1h", start_time=T0, limit=0)
         assert params["end_timestamp"] - params["start_timestamp"] == 3600 * 1000
