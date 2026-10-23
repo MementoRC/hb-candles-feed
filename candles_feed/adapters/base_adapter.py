@@ -168,6 +168,8 @@ class BaseAdapter(ABC):
             return int(timestamp)
         if self.TIMESTAMP_UNIT.lower() == "milliseconds":
             return int(timestamp * 1000)
+        if self.TIMESTAMP_UNIT.lower() == "nanoseconds":
+            return int(timestamp * 1_000_000_000)
         if self.TIMESTAMP_UNIT == "iso8601":
             return datetime.fromtimestamp(float(timestamp), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         raise NotImplementedError("Exchange must define TIMESTAMP_UNIT.")

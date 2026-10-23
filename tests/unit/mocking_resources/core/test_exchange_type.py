@@ -21,6 +21,9 @@ class TestExchangeType:
         assert ExchangeType.MEXC_SPOT.value == "mexc_spot"
         assert ExchangeType.HYPERLIQUID_SPOT.value == "hyperliquid_spot"
         assert ExchangeType.ASCEND_EX_SPOT.value == "ascend_ex_spot"
+        assert ExchangeType.BITGET_SPOT.value == "bitget_spot"
+        assert ExchangeType.BTC_MARKETS_SPOT.value == "btc_markets_spot"
+        assert ExchangeType.DEXALOT_SPOT.value == "dexalot_spot"
 
         # Perpetual exchanges
         assert ExchangeType.BINANCE_PERPETUAL.value == "binance_perpetual"
@@ -30,6 +33,10 @@ class TestExchangeType:
         assert ExchangeType.GATE_IO_PERPETUAL.value == "gate_io_perpetual"
         assert ExchangeType.MEXC_PERPETUAL.value == "mexc_perpetual"
         assert ExchangeType.HYPERLIQUID_PERPETUAL.value == "hyperliquid_perpetual"
+        assert ExchangeType.AEVO_PERPETUAL.value == "aevo_perpetual"
+        assert ExchangeType.BITGET_PERPETUAL.value == "bitget_perpetual"
+        assert ExchangeType.BITMART_PERPETUAL.value == "bitmart_perpetual"
+        assert ExchangeType.PACIFICA_PERPETUAL.value == "pacifica_perpetual"
 
     def test_access_by_name(self):
         """Test accessing enum values by name."""
@@ -45,4 +52,4 @@ class TestExchangeType:
 
         # Make sure we have the expected number of exchange types
         # Update this if more exchanges are added
-        assert count == 18
+        assert count == 25
