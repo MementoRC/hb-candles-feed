@@ -6,7 +6,11 @@ keys (e.g., "binance_spot").
 """
 
 from candles_feed.hb_compat.adapter import CandlesBaseAdapter
-from candles_feed.hb_compat.data_types import CandlesConfig, UnsupportedConnectorError
+from candles_feed.hb_compat.data_types import (
+    CandlesConfig,
+    UnsupportedConnectorError,
+    UnsupportedConnectorException,  # noqa: F401  (re-exported, mirrors upstream candles_factory)
+)
 
 
 class CandlesFactory:

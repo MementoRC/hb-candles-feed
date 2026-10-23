@@ -44,6 +44,17 @@ The main difference is the addition of the `exchange` parameter, which is requir
 | `interval` | `interval` | Candle interval (e.g., "1m") |
 | `max_records` | `max_records` | Maximum number of candles to store |
 
+### hb_compat Upstream Names
+
+`candles_feed.hb_compat` exports these upstream names so existing hummingbot consumers work unchanged:
+
+| Upstream | hb_compat | Notes |
+|----------|-----------|-------|
+| `CandlesBase.interval_to_seconds` | `CandlesBaseAdapter.interval_to_seconds` | Class-level plain `dict` (upstream uses `bidict`; `.inverse` is not available) |
+| `CandlesBase.columns` | `CandlesBaseAdapter.columns` | Class-level list, identical order |
+| `CandlesBase.ensure_timestamp_in_seconds` | `CandlesBaseAdapter.ensure_timestamp_in_seconds` | Static method; also `candles_feed.utils.time_utils.ensure_timestamp_in_seconds` |
+| `UnsupportedConnectorException` | `UnsupportedConnectorException` | Alias of `UnsupportedConnectorError`; importable from `hb_compat` and `hb_compat.factory`; upstream message |
+
 ### Data Format
 
 The original implementation stored candles as arrays in a `deque`, while the new implementation uses the `CandleData` class. However, both convert to the same DataFrame format when accessed.

@@ -31,4 +31,8 @@ class UnsupportedConnectorError(Exception):
 
     def __init__(self, connector: str):
         self.connector = connector
-        super().__init__(f"Connector '{connector}' is not supported by hb-candles-feed.")
+        super().__init__(f"The connector {connector} is not available. Please select another one.")
+
+
+# Upstream hummingbot name (candles_factory.UnsupportedConnectorException).
+UnsupportedConnectorException = UnsupportedConnectorError
