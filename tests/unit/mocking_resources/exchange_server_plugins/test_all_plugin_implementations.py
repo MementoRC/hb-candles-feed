@@ -5,6 +5,15 @@ This test serves as a regression test to make sure all plugins remain importable
 
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.exchange_server_plugins import (
+    AevoPerpetualPlugin,
+    BitgetPerpetualPlugin,
+    BitgetSpotPlugin,
+    BitmartPerpetualPlugin,
+    BTCMarketsSpotPlugin,
+    DexalotSpotPlugin,
+    PacificaPerpetualPlugin,
+)
 from candles_feed.mocking_resources.exchange_server_plugins.ascend_ex.spot_plugin import (
     AscendExSpotPlugin,
 )
@@ -59,6 +68,13 @@ class TestAllPluginImplementations:
             MEXCSpotPlugin,
             MEXCPerpetualPlugin,
             AscendExSpotPlugin,
+            AevoPerpetualPlugin,
+            BitgetSpotPlugin,
+            BitgetPerpetualPlugin,
+            BitmartPerpetualPlugin,
+            BTCMarketsSpotPlugin,
+            DexalotSpotPlugin,
+            PacificaPerpetualPlugin,
         ]
 
         # Try to instantiate each plugin
@@ -98,6 +114,13 @@ class TestAllPluginImplementations:
             MEXCSpotPlugin,
             MEXCPerpetualPlugin,
             AscendExSpotPlugin,
+            AevoPerpetualPlugin,
+            BitgetSpotPlugin,
+            BitgetPerpetualPlugin,
+            BitmartPerpetualPlugin,
+            BTCMarketsSpotPlugin,
+            DexalotSpotPlugin,
+            PacificaPerpetualPlugin,
         ]
 
         # Instantiate all plugins and collect their exchange types
@@ -116,6 +139,13 @@ class TestAllPluginImplementations:
             ExchangeType.MEXC_SPOT,
             ExchangeType.MEXC_PERPETUAL,
             ExchangeType.ASCEND_EX_SPOT,
+            ExchangeType.AEVO_PERPETUAL,
+            ExchangeType.BITGET_SPOT,
+            ExchangeType.BITGET_PERPETUAL,
+            ExchangeType.BITMART_PERPETUAL,
+            ExchangeType.BTC_MARKETS_SPOT,
+            ExchangeType.DEXALOT_SPOT,
+            ExchangeType.PACIFICA_PERPETUAL,
         ]
 
         for exchange_type in target_exchange_types:

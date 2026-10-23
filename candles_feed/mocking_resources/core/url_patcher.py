@@ -211,6 +211,41 @@ class ExchangeURLPatcher:
                 "rest_attr": "SPOT_REST_URL",
                 "ws_attr": "SPOT_WSS_URL",
             },
+            "aevo_perpetual": {
+                "module": "candles_feed.adapters.aevo.constants",
+                "rest_attr": "REST_URL",
+                "ws_attr": "WSS_URL",
+            },
+            "bitget_spot": {
+                "module": "candles_feed.adapters.bitget.constants",
+                "rest_attr": "SPOT_REST_URL",
+                "ws_attr": "WSS_URL",
+            },
+            "bitget_perpetual": {
+                "module": "candles_feed.adapters.bitget.constants",
+                "rest_attr": "PERPETUAL_REST_URL",
+                "ws_attr": "WSS_URL",
+            },
+            "bitmart_perpetual": {
+                "module": "candles_feed.adapters.bitmart.constants",
+                "rest_attr": "REST_URL",
+                "ws_attr": "WSS_URL",
+            },
+            "btc_markets_spot": {
+                "module": "candles_feed.adapters.btc_markets.constants",
+                "rest_attr": "REST_URL",
+                "ws_attr": "WSS_URL",
+            },
+            "dexalot_spot": {
+                "module": "candles_feed.adapters.dexalot.constants",
+                "rest_attr": "REST_URL",
+                "ws_attr": "WSS_URL",
+            },
+            "pacifica_perpetual": {
+                "module": "candles_feed.adapters.pacifica.constants",
+                "rest_attr": "REST_URL",
+                "ws_attr": "WSS_URL",
+            },
         }
 
         # Get module info
