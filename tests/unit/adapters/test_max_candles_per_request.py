@@ -30,7 +30,7 @@ def test_adapter_max_candles_matches_package_constant(name: str, adapter_class: 
     expected = _package_constant(adapter_class)
     if expected is None:
         pytest.skip(f"{name} has no MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST constant")
-    assert adapter_class.MAX_CANDLES_PER_REQUEST == expected
+    assert expected == adapter_class.MAX_CANDLES_PER_REQUEST
 
 
 def test_all_exchange_packages_are_covered() -> None:

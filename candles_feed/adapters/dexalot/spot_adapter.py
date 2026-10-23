@@ -30,6 +30,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "iso8601"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @staticmethod
     @override

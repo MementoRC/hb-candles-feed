@@ -55,6 +55,7 @@ class DecibelPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     def __init__(
         self,

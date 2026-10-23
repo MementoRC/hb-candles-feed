@@ -7,7 +7,7 @@ This module provides a base implementation for exchange adapters to reduce code 
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, ClassVar
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.network_config import NetworkConfig
@@ -31,6 +31,9 @@ class BaseAdapter(ABC):
     # Adapters sharing one exchange-side budget (e.g. spot and perpetual) set the same
     # pool name; None means one pool per adapter class.
     REST_RATE_LIMIT_POOL: str | None = None
+
+    # Maximum candles one REST request returns; historical pagination uses it as page size.
+    MAX_CANDLES_PER_REQUEST: ClassVar[int] = 500
 
     # Common timestamp handling
     TIMESTAMP_UNIT: str = ""

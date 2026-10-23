@@ -34,6 +34,7 @@ class LighterBaseAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapter)
     """Base class for Lighter spot and perpetual adapters. Timestamps are milliseconds."""
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     # Key of the orderBookDetails response list that holds this market type
     MARKETS_KEY: str

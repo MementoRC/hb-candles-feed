@@ -18,7 +18,12 @@ from candles_feed.core.collection_strategies import (
 )
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
-from candles_feed.core.intervals import floor_timestamp, is_valid_step, is_variable_length_interval
+from candles_feed.core.intervals import (
+    floor_timestamp,
+    is_valid_step,
+    is_variable_length_interval,
+    next_boundary,
+)
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
@@ -292,15 +297,51 @@ class CandlesFeed:
         return candles
 
     async def get_historical_candles(self, start_time: int, end_time: int) -> pd.DataFrame:
-        """Get historical candles between start and end time.
+        """Get historical candles between start and end time (inclusive).
 
-        This is a compatibility method for the original implementation.
+        Pages forward from start_time in chunks of the adapter's
+        ``MAX_CANDLES_PER_REQUEST`` until end_time is reached, the exchange runs out of
+        data, or pagination stops making progress. Results are returned without being
+        written to the live candle store.
 
         :param start_time: Start time in seconds
         :param end_time: End time in seconds
-        :return: DataFrame with candle data
+        :return: DataFrame with candle data, ascending by timestamp
         """
-        candles = await self.fetch_candles(start_time=start_time, end_time=end_time)
+        if not self._network_client_context_entered:
+            await self._network_client.__aenter__()
+            self._network_client_context_entered = True
+
+        strategy = self._rest_strategy or self._create_rest_strategy()
+        step = self.interval_in_seconds
+        start_time = floor_timestamp(start_time, self.interval, step)
+        end_time = floor_timestamp(end_time, self.interval, step)
+        page_limit = int(getattr(self._adapter, "MAX_CANDLES_PER_REQUEST", 500))
+        max_pages = max(0, end_time - start_time) // (step * page_limit) + 3
+
+        merged: dict[int, CandleData] = {}
+        page_start = start_time
+        for _ in range(max_pages):
+            page = await strategy.poll_once(start_time=page_start, limit=page_limit)
+            if not page:
+                break
+            for candle in page:
+                if page_start <= candle.timestamp <= end_time:
+                    merged[candle.timestamp] = candle
+            last_ts = max(c.timestamp for c in page)
+            if last_ts >= end_time or last_ts < page_start:
+                break
+            next_start = next_boundary(last_ts, self.interval, step)
+            if next_start <= page_start:
+                break
+            page_start = next_start
+        else:
+            self.logger.warning(
+                f"Historical candle pagination for {self.trading_pair} on {self.exchange} "
+                f"hit the page cap ({max_pages}); result may be incomplete"
+            )
+
+        candles = [merged[ts] for ts in sorted(merged)]
         return pd.DataFrame(
             [
                 {
@@ -316,7 +357,6 @@ class CandlesFeed:
                     "taker_buy_quote_volume": c.taker_buy_quote_volume,
                 }
                 for c in candles
-                if start_time <= c.timestamp <= end_time
             ]
         )
 

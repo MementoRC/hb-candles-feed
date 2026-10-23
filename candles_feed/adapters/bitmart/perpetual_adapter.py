@@ -28,6 +28,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Bitmart perpetual exchange adapter."""
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @staticmethod
     @override

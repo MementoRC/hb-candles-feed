@@ -35,6 +35,7 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Accept the ``network_config`` kwarg CandlesFeed passes (no testnet exists).

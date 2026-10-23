@@ -22,6 +22,7 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Kraken spot exchange adapter."""
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:

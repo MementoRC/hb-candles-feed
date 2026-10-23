@@ -42,6 +42,8 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     ticker messages is used to construct synthetic candles.
     """
 
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
     @staticmethod
     @override
     def get_trading_pair_format(trading_pair: str) -> str:
