@@ -8,6 +8,7 @@ import asyncio
 import logging
 import typing
 from collections import deque
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -216,16 +217,17 @@ class CandlesFeed:
         self._active = True
 
     async def stop(self) -> None:
-        """Stop the feed."""
-        if not self._active:
-            return
+        """Stop the feed and release everything start() acquired so far.
 
+        Safe on a feed that never started, on one whose start() was cancelled part
+        way (network client entered and/or a strategy started), and when called twice.
+        Strategy ``stop()`` is idempotent, so any existing strategy is stopped.
+        """
         self.logger.debug(f"Stopping candles feed for {self.trading_pair}")
 
-        if self._using_ws and self._ws_strategy:
-            await self._ws_strategy.stop()
-        elif self._rest_strategy:
-            await self._rest_strategy.stop()
+        for strategy in (self._ws_strategy, self._rest_strategy):
+            if strategy:
+                await strategy.stop()
 
         # Clean up network client resources using context manager pattern
         if self._network_client_context_entered:
@@ -257,6 +259,14 @@ class CandlesFeed:
         :param candle: Candle data to add
         """
         self._candles.append(candle)
+
+    def replace_candles(self, candles: Iterable[CandleData]) -> None:
+        """Replace all candles in one pass; keeps the newest ``max_records``.
+
+        :param candles: Candles in chronological order
+        """
+        self._candles.clear()
+        self._candles.extend(candles)
 
     def clear_candles(self) -> None:
         """Remove all candles from the feed.

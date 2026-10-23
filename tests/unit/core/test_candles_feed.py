@@ -2,6 +2,7 @@
 Unit tests for the CandlesFeed class.
 """
 
+import asyncio
 from collections import deque
 from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -203,6 +204,72 @@ class TestCandlesFeed:
 
             # Verify feed state after stopping
             assert candles_feed._active is False
+
+    @staticmethod
+    def _slow_strategy():
+        async def hang():
+            await asyncio.sleep(10)
+
+        strategy = MagicMock()
+        strategy.start = AsyncMock(side_effect=hang)
+        strategy.stop = AsyncMock()
+        return strategy
+
+    async def test_stop_on_never_started_feed_is_noop(self, candles_feed):
+        client = MagicMock()
+        candles_feed._network_client = client
+        candles_feed._ws_strategy = None
+        candles_feed._rest_strategy = None
+
+        await candles_feed.stop()
+
+        client.__aexit__.assert_not_called()
+        assert candles_feed._active is False
+
+    async def test_cancelled_start_after_client_enter_releases_client(self, candles_feed):
+        client = MagicMock()
+        candles_feed._network_client = client
+        candles_feed._rest_strategy = self._slow_strategy()
+
+        task = asyncio.ensure_future(candles_feed.start(strategy="polling"))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        client.__aenter__.assert_awaited_once()
+
+        await candles_feed.stop()
+
+        client.__aexit__.assert_awaited_once()
+        assert candles_feed._network_client_context_entered is False
+        assert candles_feed._active is False
+
+    async def test_cancelled_start_after_strategy_start_stops_strategy(self, candles_feed):
+        candles_feed._network_client = MagicMock()
+        strategy = self._slow_strategy()
+        candles_feed._ws_strategy = strategy
+
+        task = asyncio.ensure_future(candles_feed.start(strategy="websocket"))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        await candles_feed.stop()
+
+        strategy.stop.assert_awaited_once()
+
+    async def test_double_stop_is_safe(self, candles_feed):
+        client = MagicMock()
+        candles_feed._network_client = client
+        candles_feed._rest_strategy = MagicMock(start=AsyncMock(), stop=AsyncMock())
+
+        await candles_feed.start(strategy="polling")
+        await candles_feed.stop()
+        await candles_feed.stop()
+
+        client.__aexit__.assert_awaited_once()
+        assert candles_feed._active is False
 
     async def test_get_candles(self, candles_feed):
         """Test getting candles."""

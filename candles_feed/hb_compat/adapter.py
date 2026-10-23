@@ -34,12 +34,6 @@ COLUMNS = [
 ]
 
 
-def _log_task_exception(task: asyncio.Task) -> None:
-    """Done-callback: log an exception from the fire-and-forget start task."""
-    if not task.cancelled() and (exc := task.exception()) is not None:
-        logger.error("CandlesFeed start failed: %r", exc, exc_info=exc)
-
-
 def _to_compat_frame(df: pd.DataFrame) -> pd.DataFrame:
     """Shape a frame to the hummingbot contract: the 10 columns in order, all float64.
 
@@ -123,6 +117,9 @@ class CandlesBaseAdapter:
             interval=interval,
             max_records=max_records,
         )
+        self._start_task: asyncio.Task | None = None
+        self._stop_task: asyncio.Task | None = None
+        self._last_task_error: BaseException | None = None
 
     # --- Properties delegating to CandlesFeed ---
 
@@ -158,16 +155,60 @@ class CandlesBaseAdapter:
 
     # --- Sync lifecycle (bridge to async) ---
 
+    @property
+    def last_task_error(self) -> BaseException | None:
+        """Exception from the most recent start/stop task, or None.
+
+        Cancelled tasks are not errors. Reset to None when a new start()/stop()
+        is scheduled.
+        """
+        return self._last_task_error
+
+    def _track_task(self, task: asyncio.Task) -> None:
+        """Done-callback: log and record a failure of a start/stop task."""
+        if task.cancelled():
+            return
+        if (exc := task.exception()) is not None:
+            self._last_task_error = exc
+            logger.error("CandlesFeed task failed: %r", exc, exc_info=exc)
+
     def start(self) -> None:
-        """Start the feed. Schedules async start on the running event loop."""
+        """Start the feed. Schedules async start on the running event loop.
+
+        A no-op while a previous start task is still pending (no duplicate task).
+        If a stop task is still pending, the start waits for it to finish first
+        (as upstream ``start_network`` awaits ``stop_network``), so the stop cannot
+        tear down the freshly started feed.
+        """
+        if self._start_task is not None and not self._start_task.done():
+            return
         loop = asyncio.get_running_loop()
-        self._start_task = loop.create_task(self._feed.start())
-        self._start_task.add_done_callback(_log_task_exception)
+        self._last_task_error = None
+        pending_stop = self._stop_task if self._stop_task and not self._stop_task.done() else None
+        self._start_task = loop.create_task(self._start_after(pending_stop))
+        self._start_task.add_done_callback(self._track_task)
+
+    async def _start_after(self, pending_stop: asyncio.Task | None) -> None:
+        """Await a pending stop (its failure is recorded by ``_track_task``), then start."""
+        if pending_stop is not None:
+            await asyncio.wait([pending_stop])
+        await self._feed.start()
 
     def stop(self) -> None:
-        """Stop the feed. Schedules async stop on the running event loop."""
+        """Stop the feed. Schedules async stop on the running event loop.
+
+        Mirrors upstream ``CandlesBase.stop_network``, which cancels the pending
+        listen task: a still-pending start task is cancelled so the feed cannot
+        finish starting after stop(), then the feed's own stop() runs to release
+        any partially acquired resources. Safe to call before start().
+        """
         loop = asyncio.get_running_loop()
-        loop.create_task(self._feed.stop())
+        if self._start_task is not None and not self._start_task.done():
+            self._start_task.cancel()
+        self._start_task = None
+        self._last_task_error = None
+        self._stop_task = loop.create_task(self._feed.stop())
+        self._stop_task.add_done_callback(self._track_task)
 
     # --- Data fetching ---
 
@@ -228,25 +269,32 @@ class CandlesBaseAdapter:
         Used by MarketDataProvider.get_historical_candles_df() instead of
         direct _candles deque manipulation.
 
-        :param df: DataFrame with standard 10 columns. Empty clears candles.
+        :param df: DataFrame with standard 10 columns (the first six are required;
+            missing/NaN optional values default to 0). Empty clears candles.
+        :raises KeyError: If a required column is missing
         """
-        self._feed.clear_candles()
         if df.empty:
+            self._feed.clear_candles()
             return
-        for _, row in df.iterrows():
-            candle = CandleData(
-                timestamp_raw=int(row["timestamp"]),
-                open=float(row["open"]),
-                high=float(row["high"]),
-                low=float(row["low"]),
-                close=float(row["close"]),
-                volume=float(row["volume"]),
-                quote_asset_volume=_safe_float(row.get("quote_asset_volume", 0.0)),
-                n_trades=_safe_int(row.get("n_trades", 0)),
-                taker_buy_base_volume=_safe_float(row.get("taker_buy_base_volume", 0.0)),
-                taker_buy_quote_volume=_safe_float(row.get("taker_buy_quote_volume", 0.0)),
+        missing = [c for c in COLUMNS[:6] if c not in df.columns]
+        if missing:
+            raise KeyError(missing)
+        rows = df.reindex(columns=COLUMNS).itertuples(index=False, name=None)
+        self._feed.replace_candles(
+            CandleData(
+                timestamp_raw=int(ts),
+                open=float(o),
+                high=float(h),
+                low=float(lo),
+                close=float(c),
+                volume=float(v),
+                quote_asset_volume=_safe_float(qav),
+                n_trades=_safe_int(nt),
+                taker_buy_base_volume=_safe_float(tbb),
+                taker_buy_quote_volume=_safe_float(tbq),
             )
-            self._feed.add_candle(candle)
+            for ts, o, h, lo, c, v, qav, nt, tbb, tbq in rows
+        )
 
     # --- Conversion helpers ---
 
