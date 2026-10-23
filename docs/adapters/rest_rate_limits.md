@@ -66,4 +66,29 @@ Notes:
 - Host pools are declared per variant when the ids differ (Bybit `ALL` vs `GETLimit`, Lighter
   `lighter_all` vs `lighter_perpetual_all`).
 - The framework limiter still counts requests, not weight (see `rate_limiter.py`); weights are
-  honoured only by the shared host throttler. 429/418 backoff and per-endpoint budgets are not modelled.
+  honoured only by the shared host throttler. Per-endpoint budgets are not modelled.
+
+## 429 / 418 backoff
+
+When an exchange answers HTTP 429 (rate limited) or 418 (IP banned), the client raises
+`RateLimitExceededError` (`status`, `retry_after`) and the rate limiter pauses its whole pool:
+every feed sharing it (same pool key, same event loop or not) stops sending until the pause
+ends. The pause lives in the limiter, so it holds even though callers swallow errors and retry.
+
+- Delay: the `Retry-After` header when present (delta-seconds or HTTP-date; honoured even above
+  one hour, with a note in the log). Otherwise 418 pauses for 120s and 429 backs off
+  exponentially, 5s, 10s, 20s ... capped at 300s, per consecutive 429. The streak resets on the
+  next successful request. Defaults are the `DEFAULT_*` constants in `core/rate_limiter.py`.
+- Pauses never shorten: a later, shorter pause does not cut an earlier one.
+- Host throttler: `ConnectorThrottlerBridge` bridges on the same throttler and limit id share
+  one pause and streak. The pause cannot stop the host connector's own requests, so during a
+  418 ban the connector may keep hitting the exchange.
+- Custom limiters passed as `rate_limiter=` must implement `pause(seconds)`
+  (`PausableRateLimiterProtocol`); otherwise a one-time warning is logged and there is no backoff.
+- CCXT adapters translate `ccxt.RateLimitExceeded` / `DDoSProtection` to status 429 without a
+  `Retry-After` (ccxt does not expose it), so the exponential default applies.
+- Historical pagination does not count rate-limit errors toward its 3 attempts and does not add
+  its own sleep (the next `acquire` waits out the pause); it gives up after 5 rate-limit
+  responses for one page with `HistoricalCandlesError`.
+- The mock exchange server adds `Retry-After` to every 429 (`set_rate_limit_retry_after`) and can
+  force 429/418 responses for the next N requests (`force_rate_limit_response`), for all plugins.

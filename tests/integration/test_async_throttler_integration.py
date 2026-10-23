@@ -7,6 +7,7 @@ candles-feed and Hummingbot's rate limiting and network components.
 
 import json
 import time
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -185,9 +186,13 @@ class TestWebAssistantsFactoryIntegration:
 
         # Make a REST call
         response = await rest_assistant.call(
-            url="https://api.binance.com/api/v3/klines",
-            method="GET",
-            params={"symbol": "BTCUSDT", "interval": "1m"},
+            request=SimpleNamespace(
+                url="https://api.binance.com/api/v3/klines",
+                method="GET",
+                params={"symbol": "BTCUSDT", "interval": "1m"},
+                data=None,
+                headers=None,
+            )
         )
 
         # Verify response

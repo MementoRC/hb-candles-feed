@@ -189,3 +189,12 @@ class RestRateLimiterProtocol(Protocol):
     async def acquire(self) -> None:
         """Wait until one REST request may be sent, then record it."""
         ...
+
+
+@runtime_checkable
+class PausableRateLimiterProtocol(RestRateLimiterProtocol, Protocol):
+    """A limiter that can also be paused pool-wide after an HTTP 429/418."""
+
+    def pause(self, seconds: float) -> None:
+        """Block every ``acquire`` on this limiter for ``seconds`` (never shortens a pause)."""
+        ...

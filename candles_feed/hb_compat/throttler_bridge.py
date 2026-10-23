@@ -5,13 +5,35 @@ spend from the connector's shared rate-limit budget, so the feed's klines reques
 connector's own requests are paced together instead of racing for the exchange's limit.
 """
 
+import asyncio
 import logging
+import time
+import weakref
 from typing import Any
 
 from candles_feed.core.protocols import AsyncThrottlerProtocol
-from candles_feed.core.rate_limiter import pool_key_for, rest_limit_for
+from candles_feed.core.rate_limiter import (
+    BackoffPolicy,
+    PauseState,
+    pool_key_for,
+    rest_limit_for,
+    wait_out_deadline,
+)
 
 logger = logging.getLogger(__name__)
+
+# Pause deadline + backoff streak per (throttler, limit id), so bridges that share a
+# limit on the host throttler also share a pause.
+_SHARED_STATES: "weakref.WeakKeyDictionary[Any, dict[str, PauseState]]" = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _shared_state(throttler: Any, limit_id: str) -> PauseState:
+    try:
+        return _SHARED_STATES.setdefault(throttler, {}).setdefault(limit_id, PauseState())
+    except TypeError:  # throttler cannot be weak-referenced: pause is per bridge only
+        return PauseState()
 
 
 class ConnectorThrottlerBridge:
@@ -33,6 +55,7 @@ class ConnectorThrottlerBridge:
         self._throttler = throttler
         pool = pool_key_for(adapter)
         self._limit_id = f"candles-feed:{pool}"
+        self._state = _shared_state(throttler, self._limit_id)
         limit = rest_limit_for(adapter)
 
         host_id = getattr(adapter, "REST_HOST_RATE_LIMIT_ID", None)
@@ -85,7 +108,24 @@ class ConnectorThrottlerBridge:
             logger.debug("hummingbot is not importable; not sharing the connector's budget")
             return None
 
+    @property
+    def backoff(self) -> BackoffPolicy:
+        """Backoff policy shared by all bridges on this throttler and limit id."""
+        return self._state.backoff
+
+    def pause(self, seconds: float) -> None:
+        """Block ``acquire`` on every bridge sharing this throttler and limit id.
+
+        This only stops the feeds; it cannot stop the host connector's own requests.
+        """
+        self._state.deadline = max(self._state.deadline, time.monotonic() + max(0.0, seconds))
+
+    def is_paused(self) -> bool:
+        """Whether a pause is currently active on this limit."""
+        return self._state.deadline > time.monotonic()
+
     async def acquire(self) -> None:
-        """Wait for capacity on the feed's limit (and the linked host pool), then record it."""
+        """Wait out any pause, then for capacity on the feed's limit (and linked host pool)."""
+        await wait_out_deadline(lambda: self._state.deadline, time.monotonic, asyncio.sleep)
         async with self._throttler.execute_task(self._limit_id):
             pass

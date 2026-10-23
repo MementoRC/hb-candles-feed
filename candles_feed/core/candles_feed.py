@@ -34,12 +34,14 @@ from candles_feed.core.protocols import (
 )
 from candles_feed.core.rate_limiter import (
     RateLimitedNetworkClient,
+    RateLimitExceededError,
     resolve_adapter_rate_limiter,
     set_adapter_rate_limiter,
 )
 
 HISTORICAL_MAX_ATTEMPTS = 3
 HISTORICAL_RETRY_BASE_DELAY = 0.5  # seconds; doubles after each failed attempt
+HISTORICAL_MAX_RATE_LIMIT_RETRIES = 5  # HTTP 429/418 responses per page; not counted above
 _MAX_LOGGED_GAPS = 5
 
 
@@ -433,17 +435,32 @@ class CandlesFeed:
         :return: Raw candles of the page; empty list means end of data
         :raises HistoricalCandlesError: If every attempt fails
         """
+        # HTTP 429/418 is handled differently from other failures: the limiter has already
+        # paused the whole pool, so the next fetch's acquire() waits out the pause. We
+        # therefore retry at once (no extra sleep on top of the pause) and do not spend
+        # one of the HISTORICAL_MAX_ATTEMPTS on it; rate-limit retries have their own
+        # small cap so a persistent ban still ends in HistoricalCandlesError.
         last_exc: Exception | None = None
-        for attempt in range(HISTORICAL_MAX_ATTEMPTS):
+        failures = 0
+        rate_limited = 0
+        while True:
             try:
                 return await strategy.fetch_rest_page(start_time=page_start, limit=page_limit)
+            except RateLimitExceededError as e:
+                last_exc = e
+                rate_limited += 1
+                if rate_limited >= HISTORICAL_MAX_RATE_LIMIT_RETRIES:
+                    break
             except Exception as e:
                 last_exc = e
-                if attempt < HISTORICAL_MAX_ATTEMPTS - 1:
-                    await asyncio.sleep(HISTORICAL_RETRY_BASE_DELAY * 2**attempt)
+                failures += 1
+                if failures >= HISTORICAL_MAX_ATTEMPTS:
+                    break
+                await asyncio.sleep(HISTORICAL_RETRY_BASE_DELAY * 2 ** (failures - 1))
         self.logger.error(
             f"Historical candle fetch for {self.trading_pair} on {self.exchange} failed at "
-            f"{page_start} after {HISTORICAL_MAX_ATTEMPTS} attempts: {last_exc!r}"
+            f"{page_start} after {failures} failed and {rate_limited} rate-limited "
+            f"attempts: {last_exc!r}"
         )
         raise HistoricalCandlesError(
             f"Failed fetching historical candles at {page_start}: {last_exc!r}",

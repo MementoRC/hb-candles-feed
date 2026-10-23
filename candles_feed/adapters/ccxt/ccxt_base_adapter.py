@@ -11,6 +11,7 @@ import ccxt  # type: ignore
 from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.rate_limiter import RateLimitExceededError
 
 
 class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
@@ -171,12 +172,16 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         :returns: List of CandleData objects
         """
         params = self._get_rest_params(trading_pair, interval, start_time, limit=limit)
-        ohlcv = self.exchange.fetch_ohlcv(
-            symbol=params["symbol"],
-            timeframe=params["timeframe"],
-            since=params["since"],
-            limit=params["limit"],
-        )
+        try:
+            ohlcv = self.exchange.fetch_ohlcv(
+                symbol=params["symbol"],
+                timeframe=params["timeframe"],
+                since=params["since"],
+                limit=params["limit"],
+            )
+        except (ccxt.RateLimitExceeded, ccxt.DDoSProtection) as e:
+            # ccxt does not expose the status or Retry-After, so the default 429 backoff applies.
+            raise RateLimitExceededError(status=429, retry_after=None, message=str(e)) from e
         return self._parse_rest_response(ohlcv)
 
     @override

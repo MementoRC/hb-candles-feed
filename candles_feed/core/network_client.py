@@ -11,6 +11,7 @@ import aiohttp
 
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import Logger, WSAssistant
+from candles_feed.core.rate_limiter import RATE_LIMIT_STATUSES, RateLimitExceededError
 
 # Global registry to track unclosed sessions for defensive cleanup
 _ACTIVE_SESSIONS: weakref.WeakSet[aiohttp.ClientSession] = weakref.WeakSet()
@@ -136,6 +137,8 @@ class NetworkClient:
                 return await response.json()
         except Exception as e:
             self.logger.error(f"REST request failed: {e}")
+            if isinstance(e, aiohttp.ClientResponseError) and e.status in RATE_LIMIT_STATUSES:
+                raise RateLimitExceededError.from_response(e.status, e.headers, str(e)) from e
             raise
 
     def get_connection_pool_stats(self) -> dict[str, Any]:

@@ -21,6 +21,7 @@ from candles_feed.core.protocols import (
     Logger,
     WSAssistant,
 )
+from candles_feed.core.rate_limiter import resolve_adapter_rate_limiter, run_paced
 
 
 class WebSocketStrategy:
@@ -106,12 +107,15 @@ class WebSocketStrategy:
             elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
                 self.adapter.fetch_rest_candles_synchronous
             ):
-                candles = await asyncio.to_thread(
-                    self.adapter.fetch_rest_candles_synchronous,
-                    trading_pair=self.trading_pair,
-                    interval=self.interval,
-                    start_time=start_time,
-                    limit=limit,
+                candles = await run_paced(
+                    resolve_adapter_rate_limiter(self.adapter),
+                    lambda: asyncio.to_thread(
+                        self.adapter.fetch_rest_candles_synchronous,
+                        trading_pair=self.trading_pair,
+                        interval=self.interval,
+                        start_time=start_time,
+                        limit=limit,
+                    ),
                 )
             else:
                 raise NotImplementedError(
@@ -305,12 +309,15 @@ class RESTPollingStrategy:
         if hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
             self.adapter.fetch_rest_candles_synchronous
         ):
-            return await asyncio.to_thread(
-                self.adapter.fetch_rest_candles_synchronous,
-                trading_pair=self.trading_pair,
-                interval=self.interval,
-                start_time=start_time,
-                limit=limit,
+            return await run_paced(
+                resolve_adapter_rate_limiter(self.adapter),
+                lambda: asyncio.to_thread(
+                    self.adapter.fetch_rest_candles_synchronous,
+                    trading_pair=self.trading_pair,
+                    interval=self.interval,
+                    start_time=start_time,
+                    limit=limit,
+                ),
             )
         raise NotImplementedError(
             "Adapter must implement fetch_rest_candles or fetch_rest_candles_synchronous"
