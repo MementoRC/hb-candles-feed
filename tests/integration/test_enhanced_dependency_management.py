@@ -15,6 +15,7 @@ more comprehensive coverage of external dependency scenarios.
 import asyncio
 import logging
 import os
+import random
 import time
 
 import pytest
@@ -40,6 +41,8 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_FAULT_INJECTION_SEED = 1234
+
 
 @pytest.mark.integration
 @pytest.mark.slow
@@ -52,6 +55,15 @@ class TestEnhancedDependencyManagement:
     the suite unsuitable for the default ``check`` task; use ``pixi run test``
     or ``pixi run test-integration`` to opt in.
     """
+
+    @pytest.fixture(autouse=True)
+    def _seed_fault_injection_rng(self):
+        """Seed the global RNG used by MockedExchangeServer fault injection.
+
+        ``server.py`` draws packet-loss/error decisions from the global ``random``
+        module; seeding it makes the injected faults reproducible.
+        """
+        random.seed(_FAULT_INJECTION_SEED)
 
     @pytest.fixture
     async def enhanced_mock_server(self, unused_tcp_port):
