@@ -171,20 +171,23 @@ class PacificaPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         for row in candle_list:
             if not isinstance(row, dict):
                 continue
-            candles.append(
-                CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(row["t"]),
-                    open=float(row["o"]),
-                    high=float(row["h"]),
-                    low=float(row["l"]),
-                    close=float(row["c"]),
-                    volume=float(row["v"]),
-                    quote_asset_volume=0.0,
-                    n_trades=int(row.get("n", 0)),
-                    taker_buy_base_volume=0.0,
-                    taker_buy_quote_volume=0.0,
+            try:
+                candles.append(
+                    CandleData(
+                        timestamp_raw=self.ensure_timestamp_in_seconds(row["t"]),
+                        open=float(row["o"]),
+                        high=float(row["h"]),
+                        low=float(row["l"]),
+                        close=float(row["c"]),
+                        volume=float(row["v"]),
+                        quote_asset_volume=0.0,
+                        n_trades=int(row.get("n", 0)),
+                        taker_buy_base_volume=0.0,
+                        taker_buy_quote_volume=0.0,
+                    )
                 )
-            )
+            except (KeyError, TypeError, ValueError) as e:
+                raise self._bad_response(row) from e
         return candles
 
     @override
@@ -238,19 +241,24 @@ class PacificaPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     def parse_ws_message(self, data: dict[str, Any] | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
-        Pacifica WebSocket candle message format matches the REST data format:
+        Pacifica WebSocket candle messages wrap a candle object (same shape as the REST
+        rows) in a channel envelope:
         {
-          "t": <timestamp_ms>,
-          "o": <open>,
-          "h": <high>,
-          "l": <low>,
-          "c": <close>,
-          "v": <volume>,
-          "n": <n_trades>,
-          "T": <end_time_ms>,
-          "s": <symbol>,
-          "i": <interval>
+          "channel": "candle",
+          "data": {
+            "t": <timestamp_ms>,
+            "o": <open>,
+            "h": <high>,
+            "l": <low>,
+            "c": <close>,
+            "v": <volume>,
+            "n": <n_trades>,
+            "T": <end_time_ms>,
+            "s": <symbol>,
+            "i": <interval>
+          }
         }
+        A bare candle object (no envelope) is accepted as well.
 
         :param data: WebSocket message
         :returns: List of CandleData objects or None if message is not a candle update
@@ -258,20 +266,23 @@ class PacificaPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         if data is None:
             return None
 
-        # Candle messages carry the "t" (timestamp) field directly
-        if "t" not in data or "o" not in data:
+        # Pacifica wraps pushes as {"channel": "candle", "data": {...}}; accept the bare
+        # candle object too. Candle objects carry the "t" (timestamp) field directly.
+        inner = data.get("data")
+        candle = inner if isinstance(inner, dict) else data
+        if "t" not in candle or "o" not in candle:
             return None
 
         return [
             CandleData(
-                timestamp_raw=self.ensure_timestamp_in_seconds(data["t"]),
-                open=float(data["o"]),
-                high=float(data["h"]),
-                low=float(data["l"]),
-                close=float(data["c"]),
-                volume=float(data["v"]),
+                timestamp_raw=self.ensure_timestamp_in_seconds(candle["t"]),
+                open=float(candle["o"]),
+                high=float(candle["h"]),
+                low=float(candle["l"]),
+                close=float(candle["c"]),
+                volume=float(candle["v"]),
                 quote_asset_volume=0.0,
-                n_trades=int(data.get("n", 0)),
+                n_trades=int(candle.get("n", 0)),
                 taker_buy_base_volume=0.0,
                 taker_buy_quote_volume=0.0,
             )

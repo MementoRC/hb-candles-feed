@@ -136,19 +136,20 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         if not isinstance(candle_list, list):
             raise self._bad_response(data)
 
-        candles: list[CandleData] = []
-        candles.extend(
-            CandleData(
-                timestamp_raw=self.ensure_timestamp_in_seconds(row["timestamp"]),
-                open=float(row["open_price"]),
-                high=float(row["high_price"]),
-                low=float(row["low_price"]),
-                close=float(row["close_price"]),
-                volume=float(row["volume"]),
-            )
-            for row in candle_list
-        )
-        return candles
+        try:
+            return [
+                CandleData(
+                    timestamp_raw=self.ensure_timestamp_in_seconds(row["timestamp"]),
+                    open=float(row["open_price"]),
+                    high=float(row["high_price"]),
+                    low=float(row["low_price"]),
+                    close=float(row["close_price"]),
+                    volume=float(row["volume"]),
+                )
+                for row in candle_list
+            ]
+        except (KeyError, TypeError, ValueError) as e:
+            raise self._bad_response(data) from e
 
     @override
     async def fetch_rest_candles(

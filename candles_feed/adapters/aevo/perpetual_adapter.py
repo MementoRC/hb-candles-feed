@@ -42,6 +42,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     ticker messages is used to construct synthetic candles.
     """
 
+    TIMESTAMP_UNIT: str = "nanoseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @staticmethod
@@ -122,7 +123,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         }
 
         if start_time is not None:
-            params["start_timestamp"] = start_time * _NS_TO_SECONDS
+            params["start_timestamp"] = self.convert_timestamp_to_exchange(start_time)
 
         return params
 
