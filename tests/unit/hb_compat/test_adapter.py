@@ -236,6 +236,34 @@ class TestCandlesBaseAdapterDataConversion:
             mock_hist.assert_called_once_with(start_time=1000, end_time=2000)
             assert isinstance(result, pd.DataFrame)
 
+    async def test_get_historical_candles_spans_multiple_pages(self, mock_exchange_registry):
+        from candles_feed.core.collection_strategies import RESTPollingStrategy
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+        from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+
+        mock_exchange_registry.return_value.MAX_CANDLES_PER_REQUEST = 100
+        series = [60_000 + i * 60 for i in range(250)]
+        calls = []
+
+        async def fake_poll_once(self, start_time=None, end_time=None, limit=None):
+            calls.append(start_time)
+            return [_make_candle(ts) for ts in series if ts >= start_time][:limit]
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT", interval="1m")
+        config = HistoricalCandlesConfig(
+            connector_name="binance",
+            trading_pair="BTC-USDT",
+            interval="1m",
+            start_time=series[0],
+            end_time=series[-1],
+        )
+        with patch.object(RESTPollingStrategy, "poll_once", fake_poll_once):
+            result = await adapter.get_historical_candles(config)
+
+        assert len(calls) == 3
+        assert len(result) == 250
+        assert list(result["timestamp"]) == series
+
     async def test_get_historical_candles_empty_keeps_columns(self):
         from candles_feed.hb_compat.adapter import COLUMNS, CandlesBaseAdapter
         from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
