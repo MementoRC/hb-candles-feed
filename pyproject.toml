@@ -115,6 +115,10 @@ packages = ["candles_feed"]
 # to compile augmented-pure-python modules to native extensions. See hatch_build.py.
 [tool.hatch.build.targets.wheel.hooks.custom]
 path = "hatch_build.py"
+# Scope the framework's augmented-module scan to the package; without it the scan
+# walks the whole project dir, including .worktrees/* checkouts, and fails on
+# non-importable module names (hb-cython-framework #31).
+paths = ["candles_feed"]
 
 # Conda dependencies
 # Note: prometheus_client (underscore) is available on conda-forge and included in pixi dev dependencies.
