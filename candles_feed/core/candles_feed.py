@@ -4,6 +4,7 @@ Core candles feed class for the Candle Feed framework.
 This module provides the main class for managing candle data feeds.
 """
 
+import asyncio
 import logging
 import typing
 from collections import deque
@@ -29,6 +30,23 @@ from candles_feed.core.protocols import (
     Logger,
 )
 from candles_feed.core.rate_limiter import RateLimitedNetworkClient, get_adapter_rate_limiter
+
+HISTORICAL_MAX_ATTEMPTS = 3
+HISTORICAL_RETRY_BASE_DELAY = 0.5  # seconds; doubles after each failed attempt
+_MAX_LOGGED_GAPS = 5
+
+
+class HistoricalCandlesError(Exception):
+    """Raised when a historical page keeps failing, so the result would be silently truncated.
+
+    :ivar partial: Candles fetched before the failure (same columns as normal output)
+    :ivar failed_at: Start timestamp of the page that kept failing
+    """
+
+    def __init__(self, message: str, partial: pd.DataFrame, failed_at: int):
+        super().__init__(message)
+        self.partial = partial
+        self.failed_at = failed_at
 
 
 class CandlesFeed:
@@ -322,7 +340,7 @@ class CandlesFeed:
         merged: dict[int, CandleData] = {}
         page_start = start_time
         for _ in range(max_pages):
-            page = await strategy.poll_once(start_time=page_start, limit=page_limit)
+            page = await self._fetch_historical_page(strategy, page_start, page_limit, merged)
             if not page:
                 break
             for candle in page:
@@ -341,8 +359,72 @@ class CandlesFeed:
                 f"hit the page cap ({max_pages}); result may be incomplete"
             )
 
-        candles = [merged[ts] for ts in sorted(merged)]
-        return pd.DataFrame(
+        df = self._candles_to_df([merged[ts] for ts in sorted(merged)])
+        gaps = self._find_gaps(df["timestamp"].tolist() if not df.empty else [], step)
+        if gaps:
+            shown = ", ".join(f"{a}->{b}" for a, b in gaps[:_MAX_LOGGED_GAPS])
+            self.logger.warning(
+                f"Historical candles for {self.trading_pair} on {self.exchange} contain "
+                f"{len(gaps)} gap(s) (first: {shown}); exchange has no data there"
+            )
+        df.attrs["gaps"] = gaps
+        return df
+
+    async def _fetch_historical_page(
+        self,
+        strategy: RESTPollingStrategy,
+        page_start: int,
+        page_limit: int,
+        merged: dict[int, CandleData],
+    ) -> list[CandleData]:
+        """Fetch one historical page, retrying transient failures with exponential backoff.
+
+        :param strategy: REST strategy used for the request
+        :param page_start: Start timestamp of the page in seconds
+        :param page_limit: Maximum candles per page
+        :param merged: Candles collected so far (used as partial result on failure)
+        :return: Raw candles of the page; empty list means end of data
+        :raises HistoricalCandlesError: If every attempt fails
+        """
+        last_exc: Exception | None = None
+        for attempt in range(HISTORICAL_MAX_ATTEMPTS):
+            try:
+                return await strategy.fetch_rest_page(start_time=page_start, limit=page_limit)
+            except Exception as e:
+                last_exc = e
+                if attempt < HISTORICAL_MAX_ATTEMPTS - 1:
+                    await asyncio.sleep(HISTORICAL_RETRY_BASE_DELAY * 2**attempt)
+        self.logger.error(
+            f"Historical candle fetch for {self.trading_pair} on {self.exchange} failed at "
+            f"{page_start} after {HISTORICAL_MAX_ATTEMPTS} attempts: {last_exc!r}"
+        )
+        raise HistoricalCandlesError(
+            f"Failed fetching historical candles at {page_start}: {last_exc!r}",
+            partial=self._candles_to_df([merged[ts] for ts in sorted(merged)]),
+            failed_at=page_start,
+        ) from last_exc
+
+    def _find_gaps(self, timestamps: list[int], step: int) -> list[tuple[int, int]]:
+        """Return (previous, next) timestamp pairs that are not consecutive candles.
+
+        :param timestamps: Ascending candle timestamps
+        :param step: Nominal interval length in seconds
+        :return: List of gap boundaries
+        """
+        return [
+            (prev, nxt)
+            for prev, nxt in zip(timestamps, timestamps[1:], strict=False)
+            if not is_valid_step(prev, nxt, self.interval, step)
+        ]
+
+    @staticmethod
+    def _candles_to_df(candles: list[CandleData]) -> pd.DataFrame:
+        """Convert candles to a DataFrame with the standard columns.
+
+        :param candles: Candles to convert
+        :return: DataFrame (``attrs["gaps"]`` set to an empty list)
+        """
+        df = pd.DataFrame(
             [
                 {
                     "timestamp": c.timestamp,
@@ -359,6 +441,8 @@ class CandlesFeed:
                 for c in candles
             ]
         )
+        df.attrs["gaps"] = []
+        return df
 
     @property
     def ready(self) -> bool:

@@ -85,7 +85,10 @@ class FakeExchange:
 
 def _install(feed: CandlesFeed, exchange: FakeExchange):
     return patch.object(
-        feed._adapter, "fetch_rest_candles", AsyncMock(side_effect=exchange.fetch_rest_candles)
+        feed._adapter,
+        "fetch_rest_candles",
+        AsyncMock(side_effect=exchange.fetch_rest_candles),
+        create=True,
     )
 
 

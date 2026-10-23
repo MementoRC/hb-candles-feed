@@ -5,6 +5,7 @@ and hb-candles-feed's native API. No hummingbot imports.
 """
 
 import asyncio
+import copy
 import logging
 
 import numpy as np
@@ -38,8 +39,13 @@ def _log_task_exception(task: asyncio.Task) -> None:
 
 
 def _to_compat_frame(df: pd.DataFrame) -> pd.DataFrame:
-    """Shape a frame to the hummingbot contract: the 10 columns in order, all float64."""
-    return df.reindex(columns=COLUMNS).astype(float)
+    """Shape a frame to the hummingbot contract: the 10 columns in order, all float64.
+
+    ``df.attrs`` (e.g. the ``gaps`` list from historical fetches) is carried over.
+    """
+    out = df.reindex(columns=COLUMNS).astype(float)
+    out.attrs = copy.deepcopy(df.attrs)
+    return out
 
 
 def _safe_float(value: float | int | str | None, default: float = 0.0) -> float:

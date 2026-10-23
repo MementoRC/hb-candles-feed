@@ -262,19 +262,19 @@ class RESTPollingStrategy:
         # Make sure we clean up any remaining network resources
         # The parent CandlesFeed class will close the network client
 
-    async def poll_once(
+    async def fetch_rest_page(
         self,
         start_time: int | None = None,
-        end_time: int
-        | None = None,  # end_time is used here for calculation, but not directly by fetch_rest_candles
+        end_time: int | None = None,
         limit: int | None = None,
     ) -> list[CandleData]:
-        """Fetch candles for a specific time range (one-time poll).
+        """Fetch one raw page of candles without sanitizing or swallowing errors.
 
         :param start_time: Start time in seconds.
-        :param end_time: End time in seconds.
+        :param end_time: End time in seconds (used to derive start_time when only limit is given).
         :param limit: Maximum number of candles to return.
-        :returns: List of CandleData objects.
+        :returns: List of CandleData objects exactly as the adapter returned them.
+        :raises NotImplementedError: If the adapter has no REST fetch method.
         """
         # Adjust start/end time to align with intervals
         interval_seconds = self.adapter.get_supported_intervals()[self.interval]
@@ -291,33 +291,52 @@ class RESTPollingStrategy:
         elif start_time is not None:
             start_time = floor_timestamp(start_time, self.interval, interval_seconds)
 
+        # Check if adapter implements async or sync method
+        if hasattr(self.adapter, "fetch_rest_candles") and callable(
+            self.adapter.fetch_rest_candles
+        ):
+            return await self.adapter.fetch_rest_candles(
+                trading_pair=self.trading_pair,
+                interval=self.interval,
+                start_time=start_time,
+                limit=limit,
+                network_client=self.network_client,
+            )
+        if hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
+            self.adapter.fetch_rest_candles_synchronous
+        ):
+            return await asyncio.to_thread(
+                self.adapter.fetch_rest_candles_synchronous,
+                trading_pair=self.trading_pair,
+                interval=self.interval,
+                start_time=start_time,
+                limit=limit,
+            )
+        raise NotImplementedError(
+            "Adapter must implement fetch_rest_candles or fetch_rest_candles_synchronous"
+        )
+
+    async def poll_once(
+        self,
+        start_time: int | None = None,
+        end_time: int
+        | None = None,  # end_time is used here for calculation, but not directly by fetch_rest_candles
+        limit: int | None = None,
+    ) -> list[CandleData]:
+        """Fetch candles for a specific time range (one-time poll).
+
+        :param start_time: Start time in seconds.
+        :param end_time: End time in seconds.
+        :param limit: Maximum number of candles to return.
+        :returns: List of CandleData objects.
+        """
+        interval_seconds = self.adapter.get_supported_intervals()[self.interval]
+
         candles: list[CandleData] = []
         try:
-            # Check if adapter implements async or sync method
-            if hasattr(self.adapter, "fetch_rest_candles") and callable(
-                self.adapter.fetch_rest_candles
-            ):
-                candles = await self.adapter.fetch_rest_candles(
-                    trading_pair=self.trading_pair,
-                    interval=self.interval,
-                    start_time=start_time,
-                    limit=limit,
-                    network_client=self.network_client,
-                )
-            elif hasattr(self.adapter, "fetch_rest_candles_synchronous") and callable(
-                self.adapter.fetch_rest_candles_synchronous
-            ):
-                candles = await asyncio.to_thread(
-                    self.adapter.fetch_rest_candles_synchronous,
-                    trading_pair=self.trading_pair,
-                    interval=self.interval,
-                    start_time=start_time,
-                    limit=limit,
-                )
-            else:
-                raise NotImplementedError(
-                    "Adapter must implement fetch_rest_candles or fetch_rest_candles_synchronous"
-                )
+            candles = await self.fetch_rest_page(
+                start_time=start_time, end_time=end_time, limit=limit
+            )
         except Exception as e:
             self.logger.exception(f"Failed fetching candles: {e}")
 

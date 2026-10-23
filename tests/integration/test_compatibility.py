@@ -277,6 +277,7 @@ class TestCompatibilityWithOriginal:
         # Mock strategies
         mock_rest_strategy = MagicMock()
         mock_rest_strategy.poll_once = AsyncMock(return_value=sample_candles_data["new"])
+        mock_rest_strategy.fetch_rest_page = AsyncMock(return_value=sample_candles_data["new"])
 
         # Patch dependencies
         with (
@@ -304,14 +305,14 @@ class TestCompatibilityWithOriginal:
             # Prefill with some data
             await feed.fetch_candles()
 
-            # Clear the rest strategy poll_once mock to track next calls
-            mock_rest_strategy.poll_once.reset_mock()
+            # Clear the rest strategy mock to track next calls
+            mock_rest_strategy.fetch_rest_page.reset_mock()
 
             # Call get_historical_candles
             historical_df = await feed.get_historical_candles(1609459000, 1609459300)
 
             # Verify the method was called with proper parameters
-            mock_rest_strategy.poll_once.assert_called_once()
+            mock_rest_strategy.fetch_rest_page.assert_called_once()
 
             # Verify data format is compatible with original implementation
             assert isinstance(historical_df, pd.DataFrame), "Should return a DataFrame"
