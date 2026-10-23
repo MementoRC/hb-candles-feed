@@ -122,7 +122,7 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: Parsed candles (empty buckets with null OHLC are skipped)
         """
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
         return [
             CandleData(
                 timestamp_raw=self._iso_to_seconds(row["start"]),

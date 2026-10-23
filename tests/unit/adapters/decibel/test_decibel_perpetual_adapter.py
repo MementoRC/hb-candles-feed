@@ -180,9 +180,13 @@ class TestDecibelParsing:
         candles = adapter._parse_rest_response(rows)
         assert [c.timestamp for c in candles] == [T0]
 
-    @pytest.mark.parametrize("bad", [None, {}, "x", []])
-    def test_parse_rest_empty(self, adapter, bad):
-        assert adapter._parse_rest_response(bad) == []
+    def test_parse_rest_empty(self, adapter):
+        assert adapter._parse_rest_response([]) == []
+
+    @pytest.mark.parametrize("bad", [None, {}, "x"])
+    def test_parse_rest_unparseable_raises(self, adapter, bad):
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response(bad)
 
     def test_ws_subscription_payload_uses_resolved_address(self, adapter):
         adapter._market_addrs["BTC-USD"] = MARKET_ADDR

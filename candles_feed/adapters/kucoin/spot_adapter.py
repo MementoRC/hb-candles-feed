@@ -94,9 +94,6 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
 
         candles: list[CandleData] = []
 
-        if data is None:
-            return candles
-
         # Check if data is a dict with a 'candles' key (test fixture format)
         if (
             isinstance(data, dict)
@@ -142,6 +139,8 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
                         else 0.0,  # Transaction amount
                     )
                 )
+        else:
+            raise self._bad_response(data)
         return candles
 
     @override

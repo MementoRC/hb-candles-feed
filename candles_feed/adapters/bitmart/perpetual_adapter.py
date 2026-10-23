@@ -132,14 +132,9 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
                 ]
             }
         """
-        if data is None:
-            return []
-
-        if not isinstance(data, dict):
-            return []
-        candle_list = data.get("data", [])
+        candle_list = data.get("data") if isinstance(data, dict) else None
         if not isinstance(candle_list, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         candles.extend(

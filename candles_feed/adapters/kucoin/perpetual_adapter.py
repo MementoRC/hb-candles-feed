@@ -103,10 +103,10 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
 
         candles: list[CandleData] = []
 
-        if data is None:
-            return candles
+        if not (isinstance(data, dict) and isinstance(data.get("data"), list)):
+            raise self._bad_response(data)
 
-        if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
+        if data["data"]:
             candles.extend(
                 CandleData(
                     timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),  # Already in seconds

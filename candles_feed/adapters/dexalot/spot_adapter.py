@@ -156,7 +156,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: List of CandleData objects.
         """
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for candle_item in data:

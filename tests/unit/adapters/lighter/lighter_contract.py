@@ -183,9 +183,13 @@ class LighterAdapterContract:
         rows = {"c": [{"t": T0 * 1000, "v": 1}, CANDLES_FIXTURE["c"][1]]}
         assert len(adapter._parse_rest_response(rows)) == 1
 
+    def test_parse_empty_candle_list(self, adapter):
+        assert adapter._parse_rest_response({"c": []}) == []
+
     @pytest.mark.parametrize("bad", [None, {}, [], "x", {"c": None}])
-    def test_parse_empty_inputs(self, adapter, bad):
-        assert adapter._parse_rest_response(bad) == []
+    def test_parse_unparseable_raises(self, adapter, bad):
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response(bad)
 
     @staticmethod
     def _client(details=ORDER_BOOK_DETAILS):

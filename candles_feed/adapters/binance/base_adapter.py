@@ -117,12 +117,9 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   ]
         # ]
 
-        if data is None:
-            return []
-
         candles: list[CandleData] = []
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
         candles.extend(
             CandleData(
                 timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),

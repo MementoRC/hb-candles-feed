@@ -32,7 +32,7 @@ class ConcreteKrakenAdapter(KrakenBaseAdapter):
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Override to handle None case for testing."""
         if data is None:
-            return []
+            raise ValueError("unparseable REST response")
         return super()._parse_rest_response(data)
 
 

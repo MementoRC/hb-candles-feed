@@ -155,17 +155,16 @@ class PacificaPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None:
-            return []
-
         if isinstance(data, dict):
             candle_list = data.get("data")
         elif isinstance(data, list):
             candle_list = data
         else:
-            return []
+            raise self._bad_response(data)
 
-        if not candle_list or not isinstance(candle_list, list):
+        if not isinstance(candle_list, list):
+            raise self._bad_response(data)
+        if not candle_list:
             return []
 
         candles: list[CandleData] = []

@@ -122,12 +122,9 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   ...
         # ]
 
-        if data is None:
-            return []
-
         candles: list[CandleData] = []
         if not isinstance(data, list):  # Gate.io returns a list of lists
-            return candles
+            raise self._bad_response(data)
 
         candles.extend(
             CandleData(

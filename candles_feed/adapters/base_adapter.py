@@ -146,6 +146,17 @@ class BaseAdapter(ABC):
         """
         raise NotImplementedError("Subclasses must implement _parse_rest_response")
 
+    def _bad_response(self, data: object) -> ValueError:
+        """Build the error raised when a REST response cannot be parsed at all.
+
+        An empty candle list is legitimate "no data"; a missing/wrongly-typed payload
+        (e.g. an error body served with HTTP 200) must not be mistaken for it.
+
+        :param data: The unparseable REST response
+        :returns: ValueError to raise
+        """
+        return ValueError(f"{type(self).__name__}: unexpected REST response: {str(data)[:200]}")
+
     def convert_timestamp_to_exchange(self, timestamp: int | float | Decimal) -> int | str:
         """Convert timestamp from seconds to exchange timestamp format.
 

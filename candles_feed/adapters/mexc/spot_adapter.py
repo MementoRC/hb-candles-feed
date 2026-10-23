@@ -96,8 +96,8 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None:
-            return []
+        if not isinstance(data, list):
+            raise self._bad_response(data)
 
         # MEXC REST API format is similar to Binance
         # [

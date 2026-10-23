@@ -138,11 +138,11 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None or not isinstance(data, dict):
-            return []
+        if not isinstance(data, dict) or not isinstance(data.get("history"), list):
+            raise self._bad_response(data)
 
-        history = data.get("history")
-        if not history or not isinstance(history, list):
+        history = data["history"]
+        if not history:
             return []
 
         candles: list[CandleData] = []

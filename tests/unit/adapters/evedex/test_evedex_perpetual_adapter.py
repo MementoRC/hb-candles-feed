@@ -200,9 +200,14 @@ class TestEvedexParsing:
         rows = [[T0 * 1000, "1"], "x", {"open": 1}, ROWS_6[0]]
         assert len(adapter._parse_rest_response(rows, interval_seconds=60)) == 1
 
-    @pytest.mark.parametrize("bad", [None, {}, "x", [], {"data": "x"}])
-    def test_empty_inputs(self, adapter, bad):
-        assert adapter._parse_rest_response(bad) == []
+    @pytest.mark.parametrize("empty", [[], {"data": []}])
+    def test_empty_inputs(self, adapter, empty):
+        assert adapter._parse_rest_response(empty) == []
+
+    @pytest.mark.parametrize("bad", [None, {}, "x", {"data": "x"}])
+    def test_unparseable_raises(self, adapter, bad):
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response(bad)
 
 
 class TestEvedexFetch:

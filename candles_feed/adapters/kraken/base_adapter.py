@@ -132,17 +132,15 @@ class KrakenBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         parsed_candles: list[CandleData] = []
 
-        # Handle None data
-        if data is None:
-            return parsed_candles
-
         # Extract the actual data, which is under the pair name
-        if not isinstance(data, dict) or "result" not in data:
-            return parsed_candles
+        if (
+            not isinstance(data, dict)
+            or data.get("error")
+            or not isinstance(data.get("result"), dict)
+        ):
+            raise self._bad_response(data)
 
         result_data = data["result"]
-        if not isinstance(result_data, dict):
-            return parsed_candles
 
         for key, pair_data in result_data.items():
             if (

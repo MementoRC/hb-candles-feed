@@ -174,9 +174,9 @@ class BaseAdapterTest(abc.ABC):
         # Further validation can be added in concrete adapter tests
 
     def test_parse_rest_response_none(self, adapter):
-        """Test parsing None REST API response."""
-        candles = adapter._parse_rest_response(None)
-        assert candles == []
+        """A None REST response is unparseable and must raise, not read as 'no data'."""
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response(None)
 
     def test_get_ws_subscription_payload(self, adapter, trading_pair, interval):
         """Test WebSocket subscription payload generation."""

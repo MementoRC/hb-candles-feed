@@ -142,7 +142,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
         :returns: List of CandleData objects parsed from the response.
         """
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for row in data:

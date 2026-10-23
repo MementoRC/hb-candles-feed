@@ -186,9 +186,9 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
             the interval multiple and rows landing in the same bucket collapse to the latest one
         :returns: Parsed candles
         """
-        rows = _pick(data, _WRAPPER_KEYS, []) if isinstance(data, dict) else data
+        rows = _pick(data, _WRAPPER_KEYS) if isinstance(data, dict) else data
         if not isinstance(rows, list):
-            return []
+            raise self._bad_response(data)
         by_timestamp: dict[int, CandleData] = {}
         for row in rows:
             candle = self._row_to_candle(row, interval_seconds)

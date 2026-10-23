@@ -106,8 +106,8 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None or not isinstance(data, list):
-            return []
+        if not isinstance(data, list):
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for candle_row in data:

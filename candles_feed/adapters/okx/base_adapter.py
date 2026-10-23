@@ -134,15 +134,12 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   ...
         # ]
 
-        if data is None:
-            return []
-
-        if not isinstance(data, dict) or "data" not in data:
-            return []
+        if not isinstance(data, dict) or "data" not in data or data.get("code", "0") != "0":
+            raise self._bad_response(data)
 
         candle_list_payload = data["data"]
         if not isinstance(candle_list_payload, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         candles.extend(

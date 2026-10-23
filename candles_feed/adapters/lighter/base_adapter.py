@@ -124,7 +124,7 @@ class LighterBaseAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapter)
         """
         rows = data.get("c") if isinstance(data, dict) else None
         if not isinstance(rows, list):
-            return []
+            raise self._bad_response(data)
         candles = [
             CandleData(
                 timestamp_raw=self.ensure_timestamp_in_seconds(row["t"]),

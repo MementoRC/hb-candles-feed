@@ -160,9 +160,13 @@ class TestGrvtParsing:
         rows = {"result": [{"open_time": str(T0 * NS)}, REST_FIXTURE["result"][1]]}
         assert len(adapter._parse_rest_response(rows)) == 1
 
+    def test_parse_empty_result(self, adapter):
+        assert adapter._parse_rest_response({"result": []}) == []
+
     @pytest.mark.parametrize("bad", [None, {}, [], "x", {"result": None}, {"result": "x"}])
-    def test_parse_empty_inputs(self, adapter, bad):
-        assert adapter._parse_rest_response(bad) == []
+    def test_parse_unparseable_raises(self, adapter, bad):
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response(bad)
 
     def test_ws_payload(self, adapter):
         first = adapter.get_ws_subscription_payload("BTC-USDT", "1m")
