@@ -237,7 +237,6 @@ class TestCandlesBaseAdapterDataConversion:
             assert isinstance(result, pd.DataFrame)
 
     async def test_get_historical_candles_spans_multiple_pages(self, mock_exchange_registry):
-        from candles_feed.core.collection_strategies import RESTPollingStrategy
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
         from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
 
@@ -245,7 +244,7 @@ class TestCandlesBaseAdapterDataConversion:
         series = [60_000 + i * 60 for i in range(250)]
         calls = []
 
-        async def fake_poll_once(self, start_time=None, end_time=None, limit=None):
+        async def fake_fetch(trading_pair=None, interval=None, start_time=None, limit=None, **_):
             calls.append(start_time)
             return [_make_candle(ts) for ts in series if ts >= start_time][:limit]
 
@@ -257,12 +256,58 @@ class TestCandlesBaseAdapterDataConversion:
             start_time=series[0],
             end_time=series[-1],
         )
-        with patch.object(RESTPollingStrategy, "poll_once", fake_poll_once):
-            result = await adapter.get_historical_candles(config)
+        mock_exchange_registry.return_value.fetch_rest_candles = fake_fetch
+        result = await adapter.get_historical_candles(config)
 
         assert len(calls) == 3
         assert len(result) == 250
         assert list(result["timestamp"]) == series
+        assert result.attrs["gaps"] == []
+
+    async def test_get_historical_candles_preserves_gaps_attr(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+        from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        config = HistoricalCandlesConfig(
+            connector_name="binance",
+            trading_pair="BTC-USDT",
+            interval="1m",
+            start_time=1000,
+            end_time=2000,
+        )
+        mock_df = pd.DataFrame({"timestamp": [1020, 1200]})
+        mock_df.attrs["gaps"] = [(1020, 1200)]
+        with patch.object(
+            adapter._feed, "get_historical_candles", new_callable=AsyncMock, return_value=mock_df
+        ):
+            result = await adapter.get_historical_candles(config)
+
+        assert result.attrs["gaps"] == [(1020, 1200)]
+
+    async def test_get_historical_candles_propagates_historical_error(self):
+        from candles_feed.core.candles_feed import HistoricalCandlesError
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+        from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        config = HistoricalCandlesConfig(
+            connector_name="binance",
+            trading_pair="BTC-USDT",
+            interval="1m",
+            start_time=1000,
+            end_time=2000,
+        )
+        error = HistoricalCandlesError("failed", partial=pd.DataFrame(), failed_at=1500)
+        with (
+            patch.object(
+                adapter._feed, "get_historical_candles", new_callable=AsyncMock, side_effect=error
+            ),
+            pytest.raises(HistoricalCandlesError) as excinfo,
+        ):
+            await adapter.get_historical_candles(config)
+
+        assert excinfo.value.failed_at == 1500
 
     async def test_get_historical_candles_empty_keeps_columns(self):
         from candles_feed.hb_compat.adapter import COLUMNS, CandlesBaseAdapter
