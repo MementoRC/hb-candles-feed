@@ -259,18 +259,12 @@ class TestCandlesFeed:
             candles_feed._rest_strategy.poll_once = mock_poll
 
             # Fetch the candles
-            await candles_feed.fetch_candles()
+            result = await candles_feed.fetch_candles()
 
-            # Verify the method was called
+            # Verify the method was called and data returned without touching the store
             assert mock_poll.called
-
-            # Add the test candles manually since our mocks aren't working as expected
-            candles_feed._candles.clear()
-            for candle in mock_candles:
-                candles_feed._candles.append(candle)
-
-            # Verify the candles were added
-            assert len(candles_feed._candles) == 2
+            assert result == mock_candles
+            assert len(candles_feed._candles) == 0
 
     async def test_fetch_candles_with_limit(self, candles_feed):
         """Test fetching historical candles."""
@@ -298,18 +292,18 @@ class TestCandlesFeed:
             candles_feed._rest_strategy.poll_once = mock_poll
 
             # Fetch the candles
-            await candles_feed.fetch_candles(limit=2)
+            result = await candles_feed.fetch_candles(limit=2)
 
-            # Verify the method was called
+            # Verify the method was called with the limit and the store is untouched
             assert mock_poll.called
+            assert mock_poll.call_args.kwargs["limit"] == 2
+            assert result == mock_candles
+            assert len(candles_feed._candles) == 0
 
-            # Add the test candles manually since our mocks aren't working as expected
-            candles_feed._candles.clear()
-            for candle in mock_candles:
-                candles_feed._candles.append(candle)
-
-            # Verify the candles were added
-            assert len(candles_feed._candles) == 2
+    def test_max_candles_per_request_property(self, candles_feed):
+        """Property exposes the adapter's per-request maximum."""
+        candles_feed._adapter.MAX_CANDLES_PER_REQUEST = 1234
+        assert candles_feed.max_candles_per_request == 1234
 
     async def test_add_candle(self, candles_feed):
         """Test adding a single candle."""

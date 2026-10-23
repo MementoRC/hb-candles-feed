@@ -15,6 +15,7 @@ more comprehensive coverage of external dependency scenarios.
 import asyncio
 import logging
 import os
+import random
 import time
 
 import pytest
@@ -40,6 +41,8 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_FAULT_INJECTION_SEED = 1234
+
 
 @pytest.mark.integration
 @pytest.mark.slow
@@ -52,6 +55,15 @@ class TestEnhancedDependencyManagement:
     the suite unsuitable for the default ``check`` task; use ``pixi run test``
     or ``pixi run test-integration`` to opt in.
     """
+
+    @pytest.fixture(autouse=True)
+    def _seed_fault_injection_rng(self):
+        """Seed the global RNG used by MockedExchangeServer fault injection.
+
+        ``server.py`` draws packet-loss/error decisions from the global ``random``
+        module; seeding it makes the injected faults reproducible.
+        """
+        random.seed(_FAULT_INJECTION_SEED)
 
     @pytest.fixture
     async def enhanced_mock_server(self, unused_tcp_port):
@@ -189,10 +201,9 @@ class TestEnhancedDependencyManagement:
             )
 
             start_time = time.time()
-            await feed.fetch_candles(limit=10)
+            candles = await feed.fetch_candles(limit=10)
             normal_duration = time.time() - start_time
 
-            candles = feed.get_candles()
             assert len(candles) > 0, "Should fetch candles under normal conditions"
             logger.info(f"Normal conditions: {len(candles)} candles in {normal_duration:.3f}s")
 
@@ -201,12 +212,10 @@ class TestEnhancedDependencyManagement:
                 latency_ms=200, packet_loss_rate=0.0, error_rate=0.0
             )
 
-            feed._candles.clear()  # Clear previous data
             start_time = time.time()
-            await feed.fetch_candles(limit=10)
+            candles = await feed.fetch_candles(limit=10)
             high_latency_duration = time.time() - start_time
 
-            candles = feed.get_candles()
             assert len(candles) > 0, "Should fetch candles under high latency"
             assert high_latency_duration > normal_duration, "High latency should take longer"
             logger.info(f"High latency: {len(candles)} candles in {high_latency_duration:.3f}s")
@@ -221,9 +230,7 @@ class TestEnhancedDependencyManagement:
 
             for attempt in range(total_attempts):
                 try:
-                    feed._candles.clear()
-                    await asyncio.wait_for(feed.fetch_candles(limit=5), timeout=10.0)
-                    candles = feed.get_candles()
+                    candles = await asyncio.wait_for(feed.fetch_candles(limit=5), timeout=10.0)
                     if len(candles) > 0:
                         success_count += 1
                     logger.info(f"Attempt {attempt + 1}: {len(candles)} candles")
@@ -242,9 +249,7 @@ class TestEnhancedDependencyManagement:
                 latency_ms=10, packet_loss_rate=0.0, error_rate=0.0
             )
 
-            feed._candles.clear()
-            await feed.fetch_candles(limit=10)
-            recovery_candles = feed.get_candles()
+            recovery_candles = await feed.fetch_candles(limit=10)
 
             assert len(recovery_candles) > 0, "Should recover after network issues resolved"
             logger.info(f"Recovery test: {len(recovery_candles)} candles after conditions improved")
@@ -281,8 +286,7 @@ class TestEnhancedDependencyManagement:
             async def fetch_for_feed(feed, feed_name):
                 """Fetch candles for a specific feed."""
                 try:
-                    await feed.fetch_candles(limit=5)
-                    candles = feed.get_candles()
+                    candles = await feed.fetch_candles(limit=5)
                     return {
                         "feed": feed_name,
                         "success": True,
@@ -369,8 +373,7 @@ class TestEnhancedDependencyManagement:
 
         try:
             # Step 1: Establish baseline with working connection
-            await feed.fetch_candles(limit=5)
-            baseline_candles = feed.get_candles()
+            baseline_candles = await feed.fetch_candles(limit=5)
             assert len(baseline_candles) > 0, "Should establish baseline connection"
             logger.info(f"Baseline established: {len(baseline_candles)} candles")
 
@@ -416,9 +419,7 @@ class TestEnhancedDependencyManagement:
 
                 for attempt in range(recovery_attempts):
                     try:
-                        feed._candles.clear()
-                        await asyncio.wait_for(feed.fetch_candles(limit=5), timeout=10.0)
-                        candles = feed.get_candles()
+                        candles = await asyncio.wait_for(feed.fetch_candles(limit=5), timeout=10.0)
 
                         if len(candles) > 0:
                             recovery_success = True
@@ -440,7 +441,7 @@ class TestEnhancedDependencyManagement:
             assert recovery_success, "Should eventually recover as conditions improve"
 
             # Step 4: Verify full recovery
-            final_candles = feed.get_candles()
+            final_candles = candles
             assert len(final_candles) >= len(baseline_candles), (
                 "Should have at least as many candles as baseline after recovery"
             )
@@ -544,13 +545,11 @@ class TestEnhancedDependencyManagement:
                 for _attempt in range(attempts):
                     try:
                         start_time = time.time()
-                        feed._candles.clear()
-                        await asyncio.wait_for(
+                        candles = await asyncio.wait_for(
                             feed.fetch_candles(limit=5), timeout=api_call_timeout
                         )
                         duration = time.time() - start_time
 
-                        candles = feed.get_candles()
                         if len(candles) > 0:
                             successes += 1
                             total_duration += duration
@@ -587,7 +586,6 @@ class TestEnhancedDependencyManagement:
 
             for i in range(rapid_requests):
                 try:
-                    feed._candles.clear()
                     await asyncio.wait_for(feed.fetch_candles(limit=3), timeout=api_call_timeout)
                     logger.info(f"Rapid request {i + 1} succeeded")
                 except Exception as e:

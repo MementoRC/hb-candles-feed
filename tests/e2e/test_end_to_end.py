@@ -11,6 +11,7 @@ import re
 from urllib.parse import urlparse, urlunparse
 
 import aiohttp
+import pandas as pd
 import pytest
 from aioresponses import CallbackResult, aioresponses
 
@@ -165,8 +166,16 @@ class TestEndToEnd:
                 f"Successfully received {len(candles)} candles via aioresponses-intercepted REST"
             )
 
+            # fetch_candles returns data only; the live store stays untouched
+            assert feed.get_candles() == []
+
             # Convert to DataFrame for easier inspection
-            df = feed.get_candles_df()
+            df = pd.DataFrame(
+                [
+                    {"open": c.open, "high": c.high, "low": c.low, "volume": c.volume}
+                    for c in candles
+                ]
+            )
             logger.info(f"First candle: {df.iloc[0].to_dict()}")
             logger.info(f"Last candle: {df.iloc[-1].to_dict()}")
 
@@ -193,15 +202,17 @@ class TestEndToEnd:
 
         try:
             # Fetch historical data for both feeds
-            await asyncio.gather(btc_feed.fetch_candles(), eth_feed.fetch_candles())
+            btc_candles, eth_candles = await asyncio.gather(
+                btc_feed.fetch_candles(), eth_feed.fetch_candles()
+            )
 
             # Verify candles were received for each feed
-            assert len(btc_feed.get_candles()) > 0, "No BTC candles received"
-            assert len(eth_feed.get_candles()) > 0, "No ETH candles received"
+            assert len(btc_candles) > 0, "No BTC candles received"
+            assert len(eth_candles) > 0, "No ETH candles received"
 
             # Compare prices to ensure they're different (as expected for different assets)
-            btc_price = btc_feed.get_candles()[-1].close
-            eth_price = eth_feed.get_candles()[-1].close
+            btc_price = btc_candles[-1].close
+            eth_price = eth_candles[-1].close
 
             logger.info(f"Latest prices via aioresponses - BTC: {btc_price}, ETH: {eth_price}")
 

@@ -241,6 +241,14 @@ class CandlesFeed:
         """
         return list(self._candles)
 
+    @property
+    def max_candles_per_request(self) -> int:
+        """Maximum number of candles the exchange returns per REST request.
+
+        :return: The adapter's ``MAX_CANDLES_PER_REQUEST`` (500 if undefined)
+        """
+        return int(getattr(self._adapter, "MAX_CANDLES_PER_REQUEST", 500))
+
     def add_candle(self, candle: CandleData) -> None:
         """Add a candle to the feed manually.
 
@@ -286,7 +294,9 @@ class CandlesFeed:
         end_time: int | None = None,
         limit: int = 500,
     ) -> list[CandleData]:
-        """Fetch historical candles.
+        """Fetch historical candles with a single REST request.
+
+        Results are returned without being written to the live candle store.
 
         :param start_time: Start time for fetching candles (timestamp in seconds)
         :param end_time: End time for fetching candles (timestamp in seconds)
@@ -302,17 +312,11 @@ class CandlesFeed:
         strategy = self._rest_strategy or self._create_rest_strategy()
 
         # Use poll_once which is the actual method implemented in RESTPollingStrategy
-        candles = await strategy.poll_once(
+        return await strategy.poll_once(
             start_time=start_time,
             end_time=end_time,
             limit=limit,
         )
-
-        # Add the fetched candles to the store
-        for candle in candles:
-            self.add_candle(candle)
-
-        return candles
 
     async def get_historical_candles(self, start_time: int, end_time: int) -> pd.DataFrame:
         """Get historical candles between start and end time (inclusive).
@@ -334,7 +338,7 @@ class CandlesFeed:
         step = self.interval_in_seconds
         start_time = floor_timestamp(start_time, self.interval, step)
         end_time = floor_timestamp(end_time, self.interval, step)
-        page_limit = int(getattr(self._adapter, "MAX_CANDLES_PER_REQUEST", 500))
+        page_limit = self.max_candles_per_request
         max_pages = max(0, end_time - start_time) // (step * page_limit) + 3
 
         merged: dict[int, CandleData] = {}

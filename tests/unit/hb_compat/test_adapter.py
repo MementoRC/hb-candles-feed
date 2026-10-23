@@ -203,15 +203,71 @@ class TestCandlesBaseAdapterDataConversion:
             assert row[8] == 500.0  # taker_buy_base_volume
             assert row[9] == 50000.0  # taker_buy_quote_volume
 
-    async def test_fetch_candles_none_limit_defaults_to_500(self):
+    async def test_fetch_candles_none_limit_defaults_to_exchange_max(self, mock_exchange_registry):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        mock_exchange_registry.return_value.MAX_CANDLES_PER_REQUEST = 1000
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        with patch.object(
+            adapter._feed, "fetch_candles", new_callable=AsyncMock, return_value=[]
+        ) as mock_fetch:
+            await adapter.fetch_candles(start_time=1000, limit=None)
+            mock_fetch.assert_called_once_with(start_time=1000, end_time=None, limit=1000)
+
+    @pytest.mark.parametrize(
+        ("limit", "expected"), [(5000, 1000), (1000, 1000), (250, 250), (1, 1), (0, 1), (-7, 1)]
+    )
+    async def test_fetch_candles_limit_clamped_to_1_and_exchange_max(
+        self, mock_exchange_registry, limit, expected
+    ):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        mock_exchange_registry.return_value.MAX_CANDLES_PER_REQUEST = 1000
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        with patch.object(
+            adapter._feed, "fetch_candles", new_callable=AsyncMock, return_value=[]
+        ) as mock_fetch:
+            await adapter.fetch_candles(end_time=2000, limit=limit)
+            mock_fetch.assert_called_once_with(start_time=None, end_time=2000, limit=expected)
+
+    async def test_fetch_candles_both_times_none_raises(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        with (
+            patch.object(adapter._feed, "fetch_candles", new_callable=AsyncMock) as mock_fetch,
+            pytest.raises(ValueError, match="Either the start time or end time must be specified."),
+        ):
+            await adapter.fetch_candles()
+        mock_fetch.assert_not_called()
+
+    @pytest.mark.parametrize("times", [{"start_time": 1000}, {"end_time": 2000}])
+    async def test_fetch_candles_single_time_does_not_raise(self, times):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
 
         adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
         with patch.object(
             adapter._feed, "fetch_candles", new_callable=AsyncMock, return_value=[]
         ) as mock_fetch:
-            await adapter.fetch_candles(limit=None)
-            mock_fetch.assert_called_once_with(start_time=None, end_time=None, limit=500)
+            await adapter.fetch_candles(**times)
+        mock_fetch.assert_called_once()
+
+    async def test_fetch_candles_does_not_mutate_candles_df(self, mock_exchange_registry):
+        from candles_feed.core.candles_feed import CandlesFeed
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        adapter._feed.add_candle(_make_candle(500))
+        before = adapter.candles_df.copy()
+        fetched = [_make_candle(1000), _make_candle(1060)]
+        strategy = MagicMock()
+        strategy.poll_once = AsyncMock(return_value=fetched)
+        with patch.object(CandlesFeed, "_create_rest_strategy", return_value=strategy):
+            result = await adapter.fetch_candles(start_time=1000, end_time=1060)
+
+        assert result.shape == (2, 10)
+        pd.testing.assert_frame_equal(adapter.candles_df, before)
+        assert len(adapter._feed.get_candles()) == 1
 
     async def test_get_historical_candles_unpacks_config(self):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter

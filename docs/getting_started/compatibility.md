@@ -28,7 +28,7 @@ The main difference is the addition of the `exchange` parameter, which is requir
 |---------------------|-----------------|-------------|
 | `start_network()` | `start()` | Initiates data collection |
 | `stop_network()` | `stop()` | Stops data collection |
-| `fetch_candles()` | `fetch_candles()` | Fetches historical candles |
+| `fetch_candles()` | `fetch_candles()` | Fetches historical candles; returns data only (not stored in `candles_df`), raises `ValueError` if neither `start_time` nor `end_time` is given, `limit` defaults to the exchange max and is clamped to [1, max] |
 | `get_historical_candles()` | `get_historical_candles()` | Fetches candles within time range |
 | `fill_historical_candles()` | Handled internally | Fills candle store with historical data |
 | `check_candles_sorted_and_equidistant()` | `check_candles_sorted_and_equidistant()` | Validates candle data |

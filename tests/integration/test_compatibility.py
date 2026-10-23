@@ -253,11 +253,8 @@ class TestCompatibilityWithOriginal:
             assert candles[0].timestamp == 1609459200, "First candle timestamp should match"
             assert candles[1].timestamp == 1609459260, "Second candle timestamp should match"
 
-            # Verify candles are added to the store
-            df = feed.get_candles_df()
-            assert len(df) == 2, "DataFrame should contain 2 candles"
-            assert df.iloc[0]["timestamp"] == 1609459200, "First candle timestamp should match"
-            assert df.iloc[1]["timestamp"] == 1609459260, "Second candle timestamp should match"
+            # fetch_candles returns data only; the live store is untouched
+            assert feed.get_candles_df().empty, "Fetched candles must not be stored"
 
     async def test_get_historical_candles_compatibility(self, sample_candles_data):
         """Test that get_historical_candles method is compatible with the original."""
