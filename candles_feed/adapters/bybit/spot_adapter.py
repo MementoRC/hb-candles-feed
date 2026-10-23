@@ -18,6 +18,11 @@ from candles_feed.core.network_config import NetworkConfig
 class BybitSpotAdapter(BybitBaseAdapter):
     """Bybit spot exchange adapter."""
 
+    # hummingbot/data_feed/candles_feed/bybit_spot_candles/constants.py:42 links candles to "ALL" at weight 1 (pool also in connector/exchange/bybit/bybit_constants.py:102)
+    # Pool ids differ between spot and perpetual, so each variant declares its own.
+    REST_HOST_RATE_LIMIT_ID = "ALL"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
+
     def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.
 

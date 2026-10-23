@@ -25,6 +25,10 @@ class BinanceSpotAdapter(TestnetSupportMixin, BinanceBaseAdapter):
     # hummingbot/data_feed/candles_feed/binance_spot_candles/constants.py:35-36 — klines own limit 1200/60s (weight 1) is stricter than the 6000 weight/60s pool
     # Own pool: api.binance.com has an IP budget separate from fapi.binance.com (binance_perpetual).
     REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/binance_spot_candles/constants.py:36 links klines to REQUEST_WEIGHT at weight 1 (pool also in connector/exchange/binance/binance_constants.py:42)
+    # Real klines weight grows with the request limit; weight 1 is what the upstream candles constants use.
+    REST_HOST_RATE_LIMIT_ID = "REQUEST_WEIGHT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.

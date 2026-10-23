@@ -37,6 +37,10 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     # Spot and perpetual POST to the same /info endpoint with the same pool, so they share one pool.
     REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
     REST_RATE_LIMIT_POOL = "hyperliquid"
+    # hummingbot/data_feed/candles_feed/hyperliquid_spot_candles/constants.py:37 (same in perpetual :37) links /info to "All" at weight 1
+    # (pool also in connector/exchange/hyperliquid/hyperliquid_constants.py:96 and connector/derivative/hyperliquid_perpetual/hyperliquid_perpetual_constants.py:119)
+    REST_HOST_RATE_LIMIT_ID = "All"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @abstractmethod
     def _get_rest_url(self) -> str:

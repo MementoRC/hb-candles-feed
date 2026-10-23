@@ -37,7 +37,7 @@ class LighterBaseAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapter)
     TIMESTAMP_UNIT: str = "milliseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
-    # hummingbot/data_feed/candles_feed/lighter_spot_candles/constants.py:28-36 (same in lighter_perpetual_candles/constants.py:26-31) — standard account 60 req/min (18000 pool / weight 300)
+    # hummingbot/data_feed/candles_feed/lighter_spot_candles/constants.py:34-36,39,44 (same in lighter_perpetual_candles/constants.py:29-31,34,39) — standard account 60 req/min (18000 pool / weight 300)
     # Spot and perpetual share the same host and the same per-account cap, so they share one pool.
     REST_RATE_LIMIT = RestRateLimit(max_requests=60, period_seconds=60)
     REST_RATE_LIMIT_POOL = "lighter"

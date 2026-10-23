@@ -42,6 +42,7 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     # Spot and perpetual share the same host and the same REQUEST_WEIGHT pool, so they share one pool.
     REST_RATE_LIMIT = RestRateLimit(max_requests=6000, period_seconds=60)
     REST_RATE_LIMIT_POOL = "backpack"
+    # No host pool: candles constants link REQUEST_WEIGHT but the backpack connectors define no such pool (they use GLOBAL_RATE_LIMIT), so the host throttler would not know it.
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Accept the ``network_config`` kwarg CandlesFeed passes (no testnet exists).

@@ -39,6 +39,9 @@ class PacificaPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # hummingbot/data_feed/candles_feed/pacifica_perpetual_candles/constants.py:45,56 — 125 weight/60s, candles weight 12 -> floor(125/12)
     REST_RATE_LIMIT = RestRateLimit(max_requests=10, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/pacifica_perpetual_candles/constants.py:42,56 links candles to PACIFICA_LIMIT at weight 12 (pool also in connector/derivative/pacifica_perpetual/pacifica_perpetual_constants.py:65)
+    REST_HOST_RATE_LIMIT_ID = "PACIFICA_LIMIT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 12
 
     @staticmethod
     @override

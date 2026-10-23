@@ -35,6 +35,9 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # hummingbot/data_feed/candles_feed/dexalot_spot_candles/constants.py:30,32 — IP pool 200/60s, candles weight 1 (own 20000/60s is looser)
     REST_RATE_LIMIT = RestRateLimit(max_requests=200, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/dexalot_spot_candles/constants.py:32 links candles to IP_REQUEST_WEIGHT at weight 1 (pool also in connector/exchange/dexalot/dexalot_constants.py:67)
+    REST_HOST_RATE_LIMIT_ID = "IP_REQUEST_WEIGHT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @staticmethod
     @override

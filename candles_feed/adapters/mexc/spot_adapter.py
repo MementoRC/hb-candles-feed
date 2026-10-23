@@ -27,6 +27,9 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
 
     # hummingbot/data_feed/candles_feed/mexc_spot_candles/constants.py:37,39 — IP pool 20000 weight/60s, klines weight 1
     REST_RATE_LIMIT = RestRateLimit(max_requests=20000, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/mexc_spot_candles/constants.py:39 links klines to IP_REQUEST_WEIGHT at weight 1 (pool also in connector/exchange/mexc/mexc_constants.py:43)
+    REST_HOST_RATE_LIMIT_ID = "IP_REQUEST_WEIGHT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @staticmethod
     @override

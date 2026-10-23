@@ -40,6 +40,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
 
     # hummingbot/data_feed/candles_feed/btc_markets_spot_candles/constants.py:41 — candles endpoint 50 req/10s
     REST_RATE_LIMIT = RestRateLimit(max_requests=50, period_seconds=10)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
     @override

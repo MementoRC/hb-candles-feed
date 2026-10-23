@@ -48,6 +48,7 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # hummingbot/data_feed/candles_feed/aevo_perpetual_candles/constants.py:38 — mark-history endpoint 120 req/60s
     REST_RATE_LIMIT = RestRateLimit(max_requests=120, period_seconds=60)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
     @override
