@@ -259,25 +259,32 @@ class CandlesBaseAdapter:
         Used by MarketDataProvider.get_historical_candles_df() instead of
         direct _candles deque manipulation.
 
-        :param df: DataFrame with standard 10 columns. Empty clears candles.
+        :param df: DataFrame with standard 10 columns (the first six are required;
+            missing/NaN optional values default to 0). Empty clears candles.
+        :raises KeyError: If a required column is missing
         """
-        self._feed.clear_candles()
         if df.empty:
+            self._feed.clear_candles()
             return
-        for _, row in df.iterrows():
-            candle = CandleData(
-                timestamp_raw=int(row["timestamp"]),
-                open=float(row["open"]),
-                high=float(row["high"]),
-                low=float(row["low"]),
-                close=float(row["close"]),
-                volume=float(row["volume"]),
-                quote_asset_volume=_safe_float(row.get("quote_asset_volume", 0.0)),
-                n_trades=_safe_int(row.get("n_trades", 0)),
-                taker_buy_base_volume=_safe_float(row.get("taker_buy_base_volume", 0.0)),
-                taker_buy_quote_volume=_safe_float(row.get("taker_buy_quote_volume", 0.0)),
+        missing = [c for c in COLUMNS[:6] if c not in df.columns]
+        if missing:
+            raise KeyError(missing)
+        rows = df.reindex(columns=COLUMNS).itertuples(index=False, name=None)
+        self._feed.replace_candles(
+            CandleData(
+                timestamp_raw=int(ts),
+                open=float(o),
+                high=float(h),
+                low=float(lo),
+                close=float(c),
+                volume=float(v),
+                quote_asset_volume=_safe_float(qav),
+                n_trades=_safe_int(nt),
+                taker_buy_base_volume=_safe_float(tbb),
+                taker_buy_quote_volume=_safe_float(tbq),
             )
-            self._feed.add_candle(candle)
+            for ts, o, h, lo, c, v, qav, nt, tbb, tbq in rows
+        )
 
     # --- Conversion helpers ---
 

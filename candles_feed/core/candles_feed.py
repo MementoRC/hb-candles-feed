@@ -8,6 +8,7 @@ import asyncio
 import logging
 import typing
 from collections import deque
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -257,6 +258,14 @@ class CandlesFeed:
         :param candle: Candle data to add
         """
         self._candles.append(candle)
+
+    def replace_candles(self, candles: Iterable[CandleData]) -> None:
+        """Replace all candles in one pass; keeps the newest ``max_records``.
+
+        :param candles: Candles in chronological order
+        """
+        self._candles.clear()
+        self._candles.extend(candles)
 
     def clear_candles(self) -> None:
         """Remove all candles from the feed.
