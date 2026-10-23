@@ -176,13 +176,23 @@ class CandlesBaseAdapter:
         """Start the feed. Schedules async start on the running event loop.
 
         A no-op while a previous start task is still pending (no duplicate task).
+        If a stop task is still pending, the start waits for it to finish first
+        (as upstream ``start_network`` awaits ``stop_network``), so the stop cannot
+        tear down the freshly started feed.
         """
         if self._start_task is not None and not self._start_task.done():
             return
         loop = asyncio.get_running_loop()
         self._last_task_error = None
-        self._start_task = loop.create_task(self._feed.start())
+        pending_stop = self._stop_task if self._stop_task and not self._stop_task.done() else None
+        self._start_task = loop.create_task(self._start_after(pending_stop))
         self._start_task.add_done_callback(self._track_task)
+
+    async def _start_after(self, pending_stop: asyncio.Task | None) -> None:
+        """Await a pending stop (its failure is recorded by ``_track_task``), then start."""
+        if pending_stop is not None:
+            await asyncio.wait([pending_stop])
+        await self._feed.start()
 
     def stop(self) -> None:
         """Stop the feed. Schedules async stop on the running event loop.

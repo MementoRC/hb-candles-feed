@@ -229,6 +229,51 @@ class TestCandlesBaseAdapterLifecycle:
             mock_stop.assert_called_once()
             assert adapter.last_task_error is None
 
+    async def test_start_after_stop_waits_for_pending_stop(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        stop_gate = asyncio.Event()
+        events: list[str] = []
+
+        async def slow_stop(*_a, **_k):
+            events.append("stop-begin")
+            await stop_gate.wait()
+            events.append("stop-end")
+
+        async def fake_start(*_a, **_k):
+            events.append("start")
+
+        with (
+            patch.object(adapter._feed, "start", side_effect=fake_start),
+            patch.object(adapter._feed, "stop", side_effect=slow_stop),
+        ):
+            adapter.start()
+            adapter.stop()
+            adapter.start()
+            await asyncio.sleep(0.05)
+            assert "start" not in events[events.index("stop-begin") :]
+            stop_gate.set()
+            await asyncio.sleep(0.05)
+
+        assert events[-3:] == ["stop-begin", "stop-end", "start"]
+        assert adapter.last_task_error is None
+
+    async def test_start_after_failed_stop_still_starts(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        with (
+            patch.object(
+                adapter._feed, "stop", new_callable=AsyncMock, side_effect=RuntimeError("s")
+            ),
+            patch.object(adapter._feed, "start", new_callable=AsyncMock) as mock_start,
+        ):
+            adapter.stop()
+            adapter.start()
+            await asyncio.sleep(0.05)
+            mock_start.assert_awaited_once()
+
     async def test_stop_task_reference_kept_and_exception_exposed(self, caplog):
         from candles_feed.hb_compat.adapter import CandlesBaseAdapter
 
