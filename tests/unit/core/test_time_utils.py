@@ -2,7 +2,35 @@
 
 from datetime import UTC, datetime
 
-from candles_feed.utils.time_utils import calculate_start_end_times, round_timestamp_to_interval
+import pytest
+
+from candles_feed.utils.time_utils import (
+    calculate_start_end_times,
+    ensure_timestamp_in_seconds,
+    round_timestamp_to_interval,
+)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (1_700_000_000, 1_700_000_000),
+        (1_700_000_000_123, 1_700_000_000.123),
+        (1_700_000_000_123_456, 1_700_000_000.123456),
+        (1_700_000_000_123_456_789, 1_700_000_000.123456789),
+        (1_700_000_000.9, 1_700_000_000),
+        ("1700000000000", 1_700_000_000),
+        (1e9, 1_000_000_000),
+    ],
+)
+def test_ensure_timestamp_in_seconds(value, expected):
+    assert ensure_timestamp_in_seconds(value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("value", [0, 999_999_999, "5"])
+def test_ensure_timestamp_in_seconds_rejects_small(value):
+    with pytest.raises(ValueError, match="Timestamp is not in a recognized format"):
+        ensure_timestamp_in_seconds(value)
 
 
 def _ts(year: int, month: int, day: int = 1) -> int:

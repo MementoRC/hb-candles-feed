@@ -7,6 +7,7 @@ and hb-candles-feed's native API. No hummingbot imports.
 import asyncio
 import copy
 import logging
+from typing import ClassVar
 
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ import pandas as pd
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
+from candles_feed.utils.time_utils import ensure_timestamp_in_seconds
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +86,29 @@ class CandlesBaseAdapter:
     Precondition for start()/stop(): Must be called from within a running
     asyncio event loop (always true in hummingbot's runtime).
     """
+
+    # Class-level upstream names (CandlesBase.interval_to_seconds / columns /
+    # ensure_timestamp_in_seconds). Plain dict: no bidict dependency.
+    interval_to_seconds: ClassVar[dict[str, int]] = {
+        "1s": 1,
+        "1m": 60,
+        "3m": 180,
+        "5m": 300,
+        "15m": 900,
+        "30m": 1800,
+        "1h": 3600,
+        "2h": 7200,
+        "4h": 14400,
+        "6h": 21600,
+        "8h": 28800,
+        "12h": 43200,
+        "1d": 86400,
+        "3d": 259200,
+        "1w": 604800,
+        "1M": 2592000,
+    }
+    columns: ClassVar[list[str]] = list(COLUMNS)
+    ensure_timestamp_in_seconds = staticmethod(ensure_timestamp_in_seconds)
 
     def __init__(
         self,
