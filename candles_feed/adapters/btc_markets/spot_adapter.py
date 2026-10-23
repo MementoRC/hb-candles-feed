@@ -12,6 +12,7 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -36,6 +37,9 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
 
     TIMESTAMP_UNIT: str = "iso8601"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/btc_markets_spot_candles/constants.py:41 — candles endpoint 50 req/10s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=50, period_seconds=10)
 
     @staticmethod
     @override

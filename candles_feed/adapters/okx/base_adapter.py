@@ -12,6 +12,7 @@ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
@@ -30,6 +31,11 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/okx_spot_candles/constants.py:43 (identical in okx_perpetual_candles/constants.py:43) — history-candles 20 req/2s
+    # Spot and perpetual hit the same host and the same endpoint with the same limit, so they share one pool.
+    REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=2)
+    REST_RATE_LIMIT_POOL = "okx"
 
     @abstractmethod
     def _get_rest_url(self) -> str:

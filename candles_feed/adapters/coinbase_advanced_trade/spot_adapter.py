@@ -5,6 +5,7 @@ Coinbase Advanced Trade adapter for the Candle Feed framework.
 from typing import override
 
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import CoinbaseAdvancedTradeBaseAdapter
 from .constants import (
@@ -17,6 +18,9 @@ from .constants import (
 @ExchangeRegistry.register("coinbase_advanced_trade")
 class CoinbaseAdvancedTradeSpotAdapter(CoinbaseAdvancedTradeBaseAdapter):
     """Coinbase Advanced Trade exchange adapter."""
+
+    # hummingbot/connector/exchange/coinbase_advanced_trade/coinbase_advanced_trade_constants.py:92,128,209 — candles in PUBLIC_REST_ENDPOINTS, public REST 10 req/1s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=10, period_seconds=1)
 
     @staticmethod
     @override

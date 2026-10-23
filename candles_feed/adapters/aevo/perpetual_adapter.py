@@ -13,6 +13,7 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -44,6 +45,9 @@ class AevoPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "nanoseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/aevo_perpetual_candles/constants.py:38 — mark-history endpoint 120 req/60s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=120, period_seconds=60)
 
     @staticmethod
     @override

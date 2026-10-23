@@ -15,11 +15,16 @@ from candles_feed.adapters.binance.constants import (
 )
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_config import EndpointType, NetworkConfig
+from candles_feed.core.rate_limiter import RestRateLimit
 
 
 @ExchangeRegistry.register("binance_spot")
 class BinanceSpotAdapter(TestnetSupportMixin, BinanceBaseAdapter):
     """Binance spot exchange adapter with testnet support."""
+
+    # hummingbot/data_feed/candles_feed/binance_spot_candles/constants.py:35-36 — klines own limit 1200/60s (weight 1) is stricter than the 6000 weight/60s pool
+    # Own pool: api.binance.com has an IP budget separate from fapi.binance.com (binance_perpetual).
+    REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
 
     def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.

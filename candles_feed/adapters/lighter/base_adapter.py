@@ -17,6 +17,7 @@ from candles_feed.core.candle_data import CandleData
 from candles_feed.core.intervals import next_boundary
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_PATH_URL,
@@ -35,6 +36,11 @@ class LighterBaseAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapter)
 
     TIMESTAMP_UNIT: str = "milliseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/lighter_spot_candles/constants.py:28-36 (same in lighter_perpetual_candles/constants.py:26-31) — standard account 60 req/min (18000 pool / weight 300)
+    # Spot and perpetual share the same host and the same per-account cap, so they share one pool.
+    REST_RATE_LIMIT = RestRateLimit(max_requests=60, period_seconds=60)
+    REST_RATE_LIMIT_POOL = "lighter"
 
     # Key of the orderBookDetails response list that holds this market type
     MARKETS_KEY: str

@@ -11,11 +11,16 @@ from candles_feed.adapters.binance.constants import (
     PERPETUAL_WSS_URL,
 )
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 
 @ExchangeRegistry.register("binance_perpetual")
 class BinancePerpetualAdapter(BinanceBaseAdapter):
     """Binance perpetual exchange adapter."""
+
+    # hummingbot/data_feed/candles_feed/binance_perpetual_candles/constants.py:35-41 — klines own limit 1200/60s at weight 2 -> 600 req/60s (pool 1200 weight/60s, linked weight 1, is looser)
+    # Own pool: fapi.binance.com has an IP budget separate from api.binance.com (binance_spot).
+    REST_RATE_LIMIT = RestRateLimit(max_requests=600, period_seconds=60)
 
     @staticmethod
     @override

@@ -10,6 +10,7 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -29,6 +30,9 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "seconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/bitmart_perpetual_candles/constants.py:33 — kline endpoint 12 req/2s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=12, period_seconds=2)
 
     @staticmethod
     @override

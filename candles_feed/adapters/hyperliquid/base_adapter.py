@@ -12,6 +12,7 @@ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CHANNEL_NAME,
@@ -31,6 +32,11 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "seconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/hyperliquid_spot_candles/constants.py:36-37 (same in hyperliquid_perpetual_candles/constants.py:36-37) — "All" pool 1200/60s, weight 1
+    # Spot and perpetual POST to the same /info endpoint with the same pool, so they share one pool.
+    REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
+    REST_RATE_LIMIT_POOL = "hyperliquid"
 
     @abstractmethod
     def _get_rest_url(self) -> str:

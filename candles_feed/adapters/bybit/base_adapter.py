@@ -12,6 +12,7 @@ from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
@@ -30,6 +31,11 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/bybit_perpetual_candles/constants.py:34,37 — GET limit 49 req/1s (spot: bybit_spot_candles/constants.py:34 shared 600/5s is looser)
+    # Spot and perpetual use the same host and /v5/market/kline, so they share one pool at the stricter declared rate.
+    REST_RATE_LIMIT = RestRateLimit(max_requests=49, period_seconds=1)
+    REST_RATE_LIMIT_POOL = "bybit"
 
     @abstractmethod
     def _get_rest_url(self) -> str:

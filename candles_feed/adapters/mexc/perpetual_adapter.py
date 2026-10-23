@@ -7,6 +7,7 @@ from typing import override
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import MEXCBaseAdapter
 from .constants import (
@@ -22,6 +23,9 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
     """MEXC perpetual exchange adapter."""
 
     TIMESTAMP_UNIT = "seconds"
+
+    # hummingbot/data_feed/candles_feed/mexc_perpetual_candles/constants.py:25 — contract kline endpoint 20 req/2s (separate contract.mexc.com host from spot)
+    REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=2)
 
     @staticmethod
     @override

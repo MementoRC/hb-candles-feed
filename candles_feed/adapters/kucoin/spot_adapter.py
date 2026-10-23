@@ -6,6 +6,7 @@ from typing import override
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import KucoinBaseAdapter
 from .constants import (
@@ -18,6 +19,9 @@ from .constants import (
 @ExchangeRegistry.register("kucoin_spot")
 class KucoinSpotAdapter(KucoinBaseAdapter):
     """KuCoin spot exchange adapter."""
+
+    # hummingbot/data_feed/candles_feed/kucoin_spot_candles/constants.py:32-33,40,45 — 4000 weight/30s, candles weight 3 -> floor(4000/3)
+    REST_RATE_LIMIT = RestRateLimit(max_requests=1333, period_seconds=30)
 
     @staticmethod
     @override

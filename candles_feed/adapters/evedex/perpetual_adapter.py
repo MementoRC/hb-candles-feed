@@ -18,6 +18,7 @@ from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.intervals import is_variable_length_interval, shift_boundaries
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -51,6 +52,9 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
 
     TIMESTAMP_UNIT: str = "milliseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/evedex_perpetual_candles/constants.py:41,56 — 1200 weight/60s, candles weight 1
+    REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Accept the ``network_config`` kwarg CandlesFeed passes (no testnet exists)."""
