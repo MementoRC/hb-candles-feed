@@ -16,6 +16,7 @@ from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_config import EndpointType, NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -56,6 +57,9 @@ class DecibelPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/decibel_perpetual_candles/constants.py:51,60 — 400 req/60s pool, candles cost 1
+    REST_RATE_LIMIT = RestRateLimit(max_requests=400, period_seconds=60)
 
     def __init__(
         self,

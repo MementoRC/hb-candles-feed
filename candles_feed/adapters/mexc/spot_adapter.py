@@ -7,6 +7,7 @@ from typing import override
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import MEXCBaseAdapter
 from .constants import (
@@ -23,6 +24,9 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
     """MEXC spot exchange adapter."""
 
     TIMESTAMP_UNIT = "milliseconds"
+
+    # hummingbot/data_feed/candles_feed/mexc_spot_candles/constants.py:37,39 — IP pool 20000 weight/60s, klines weight 1
+    REST_RATE_LIMIT = RestRateLimit(max_requests=20000, period_seconds=60)
 
     @staticmethod
     @override

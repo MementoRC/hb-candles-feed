@@ -18,6 +18,8 @@ from .constants import (
 class AscendExSpotAdapter(AscendExBaseAdapter):
     """AscendEx spot exchange adapter."""
 
+    # REST limit undocumented locally; framework default applies
+
     @staticmethod
     @override
     def _get_rest_url() -> str:

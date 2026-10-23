@@ -9,6 +9,7 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -31,6 +32,9 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "iso8601"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/dexalot_spot_candles/constants.py:30,32 — IP pool 200/60s, candles weight 1 (own 20000/60s is looser)
+    REST_RATE_LIMIT = RestRateLimit(max_requests=200, period_seconds=60)
 
     @staticmethod
     @override

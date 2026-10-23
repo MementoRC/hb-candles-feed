@@ -9,6 +9,7 @@ from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     INTERVALS,
@@ -52,6 +53,9 @@ class BitgetPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "milliseconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/bitget_perpetual_candles/constants.py:43 — candles endpoint 20 req/1s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=1)
 
     @staticmethod
     @override

@@ -15,6 +15,7 @@ from candles_feed.core.candle_data import CandleData
 from candles_feed.core.intervals import is_variable_length_interval, shift_boundaries
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -36,6 +37,11 @@ class BackpackBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     TIMESTAMP_UNIT: str = "seconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/backpack_spot_candles/constants.py:38-39 (same in backpack_perpetual_candles/constants.py:38-39) — 6000 weight/60s, klines weight 1
+    # Spot and perpetual share the same host and the same REQUEST_WEIGHT pool, so they share one pool.
+    REST_RATE_LIMIT = RestRateLimit(max_requests=6000, period_seconds=60)
+    REST_RATE_LIMIT_POOL = "backpack"
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Accept the ``network_config`` kwarg CandlesFeed passes (no testnet exists).

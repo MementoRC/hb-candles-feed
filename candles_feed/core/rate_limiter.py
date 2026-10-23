@@ -6,6 +6,8 @@ are shared process-wide per *pool*: by default one pool per adapter class, or an
 explicit ``REST_RATE_LIMIT_POOL`` string when several adapters (e.g. spot and
 perpetual of one exchange) draw from the same exchange-side budget.
 
+Per-exchange declared limits and their sources are tabulated in docs/adapters/rest_rate_limits.md.
+
 Request weights are not modelled yet (every call costs 1); that is a follow-up.
 
 Known limitations: limiters assume a single asyncio thread, so concurrent use from

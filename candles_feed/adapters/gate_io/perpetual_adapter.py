@@ -5,6 +5,7 @@ Gate.io perpetual exchange adapter for the Candle Feed framework.
 from typing import override
 
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import GateIoBaseAdapter
 from .constants import (
@@ -18,6 +19,9 @@ from .constants import (
 @ExchangeRegistry.register("gate_io_perpetual")
 class GateIoPerpetualAdapter(GateIoBaseAdapter):
     """Gate.io perpetual exchange adapter."""
+
+    # hummingbot/data_feed/candles_feed/gate_io_perpetual_candles/constants.py:28,31,36 — public points pool 300/1s, candles linked weight 1
+    REST_RATE_LIMIT = RestRateLimit(max_requests=300, period_seconds=1)
 
     @staticmethod
     @override

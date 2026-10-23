@@ -15,6 +15,7 @@ from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_config import EndpointType, NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLE_TYPE,
@@ -45,6 +46,9 @@ class GrvtPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     # Seconds are the framework-facing unit; nanosecond strings are built explicitly.
     TIMESTAMP_UNIT: str = "seconds"
     MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/connector/derivative/grvt_perpetual/grvt_perpetual_constants.py:91,122 — global 1200/60s, kline linked weight 1
+    REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Initialize the adapter.

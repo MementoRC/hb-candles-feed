@@ -137,6 +137,7 @@ nav:
     - adapters/overview.md
     - adapters/implementation.md
     - adapters/rest_api.md
+    - adapters/rest_rate_limits.md
     - adapters/websocket.md
     - adapters/testing.md
   - Testing Resources:
