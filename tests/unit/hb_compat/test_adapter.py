@@ -1,5 +1,7 @@
 """Tests for CandlesBaseAdapter — the core translation layer."""
 
+import asyncio
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
@@ -174,6 +176,102 @@ class TestCandlesBaseAdapterLifecycle:
 
             await asyncio.sleep(0.1)
             mock_stop.assert_called_once()
+
+    async def test_stop_before_start_does_not_raise(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        assert adapter.last_task_error is None
+        with patch.object(adapter._feed, "stop", new_callable=AsyncMock) as mock_stop:
+            adapter.stop()
+            await asyncio.sleep(0.05)
+            mock_stop.assert_called_once()
+
+    async def test_duplicate_start_while_pending_is_ignored(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        gate = asyncio.Event()
+
+        async def slow_start(*_a, **_k):
+            await gate.wait()
+
+        with patch.object(adapter._feed, "start", side_effect=slow_start) as mock_start:
+            adapter.start()
+            first = adapter._start_task
+            adapter.start()
+            assert adapter._start_task is first
+            gate.set()
+            await asyncio.sleep(0.05)
+            assert mock_start.call_count == 1
+
+    async def test_stop_cancels_pending_start(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        started_state = {"completed": False}
+
+        async def slow_start(*_a, **_k):
+            await asyncio.sleep(10)
+            started_state["completed"] = True
+
+        with (
+            patch.object(adapter._feed, "start", side_effect=slow_start),
+            patch.object(adapter._feed, "stop", new_callable=AsyncMock) as mock_stop,
+        ):
+            adapter.start()
+            start_task = adapter._start_task
+            await asyncio.sleep(0)
+            adapter.stop()
+            await asyncio.sleep(0.05)
+            assert start_task.cancelled()
+            assert not started_state["completed"]
+            mock_stop.assert_called_once()
+            assert adapter.last_task_error is None
+
+    async def test_stop_task_reference_kept_and_exception_exposed(self, caplog):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        with (
+            patch.object(
+                adapter._feed, "stop", new_callable=AsyncMock, side_effect=RuntimeError("boom-87")
+            ),
+            caplog.at_level(logging.ERROR),
+        ):
+            adapter.stop()
+            assert isinstance(adapter._stop_task, asyncio.Task)
+            await asyncio.sleep(0.05)
+
+        assert any("boom-87" in r.getMessage() + str(r.exc_info) for r in caplog.records)
+        assert isinstance(adapter.last_task_error, RuntimeError)
+        assert "boom-87" in str(adapter.last_task_error)
+
+    async def test_start_error_exposed(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+        with patch.object(
+            adapter._feed, "start", new_callable=AsyncMock, side_effect=ValueError("bad")
+        ):
+            adapter.start()
+            await asyncio.sleep(0.05)
+        assert isinstance(adapter.last_task_error, ValueError)
+
+    async def test_cancelled_task_not_reported_as_error(self):
+        from candles_feed.hb_compat.adapter import CandlesBaseAdapter
+
+        adapter = CandlesBaseAdapter(exchange="binance", trading_pair="BTC-USDT")
+
+        async def slow(*_a, **_k):
+            await asyncio.sleep(10)
+
+        with patch.object(adapter._feed, "start", side_effect=slow):
+            adapter.start()
+            await asyncio.sleep(0)
+            adapter._start_task.cancel()
+            await asyncio.sleep(0.05)
+        assert adapter.last_task_error is None
 
 
 class TestCandlesBaseAdapterDataConversion:

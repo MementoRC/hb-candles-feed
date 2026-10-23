@@ -34,12 +34,6 @@ COLUMNS = [
 ]
 
 
-def _log_task_exception(task: asyncio.Task) -> None:
-    """Done-callback: log an exception from the fire-and-forget start task."""
-    if not task.cancelled() and (exc := task.exception()) is not None:
-        logger.error("CandlesFeed start failed: %r", exc, exc_info=exc)
-
-
 def _to_compat_frame(df: pd.DataFrame) -> pd.DataFrame:
     """Shape a frame to the hummingbot contract: the 10 columns in order, all float64.
 
@@ -123,6 +117,9 @@ class CandlesBaseAdapter:
             interval=interval,
             max_records=max_records,
         )
+        self._start_task: asyncio.Task | None = None
+        self._stop_task: asyncio.Task | None = None
+        self._last_task_error: BaseException | None = None
 
     # --- Properties delegating to CandlesFeed ---
 
@@ -158,16 +155,50 @@ class CandlesBaseAdapter:
 
     # --- Sync lifecycle (bridge to async) ---
 
+    @property
+    def last_task_error(self) -> BaseException | None:
+        """Exception from the most recent start/stop task, or None.
+
+        Cancelled tasks are not errors. Reset to None when a new start()/stop()
+        is scheduled.
+        """
+        return self._last_task_error
+
+    def _track_task(self, task: asyncio.Task) -> None:
+        """Done-callback: log and record a failure of a start/stop task."""
+        if task.cancelled():
+            return
+        if (exc := task.exception()) is not None:
+            self._last_task_error = exc
+            logger.error("CandlesFeed task failed: %r", exc, exc_info=exc)
+
     def start(self) -> None:
-        """Start the feed. Schedules async start on the running event loop."""
+        """Start the feed. Schedules async start on the running event loop.
+
+        A no-op while a previous start task is still pending (no duplicate task).
+        """
+        if self._start_task is not None and not self._start_task.done():
+            return
         loop = asyncio.get_running_loop()
+        self._last_task_error = None
         self._start_task = loop.create_task(self._feed.start())
-        self._start_task.add_done_callback(_log_task_exception)
+        self._start_task.add_done_callback(self._track_task)
 
     def stop(self) -> None:
-        """Stop the feed. Schedules async stop on the running event loop."""
+        """Stop the feed. Schedules async stop on the running event loop.
+
+        Mirrors upstream ``CandlesBase.stop_network``, which cancels the pending
+        listen task: a still-pending start task is cancelled so the feed cannot
+        finish starting after stop(), then the feed's own stop() runs to release
+        any partially acquired resources. Safe to call before start().
+        """
         loop = asyncio.get_running_loop()
-        loop.create_task(self._feed.stop())
+        if self._start_task is not None and not self._start_task.done():
+            self._start_task.cancel()
+        self._start_task = None
+        self._last_task_error = None
+        self._stop_task = loop.create_task(self._feed.stop())
+        self._stop_task.add_done_callback(self._track_task)
 
     # --- Data fetching ---
 
