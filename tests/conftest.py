@@ -356,9 +356,10 @@ def mock_server_url_coinbase(coinbase_mock_server):
 @pytest.fixture
 def mock_throttler():
     """Create a mock throttler for testing."""
-    # Create a simple mock with async throttle method
+    # Upstream shape: execute_task is a plain method returning an async context manager
+    # (a MagicMock supports ``async with``).
     throttler = MagicMock()
-    throttler.execute_task = AsyncMock()
+    throttler.execute_task = MagicMock()
     return throttler
 
 

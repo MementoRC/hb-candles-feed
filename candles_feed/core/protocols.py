@@ -6,6 +6,7 @@ using Python's typing.Protocol system.
 """
 
 from collections.abc import AsyncGenerator
+from contextlib import AbstractAsyncContextManager
 from typing import Any, Protocol, runtime_checkable
 
 from candles_feed.core.candle_data import CandleData
@@ -164,12 +165,27 @@ class AsyncThrottlerProtocol(Protocol):
     allowing for different implementations.
     """
 
-    async def execute_task(self, limit_id: str, weight: int = 1) -> None:
-        """Execute a task respecting rate limits.
+    def execute_task(self, limit_id: str) -> AbstractAsyncContextManager[Any]:
+        """Return an async context manager that throttles the enclosed task.
+
+        Mirrors hummingbot's ``AsyncThrottlerBase.execute_task``: a plain (non-async)
+        method used as ``async with throttler.execute_task(limit_id): ...``. Entering
+        the context waits until the limit (and any linked limits) have capacity.
 
         :param limit_id: The rate limit identifier
-        :param weight: The weight of the task (default: 1)
-
-        This method should delay execution if necessary to respect rate limits.
+        :returns: Async context manager guarding the task
         """
+        ...
+
+
+@runtime_checkable
+class RestRateLimiterProtocol(Protocol):
+    """Protocol for the limiter that paces REST requests of one feed.
+
+    ``AsyncRateLimiter`` satisfies it; so does the hummingbot connector bridge that
+    draws from the host connector's shared budget.
+    """
+
+    async def acquire(self) -> None:
+        """Wait until one REST request may be sent, then record it."""
         ...

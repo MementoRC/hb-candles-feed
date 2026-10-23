@@ -31,10 +31,21 @@ class MockAsyncThrottler:
         self.rate_limits: list[dict[str, Any]] = rate_limits or []
         self.task_logs: list[tuple[str, float]] = []
 
-    async def execute_task(self, limit_id: str):
-        """Execute a task respecting rate limits.
+    def add_rate_limits(self, rate_limits: list[Any]) -> None:
+        """Record added rate limits (additive; ids already present are skipped).
 
-        This is a context manager that simulates rate limiting.
+        :param rate_limits: Rate limit objects with a ``limit_id`` attribute.
+        """
+        known = {r["limit_id"] if isinstance(r, dict) else r.limit_id for r in self.rate_limits}
+        for rate_limit in rate_limits:
+            if rate_limit.limit_id not in known:
+                self.rate_limits.append(rate_limit)
+                known.add(rate_limit.limit_id)
+
+    def execute_task(self, limit_id: str):
+        """Return an async context manager simulating rate limiting.
+
+        Synchronous like upstream ``AsyncThrottlerBase.execute_task``.
 
         :param limit_id: The rate limit identifier.
         """

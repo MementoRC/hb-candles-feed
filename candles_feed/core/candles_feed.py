@@ -9,6 +9,7 @@ import logging
 import typing
 from collections import deque
 from collections.abc import Iterable
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -29,8 +30,13 @@ from candles_feed.core.intervals import (
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
+    RestRateLimiterProtocol,
 )
-from candles_feed.core.rate_limiter import RateLimitedNetworkClient, get_adapter_rate_limiter
+from candles_feed.core.rate_limiter import (
+    RateLimitedNetworkClient,
+    resolve_adapter_rate_limiter,
+    set_adapter_rate_limiter,
+)
 
 HISTORICAL_MAX_ATTEMPTS = 3
 HISTORICAL_RETRY_BASE_DELAY = 0.5  # seconds; doubles after each failed attempt
@@ -66,6 +72,7 @@ class CandlesFeed:
         logger: Logger | None = None,
         hummingbot_components: dict | None = None,
         network_config: NetworkConfig | None = None,
+        rate_limiter: RestRateLimiterProtocol | None = None,
     ):
         """Initialize the candles feed.
 
@@ -78,6 +85,10 @@ class CandlesFeed:
             - throttler: AsyncThrottlerBase instance
             - web_assistants_factory: WebAssistantsFactory instance
         :param network_config: Optional network configuration for testnet support
+        :param rate_limiter: Optional limiter acquired once before every REST request of this
+            feed, replacing the adapter's process-wide pool (e.g. a ``ConnectorThrottlerBridge``
+            sharing a host connector's budget). When omitted and ``hummingbot_components``
+            has a throttler, a bridge onto that throttler is used.
         """
         self.exchange = exchange
         self.trading_pair = trading_pair
@@ -104,12 +115,17 @@ class CandlesFeed:
             NetworkClientFactory,
         )
 
-        # All REST calls made through this client are paced by the adapter's shared limiter.
+        # All REST calls made through this client are paced by one limiter: the injected
+        # one, else one drawing on the host throttler, else the adapter's shared pool.
+        if rate_limiter is None:
+            rate_limiter = self._limiter_from_components(hummingbot_components)
+        if rate_limiter is not None:
+            set_adapter_rate_limiter(self._adapter, rate_limiter)
         self._network_client = RateLimitedNetworkClient(
             NetworkClientFactory.create_client(
                 hummingbot_components=hummingbot_components, logger=self.logger
             ),
-            get_adapter_rate_limiter(self._adapter),
+            resolve_adapter_rate_limiter(self._adapter),
         )
         self._network_client_context_entered = False
         self._data_processor = DataProcessor()
@@ -122,6 +138,23 @@ class CandlesFeed:
 
         # Store the components for potential later use
         self._hummingbot_components = hummingbot_components
+
+    def _limiter_from_components(
+        self, hummingbot_components: dict | None
+    ) -> RestRateLimiterProtocol | None:
+        """Build a limiter on the host throttler from ``hummingbot_components``, if any.
+
+        The bridge module is imported only here so core never hard-depends on hummingbot;
+        None is returned (shared pool is used) without a throttler or without hummingbot.
+        """
+        throttler = (hummingbot_components or {}).get("throttler")
+        if throttler is None:
+            return None
+        from candles_feed.hb_compat.throttler_bridge import ConnectorThrottlerBridge
+
+        return ConnectorThrottlerBridge.from_connector(
+            SimpleNamespace(throttler=throttler), self._adapter
+        )
 
     def _create_ws_strategy(self):
         """Create a WebSocket strategy instance.

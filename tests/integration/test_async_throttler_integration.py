@@ -49,7 +49,7 @@ class TestAsyncThrottlerIntegration:
 
         # Test that execute_task works as a context manager
         start_time = time.time()
-        async with await adapter.execute_task("api_calls"):
+        async with adapter.execute_task("api_calls"):
             pass
         execution_time = time.time() - start_time
 
@@ -68,7 +68,7 @@ class TestAsyncThrottlerIntegration:
         start_time = time.time()
 
         for _ in range(3):
-            async with await adapter.execute_task("api_calls"):
+            async with adapter.execute_task("api_calls"):
                 pass
 
         time.time() - start_time
@@ -82,11 +82,11 @@ class TestAsyncThrottlerIntegration:
         adapter = HummingbotThrottlerAdapter(rate_limited_throttler)
 
         # Execute tasks with different limit IDs
-        async with await adapter.execute_task("api_calls"):
+        async with adapter.execute_task("api_calls"):
             pass
-        async with await adapter.execute_task("heavy_operations"):
+        async with adapter.execute_task("heavy_operations"):
             pass
-        async with await adapter.execute_task("api_calls"):
+        async with adapter.execute_task("api_calls"):
             pass
 
         # Should have logged 3 tasks with correct IDs
@@ -99,7 +99,7 @@ class TestAsyncThrottlerIntegration:
 
         # Create a throttler that raises an exception
         class FailingThrottler:
-            async def execute_task(self, limit_id: str):
+            def execute_task(self, limit_id: str):
                 class FailingContext:
                     async def __aenter__(self):
                         raise RuntimeError("Throttler failure")
@@ -113,7 +113,7 @@ class TestAsyncThrottlerIntegration:
 
         # Should propagate the exception
         with pytest.raises(RuntimeError, match="Throttler failure"):
-            async with await adapter.execute_task("test_limit"):
+            async with adapter.execute_task("test_limit"):
                 pass
 
 
@@ -301,9 +301,8 @@ class TestHummingbotNetworkClientIntegration:
             assert len(response) == 1
             assert response[0][1] == "35000"  # Open price
 
-            # Verify throttler was used
-            throttler_logs = integrated_components["throttler"].task_logs
-            assert len(throttler_logs) >= 1
+            # Throttling happens once in RateLimitedNetworkClient, not in this client.
+            assert integrated_components["throttler"].task_logs == []
 
     async def test_network_client_websocket_operations(self, integrated_components):
         """Test WebSocket operations through network client."""

@@ -22,7 +22,9 @@ import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
+
+from candles_feed.core.protocols import RestRateLimiterProtocol
 
 
 @dataclass(frozen=True)
@@ -124,9 +126,33 @@ def get_rate_limiter(
     return limiter
 
 
+_INJECTED_ATTR = "_injected_rest_rate_limiter"
+
+
+def set_adapter_rate_limiter(adapter: Any, limiter: RestRateLimiterProtocol | None) -> None:
+    """Make an adapter *instance* use ``limiter`` instead of its process-wide pool.
+
+    Pass ``None`` to go back to the shared registry. The override is per instance, so
+    other feeds of the same exchange keep using the registry.
+    """
+    setattr(adapter, _INJECTED_ATTR, limiter)
+
+
 def get_adapter_rate_limiter(adapter: Any) -> AsyncRateLimiter:
-    """Return the shared limiter for an adapter class or instance."""
+    """Return the shared process-wide limiter for an adapter class or instance."""
     return get_rate_limiter(pool_key_for(adapter), rest_limit_for(adapter))
+
+
+def resolve_adapter_rate_limiter(adapter: Any) -> RestRateLimiterProtocol:
+    """Return the limiter an adapter must acquire from before each REST request.
+
+    An injected limiter (see ``set_adapter_rate_limiter``) wins; otherwise the shared pool.
+    """
+    if not isinstance(adapter, type):
+        injected = getattr(adapter, _INJECTED_ATTR, None)
+        if injected is not None:
+            return cast("RestRateLimiterProtocol", injected)
+    return get_adapter_rate_limiter(adapter)
 
 
 def reset_rate_limiters() -> None:
@@ -140,7 +166,7 @@ class RateLimitedNetworkClient:
     Everything else (websockets, session lifecycle, ...) is delegated untouched.
     """
 
-    def __init__(self, client: Any, limiter: AsyncRateLimiter) -> None:
+    def __init__(self, client: Any, limiter: RestRateLimiterProtocol) -> None:
         self._client = client
         self._target = client  # object entered via __aenter__, if it differs from the client
         self._limiter = limiter
