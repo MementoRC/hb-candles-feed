@@ -32,6 +32,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # hummingbot/data_feed/candles_feed/bitget_spot_candles/constants.py:56 — candles endpoint 20 req/1s
     REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=1)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
     @override

@@ -7,6 +7,7 @@ Hummingbot's WebAssistantsFactory and AsyncThrottler when available.
 
 import json
 import logging
+from contextlib import AbstractAsyncContextManager
 from typing import Any, cast
 
 from candles_feed.core.protocols import (
@@ -103,14 +104,16 @@ class HummingbotThrottlerAdapter(AsyncThrottlerProtocol):
         """
         self._throttler = throttler
 
-    async def execute_task(self, limit_id: str, weight: int = 1):
-        """Execute a task respecting rate limits.
+    def execute_task(self, limit_id: str) -> AbstractAsyncContextManager[Any]:
+        """Return the throttler's async context manager for a task.
+
+        Use as ``async with adapter.execute_task(limit_id): ...`` (the upstream shape;
+        the upstream method is synchronous and returns the context manager).
 
         :param limit_id: The rate limit identifier
-        :param weight: The weight of the task (default: 1)
         :return: Async context manager for rate limiting
         """
-        return await self._throttler.execute_task(limit_id=limit_id)
+        return self._throttler.execute_task(limit_id=limit_id)
 
 
 class HummingbotNetworkClient(NetworkClientProtocol):
@@ -172,20 +175,20 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         )
         cleaned_data = None if data is None else {k: v for k, v in data.items() if v is not None}
 
-        # Use throttler for rate limiting
-        async with await self._throttler_adapter.execute_task("api_request"):
-            try:
-                response = await self._rest_assistant.call(
-                    url=url,
-                    params=cleaned_params,
-                    data=json.dumps(cleaned_data) if cleaned_data else None,
-                    headers=headers,
-                    method=method,
-                )
-                return await response.json()
-            except Exception as e:
-                self._logger.error(f"REST request to {url} failed: {e}")
-                raise
+        # Rate limiting happens once per request in RateLimitedNetworkClient (CandlesFeed
+        # wraps this client), not here.
+        try:
+            response = await self._rest_assistant.call(
+                url=url,
+                params=cleaned_params,
+                data=json.dumps(cleaned_data) if cleaned_data else None,
+                headers=headers,
+                method=method,
+            )
+            return await response.json()
+        except Exception as e:
+            self._logger.error(f"REST request to {url} failed: {e}")
+            raise
 
     async def establish_ws_connection(self, url: str) -> WSAssistant:
         """Establish a WebSocket connection using Hummingbot's WS assistant.

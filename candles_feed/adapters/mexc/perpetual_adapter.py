@@ -26,6 +26,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
 
     # hummingbot/data_feed/candles_feed/mexc_perpetual_candles/constants.py:25 — contract kline endpoint 20 req/2s (separate contract.mexc.com host from spot)
     REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=2)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
     @override

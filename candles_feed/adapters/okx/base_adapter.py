@@ -36,6 +36,7 @@ class OKXBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     # Spot and perpetual hit the same host and the same endpoint with the same limit, so they share one pool.
     REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=2)
     REST_RATE_LIMIT_POOL = "okx"
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @abstractmethod
     def _get_rest_url(self) -> str:

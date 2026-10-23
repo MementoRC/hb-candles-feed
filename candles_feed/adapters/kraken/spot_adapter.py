@@ -21,6 +21,9 @@ class KrakenSpotAdapter(KrakenBaseAdapter):
 
     # hummingbot/data_feed/candles_feed/kraken_spot_candles/constants.py:34-36,40-43 — public endpoint pool 1 req/1s, OHLC linked weight 1
     REST_RATE_LIMIT = RestRateLimit(max_requests=1, period_seconds=1)
+    # hummingbot/data_feed/candles_feed/kraken_spot_candles/constants.py:43 links OHLC to PublicEndpointLimitID (default weight 1) (pool also in connector/exchange/kraken/kraken_constants.py:80)
+    REST_HOST_RATE_LIMIT_ID = "PublicEndpointLimitID"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @staticmethod
     @override

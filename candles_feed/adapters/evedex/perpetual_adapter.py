@@ -55,6 +55,9 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
 
     # hummingbot/data_feed/candles_feed/evedex_perpetual_candles/constants.py:41,56 — 1200 weight/60s, candles weight 1
     REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/evedex_perpetual_candles/constants.py:58 links candles to REQUEST_WEIGHT at weight 1 (pool also in connector/derivative/evedex_perpetual/evedex_perpetual_constants.py:95)
+    REST_HOST_RATE_LIMIT_ID = "REQUEST_WEIGHT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Accept the ``network_config`` kwarg CandlesFeed passes (no testnet exists)."""

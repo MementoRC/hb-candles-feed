@@ -14,6 +14,7 @@ import pandas as pd
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed.core.protocols import RestRateLimiterProtocol
 from candles_feed.hb_compat.data_types import HistoricalCandlesConfig
 from candles_feed.utils.time_utils import ensure_timestamp_in_seconds
 
@@ -110,12 +111,20 @@ class CandlesBaseAdapter:
         trading_pair: str,
         interval: str = "1m",
         max_records: int = 500,
+        *,
+        rate_limiter: RestRateLimiterProtocol | None = None,
     ):
+        """Create the adapter.
+
+        :param rate_limiter: Optional limiter for this feed's REST requests, e.g. a
+            ``ConnectorThrottlerBridge`` sharing a host connector's rate-limit budget.
+        """
         self._feed = CandlesFeed(
             exchange=exchange,
             trading_pair=trading_pair,
             interval=interval,
             max_records=max_records,
+            rate_limiter=rate_limiter,
         )
         self._start_task: asyncio.Task | None = None
         self._stop_task: asyncio.Task | None = None

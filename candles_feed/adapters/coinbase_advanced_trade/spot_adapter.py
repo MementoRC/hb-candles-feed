@@ -21,6 +21,9 @@ class CoinbaseAdvancedTradeSpotAdapter(CoinbaseAdvancedTradeBaseAdapter):
 
     # hummingbot/connector/exchange/coinbase_advanced_trade/coinbase_advanced_trade_constants.py:92,128,209 — candles in PUBLIC_REST_ENDPOINTS, public REST 10 req/1s
     REST_RATE_LIMIT = RestRateLimit(max_requests=10, period_seconds=1)
+    # No upstream candles constants; the connector (coinbase_advanced_trade_constants.py:127,175,185,209) links candles (PUBLIC_REST_ENDPOINTS) to PUBLIC_REST_REQUESTS at weight 1
+    REST_HOST_RATE_LIMIT_ID = "PUBLIC_REST_REQUESTS"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @staticmethod
     @override

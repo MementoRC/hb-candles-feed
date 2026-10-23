@@ -49,6 +49,9 @@ class GrvtPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # hummingbot/connector/derivative/grvt_perpetual/grvt_perpetual_constants.py:91,122 — global 1200/60s, kline linked weight 1
     REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
+    # hummingbot/connector/derivative/grvt_perpetual/grvt_perpetual_constants.py:89,116,124 — no candles constants; the connector links KLINE_PATH_URL to grvtGlobalRateLimit at default weight 1
+    REST_HOST_RATE_LIMIT_ID = "grvtGlobalRateLimit"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
         """Initialize the adapter.

@@ -53,6 +53,29 @@ DECLARED: dict[str, tuple[int, float, str | None]] = {
     "pacifica_perpetual": (10, 60, None),
 }
 
+# name -> (host connector pool limit_id, weight per klines request); used only when a host
+# connector throttler is shared (#89). Adapters absent here keep (None, 1).
+HOST_POOL: dict[str, tuple[str, int]] = {
+    "binance_perpetual": ("REQUEST_WEIGHT", 1),
+    "binance_spot": ("REQUEST_WEIGHT", 1),
+    "bybit_perpetual": ("GETLimit", 1),
+    "bybit_spot": ("ALL", 1),
+    "decibel_perpetual": ("DECIBEL_LIMIT", 1),
+    "coinbase_advanced_trade": ("PUBLIC_REST_REQUESTS", 1),
+    "dexalot_spot": ("IP_REQUEST_WEIGHT", 1),
+    "evedex_perpetual": ("REQUEST_WEIGHT", 1),
+    "gate_io_perpetual": ("PublicPoints", 1),
+    "gate_io_spot": ("PublicPoints", 1),
+    "grvt_perpetual": ("grvtGlobalRateLimit", 1),
+    "hyperliquid_perpetual": ("All", 1),
+    "hyperliquid_spot": ("All", 1),
+    "kraken_spot": ("PublicEndpointLimitID", 1),
+    "lighter_perpetual": ("lighter_perpetual_all", 300),
+    "lighter_spot": ("lighter_all", 300),
+    "mexc_spot": ("IP_REQUEST_WEIGHT", 1),
+    "pacifica_perpetual": ("PACIFICA_LIMIT", 12),
+}
+
 # No locally verifiable REST limit: these keep the framework default.
 UNDOCUMENTED = {"ascend_ex_spot"}
 
@@ -101,6 +124,13 @@ def test_declared_limit_and_pool(name: str) -> None:
     assert declared_pool == pool
 
 
+@pytest.mark.parametrize("name", sorted(set(DECLARED) | UNDOCUMENTED))
+def test_declared_host_pool_and_weight(name: str) -> None:
+    adapter = _adapter(name)
+    expected = HOST_POOL.get(name, (None, 1))
+    assert expected == (adapter.REST_HOST_RATE_LIMIT_ID, adapter.REST_HOST_RATE_LIMIT_WEIGHT)
+
+
 @pytest.mark.parametrize("name", sorted(UNDOCUMENTED))
 def test_undocumented_adapters_use_default(name: str) -> None:
     adapter = _adapter(name)
@@ -132,6 +162,10 @@ def test_variants_with_separate_budgets_get_separate_limiters(first: str, second
     assert get_adapter_rate_limiter(_adapter(first)) is not get_adapter_rate_limiter(
         _adapter(second)
     )
+
+
+def test_host_pool_names_only_declared_adapters() -> None:
+    assert set(HOST_POOL) <= set(DECLARED)
 
 
 def test_resolved_limiter_carries_the_declared_limit() -> None:

@@ -21,6 +21,10 @@ class BinancePerpetualAdapter(BinanceBaseAdapter):
     # hummingbot/data_feed/candles_feed/binance_perpetual_candles/constants.py:35-41 — klines own limit 1200/60s at weight 2 -> 600 req/60s (pool 1200 weight/60s, linked weight 1, is looser)
     # Own pool: fapi.binance.com has an IP budget separate from api.binance.com (binance_spot).
     REST_RATE_LIMIT = RestRateLimit(max_requests=600, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/binance_perpetual_candles/constants.py:41 links klines to REQUEST_WEIGHT at weight 1 (pool also in connector/derivative/binance_perpetual/binance_perpetual_constants.py:75)
+    # Real klines weight grows with the request limit; weight 1 is what the upstream candles constants use.
+    REST_HOST_RATE_LIMIT_ID = "REQUEST_WEIGHT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @staticmethod
     @override

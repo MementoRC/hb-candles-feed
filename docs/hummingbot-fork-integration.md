@@ -138,6 +138,27 @@ class HybridCandlesFactory:
 | `kucoin` (spot) | Supported |
 | `okx` (spot) | Supported |
 
+## Sharing the host connector's rate-limit budget
+
+`CandlesFactory.get_candle(config, connector=connector)` is the upstream call shape used by
+`MarketDataProvider`. When the connector exposes a `throttler` (every CEX connector; Gateway
+connectors do not), the feed's REST requests are paced through that throttler instead of the
+process-wide per-exchange pool:
+
+- The factory registers one extra rate limit `candles-feed:<pool>` on the connector's throttler
+  (sized from the adapter's `REST_RATE_LIMIT`, additive, shared by feeds of the same pool).
+- If the adapter declares `REST_HOST_RATE_LIMIT_ID` (e.g. `"REQUEST_WEIGHT"`) and the throttler
+  defines that limit, the new limit is linked to it with `REST_HOST_RATE_LIMIT_WEIGHT`, so each
+  klines request also spends the connector's own budget. Otherwise the limit is registered
+  unlinked and only paces the feed (logged once at info level).
+- Each REST request acquires exactly once, for async and sync-only adapters alike.
+
+Without a connector (or without a throttler) nothing changes: the shared per-exchange pool is
+used. The bridge is `candles_feed.hb_compat.throttler_bridge.ConnectorThrottlerBridge`; any
+object with `async acquire()` can be passed as `CandlesFeed(rate_limiter=...)`. The same
+bridge is built when `hummingbot_components` contains a `throttler`. See
+[REST rate limits](adapters/rest_rate_limits.md) for the per-exchange budgets.
+
 ## Testing
 
 ### Verify installation

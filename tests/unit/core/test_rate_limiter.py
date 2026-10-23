@@ -245,6 +245,112 @@ class TestSyncOnlyAdapterIsLimited:
         assert clock.sleeps == [pytest.approx(3.0)]
 
 
+class CountingLimiter:
+    """Minimal RestRateLimiterProtocol implementation that counts acquisitions."""
+
+    def __init__(self) -> None:
+        self.acquisitions = 0
+
+    async def acquire(self) -> None:
+        self.acquisitions += 1
+
+
+class TestInjectedLimiter:
+    @staticmethod
+    def _make_feed(adapter, inner_client, limiter=None) -> CandlesFeed:
+        with (
+            patch(
+                "candles_feed.hb_compat.hummingbot_network_client_adapter."
+                "NetworkClientFactory.create_client",
+                return_value=inner_client,
+            ),
+            patch.object(ExchangeRegistry, "get_adapter_instance", return_value=adapter),
+        ):
+            return CandlesFeed(
+                exchange="binance_spot",
+                trading_pair="BTC-USDT",
+                interval="1m",
+                rate_limiter=limiter,
+            )
+
+    def test_counting_limiter_satisfies_protocol(self):
+        from candles_feed.core.protocols import RestRateLimiterProtocol
+
+        assert isinstance(CountingLimiter(), RestRateLimiterProtocol)
+        assert isinstance(make_limiter(FakeClock()), RestRateLimiterProtocol)
+
+    async def test_async_path_uses_injected_limiter_not_registry(self):
+        from candles_feed.core import rate_limiter as module
+
+        inner = MagicMock()
+        inner.get_rest_data = AsyncMock(return_value=[])
+        limiter = CountingLimiter()
+        feed = self._make_feed(BinanceSpotAdapter(), inner, limiter)
+
+        await feed._adapter.fetch_rest_candles(
+            "BTCUSDT", "1m", limit=10, network_client=feed._network_client
+        )
+
+        assert limiter.acquisitions == 1  # exactly one acquisition per request
+        assert inner.get_rest_data.await_count == 1
+        assert module._LIMITERS == {}
+
+    async def test_sync_adapter_path_uses_the_same_injected_limiter(self):
+        from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
+        from candles_feed.core import rate_limiter as module
+
+        class FakeSync(SyncOnlyAdapter):
+            def get_trading_pair_format(self, trading_pair):
+                return trading_pair
+
+            def fetch_rest_candles_synchronous(
+                self, trading_pair, interval, start_time=None, limit=500
+            ):
+                return []
+
+        limiter = CountingLimiter()
+        feed = self._make_feed(FakeSync(), MagicMock(), limiter)
+
+        await feed._adapter.fetch_rest_candles("BTC-USDT", "1m")
+
+        assert limiter.acquisitions == 1
+        assert module._LIMITERS == {}
+
+    async def test_injection_is_per_feed(self, clock):
+        inner = MagicMock()
+        inner.get_rest_data = AsyncMock(return_value=[])
+        injected = CountingLimiter()
+        shared = get_rate_limiter(
+            pool_key_for(BinanceSpotAdapter), RestRateLimit(5, 1.0), clock=clock, sleep=clock.sleep
+        )
+        feed_injected = self._make_feed(BinanceSpotAdapter(), inner, injected)
+        feed_default = self._make_feed(BinanceSpotAdapter(), inner)
+
+        await feed_default._network_client.get_rest_data(url="http://x")
+
+        assert injected.acquisitions == 0
+        assert len(shared._timestamps) == 1
+        await feed_injected._network_client.get_rest_data(url="http://x")
+        assert injected.acquisitions == 1
+        assert len(shared._timestamps) == 1
+
+    def test_resolve_without_injection_returns_shared_pool(self):
+        from candles_feed.core.rate_limiter import (
+            get_adapter_rate_limiter,
+            resolve_adapter_rate_limiter,
+            set_adapter_rate_limiter,
+        )
+
+        adapter = BinanceSpotAdapter()
+        assert resolve_adapter_rate_limiter(adapter) is get_adapter_rate_limiter(adapter)
+        limiter = CountingLimiter()
+        set_adapter_rate_limiter(adapter, limiter)
+        assert resolve_adapter_rate_limiter(adapter) is limiter
+        assert resolve_adapter_rate_limiter(BinanceSpotAdapter) is get_adapter_rate_limiter(adapter)
+        set_adapter_rate_limiter(adapter, None)
+        assert resolve_adapter_rate_limiter(adapter) is get_adapter_rate_limiter(adapter)
+
+
 class TestAdapterRestFetchIsLimited:
     @staticmethod
     def _make_feed(inner_client) -> CandlesFeed:

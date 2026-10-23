@@ -32,6 +32,14 @@ class BaseAdapter(ABC):
     # pool name; None means one pool per adapter class.
     REST_RATE_LIMIT_POOL: str | None = None
 
+    # Id of the host connector's shared rate-limit pool (e.g. "REQUEST_WEIGHT") that one
+    # klines request draws from. When a hummingbot connector is passed to the feed, requests
+    # are also charged against that pool; None means no host pool is linked.
+    REST_HOST_RATE_LIMIT_ID: ClassVar[str | None] = None
+
+    # Weight of one klines request against the host pool named by REST_HOST_RATE_LIMIT_ID.
+    REST_HOST_RATE_LIMIT_WEIGHT: ClassVar[int] = 1
+
     # Maximum candles one REST request returns; historical pagination uses it as page size.
     MAX_CANDLES_PER_REQUEST: ClassVar[int] = 500
 

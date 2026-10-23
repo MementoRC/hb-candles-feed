@@ -16,6 +16,11 @@ class LighterSpotAdapter(LighterBaseAdapter):
     # Spot markets live under "spot_order_book_details"; "order_book_details" holds perpetuals.
     MARKETS_KEY = "spot_order_book_details"
 
+    # hummingbot/data_feed/candles_feed/lighter_spot_candles/constants.py:44 links candles to lighter_all at weight 300 (pool also in connector/exchange/lighter/lighter_constants.py:161)
+    # Pool ids differ between spot and perpetual, so each variant declares its own.
+    REST_HOST_RATE_LIMIT_ID = "lighter_all"
+    REST_HOST_RATE_LIMIT_WEIGHT = 300
+
     @staticmethod
     @override
     def get_trading_pair_format(trading_pair: str) -> str:

@@ -22,6 +22,7 @@ class KucoinSpotAdapter(KucoinBaseAdapter):
 
     # hummingbot/data_feed/candles_feed/kucoin_spot_candles/constants.py:32-33,40,45 — 4000 weight/30s, candles weight 3 -> floor(4000/3)
     REST_RATE_LIMIT = RestRateLimit(max_requests=1333, period_seconds=30)
+    # No host pool: kucoin_spot_candles/constants.py:34-37 states the connector has no global weight pool; REQUEST_WEIGHT is candle-local.
 
     @staticmethod
     @override

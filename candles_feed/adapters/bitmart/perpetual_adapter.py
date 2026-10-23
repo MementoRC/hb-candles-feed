@@ -33,6 +33,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # hummingbot/data_feed/candles_feed/bitmart_perpetual_candles/constants.py:33 — kline endpoint 12 req/2s
     REST_RATE_LIMIT = RestRateLimit(max_requests=12, period_seconds=2)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
     @override

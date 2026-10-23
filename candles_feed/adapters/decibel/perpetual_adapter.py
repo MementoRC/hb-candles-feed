@@ -60,6 +60,9 @@ class DecibelPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
 
     # hummingbot/data_feed/candles_feed/decibel_perpetual_candles/constants.py:51,60 — 400 req/60s pool, candles cost 1
     REST_RATE_LIMIT = RestRateLimit(max_requests=400, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/decibel_perpetual_candles/constants.py:62 links candles to DECIBEL_LIMIT at weight 1 (pool also in connector/derivative/decibel_perpetual/decibel_perpetual_constants.py:75)
+    REST_HOST_RATE_LIMIT_ID = "DECIBEL_LIMIT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     def __init__(
         self,
