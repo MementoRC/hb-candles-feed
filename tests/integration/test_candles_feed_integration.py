@@ -220,7 +220,9 @@ class TestCandlesFeedIntegration:
             logging.info(f"Using WS URL: {feed._adapter._get_ws_url()}")
 
             # 1. First fetch initial data via REST API
-            await feed.fetch_candles()
+            # fetch_candles returns data only; seed the live store explicitly
+            for candle in await feed.fetch_candles():
+                feed.add_candle(candle)
 
             # Verify we got initial data - with retry
             initial_candles = []
@@ -519,7 +521,8 @@ class TestCandlesFeedIntegration:
             # Fetch candles for all feeds with retry
             for interval, feed in interval_feeds:
                 logging.info(f"Fetching {interval} candles")
-                await feed.fetch_candles()
+                for candle in await feed.fetch_candles():
+                    feed.add_candle(candle)
 
                 # Retry logic
                 candles = []
@@ -592,7 +595,8 @@ class TestCandlesFeedIntegration:
             logging.info(f"Using WS URL: {feed._adapter._get_ws_url()}")
 
             # 1. First verify normal operation with retry
-            await feed.fetch_candles()
+            for candle in await feed.fetch_candles():
+                feed.add_candle(candle)
 
             initial_candles = []
             for _ in range(10):  # Try up to 5 seconds
@@ -626,10 +630,10 @@ class TestCandlesFeedIntegration:
                     logging.info(f"Attempting fetch with modified pair: {modified_pair}")
 
                     # Adding increased timeout for error conditions
-                    await asyncio.wait_for(feed.fetch_candles(), timeout=5.0)
+                    fetched = await asyncio.wait_for(feed.fetch_candles(), timeout=5.0)
 
                     # If we got here, the request succeeded despite errors
-                    candle_count = len(feed.get_candles())
+                    candle_count = len(fetched)
                     if candle_count > 0:
                         success_count += 1
                         logging.info(f"Attempt {attempt} succeeded with {candle_count} candles")
@@ -660,7 +664,8 @@ class TestCandlesFeedIntegration:
 
             # Clear existing candles and fetch fresh ones
             feed._candles.clear()
-            await feed.fetch_candles()
+            for candle in await feed.fetch_candles():
+                feed.add_candle(candle)
 
             # Wait for data with retry
             pre_ws_candle_count = 0
@@ -723,15 +728,7 @@ class TestCandlesFeedIntegration:
             logging.info(f"Using REST URL: {feed._adapter._get_rest_url()}")
 
             # Fetch with default parameters (most recent candles)
-            await feed.fetch_candles()
-
-            # Wait for data with retry
-            default_candles = []
-            for _ in range(10):  # Try up to 5 seconds
-                await asyncio.sleep(0.5)
-                default_candles = feed.get_candles()
-                if len(default_candles) > 0:
-                    break
+            default_candles = await feed.fetch_candles()
 
             assert len(default_candles) > 0, "No candles received with default parameters"
             logging.info(f"Received {len(default_candles)} candles with default parameters")
@@ -748,17 +745,9 @@ class TestCandlesFeedIntegration:
 
             logging.info(f"Fetching candles from {start_time} to {end_time} (10 minute range)")
 
-            # Clear existing data before fetching range
-            feed._candles.clear()
-            await feed.fetch_candles(start_time=start_time, end_time=end_time, limit=10)
-
-            # Wait for data with retry
-            range_candles = []
-            for _ in range(10):  # Try up to 5 seconds
-                await asyncio.sleep(0.5)
-                range_candles = feed.get_candles()
-                if len(range_candles) > 0:
-                    break
+            range_candles = await feed.fetch_candles(
+                start_time=start_time, end_time=end_time, limit=10
+            )
 
             # In case of no data, log what's available in the mock server
             if not range_candles:

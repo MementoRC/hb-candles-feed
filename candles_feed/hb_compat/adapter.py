@@ -154,12 +154,21 @@ class CandlesBaseAdapter:
     ) -> np.ndarray:
         """Fetch candles as numpy array (hummingbot's expected return type).
 
-        :param start_time: Start timestamp in seconds (optional)
-        :param end_time: End timestamp in seconds (optional)
-        :param limit: Maximum candles to fetch; defaults to 500 if None
+        Results are returned only; they are not stored in ``candles_df``.
+
+        :param start_time: Start timestamp in seconds (optional if end_time given)
+        :param end_time: End timestamp in seconds (optional if start_time given)
+        :param limit: Maximum candles to fetch; defaults to the exchange maximum per
+            request and is clamped to [1, exchange maximum]
         :return: ndarray of shape (N, 10), dtype float
+        :raises ValueError: If neither start_time nor end_time is given
         """
-        effective_limit = limit if limit is not None else 500
+        if start_time is None and end_time is None:
+            raise ValueError("Either the start time or end time must be specified.")
+        max_per_request = self._feed.max_candles_per_request
+        if limit is None:
+            limit = max_per_request
+        effective_limit = min(max_per_request, max(limit, 1))
         candles = await self._feed.fetch_candles(
             start_time=start_time, end_time=end_time, limit=effective_limit
         )
