@@ -20,7 +20,7 @@ from candles_feed.core.candles_feed import CandlesFeed, HistoricalCandlesError
 from candles_feed.core.collection_strategies import RESTPollingStrategy
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
-from candles_feed.core.rate_limiter import RateLimitedNetworkClient
+from candles_feed.core.rate_limiter import RateLimitedNetworkClient, RateLimitExceededError
 
 HOUR = 3600
 BASE = 472_222 * HOUR  # hour-aligned epoch
@@ -284,6 +284,26 @@ class TestHistoricalErrors:
         assert isinstance(err.__cause__, RuntimeError)
         page_two_attempts = [c for c in exchange.calls if c["start_time"] == series[1000]]
         assert len(page_two_attempts) == 3
+
+    async def test_rate_limit_errors_do_not_use_up_attempts_or_sleep(self, feed, monkeypatch):
+        # A huge retry delay would hang the test if rate-limit retries slept on top of the pause.
+        monkeypatch.setattr(candles_feed_module, "HISTORICAL_RETRY_BASE_DELAY", 1000)
+        series = [BASE + i * HOUR for i in range(10)]
+        exchange = FakeExchange(series, fail_first=4, error=RateLimitExceededError(429))
+        with _install(feed, exchange):
+            df = await asyncio.wait_for(feed.get_historical_candles(BASE, series[-1]), 5)
+
+        assert list(df["timestamp"]) == series
+        assert len(exchange.calls) == 5  # 4 rate-limited + 1 success; more than 3 attempts
+
+    async def test_persistent_rate_limit_gives_up_after_cap(self, feed, monkeypatch):
+        monkeypatch.setattr(candles_feed_module, "HISTORICAL_RETRY_BASE_DELAY", 1000)
+        exchange = FakeExchange([BASE], fail_first=100, error=RateLimitExceededError(418))
+        with _install(feed, exchange), pytest.raises(HistoricalCandlesError) as excinfo:
+            await asyncio.wait_for(feed.get_historical_candles(BASE, BASE + HOUR), 5)
+
+        assert len(exchange.calls) == candles_feed_module.HISTORICAL_MAX_RATE_LIMIT_RETRIES
+        assert isinstance(excinfo.value.__cause__, RateLimitExceededError)
 
     async def test_cancelled_error_is_not_retried(self, feed):
         exchange = FakeExchange([BASE], fail_first=1, error=asyncio.CancelledError())

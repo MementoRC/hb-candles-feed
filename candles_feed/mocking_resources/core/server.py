@@ -43,7 +43,7 @@ class MockedExchangeServer:
         self.exchange_type: ExchangeType = plugin.exchange_type
         self.host: str = host
         self.port: int = port
-        self.app: web.Application = web.Application()
+        self.app: web.Application = web.Application(middlewares=[self._rate_limit_middleware])
         self.runner = None
         self.site = None
         self.logger: logging.Logger = logging.getLogger(__name__)
@@ -69,6 +69,10 @@ class MockedExchangeServer:
         self.latency_ms = 0  # Artificial latency
         self.packet_loss_rate = 0.0  # Packet loss rate 0.0-1.0
         self.error_rate = 0.0  # Error response rate 0.0-1.0
+
+        # Rate-limit response simulation (429 / 418)
+        self.rate_limit_retry_after: float | None = None  # Retry-After header on natural 429s
+        self._forced_responses: deque[tuple[int, float | None]] = deque()
 
         # Get exchange-specific settings from the plugin
         # Rate limiting
@@ -505,6 +509,54 @@ class MockedExchangeServer:
         # Simulate latency
         if self.latency_ms > 0:
             await asyncio.sleep(self.latency_ms / 1000.0)
+
+    def set_rate_limit_retry_after(self, seconds: float | None) -> None:
+        """
+        Set the ``Retry-After`` header sent with natural 429 responses.
+
+        :param seconds: Delay in seconds, or None to send no header.
+        """
+        self.rate_limit_retry_after = seconds
+
+    def force_rate_limit_response(
+        self, status: int = 418, retry_after: float | None = None, count: int = 1
+    ) -> None:
+        """
+        Make the next ``count`` REST requests answer ``status`` (429 or 418).
+
+        :param status: HTTP status to answer (429 rate limited, 418 IP banned).
+        :param retry_after: Optional ``Retry-After`` header value in seconds.
+        :param count: How many consecutive REST requests are answered this way.
+        """
+        if status not in (418, 429):
+            raise ValueError("status must be 418 or 429")
+        self._forced_responses.extend([(status, retry_after)] * count)
+
+    @web.middleware
+    async def _rate_limit_middleware(self, request: web.Request, handler):
+        """
+        Apply forced 429/418 responses and the configured ``Retry-After`` to every plugin.
+
+        Plugins build their own 429 responses, so this works at the app level: a forced
+        response short-circuits the next REST request; any 429 a handler returns gets the
+        configured ``Retry-After`` header when it has none.
+        """
+        is_ws = request.headers.get("Upgrade", "").lower() == "websocket"
+        if self._forced_responses and not is_ws:
+            status, retry_after = self._forced_responses.popleft()
+            message = "IP banned" if status == 418 else "Too many requests"
+            headers = {"Retry-After": f"{retry_after:g}"} if retry_after is not None else None
+            return web.json_response(
+                {"code": -1003, "msg": message}, status=status, headers=headers
+            )
+        response = await handler(request)
+        if (
+            response.status == 429
+            and self.rate_limit_retry_after is not None
+            and "Retry-After" not in response.headers
+        ):
+            response.headers["Retry-After"] = f"{self.rate_limit_retry_after:g}"
+        return response
 
     def _check_rate_limit(self, ip: str, limit_type: str = "rest") -> bool:
         """

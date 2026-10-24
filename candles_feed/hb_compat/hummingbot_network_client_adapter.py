@@ -16,6 +16,7 @@ from candles_feed.core.protocols import (
     NetworkClientProtocol,
     WSAssistant,
 )
+from candles_feed.core.rate_limiter import RATE_LIMIT_STATUSES, RateLimitExceededError
 
 # These imports use type-checking guard to avoid direct dependency
 # They will only be imported at runtime if the components are available
@@ -149,6 +150,30 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         if self._rest_assistant is None:
             self._rest_assistant = await self._web_assistants_factory.get_rest_assistant()
 
+    def _build_rest_request(
+        self, method: str, url: str, params: Any, data: Any, headers: Any
+    ) -> Any:
+        """Build upstream's ``RESTRequest`` (imported lazily).
+
+        Without hummingbot installed (mock components only), the factory must supply a
+        duck-typed ``rest_request_class``.
+        """
+        try:
+            from hummingbot.core.web_assistant.connections.data_types import (
+                RESTMethod,
+                RESTRequest,
+            )
+        except ImportError:
+            request_cls = getattr(self._web_assistants_factory, "rest_request_class", None)
+            if request_cls is None:
+                raise
+            return request_cls(
+                method=method.upper(), url=url, params=params, data=data, headers=headers
+            )
+        return RESTRequest(
+            method=RESTMethod[method.upper()], url=url, params=params, data=data, headers=headers
+        )
+
     async def get_rest_data(
         self,
         url: str,
@@ -177,14 +202,21 @@ class HummingbotNetworkClient(NetworkClientProtocol):
 
         # Rate limiting happens once per request in RateLimitedNetworkClient (CandlesFeed
         # wraps this client), not here.
+        request = self._build_rest_request(
+            method, url, cleaned_params, json.dumps(cleaned_data) if cleaned_data else None, headers
+        )
         try:
-            response = await self._rest_assistant.call(
-                url=url,
-                params=cleaned_params,
-                data=json.dumps(cleaned_data) if cleaned_data else None,
-                headers=headers,
-                method=method,
-            )
+            # RESTAssistant.call takes a RESTRequest and does not check the status.
+            response = await self._rest_assistant.call(request=request)
+            if response.status in RATE_LIMIT_STATUSES:
+                raise RateLimitExceededError.from_response(
+                    response.status, response.headers, f"HTTP {response.status} from {url}"
+                )
+            if response.status >= 400:
+                raise OSError(
+                    f"Error executing request {method} {url}. HTTP status is "
+                    f"{response.status}. Error: {await response.text()}"
+                )
             return await response.json()
         except Exception as e:
             self._logger.error(f"REST request to {url} failed: {e}")
