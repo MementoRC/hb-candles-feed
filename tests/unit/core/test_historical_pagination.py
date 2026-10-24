@@ -289,7 +289,7 @@ class TestHistoricalErrors:
         # A huge retry delay would hang the test if rate-limit retries slept on top of the pause.
         monkeypatch.setattr(candles_feed_module, "HISTORICAL_RETRY_BASE_DELAY", 1000)
         series = [BASE + i * HOUR for i in range(10)]
-        exchange = FakeExchange(series, fail_first=4, error=RateLimitExceededError(429))
+        exchange = FakeExchange(series, fail_first=4, error=RateLimitExceededError(status=429))
         with _install(feed, exchange):
             df = await asyncio.wait_for(feed.get_historical_candles(BASE, series[-1]), 5)
 
@@ -298,7 +298,7 @@ class TestHistoricalErrors:
 
     async def test_persistent_rate_limit_gives_up_after_cap(self, feed, monkeypatch):
         monkeypatch.setattr(candles_feed_module, "HISTORICAL_RETRY_BASE_DELAY", 1000)
-        exchange = FakeExchange([BASE], fail_first=100, error=RateLimitExceededError(418))
+        exchange = FakeExchange([BASE], fail_first=100, error=RateLimitExceededError(status=418))
         with _install(feed, exchange), pytest.raises(HistoricalCandlesError) as excinfo:
             await asyncio.wait_for(feed.get_historical_candles(BASE, BASE + HOUR), 5)
 
