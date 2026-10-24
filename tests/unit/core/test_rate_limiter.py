@@ -146,8 +146,9 @@ class TestPools:
         assert "'shared'" in message
         assert "pkg.SpotAdapter" in message
         assert "pkg.PerpAdapter" in message
-        assert "max_requests=1" in message
-        assert "max_requests=2" in message
+        # The error now reports hb-rate-limit RateLimit definitions (spec 2.3, lines 215-231).
+        assert "limit=1" in message
+        assert "limit=2" in message
         assert isinstance(excinfo.value, ValueError)
 
     def test_differing_period_raises(self):
@@ -353,23 +354,25 @@ class TestInjectedLimiter:
         assert module._LIMITERS == {}
 
     async def test_injection_is_per_feed(self, clock, monkeypatch):
-        monkeypatch.setattr(BinanceSpotAdapter, "REST_RATE_LIMIT", RestRateLimit(5, 1.0))
+        monkeypatch.setattr(BinanceSpotAdapter, "REST_RATE_LIMIT", RestRateLimit(1, 1.0))
         inner = MagicMock()
         inner.get_rest_data = AsyncMock(return_value=[])
         injected = CountingLimiter()
         shared = get_rate_limiter(
-            pool_key_for(BinanceSpotAdapter), RestRateLimit(5, 1.0), clock=clock, sleep=clock.sleep
+            pool_key_for(BinanceSpotAdapter), RestRateLimit(1, 1.0), clock=clock, sleep=clock.sleep
         )
         feed_injected = self._make_feed(BinanceSpotAdapter(), inner, injected)
         feed_default = self._make_feed(BinanceSpotAdapter(), inner)
 
         await feed_default._network_client.get_rest_data(url="http://x")
 
+        # One request fills the 1-per-second shared window; the injected feed must not add to it.
         assert injected.acquisitions == 0
-        assert len(shared._timestamps) == 1
+        assert shared.blocked_for() == pytest.approx(1.0)
         await feed_injected._network_client.get_rest_data(url="http://x")
         assert injected.acquisitions == 1
-        assert len(shared._timestamps) == 1
+        assert shared.blocked_for() == pytest.approx(1.0)
+        assert clock.sleeps == []
 
     def test_resolve_without_injection_returns_shared_pool(self):
         from candles_feed.core.rate_limiter import (

@@ -155,8 +155,6 @@ class TestAsyncRateLimiterPause:
         assert clock.sleeps == [pytest.approx(10.0)]
 
     async def test_pause_extended_while_waiting_is_honoured(self, clock):
-        limiter = make_limiter(clock)
-        limiter.pause(2.0)
         extended = False
 
         async def sleep(seconds: float) -> None:
@@ -167,13 +165,12 @@ class TestAsyncRateLimiterPause:
                 extended = True
                 limiter.pause(3.0)  # another feed got a 429 during our wait
 
-        limiter._sleep = sleep
+        limiter = AsyncRateLimiter(RestRateLimit(100, 1.0), clock=clock, sleep=sleep)
+        limiter.pause(2.0)
         await limiter.acquire()
         assert clock.sleeps == [pytest.approx(2.0), pytest.approx(3.0)]
 
     async def test_pause_arriving_during_window_wait_is_honoured(self, clock):
-        limiter = make_limiter(clock, max_requests=1)
-        await limiter.acquire()  # fills the 1-per-second window
         paused = False
 
         async def sleep(seconds: float) -> None:
@@ -184,7 +181,8 @@ class TestAsyncRateLimiterPause:
                 paused = True
                 limiter.pause(4.0)
 
-        limiter._sleep = sleep
+        limiter = AsyncRateLimiter(RestRateLimit(1, 1.0), clock=clock, sleep=sleep)
+        await limiter.acquire()  # fills the 1-per-second window
         await limiter.acquire()
         assert clock.sleeps == [pytest.approx(1.0), pytest.approx(4.0)]
 
@@ -215,7 +213,7 @@ class FailingClient:
 class TestRateLimitedNetworkClientBackoff:
     async def test_pauses_pool_logs_once_and_reraises(self, clock, caplog):
         limiter = make_limiter(clock)
-        inner = FailingClient(RateLimitExceededError(429, retry_after=7.0))
+        inner = FailingClient(RateLimitExceededError(status=429, retry_after=7.0))
         client = RateLimitedNetworkClient(inner, limiter)
 
         with caplog.at_level(logging.WARNING), pytest.raises(RateLimitExceededError):
@@ -230,7 +228,7 @@ class TestRateLimitedNetworkClientBackoff:
 
     async def test_streak_grows_then_resets_on_success(self, clock):
         limiter = make_limiter(clock)
-        inner = FailingClient(RateLimitExceededError(429))
+        inner = FailingClient(RateLimitExceededError(status=429))
         client = RateLimitedNetworkClient(inner, limiter)
 
         for expected in (5.0, 10.0):
@@ -244,7 +242,7 @@ class TestRateLimitedNetworkClientBackoff:
         await client.get_rest_data()
         assert limiter.backoff.streak == 0
 
-        inner.error = RateLimitExceededError(429)
+        inner.error = RateLimitExceededError(status=429)
         with pytest.raises(RateLimitExceededError):
             await client.get_rest_data()
         before = clock.now
@@ -269,7 +267,9 @@ class TestRateLimitedNetworkClientBackoff:
                 return None
 
         limiter = AcquireOnly()
-        client = RateLimitedNetworkClient(FailingClient(RateLimitExceededError(429)), limiter)
+        client = RateLimitedNetworkClient(
+            FailingClient(RateLimitExceededError(status=429)), limiter
+        )
 
         with caplog.at_level(logging.WARNING):
             for _ in range(3):
@@ -283,7 +283,7 @@ class TestSyncPaths:
     async def test_sync_only_adapter_pauses_pool(self, clock):
         class Adapter(SyncOnlyAdapter):
             def fetch_rest_candles_synchronous(self, trading_pair, interval, start_time, limit):
-                raise RateLimitExceededError(418, retry_after=None)
+                raise RateLimitExceededError(status=418, retry_after=None)
 
         adapter = Adapter()
         limiter = make_limiter(clock)
@@ -475,7 +475,7 @@ class TestThrottlerBridgePause:
     async def test_rate_limited_client_pauses_bridge(self, bridges):
         _, first, second = bridges
         client = RateLimitedNetworkClient(
-            FailingClient(RateLimitExceededError(429, retry_after=0.2)), first
+            FailingClient(RateLimitExceededError(status=429, retry_after=0.2)), first
         )
 
         with pytest.raises(RateLimitExceededError):
@@ -489,7 +489,9 @@ class TestThrottlerBridgePause:
 class TestBurstHandling:
     async def test_concurrent_429_burst_is_one_pause(self, clock):
         limiter = make_limiter(clock)
-        client = RateLimitedNetworkClient(FailingClient(RateLimitExceededError(429)), limiter)
+        client = RateLimitedNetworkClient(
+            FailingClient(RateLimitExceededError(status=429)), limiter
+        )
 
         results = await asyncio.gather(
             *(client.get_rest_data() for _ in range(5)), return_exceptions=True
@@ -512,12 +514,12 @@ class TestBurstHandling:
         limiter = make_limiter(clock)
         limiter.pause(5.0)
         limiter_client = RateLimitedNetworkClient(
-            FailingClient(RateLimitExceededError(429, retry_after=20.0)), limiter
+            FailingClient(RateLimitExceededError(status=429, retry_after=20.0)), limiter
         )
         with pytest.raises(RateLimitExceededError):
             await limiter_client.get_rest_data()
         limiter_client = RateLimitedNetworkClient(
-            FailingClient(RateLimitExceededError(418)), limiter
+            FailingClient(RateLimitExceededError(status=418)), limiter
         )
         with pytest.raises(RateLimitExceededError):
             await limiter_client.get_rest_data()

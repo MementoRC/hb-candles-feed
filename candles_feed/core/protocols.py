@@ -6,8 +6,12 @@ using Python's typing.Protocol system.
 """
 
 from collections.abc import AsyncGenerator
-from contextlib import AbstractAsyncContextManager
 from typing import Any, Protocol, runtime_checkable
+
+# Rate-limiting protocols live in hb-rate-limit; re-exported here under the same names.
+from rate_limit import AsyncThrottlerProtocol as AsyncThrottlerProtocol
+from rate_limit import PausableRateLimiterProtocol as PausableRateLimiterProtocol
+from rate_limit import RestRateLimiterProtocol as RestRateLimiterProtocol
 
 from candles_feed.core.candle_data import CandleData
 
@@ -154,47 +158,4 @@ class NetworkClientProtocol(Protocol):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit the async context manager."""
-        ...
-
-
-@runtime_checkable
-class AsyncThrottlerProtocol(Protocol):
-    """Protocol for API rate limiters.
-
-    This protocol abstracts the rate limiting functionality,
-    allowing for different implementations.
-    """
-
-    def execute_task(self, limit_id: str) -> AbstractAsyncContextManager[Any]:
-        """Return an async context manager that throttles the enclosed task.
-
-        Mirrors hummingbot's ``AsyncThrottlerBase.execute_task``: a plain (non-async)
-        method used as ``async with throttler.execute_task(limit_id): ...``. Entering
-        the context waits until the limit (and any linked limits) have capacity.
-
-        :param limit_id: The rate limit identifier
-        :returns: Async context manager guarding the task
-        """
-        ...
-
-
-@runtime_checkable
-class RestRateLimiterProtocol(Protocol):
-    """Protocol for the limiter that paces REST requests of one feed.
-
-    ``AsyncRateLimiter`` satisfies it; so does the hummingbot connector bridge that
-    draws from the host connector's shared budget.
-    """
-
-    async def acquire(self) -> None:
-        """Wait until one REST request may be sent, then record it."""
-        ...
-
-
-@runtime_checkable
-class PausableRateLimiterProtocol(RestRateLimiterProtocol, Protocol):
-    """A limiter that can also be paused pool-wide after an HTTP 429/418."""
-
-    def pause(self, seconds: float) -> None:
-        """Block every ``acquire`` on this limiter for ``seconds`` (never shortens a pause)."""
         ...
