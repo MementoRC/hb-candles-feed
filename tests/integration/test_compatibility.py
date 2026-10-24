@@ -715,16 +715,18 @@ class TestCandlesFeedWithHummingbotComponents:
 
         # Skip if hummingbot components aren't available
         try:
-            from hummingbot.core.api_throttler.async_throttler import AsyncThrottler
-            from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
+            from candles_feed.hb_compat._web_stack import import_web_stack
 
-            async_throttler_class = AsyncThrottler
-            web_assistants_factory_class = WebAssistantsFactory
+            async_throttler_class = import_web_stack("throttler", "async_throttler").AsyncThrottler
+            web_assistants_factory_class = import_web_stack(
+                "web", "web_assistants_factory"
+            ).WebAssistantsFactory
         except ImportError:
             pytest.skip("Hummingbot components not available")
 
         # Mock Hummingbot components
         mock_throttler = MagicMock(spec=async_throttler_class)
+        mock_throttler.get_related_limits.return_value = (None, [])  # no limits registered
         mock_web_assistants_factory = MagicMock(spec=web_assistants_factory_class)
 
         # Mock adapter

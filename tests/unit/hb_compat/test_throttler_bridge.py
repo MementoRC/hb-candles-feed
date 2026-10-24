@@ -6,10 +6,13 @@ from typing import ClassVar
 
 import pytest
 
-pytest.importorskip("hummingbot.core.api_throttler.async_throttler")
+from candles_feed.hb_compat._web_stack import import_web_stack  # noqa: E402
 
-from hummingbot.core.api_throttler.async_throttler import AsyncThrottler  # noqa: E402
-from hummingbot.core.api_throttler.data_types import RateLimit  # noqa: E402
+try:  # hummingbot, or the standalone hb-web-assistant (the `test-hb` pixi env)
+    AsyncThrottler = import_web_stack("throttler", "async_throttler").AsyncThrottler
+    RateLimit = import_web_stack("throttler", "data_types").RateLimit
+except ImportError:
+    pytest.skip("neither hummingbot nor hb-web-assistant is installed", allow_module_level=True)
 
 from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter  # noqa: E402
 from candles_feed.core.protocols import RestRateLimiterProtocol  # noqa: E402
@@ -61,7 +64,7 @@ def test_registers_candles_feed_limit_for_pool():
     bridge = ConnectorThrottlerBridge(throttler, HostedAdapter())
 
     assert bridge.limit_id == f"candles-feed:unit-pool:{HOST_ID}"
-    limit = throttler._id_to_limit_map[bridge.limit_id]
+    limit = throttler.get_related_limits(bridge.limit_id)[0]
     assert limit.limit == 10
     assert limit.time_interval == 1.0
 
@@ -70,7 +73,7 @@ def test_links_to_host_pool_with_weight():
     throttler = make_throttler()
     ConnectorThrottlerBridge(throttler, HostedAdapter())
 
-    linked = throttler._id_to_limit_map[f"candles-feed:unit-pool:{HOST_ID}"].linked_limits
+    linked = throttler.get_related_limits(f"candles-feed:unit-pool:{HOST_ID}")[0].linked_limits
     assert [(pair.limit_id, pair.weight) for pair in linked] == [(HOST_ID, 2)]
 
 
@@ -94,7 +97,7 @@ def test_unlinked_when_host_pool_missing(caplog):
     with caplog.at_level("INFO", logger="candles_feed.hb_compat.throttler_bridge"):
         ConnectorThrottlerBridge(throttler, HostedAdapter())
 
-    assert throttler._id_to_limit_map["candles-feed:unit-pool"].linked_limits == []
+    assert throttler.get_related_limits("candles-feed:unit-pool")[0].linked_limits == []
     assert any(HOST_ID in record.getMessage() for record in caplog.records)
 
 
@@ -110,7 +113,7 @@ async def test_unlinked_bridge_still_paces_and_logs_only_own_limit():
 def test_unlinked_when_adapter_declares_no_host_pool():
     throttler = make_throttler()
     ConnectorThrottlerBridge(throttler, UnhostedAdapter())
-    assert throttler._id_to_limit_map["candles-feed:unit-pool"].linked_limits == []
+    assert throttler.get_related_limits("candles-feed:unit-pool")[0].linked_limits == []
 
 
 def test_two_bridges_same_pool_share_one_limit():
@@ -190,10 +193,10 @@ class TestPoolConflicts:
             limits_share_percentage=Decimal("55"),
         )
         ConnectorThrottlerBridge(throttler, HostedAdapter())
-        assert throttler._id_to_limit_map[f"candles-feed:unit-pool:{HOST_ID}"].limit == 5
+        assert throttler.get_related_limits(f"candles-feed:unit-pool:{HOST_ID}")[0].limit == 5
         ConnectorThrottlerBridge(throttler, HostedAdapter())
 
-    def test_throttler_without_limit_map_keeps_current_behaviour(self):
+    def test_throttler_without_get_related_limits_keeps_current_behaviour(self):
         class Bare:
             def __init__(self) -> None:
                 self.added: list[RateLimit] = []
@@ -246,7 +249,7 @@ class TestFromConnector:
         )
 
         assert isinstance(bridge, ConnectorThrottlerBridge)
-        assert f"candles-feed:unit-pool:{HOST_ID}" in throttler._id_to_limit_map
+        assert throttler.get_related_limits(f"candles-feed:unit-pool:{HOST_ID}")[0] is not None
 
 
 class TestFactoryWiring:
@@ -261,7 +264,7 @@ class TestFactoryWiring:
         limiter = resolve_adapter_rate_limiter(candle._feed._adapter)
         assert isinstance(limiter, ConnectorThrottlerBridge)
         assert limiter.limit_id == f"candles-feed:{pool_key_for(BinanceSpotAdapter)}:REQUEST_WEIGHT"
-        assert limiter.limit_id in throttler._id_to_limit_map
+        assert throttler.get_related_limits(limiter.limit_id)[0] is not None
 
     async def test_feed_request_goes_through_bridge_once(self):
         throttler = make_throttler()
