@@ -6,8 +6,14 @@ exchange's documented limit with two class attributes:
 
 - `REST_RATE_LIMIT = RestRateLimit(max_requests=N, period_seconds=S)`
 - `REST_RATE_LIMIT_POOL = "name"` (optional): adapters with the same pool share one limiter;
-  without it each adapter class has its own pool. The first adapter to use a pool decides its limit,
-  so adapters sharing a pool must declare identical limits.
+  without it each adapter class has its own pool. Adapters sharing a pool must declare identical
+  limits: a second adapter requesting a different limit for an existing pool (in the framework
+  registry, or on a host connector's throttler via `ConnectorThrottlerBridge`, which also compares
+  the period and linked host limit) raises `RateLimitPoolConflictError` instead of being ignored.
+  A unit test checks that every shared pool in the adapter registry declares an identical
+  `REST_RATE_LIMIT`. The host link (`REST_HOST_RATE_LIMIT_ID` and weight) may differ per variant:
+  it is a per-adapter, per-connector pairing, and the bridge names the throttler limit
+  `candles-feed:<pool>:<host id>`, while the shared candles budget remains `REST_RATE_LIMIT`.
 
 Limits are taken only from the upstream Hummingbot repository (candles module `constants.py` first,
 then the connector constants). The limiter counts requests, not weight, so weighted pools are
