@@ -3571,6 +3571,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/wsproto-1.3.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zope.event-6.2-pyhcf101f3_0.conda
       - pypi: git+https://github.com/MementoRC/hb-logger.git?rev=06534b7708a13b4425a06dd154976db96c2c45be#06534b7708a13b4425a06dd154976db96c2c45be
+      - pypi: git+https://github.com/MementoRC/hb-rate-limit.git?rev=d607e0b0cec67d4ec738310610191e8bc1dd5d8c#d607e0b0cec67d4ec738310610191e8bc1dd5d8c
       - pypi: git+https://github.com/MementoRC/hb-web-assistant.git?rev=9eae358291063551a6cb2ad7c93059ee7f1aca48#9eae358291063551a6cb2ad7c93059ee7f1aca48
       - pypi: https://files.pythonhosted.org/packages/1a/f1/b474e930c4d910328780e3940da76f5aa5cbc48ce1fc14e44d239d9ea9db/cryptography-50.0.2-cp311-abi3-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/35/ea/a56b9fe5066f3537b7882f77e9c5dfb26d8c2eefdaed9b5fc73d57b4dc22/pydantic-2.14.1-py3-none-any.whl
@@ -3713,6 +3714,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zope.interface-8.7-py312hdc27ec5_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-hbc1a06c_7.conda
       - pypi: git+https://github.com/MementoRC/hb-logger.git?rev=06534b7708a13b4425a06dd154976db96c2c45be#06534b7708a13b4425a06dd154976db96c2c45be
+      - pypi: git+https://github.com/MementoRC/hb-rate-limit.git?rev=d607e0b0cec67d4ec738310610191e8bc1dd5d8c#d607e0b0cec67d4ec738310610191e8bc1dd5d8c
       - pypi: git+https://github.com/MementoRC/hb-web-assistant.git?rev=9eae358291063551a6cb2ad7c93059ee7f1aca48#9eae358291063551a6cb2ad7c93059ee7f1aca48
       - pypi: https://files.pythonhosted.org/packages/00/85/602fea6b3662373cf7c6a114c9730c84bf9e054d4918c6b7d84edc052d47/pycares-5.2.1-cp312-cp312-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/35/ea/a56b9fe5066f3537b7882f77e9c5dfb26d8c2eefdaed9b5fc73d57b4dc22/pydantic-2.14.1-py3-none-any.whl
@@ -3855,6 +3857,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zope.interface-8.7-py312hbd136b4_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hf451053_7.conda
       - pypi: git+https://github.com/MementoRC/hb-logger.git?rev=06534b7708a13b4425a06dd154976db96c2c45be#06534b7708a13b4425a06dd154976db96c2c45be
+      - pypi: git+https://github.com/MementoRC/hb-rate-limit.git?rev=d607e0b0cec67d4ec738310610191e8bc1dd5d8c#d607e0b0cec67d4ec738310610191e8bc1dd5d8c
       - pypi: git+https://github.com/MementoRC/hb-web-assistant.git?rev=9eae358291063551a6cb2ad7c93059ee7f1aca48#9eae358291063551a6cb2ad7c93059ee7f1aca48
       - pypi: https://files.pythonhosted.org/packages/1b/4b/af8ca15261db52ab07f5d0c2d4c1bc28d822ea4c2a79756bc2606c012e7c/pandas-3.1.0-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/24/5a/2da75ee00a722ef1fa068ada3bc34c564595ead86fef573434e2f0cb0a5c/coincurve-21.0.0-cp312-cp312-macosx_11_0_arm64.whl
@@ -3995,6 +3998,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/zope.interface-8.7-py312he5662c2_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.7-h534d264_7.conda
       - pypi: git+https://github.com/MementoRC/hb-logger.git?rev=06534b7708a13b4425a06dd154976db96c2c45be#06534b7708a13b4425a06dd154976db96c2c45be
+      - pypi: git+https://github.com/MementoRC/hb-rate-limit.git?rev=d607e0b0cec67d4ec738310610191e8bc1dd5d8c#d607e0b0cec67d4ec738310610191e8bc1dd5d8c
       - pypi: git+https://github.com/MementoRC/hb-web-assistant.git?rev=9eae358291063551a6cb2ad7c93059ee7f1aca48#9eae358291063551a6cb2ad7c93059ee7f1aca48
       - pypi: https://files.pythonhosted.org/packages/10/72/06aefff8fe5efc5e1ca8bfb2695b648a435358f6dc224d4e40159314181a/pandas-3.1.0-cp312-cp312-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/12/33/fefe62073dc8acfd0f2b9ed7c003af2f50aa61555e113e6db02b8f79f145/numpy-2.5.4-cp312-cp312-win_amd64.whl
