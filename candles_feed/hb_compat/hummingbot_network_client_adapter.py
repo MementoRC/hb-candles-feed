@@ -17,23 +17,19 @@ from candles_feed.core.protocols import (
     WSAssistant,
 )
 from candles_feed.core.rate_limiter import RATE_LIMIT_STATUSES, RateLimitExceededError
+from candles_feed.hb_compat._web_stack import import_web_stack
 
 # These imports use type-checking guard to avoid direct dependency
 # They will only be imported at runtime if the components are available
 try:
-    from hummingbot.core.api_throttler.async_throttler_base import AsyncThrottlerBase
-    from hummingbot.core.web_assistant.rest_assistant import RESTAssistant
-    from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
-    from hummingbot.core.web_assistant.ws_assistant import WSAssistant as HummingbotWSAssistant
+    # hummingbot, or the standalone hb-web-assistant package when hummingbot is absent
+    import_web_stack("throttler", "async_throttler_base")
+    import_web_stack("web", "rest_assistant")
+    import_web_stack("web", "web_assistants_factory")
+    import_web_stack("web", "ws_assistant")
 
     HUMMINGBOT_AVAILABLE = True
 except ImportError:
-    # Define placeholder types for type checking
-
-    WebAssistantsFactory = Any
-    RESTAssistant = Any
-    HummingbotWSAssistant = Any
-    AsyncThrottlerBase = Any
     HUMMINGBOT_AVAILABLE = False
 
 
@@ -98,7 +94,7 @@ class HummingbotWSAssistantAdapter(WSAssistant):
 class HummingbotThrottlerAdapter(AsyncThrottlerProtocol):
     """Adapter for Hummingbot's AsyncThrottler to match our AsyncThrottlerProtocol."""
 
-    def __init__(self, throttler: AsyncThrottlerBase):
+    def __init__(self, throttler: Any):
         """Initialize the adapter.
 
         :param throttler: Hummingbot's AsyncThrottler instance
@@ -143,7 +139,7 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         self._web_assistants_factory = web_assistants_factory
         self._throttler_adapter = HummingbotThrottlerAdapter(throttler)
         self._logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
-        self._rest_assistant: RESTAssistant | None = None
+        self._rest_assistant: Any | None = None
 
     async def _ensure_rest_assistant(self):
         """Ensure REST assistant is initialized."""
@@ -159,10 +155,8 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         duck-typed ``rest_request_class``.
         """
         try:
-            from hummingbot.core.web_assistant.connections.data_types import (
-                RESTMethod,
-                RESTRequest,
-            )
+            data_types = import_web_stack("web", "connections.data_types")
+            RESTMethod, RESTRequest = data_types.RESTMethod, data_types.RESTRequest  # noqa: N806
         except ImportError:
             request_cls = getattr(self._web_assistants_factory, "rest_request_class", None)
             if request_cls is None:

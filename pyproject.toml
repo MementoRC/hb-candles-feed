@@ -225,6 +225,16 @@ hb-cython-framework = { git = "https://github.com/MementoRC/hb-cython-framework.
 [tool.pixi.feature.accel.tasks]
 test-parity = "pytest tests/unit/core/test_data_processor_parity.py -v"
 
+# Test-only throttler/REST stack for the hb_compat tests (`test-hb` env). Not a runtime
+# dependency of candles-feed (ADR 0001: L2 sub-packages stay independent); the tests and
+# hb_compat fall back from `hummingbot.core.*` to `web_assistant.*`. Kept out of `dev`
+# so the shared envs stay pure-conda. Pinned to a commit like sibling sub-packages.
+[tool.pixi.feature.hb-web-assistant.pypi-dependencies]
+hb-web-assistant = { git = "https://github.com/MementoRC/hb-web-assistant.git", rev = "9eae358291063551a6cb2ad7c93059ee7f1aca48" }
+
+[tool.pixi.feature.hb-web-assistant.tasks]
+test-hb = "pytest tests/unit/hb_compat/test_throttler_bridge.py tests/unit/core/test_rate_limit_backoff.py tests/integration/test_rate_limit_backoff_integration.py tests/integration/test_compatibility.py -m 'not live and not slow'"
+
 # Python version features
 [tool.pixi.feature.py312.dependencies]
 python = ">=3.12,<3.13"
@@ -238,6 +248,7 @@ quality-extended = { features = ["quality-extended", "py312"], solve-group = "de
 quality-ci = { features = ["quality-ci", "py312"], solve-group = "default" }
 py312 = { features = ["py312", "dev"], solve-group = "py312" }
 accel = { features = ["accel", "dev", "py312"] }
+test-hb = { features = ["hb-web-assistant", "dev", "py312"] }
 
 # Keep existing tool configurations
 [tool.coverage.run]

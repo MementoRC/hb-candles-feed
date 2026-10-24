@@ -22,6 +22,7 @@ from candles_feed.core.rate_limiter import (
     rest_limit_for,
     wait_out_deadline,
 )
+from candles_feed.hb_compat._web_stack import import_web_stack
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,17 @@ logger = logging.getLogger(__name__)
 _SHARED_STATES: "weakref.WeakKeyDictionary[Any, dict[str, PauseState]]" = (
     weakref.WeakKeyDictionary()
 )
+
+
+def _registered_limit(throttler: Any, limit_id: str) -> Any:
+    """The throttler's registered ``RateLimit`` for ``limit_id``, or None if absent.
+
+    Uses the public ``get_related_limits``; a throttler without it counts as having none.
+    """
+    getter = getattr(throttler, "get_related_limits", None)
+    if getter is None:
+        return None
+    return getter(limit_id)[0]
 
 
 def _shared_state(throttler: Any, limit_id: str) -> PauseState:
@@ -87,8 +99,13 @@ class ConnectorThrottlerBridge:
     """
 
     def __init__(self, throttler: AsyncThrottlerProtocol, adapter: Any) -> None:
-        # Imported here so that importing this module never requires hummingbot.
-        from hummingbot.core.api_throttler.data_types import LinkedLimitWeightPair, RateLimit
+        # Imported here so that importing this module never requires hummingbot
+        # (or the standalone hb-web-assistant that stands in for it).
+        data_types = import_web_stack("throttler", "data_types")
+        LinkedLimitWeightPair, RateLimit = (  # noqa: N806
+            data_types.LinkedLimitWeightPair,
+            data_types.RateLimit,
+        )
 
         self._throttler = throttler
         pool = pool_key_for(adapter)
@@ -103,7 +120,7 @@ class ConnectorThrottlerBridge:
             logger.debug(
                 "%s declares no host rate-limit pool; registering %s unlinked", pool, self._limit_id
             )
-        elif host_id not in (getattr(throttler, "_id_to_limit_map", None) or {}):
+        elif _registered_limit(throttler, host_id) is None:
             logger.info(
                 "Host throttler has no rate limit %r; registering %s unlinked",
                 host_id,
@@ -120,7 +137,7 @@ class ConnectorThrottlerBridge:
             time_interval=limit.period_seconds,
             linked_limits=linked,
         )
-        existing = (getattr(throttler, "_id_to_limit_map", None) or {}).get(self._limit_id)
+        existing = _registered_limit(throttler, self._limit_id)
         if existing is not None:
             _check_same_limit(throttler, pool, existing, requested, _owner_name(adapter))
         throttler.add_rate_limits([requested])  # type: ignore[attr-defined]
