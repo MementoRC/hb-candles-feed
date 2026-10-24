@@ -145,12 +145,14 @@ class HybridCandlesFactory:
 connectors do not), the feed's REST requests are paced through that throttler instead of the
 process-wide per-exchange pool:
 
-- The factory registers one extra rate limit `candles-feed:<pool>` on the connector's throttler
-  (sized from the adapter's `REST_RATE_LIMIT`, additive, shared by feeds of the same pool).
+- The factory registers one extra rate limit on the connector's throttler (sized from the
+  adapter's `REST_RATE_LIMIT`, additive, shared by feeds with the same id). A different
+  definition under an existing id raises `RateLimitPoolConflictError`.
 - If the adapter declares `REST_HOST_RATE_LIMIT_ID` (e.g. `"REQUEST_WEIGHT"`) and the throttler
-  defines that limit, the new limit is linked to it with `REST_HOST_RATE_LIMIT_WEIGHT`, so each
-  klines request also spends the connector's own budget. Otherwise the limit is registered
-  unlinked and only paces the feed (logged once at info level).
+  defines that limit, the limit is named `candles-feed:<pool>:<host id>` and linked to it with
+  `REST_HOST_RATE_LIMIT_WEIGHT`, so each klines request also spends the connector's own budget.
+  Otherwise it is named `candles-feed:<pool>`, registered unlinked, and only paces the feed
+  (logged once at info level). A 429/418 pause is shared per pool across both forms.
 - Each REST request acquires exactly once, for async and sync-only adapters alike.
 
 Without a connector (or without a throttler) nothing changes: the shared per-exchange pool is

@@ -156,6 +156,25 @@ def test_shared_pool_variants_declare_identical_limits(names: tuple[str, str]) -
     assert first.REST_RATE_LIMIT == second.REST_RATE_LIMIT
 
 
+def _pool_members() -> dict[str, list[type[BaseAdapter]]]:
+    pools: dict[str, list[type[BaseAdapter]]] = {}
+    for name in sorted(_shipped_names()):
+        cls = _adapter(name)
+        pools.setdefault(pool_key_for(cls), []).append(cls)
+    return {key: members for key, members in pools.items() if len(members) > 1}
+
+
+@pytest.mark.parametrize("pool", sorted(_pool_members()))
+def test_every_shared_pool_declares_identical_limit(pool: str) -> None:
+    """Members of one pool share one budget, so REST_RATE_LIMIT must match exactly.
+
+    The host link (REST_HOST_RATE_LIMIT_ID / weight) may differ per variant: it is a
+    per-adapter, per-connector pairing and the bridge names its limit by pool + host id.
+    """
+    members = _pool_members()[pool]
+    assert len({m.REST_RATE_LIMIT for m in members}) == 1
+
+
 @pytest.mark.parametrize(("first", "second"), SEPARATE_POOLS)
 def test_variants_with_separate_budgets_get_separate_limiters(first: str, second: str) -> None:
     assert pool_key_for(_adapter(first)) != pool_key_for(_adapter(second))

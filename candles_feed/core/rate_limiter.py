@@ -166,6 +166,27 @@ class RestRateLimit:
             raise ValueError("period_seconds must be a finite number > 0")
 
 
+class RateLimitPoolConflictError(ValueError):
+    """Two adapters sharing one rate-limit pool declare different limits."""
+
+    def __init__(
+        self,
+        pool: str,
+        existing: object,
+        requested: object,
+        existing_owner: str | None = None,
+        requested_owner: str | None = None,
+    ) -> None:
+        by = f" (registered by {existing_owner})" if existing_owner else ""
+        asker = f" by {requested_owner}" if requested_owner else ""
+        super().__init__(
+            f"Rate-limit pool {pool!r} already has limit {existing}{by}; "
+            f"conflicting limit {requested} requested{asker}. "
+            "Adapters sharing a REST_RATE_LIMIT_POOL must declare identical limits."
+        )
+        self.pool = pool
+
+
 # Used when an adapter does not declare REST_RATE_LIMIT.
 DEFAULT_REST_RATE_LIMIT = RestRateLimit(max_requests=5, period_seconds=1.0)
 
@@ -186,6 +207,7 @@ class AsyncRateLimiter:
         self._lock: asyncio.Lock | None = None
         self._lock_loop: asyncio.AbstractEventLoop | None = None
         self.name: str | None = None  # pool key, for log messages
+        self.owner: str | None = None  # adapter that registered the pool, for error messages
         self._pause = PauseState()
 
     @property
@@ -266,15 +288,22 @@ def get_rate_limiter(
     limit: RestRateLimit,
     clock: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    owner: str | None = None,
 ) -> AsyncRateLimiter:
     """Return the process-wide limiter for a pool, creating it on first use.
 
-    The first caller's limit, clock and sleep win; later callers get the same instance.
+    The first caller's clock and sleep win; later callers get the same instance.
+
+    :param owner: Name of the registering adapter, used in conflict messages
+    :raises RateLimitPoolConflictError: the pool exists with a different ``limit``
     """
     limiter = _LIMITERS.get(pool_key)
     if limiter is None:
         limiter = _LIMITERS[pool_key] = AsyncRateLimiter(limit, clock=clock, sleep=sleep)
         limiter.name = pool_key
+        limiter.owner = owner
+    elif limiter.limit != limit:
+        raise RateLimitPoolConflictError(pool_key, limiter.limit, limit, limiter.owner, owner)
     return limiter
 
 
@@ -292,7 +321,10 @@ def set_adapter_rate_limiter(adapter: Any, limiter: RestRateLimiterProtocol | No
 
 def get_adapter_rate_limiter(adapter: Any) -> AsyncRateLimiter:
     """Return the shared process-wide limiter for an adapter class or instance."""
-    return get_rate_limiter(pool_key_for(adapter), rest_limit_for(adapter))
+    cls = adapter if isinstance(adapter, type) else type(adapter)
+    return get_rate_limiter(
+        pool_key_for(adapter), rest_limit_for(adapter), owner=f"{cls.__module__}.{cls.__qualname__}"
+    )
 
 
 def resolve_adapter_rate_limiter(adapter: Any) -> RestRateLimiterProtocol:

@@ -16,7 +16,9 @@ from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.rate_limiter import (
     AsyncRateLimiter,
     RateLimitedNetworkClient,
+    RateLimitPoolConflictError,
     RestRateLimit,
+    get_adapter_rate_limiter,
     get_rate_limiter,
     pool_key_for,
     reset_rate_limiters,
@@ -135,6 +137,40 @@ class TestPools:
     def test_same_pool_key_returns_same_limiter(self):
         limit = RestRateLimit(1, 1.0)
         assert get_rate_limiter("shared", limit) is get_rate_limiter("shared", limit)
+
+    def test_differing_limit_on_existing_pool_raises(self):
+        get_rate_limiter("shared", RestRateLimit(1, 1.0), owner="pkg.SpotAdapter")
+        with pytest.raises(RateLimitPoolConflictError) as excinfo:
+            get_rate_limiter("shared", RestRateLimit(2, 1.0), owner="pkg.PerpAdapter")
+        message = str(excinfo.value)
+        assert "'shared'" in message
+        assert "pkg.SpotAdapter" in message
+        assert "pkg.PerpAdapter" in message
+        assert "max_requests=1" in message
+        assert "max_requests=2" in message
+        assert isinstance(excinfo.value, ValueError)
+
+    def test_differing_period_raises(self):
+        get_rate_limiter("shared", RestRateLimit(1, 1.0))
+        with pytest.raises(RateLimitPoolConflictError):
+            get_rate_limiter("shared", RestRateLimit(1, 2.0))
+
+    def test_differing_clock_with_same_limit_is_not_a_conflict(self, clock):
+        first = get_rate_limiter("shared", RestRateLimit(1, 1.0))
+        assert get_rate_limiter("shared", RestRateLimit(1, 1.0), clock=clock) is first
+
+    def test_adapters_with_conflicting_pool_limits_raise(self):
+        class SpotAdapter(BaseAdapter):
+            REST_RATE_LIMIT = RestRateLimit(1, 1.0)
+            REST_RATE_LIMIT_POOL = "conflict-pool"
+
+        class PerpAdapter(BaseAdapter):
+            REST_RATE_LIMIT = RestRateLimit(2, 1.0)
+            REST_RATE_LIMIT_POOL = "conflict-pool"
+
+        get_adapter_rate_limiter(SpotAdapter)
+        with pytest.raises(RateLimitPoolConflictError, match="SpotAdapter"):
+            get_adapter_rate_limiter(PerpAdapter)
 
     def test_pool_key_defaults_to_adapter_class(self):
         class AdapterA(BaseAdapter):
@@ -316,7 +352,8 @@ class TestInjectedLimiter:
         assert limiter.acquisitions == 1
         assert module._LIMITERS == {}
 
-    async def test_injection_is_per_feed(self, clock):
+    async def test_injection_is_per_feed(self, clock, monkeypatch):
+        monkeypatch.setattr(BinanceSpotAdapter, "REST_RATE_LIMIT", RestRateLimit(5, 1.0))
         inner = MagicMock()
         inner.get_rest_data = AsyncMock(return_value=[])
         injected = CountingLimiter()
@@ -366,7 +403,8 @@ class TestAdapterRestFetchIsLimited:
         ):
             return CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="1m")
 
-    async def test_rest_fetch_goes_through_limiter(self, clock):
+    async def test_rest_fetch_goes_through_limiter(self, clock, monkeypatch):
+        monkeypatch.setattr(BinanceSpotAdapter, "REST_RATE_LIMIT", RestRateLimit(1, 5.0))
         inner = MagicMock()
         inner.get_rest_data = AsyncMock(return_value=[])
         get_rate_limiter(
@@ -384,7 +422,8 @@ class TestAdapterRestFetchIsLimited:
         assert inner.get_rest_data.await_count == 2
         assert clock.sleeps == [pytest.approx(5.0)]
 
-    async def test_two_feeds_for_same_exchange_share_limiter(self, clock):
+    async def test_two_feeds_for_same_exchange_share_limiter(self, clock, monkeypatch):
+        monkeypatch.setattr(BinanceSpotAdapter, "REST_RATE_LIMIT", RestRateLimit(1, 5.0))
         inner = MagicMock()
         inner.get_rest_data = AsyncMock(return_value=[])
         get_rate_limiter(
