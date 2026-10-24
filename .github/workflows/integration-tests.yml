@@ -126,6 +126,34 @@ jobs:
           path: test-results-*.xml
           retention-days: 14
 
+  # Runs the hb_compat throttler/REST tests against the standalone hb-web-assistant
+  # package (test-only `test-hb` env; not a runtime dependency). Not in integration-status.
+  test-hb-web-assistant:
+    name: hb_compat on hb-web-assistant
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.src-changed == 'true'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.8.13
+        with:
+          environments: test-hb
+          cache: true
+
+      - name: Install project
+        run: pixi run -e test-hb pip install -e .
+
+      - name: Run hb_compat tests on web-assistant
+        env:
+          PYTHONNOUSERSITE: "1"
+        run: pixi run -e test-hb test-hb --timeout=1200 --tb=short -q
+
   integration-status:
     name: Integration Status
     runs-on: ubuntu-latest

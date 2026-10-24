@@ -36,6 +36,7 @@ from candles_feed.core.rate_limiter import (
     reset_rate_limiters,
     set_adapter_rate_limiter,
 )
+from candles_feed.hb_compat._web_stack import import_web_stack
 
 
 class FakeClock:
@@ -438,9 +439,10 @@ class TestCcxtTranslation:
 class TestThrottlerBridgePause:
     @pytest.fixture
     def bridges(self):
-        pytest.importorskip("hummingbot")
-        from hummingbot.core.api_throttler.async_throttler import AsyncThrottler
-
+        try:  # hummingbot, or the standalone hb-web-assistant (the `test-hb` pixi env)
+            AsyncThrottler = import_web_stack("throttler", "async_throttler").AsyncThrottler  # noqa: N806
+        except ImportError:
+            pytest.skip("neither hummingbot nor hb-web-assistant is installed")
         from candles_feed.hb_compat.throttler_bridge import ConnectorThrottlerBridge
 
         throttler = AsyncThrottler([])
@@ -462,8 +464,7 @@ class TestThrottlerBridgePause:
         assert time.monotonic() - started >= 0.18
 
     async def test_other_throttler_is_unaffected(self, bridges):
-        from hummingbot.core.api_throttler.async_throttler import AsyncThrottler
-
+        AsyncThrottler = import_web_stack("throttler", "async_throttler").AsyncThrottler  # noqa: N806
         from candles_feed.hb_compat.throttler_bridge import ConnectorThrottlerBridge
 
         _, first, _ = bridges
