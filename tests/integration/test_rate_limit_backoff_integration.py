@@ -6,8 +6,6 @@ Covers the mock exchange server (real ~1s Retry-After delay) and hummingbot's re
 ``HummingbotNetworkClient``.
 """
 
-import json
-import sys
 import time
 
 import pytest
@@ -22,6 +20,7 @@ from candles_feed.core.rate_limiter import (
     get_rate_limiter,
     reset_rate_limiters,
 )
+from candles_feed.hb_compat._web_stack import import_web_stack
 
 
 @pytest.fixture(autouse=True)
@@ -114,16 +113,16 @@ class TestRealRestAssistant:
 
     @pytest.fixture
     async def client(self, monkeypatch):
-        pytest.importorskip("hummingbot")
-        try:
-            import ujson  # noqa: F401
-        except ImportError:  # upstream only uses ujson.dumps; json is a drop-in here
-            monkeypatch.setitem(sys.modules, "ujson", json)
+        try:  # hummingbot, or the standalone hb-web-assistant (the `test-hb` pixi env)
+            AsyncThrottler = import_web_stack("throttler", "async_throttler").AsyncThrottler  # noqa: N806
+            WebAssistantsFactory = import_web_stack(  # noqa: N806
+                "web", "web_assistants_factory"
+            ).WebAssistantsFactory
+        except ImportError:
+            pytest.skip("neither hummingbot nor hb-web-assistant is installed")
         monkeypatch.setattr(
             "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         )
-        from hummingbot.core.api_throttler.async_throttler import AsyncThrottler
-        from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
 
         from candles_feed.hb_compat.hummingbot_network_client_adapter import (
             HummingbotNetworkClient,
