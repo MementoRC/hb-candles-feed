@@ -68,37 +68,37 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         :param interval: The candle interval.
         :returns: Formatted response as expected from Gate.io's REST API.
         """
-        # Gate.io REST API candle response format:
-        # [
-        #   [
-        #     "1626770400",  // timestamp
-        #     "29932.21",    // open
-        #     "30326.37",    // close
-        #     "29586.26",    // low
-        #     "30549.57",    // high
-        #     "2501.976433", // volume
-        #     "74626209.16", // quote currency volume
-        #     "BTC_USDT"     // currency pair
-        #   ],
-        #   ...
-        # ]
+        # Gate.io v4 spot REST rows:
+        #   [ts, quote_volume, close, high, low, open, base_volume, window_closed]
+        # Gate.io v4 futures REST rows (dicts):
+        #   {"t": ts, "v": contracts, "c": close, "h": high, "l": low, "o": open, "sum": quote}
+        if self.exchange_type == ExchangeType.GATE_IO_PERPETUAL:
+            return [
+                {
+                    "t": int(c.timestamp_ms / 1000),
+                    "v": c.volume,
+                    "c": str(c.close),
+                    "h": str(c.high),
+                    "l": str(c.low),
+                    "o": str(c.open),
+                    "sum": str(c.quote_asset_volume),
+                }
+                for c in candles
+            ]
 
-        formatted_candles = []
-        for c in candles:
-            formatted_candles.append(
-                [
-                    str(int(c.timestamp_ms / 1000)),  # Timestamp in seconds as string
-                    str(c.open),  # Open price
-                    str(c.close),  # Close price
-                    str(c.low),  # Low price
-                    str(c.high),  # High price
-                    str(c.volume),  # Volume
-                    str(c.quote_asset_volume),  # Quote asset volume
-                    trading_pair.replace("-", "_"),  # Trading pair in Gate.io format
-                ]
-            )
-
-        return formatted_candles
+        return [
+            [
+                str(int(c.timestamp_ms / 1000)),  # Timestamp in seconds as string
+                str(c.quote_asset_volume),  # Quote currency volume
+                str(c.close),
+                str(c.high),
+                str(c.low),
+                str(c.open),
+                str(c.volume),  # Base currency volume
+                "true",  # Window closed
+            ]
+            for c in candles
+        ]
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -134,8 +134,11 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         formatted_pair = trading_pair.replace("-", "_")
 
         channel_name = "spot.candlesticks"
+        # Spot: v = quote volume, a = base amount. Futures: v = contracts, a = quote amount.
+        volume, quote_volume = candle.quote_asset_volume, candle.volume
         if self.exchange_type in [ExchangeType.GATE_IO_PERPETUAL]:
             channel_name = "futures.candlesticks"
+            volume, quote_volume = candle.volume, candle.quote_asset_volume
 
         return {
             "time": int(candle.timestamp_ms / 1000),
@@ -147,8 +150,8 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
                 "c": str(candle.close),  # Close price
                 "l": str(candle.low),  # Low price
                 "h": str(candle.high),  # High price
-                "v": str(candle.volume),  # Volume
-                "a": str(candle.quote_asset_volume),  # Quote asset volume
+                "v": str(volume),
+                "a": str(quote_volume),
                 "n": formatted_pair,  # Currency pair
                 "i": interval_code,  # Interval
             },
@@ -205,7 +208,8 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         params = request.query
 
         # Convert Gate.io-specific parameter names to the generic ones expected by handle_klines
-        currency_pair = params.get("currency_pair", "").replace("_", "-")
+        raw_pair = params.get("currency_pair") or params.get("contract")
+        currency_pair = (raw_pair or "").replace("_", "-")
         interval = params.get("interval")
         limit = params.get("limit")
         from_time = params.get("from")
@@ -225,7 +229,7 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
             "end_time": to_time,  # 'to' in Gate.io maps to 'end_time' in generic handler
             "limit": limit,  # Same parameter name
             # Also keep the original Gate.io parameter names for reference
-            "currency_pair": params.get("currency_pair"),
+            "currency_pair": raw_pair,
             "from": from_time,
             "to": to_time,
         }

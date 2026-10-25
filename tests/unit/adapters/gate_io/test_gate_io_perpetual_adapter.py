@@ -42,7 +42,7 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
     def get_expected_rest_params_minimal(self, trading_pair, interval):
         """Return the expected minimal REST params for the adapter."""
         return {
-            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "contract": self.get_expected_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
@@ -50,7 +50,7 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
     def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
         return {
-            "currency_pair": self.get_expected_trading_pair_format(trading_pair),
+            "contract": self.get_expected_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
             "from": start_time,  # Gate.io uses seconds
@@ -75,27 +75,26 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
         """Return a mock candlestick response for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
+        # Futures REST rows are dicts: t, v (contracts), c, h, l, o, sum (quote)
         return [
-            [
-                str(base_time),  # timestamp
-                "50000.0",  # open
-                "50500.0",  # close
-                "49000.0",  # low
-                "51000.0",  # high
-                "100.0",  # volume
-                "5000000.0",  # quote currency volume
-                "BTC_USDT",  # currency pair
-            ],
-            [
-                str(base_time + 60),  # timestamp
-                "50500.0",  # open
-                "51500.0",  # close
-                "50000.0",  # low
-                "52000.0",  # high
-                "150.0",  # volume
-                "7500000.0",  # quote currency volume
-                "BTC_USDT",  # currency pair
-            ],
+            {
+                "t": base_time,
+                "v": 100,
+                "c": "50500.0",
+                "h": "51000.0",
+                "l": "49000.0",
+                "o": "50000.0",
+                "sum": "5000000.0",
+            },
+            {
+                "t": base_time + 60,
+                "v": 150,
+                "c": "51500.0",
+                "h": "52000.0",
+                "l": "50000.0",
+                "o": "50500.0",
+                "sum": "7500000.0",
+            },
         ]
 
     def get_mock_websocket_message(self):
@@ -103,24 +102,46 @@ class TestGateIoPerpetualAdapter(BaseAdapterTest):
         base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
-            "method": "update",
+            "time": base_time,
             "channel": PERPETUAL_CHANNEL_NAME,
-            "params": [
-                {"currency_pair": "BTC_USDT", "interval": "1m", "status": "open"},
-                [
-                    str(base_time),  # timestamp
-                    "50000.0",  # open
-                    "50500.0",  # close
-                    "49000.0",  # low
-                    "51000.0",  # high
-                    "100.0",  # volume
-                    "5000000.0",  # quote currency volume
-                    "BTC_USDT",  # currency pair
-                ],
+            "event": "update",
+            "result": [
+                {
+                    "t": base_time,
+                    "v": 100,
+                    "c": "50500.0",
+                    "h": "51000.0",
+                    "l": "49000.0",
+                    "o": "50000.0",
+                    "n": "1m_BTC_USDT",
+                    "a": "5000000.0",
+                }
             ],
         }
 
     # Additional test cases specific to GateIoPerpetualAdapter
+
+    def test_rest_dict_row_mapping(self, adapter):
+        """Futures dict rows must map to the right CandleData fields."""
+        (candle, _) = adapter._parse_rest_response(self.get_mock_candlestick_response())
+
+        assert candle.open == 50000.0
+        assert candle.high == 51000.0
+        assert candle.low == 49000.0
+        assert candle.close == 50500.0
+        assert candle.volume == 100.0
+        assert candle.quote_asset_volume == 5000000.0
+
+    def test_ws_list_result_mapping(self, adapter):
+        """Futures WS list-of-dict result must map to the right fields."""
+        (candle,) = adapter.parse_ws_message(self.get_mock_websocket_message())
+
+        assert candle.open == 50000.0
+        assert candle.high == 51000.0
+        assert candle.low == 49000.0
+        assert candle.close == 50500.0
+        assert candle.volume == 100.0
+        assert candle.quote_asset_volume == 5000000.0
 
     def test_perpetual_specific_features(self, adapter):
         """Test perpetual-specific features."""
