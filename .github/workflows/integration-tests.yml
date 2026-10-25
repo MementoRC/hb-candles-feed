@@ -131,6 +131,8 @@ jobs:
   test-hb-web-assistant:
     name: hb_compat on hb-web-assistant
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: changes
     if: needs.changes.outputs.src-changed == 'true'
     defaults:
