@@ -10,6 +10,7 @@ import logging
 import math
 import time
 import weakref
+from collections.abc import Awaitable, Callable
 from decimal import Decimal
 from typing import Any
 
@@ -98,7 +99,14 @@ class ConnectorThrottlerBridge:
     429/418 pause is shared per pool, across host links.
     """
 
-    def __init__(self, throttler: AsyncThrottlerProtocol, adapter: Any) -> None:
+    def __init__(
+        self,
+        throttler: AsyncThrottlerProtocol,
+        adapter: Any,
+        *,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> None:
         # Imported here so that importing this module never requires hummingbot
         # (or the standalone hb-web-assistant that stands in for it).
         data_types = import_web_stack("throttler", "data_types")
@@ -108,6 +116,8 @@ class ConnectorThrottlerBridge:
         )
 
         self._throttler = throttler
+        self._clock = clock
+        self._sleep = sleep
         pool = pool_key_for(adapter)
         # The pause is keyed by pool: the exchange's shared budget, whatever the host link.
         self._state = _shared_state(throttler, pool)
@@ -175,14 +185,14 @@ class ConnectorThrottlerBridge:
 
         This only stops the feeds; it cannot stop the host connector's own requests.
         """
-        self._state.deadline = max(self._state.deadline, time.monotonic() + max(0.0, seconds))
+        self._state.deadline = max(self._state.deadline, self._clock() + max(0.0, seconds))
 
     def is_paused(self) -> bool:
         """Whether a pause is currently active on this limit."""
-        return self._state.deadline > time.monotonic()
+        return self._state.deadline > self._clock()
 
     async def acquire(self) -> None:
         """Wait out any pause, then for capacity on the feed's limit (and linked host pool)."""
-        await wait_out_deadline(lambda: self._state.deadline, time.monotonic, asyncio.sleep)
+        await wait_out_deadline(lambda: self._state.deadline, self._clock, self._sleep)
         async with self._throttler.execute_task(self._limit_id):
             pass
