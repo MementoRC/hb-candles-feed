@@ -21,6 +21,7 @@ class GateIoPerpetualAdapter(GateIoBaseAdapter):
     """Gate.io perpetual exchange adapter."""
 
     # hummingbot/data_feed/candles_feed/gate_io_perpetual_candles/constants.py:31,40,42 — public points pool 300/1s, candles linked weight 1
+    REST_PAIR_PARAM = "contract"
     REST_RATE_LIMIT = RestRateLimit(max_requests=300, period_seconds=1)
     # hummingbot/data_feed/candles_feed/gate_io_perpetual_candles/constants.py:42 links candles to PublicPoints (default weight 1) (pool also in connector/derivative/gate_io_perpetual/gate_io_perpetual_constants.py:61)
     REST_HOST_RATE_LIMIT_ID = "PublicPoints"

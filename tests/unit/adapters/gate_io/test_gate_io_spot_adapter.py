@@ -75,26 +75,27 @@ class TestGateIoSpotAdapter(BaseAdapterTest):
         """Return a mock candlestick response for the adapter."""
         base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
+        # Gate.io v4 order: [ts, quote_vol, close, high, low, open, base_vol, closed]
         return [
             [
-                str(base_time),  # timestamp
-                "50000.0",  # open
-                "50500.0",  # close
-                "49000.0",  # low
-                "51000.0",  # high
-                "100.0",  # volume
-                "5000000.0",  # quote currency volume
-                "BTC_USDT",  # currency pair
+                str(base_time),
+                "5000000.0",
+                "50500.0",
+                "51000.0",
+                "49000.0",
+                "50000.0",
+                "100.0",
+                "true",
             ],
             [
-                str(base_time + 60),  # timestamp
-                "50500.0",  # open
-                "51500.0",  # close
-                "50000.0",  # low
-                "52000.0",  # high
-                "150.0",  # volume
-                "7500000.0",  # quote currency volume
-                "BTC_USDT",  # currency pair
+                str(base_time + 60),
+                "7500000.0",
+                "51500.0",
+                "52000.0",
+                "50000.0",
+                "50500.0",
+                "150.0",
+                "false",
             ],
         ]
 
@@ -103,24 +104,59 @@ class TestGateIoSpotAdapter(BaseAdapterTest):
         base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
-            "method": "update",
+            "time": base_time,
             "channel": SPOT_CHANNEL_NAME,
-            "params": [
-                {"currency_pair": "BTC_USDT", "interval": "1m", "status": "open"},
-                [
-                    str(base_time),  # timestamp
-                    "50000.0",  # open
-                    "50500.0",  # close
-                    "49000.0",  # low
-                    "51000.0",  # high
-                    "100.0",  # volume
-                    "5000000.0",  # quote currency volume
-                    "BTC_USDT",  # currency pair
-                ],
-            ],
+            "event": "update",
+            "result": {
+                "t": str(base_time),
+                "v": "5000000.0",  # quote volume
+                "c": "50500.0",
+                "h": "51000.0",
+                "l": "49000.0",
+                "o": "50000.0",
+                "n": "1m_BTC_USDT",
+                "a": "100.0",  # base amount
+                "w": False,
+            },
         }
 
     # Additional test cases specific to GateIoSpotAdapter
+
+    def test_rest_row_column_mapping(self, adapter):
+        """Each REST column must land in the right CandleData field (live-observed row)."""
+        row = [
+            "1792895760",
+            "40768.6435047",
+            "80896.2",
+            "80896.3",
+            "80880.9",
+            "80881.0",
+            "0.503976",
+            "true",
+        ]
+
+        (candle,) = adapter._parse_rest_response([row])
+
+        assert candle.timestamp == 1792895760
+        assert candle.open == 80881.0
+        assert candle.high == 80896.3
+        assert candle.low == 80880.9
+        assert candle.close == 80896.2
+        assert candle.volume == 0.503976
+        assert candle.quote_asset_volume == 40768.6435047
+        assert candle.high >= candle.low
+
+    def test_ws_message_column_mapping(self, adapter):
+        """WS dict payload keys must land in the right CandleData fields."""
+        (candle,) = adapter.parse_ws_message(self.get_mock_websocket_message())
+
+        assert candle.open == 50000.0
+        assert candle.high == 51000.0
+        assert candle.low == 49000.0
+        assert candle.close == 50500.0
+        assert candle.volume == 100.0
+        assert candle.quote_asset_volume == 5000000.0
+        assert candle.high >= candle.low
 
     def test_gate_io_specific_timestamp_handling(self, adapter):
         """Test Gate.io-specific timestamp handling."""
