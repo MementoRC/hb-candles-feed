@@ -14,6 +14,8 @@ from collections.abc import Awaitable, Callable
 from decimal import Decimal
 from typing import Any
 
+from rate_limit import coerce_limit
+
 from candles_feed.core.protocols import AsyncThrottlerProtocol
 from candles_feed.core.rate_limiter import (
     BackoffPolicy,
@@ -57,11 +59,6 @@ def _owner_name(adapter: Any) -> str:
     return f"{cls.__module__}.{cls.__qualname__}"
 
 
-def _describe(rate_limit: Any, limit: Any) -> str:
-    links = [(pair.limit_id, pair.weight) for pair in rate_limit.linked_limits]
-    return f"{limit} per {rate_limit.time_interval}s linked to {links}"
-
-
 def _check_same_limit(throttler: Any, pool: str, existing: Any, requested: Any, owner: str) -> None:
     """Raise when a limit already on the throttler differs from the one being requested.
 
@@ -79,8 +76,8 @@ def _check_same_limit(throttler: Any, pool: str, existing: Any, requested: Any, 
     if not same:
         raise RateLimitPoolConflictError(
             pool,
-            _describe(existing, existing.limit),
-            _describe(requested, scaled),
+            coerce_limit(existing),
+            coerce_limit(requested).scaled(pct),
             requested_owner=owner,
         )
 
