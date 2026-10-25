@@ -24,4 +24,6 @@ def test_async_rate_limiter_conforms_pausable() -> None:
     def make(clock: Clock, sleep: Sleep) -> AsyncRateLimiter:
         return AsyncRateLimiter(RestRateLimit(10, 1.0), clock, sleep)
 
-    assert_conforms_pausable(make)
+    tier = assert_conforms_pausable(make, require_pool_pause=True)
+
+    assert tier == "pool_pause"
