@@ -5,6 +5,8 @@ from types import SimpleNamespace
 from typing import ClassVar
 
 import pytest
+from rate_limit.testing import assert_conforms_pausable
+from rate_limit.types import Clock, Sleep
 
 from candles_feed.hb_compat._web_stack import import_web_stack  # noqa: E402
 
@@ -57,6 +59,14 @@ def _clean_registry():
 def test_satisfies_rest_rate_limiter_protocol():
     bridge = ConnectorThrottlerBridge(make_throttler(), HostedAdapter())
     assert isinstance(bridge, RestRateLimiterProtocol)
+
+
+def test_bridge_conforms_pausable():
+    def make(clock: Clock, sleep: Sleep) -> ConnectorThrottlerBridge:
+        # A fresh throttler per limiter: the pause is shared per (throttler, limit id).
+        return ConnectorThrottlerBridge(make_throttler(), HostedAdapter(), clock=clock, sleep=sleep)
+
+    assert_conforms_pausable(make)
 
 
 def test_registers_candles_feed_limit_for_pool():
