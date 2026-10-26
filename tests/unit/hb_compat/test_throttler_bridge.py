@@ -1,5 +1,6 @@
 """Tests for ConnectorThrottlerBridge: sharing a host connector's rate-limit budget (#89)."""
 
+import asyncio
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import ClassVar
@@ -43,10 +44,37 @@ class UnhostedAdapter(HostedAdapter):
     REST_HOST_RATE_LIMIT_ID: ClassVar[str | None] = None
 
 
+class TightAdapter(HostedAdapter):
+    """A pool budget of two requests a minute, so a third must wait on it."""
+
+    REST_RATE_LIMIT = RestRateLimit(2, 60.0)
+    REST_RATE_LIMIT_POOL: ClassVar[str] = "tight-pool"
+
+
 def make_throttler(*, with_host: bool = True) -> AsyncThrottler:
     limits = [RateLimit(HOST_ID, limit=1200, time_interval=60)] if with_host else []
     limits.append(RateLimit("unrelated", limit=5, time_interval=1))
     return AsyncThrottler(limits)
+
+
+def record_execute_task(monkeypatch: pytest.MonkeyPatch, throttler: AsyncThrottler) -> list[str]:
+    """Record the limit ids ``throttler`` is asked to gate, through its public ``execute_task``."""
+    calls: list[str] = []
+    original = type(throttler).execute_task
+
+    def execute_task(self, limit_id, *args, **kwargs):
+        if self is throttler:
+            calls.append(limit_id)
+        return original(self, limit_id, *args, **kwargs)
+
+    monkeypatch.setattr(type(throttler), "execute_task", execute_task)
+    return calls
+
+
+async def assert_waits(acquire) -> None:
+    """``acquire()`` is held back: the budget it draws on is spent."""
+    with pytest.raises(TimeoutError):
+        await asyncio.wait_for(acquire(), timeout=0.3)
 
 
 @pytest.fixture(autouse=True)
@@ -89,19 +117,17 @@ def test_links_to_host_pool_with_weight():
     assert [(pair.limit_id, pair.weight) for pair in linked] == [(HOST_ID, 2)]
 
 
-async def test_request_consumes_weight_from_host_pool():
-    throttler = make_throttler()
+async def test_request_consumes_weight_from_host_pool(monkeypatch):
+    # A host pool of 4 a minute at weight 2: two requests fit, the third waits on the host.
+    throttler = AsyncThrottler([RateLimit(HOST_ID, limit=4, time_interval=60)])
     bridge = ConnectorThrottlerBridge(throttler, HostedAdapter())
+    calls = record_execute_task(monkeypatch, throttler)
 
     await bridge.acquire()
     await bridge.acquire()
 
-    host_weight = sum(
-        log.weight for log in throttler._task_logs if log.rate_limit.limit_id == HOST_ID
-    )
-    own_logs = [log for log in throttler._task_logs if log.rate_limit.limit_id == bridge.limit_id]
-    assert host_weight == 4
-    assert len(own_logs) == 2
+    assert calls == [bridge.limit_id, bridge.limit_id]
+    await assert_waits(bridge.acquire)
 
 
 def test_unlinked_when_host_pool_missing(caplog):
@@ -113,13 +139,16 @@ def test_unlinked_when_host_pool_missing(caplog):
     assert any(HOST_ID in record.getMessage() for record in caplog.records)
 
 
-async def test_unlinked_bridge_still_paces_and_logs_only_own_limit():
+async def test_unlinked_bridge_still_paces_and_logs_only_own_limit(monkeypatch):
     throttler = make_throttler(with_host=False)
-    bridge = ConnectorThrottlerBridge(throttler, HostedAdapter())
+    bridge = ConnectorThrottlerBridge(throttler, TightAdapter())
+    calls = record_execute_task(monkeypatch, throttler)
 
     await bridge.acquire()
+    await bridge.acquire()
 
-    assert [log.rate_limit.limit_id for log in throttler._task_logs] == [bridge.limit_id]
+    assert calls == [bridge.limit_id, bridge.limit_id]
+    await assert_waits(bridge.acquire)
 
 
 def test_unlinked_when_adapter_declares_no_host_pool():
@@ -222,17 +251,19 @@ class TestPoolConflicts:
         assert len(throttler.added) == 2
 
 
-async def test_two_bridges_same_pool_draw_from_the_same_budget():
+async def test_two_bridges_same_pool_draw_from_the_same_budget(monkeypatch):
     throttler = make_throttler()
-    first = ConnectorThrottlerBridge(throttler, HostedAdapter())
-    second = ConnectorThrottlerBridge(throttler, HostedAdapter())
+    first = ConnectorThrottlerBridge(throttler, TightAdapter())
+    second = ConnectorThrottlerBridge(throttler, TightAdapter())
+    calls = record_execute_task(monkeypatch, throttler)
 
     await first.acquire()
     await second.acquire()
 
-    own = [log for log in throttler._task_logs if log.rate_limit.limit_id == first.limit_id]
-    assert len(own) == 2
     assert first.limit_id == second.limit_id
+    assert calls == [first.limit_id, first.limit_id]
+    # The pool's two-a-minute budget is spent across both bridges.
+    await assert_waits(first.acquire)
 
 
 def test_default_pool_key_is_used_without_explicit_pool():
@@ -278,13 +309,14 @@ class TestFactoryWiring:
         assert limiter.limit_id == f"candles-feed:{pool_key_for(BinanceSpotAdapter)}:REQUEST_WEIGHT"
         assert throttler.get_related_limits(limiter.limit_id)[0] is not None
 
-    async def test_feed_request_goes_through_bridge_once(self):
+    async def test_feed_request_goes_through_bridge_once(self, monkeypatch):
         throttler = make_throttler()
         candle = CandlesFactory.get_candle(
             CandlesConfig(connector="binance", trading_pair="BTC-USDT"),
             connector=SimpleNamespace(throttler=throttler),
         )
         limiter = resolve_adapter_rate_limiter(candle._feed._adapter)
+        calls = record_execute_task(monkeypatch, throttler)
 
         class Inner:
             async def get_rest_data(self, *args, **kwargs):
@@ -293,8 +325,7 @@ class TestFactoryWiring:
         candle._feed._network_client._target = Inner()
         await candle._feed._network_client.get_rest_data(url="http://x")
 
-        own = [log for log in throttler._task_logs if log.rate_limit.limit_id == limiter.limit_id]
-        assert len(own) == 1
+        assert calls == [limiter.limit_id]
 
     def test_connector_without_throttler_uses_shared_pool(self):
         candle = CandlesFactory.get_candle(
