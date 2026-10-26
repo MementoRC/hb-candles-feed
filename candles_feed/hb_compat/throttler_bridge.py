@@ -188,6 +188,10 @@ class ConnectorThrottlerBridge:
         """Whether a pause is currently active on this limit."""
         return self._state.deadline > self._clock()
 
+    def blocked_for(self) -> float:
+        """Seconds until the current pause on this limit ends (0.0 when not paused)."""
+        return max(0.0, self._state.deadline - self._clock())
+
     async def acquire(self) -> None:
         """Wait out any pause, then for capacity on the feed's limit (and linked host pool)."""
         await wait_out_deadline(lambda: self._state.deadline, self._clock, self._sleep)

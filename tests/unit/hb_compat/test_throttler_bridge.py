@@ -66,7 +66,9 @@ def test_bridge_conforms_pausable():
         # A fresh throttler per limiter: the pause is shared per (throttler, limit id).
         return ConnectorThrottlerBridge(make_throttler(), HostedAdapter(), clock=clock, sleep=sleep)
 
-    assert_conforms_pausable(make)
+    tier = assert_conforms_pausable(make, require_pool_pause=True)
+
+    assert tier == "pool_pause"
 
 
 def test_registers_candles_feed_limit_for_pool():
