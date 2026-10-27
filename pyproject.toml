@@ -35,9 +35,9 @@ dependencies = [
     # stack in candles_feed/core/monitoring.py. Git-pinned (not a published
     # wheel), following the hb-event-bus precedent (Group D Target 1).
     "hb-logger @ git+https://github.com/MementoRC/hb-logger.git@v0.1.0",
-    # v0.4.1 (signed tag). Pinned by SHA, the same URL hb-web-assistant uses, so the
-    # `test-hb` env resolves one hb-rate-limit instead of two conflicting git refs.
-    "hb-rate-limit @ git+https://github.com/MementoRC/hb-rate-limit.git@31fb35d255c9a93f4fc6f30fb0a65597dff23d58",
+    # v0.4.1 (signed tag). Same tag hb-web-assistant pins, so the `test-hb` env
+    # resolves one hb-rate-limit instead of two conflicting git refs.
+    "hb-rate-limit @ git+https://github.com/MementoRC/hb-rate-limit.git@v0.4.1",
     "numpy>=1.20.0",
     "pandas>=1.0.0",
     "pydantic>=2",
@@ -233,7 +233,7 @@ test-parity = "pytest tests/unit/core/test_data_processor_parity.py -v"
 # hb_compat fall back from `hummingbot.core.*` to `web_assistant.*`. Kept out of `dev`
 # so the shared envs stay pure-conda. Pinned to a commit like sibling sub-packages.
 [tool.pixi.feature.hb-web-assistant.pypi-dependencies]
-hb-web-assistant = { git = "https://github.com/MementoRC/hb-web-assistant.git", tag = "v0.1.0" }
+hb-web-assistant = { git = "https://github.com/MementoRC/hb-web-assistant.git", tag = "v0.1.1" }
 
 [tool.pixi.feature.hb-web-assistant.tasks]
 test-hb = "pytest tests/unit/hb_compat/test_throttler_bridge.py tests/unit/core/test_rate_limit_backoff.py tests/integration/test_rate_limit_backoff_integration.py tests/integration/test_compatibility.py -m 'not live and not slow'"
