@@ -63,7 +63,7 @@ dev = [
     "pytest-timeout>=2.1.0",
     "pytest-xdist>=3.0.0",
     "pyupgrade",
-    "ruff>=0.1.6",
+    "ruff==0.15.10",
     "mypy>=1.5.1",
     "cython-lint>=0.19.0",
     # Enhanced integration testing dependencies
@@ -180,7 +180,7 @@ pytest-timeout = ">=2.1.0"
 pytest-xdist = ">=3.0.0"
 pytest-benchmark = ">=4.0.0"
 pyupgrade = "*"
-ruff = ">=0.1.6"
+ruff = "=0.15.10"
 mypy = ">=1.5.1"
 cython-lint = ">=0.15.0"
 # Prometheus metrics (conda package name uses underscore)
@@ -192,7 +192,7 @@ websockets = ">=11.0.0"
 locust = ">=2.20.0"
 
 [tool.pixi.feature.ci.dependencies]
-ruff = ">=0.1.6"
+ruff = "=0.15.10"
 mypy = ">=1.5.1"
 pytest = ">=7.0.0"
 pytest-cov = ">=4.1.0"
