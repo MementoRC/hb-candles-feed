@@ -40,7 +40,8 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.4
         with:
           environments: default
-          cache: true
+          cache: false
+          locked: false
 
       - name: Install project dependencies
         run: |

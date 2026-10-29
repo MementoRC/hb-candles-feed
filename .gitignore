@@ -96,6 +96,7 @@ tasks/
 
 # Development environment and caching
 .pixi/
+pixi.lock
 .mypy_cache/
 .ruff_cache/
 .cache/

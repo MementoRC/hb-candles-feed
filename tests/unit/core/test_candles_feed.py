@@ -64,42 +64,42 @@ class TestCandlesFeed:
             mock_ws_strategy.start = MagicMock()
             mock_ws_strategy.start.called = False
             mock_ws_strategy.start.async_mock = AsyncMock()
-            mock_ws_strategy.start.side_effect = (
-                lambda: setattr(mock_ws_strategy.start, "called", True)
+            mock_ws_strategy.start.side_effect = lambda: (
+                setattr(mock_ws_strategy.start, "called", True)
                 or mock_ws_strategy.start.async_mock()
             )
 
             mock_ws_strategy.stop = MagicMock()
             mock_ws_strategy.stop.called = False
             mock_ws_strategy.stop.async_mock = AsyncMock()
-            mock_ws_strategy.stop.side_effect = (
-                lambda: setattr(mock_ws_strategy.stop, "called", True)
-                or mock_ws_strategy.stop.async_mock()
+            mock_ws_strategy.stop.side_effect = lambda: (
+                setattr(mock_ws_strategy.stop, "called", True) or mock_ws_strategy.stop.async_mock()
             )
 
             mock_rest_strategy = MagicMock()
             mock_rest_strategy.start = MagicMock()
             mock_rest_strategy.start.called = False
             mock_rest_strategy.start.async_mock = AsyncMock()
-            mock_rest_strategy.start.side_effect = (
-                lambda: setattr(mock_rest_strategy.start, "called", True)
+            mock_rest_strategy.start.side_effect = lambda: (
+                setattr(mock_rest_strategy.start, "called", True)
                 or mock_rest_strategy.start.async_mock()
             )
 
             mock_rest_strategy.stop = MagicMock()
             mock_rest_strategy.stop.called = False
             mock_rest_strategy.stop.async_mock = AsyncMock()
-            mock_rest_strategy.stop.side_effect = (
-                lambda: setattr(mock_rest_strategy.stop, "called", True)
+            mock_rest_strategy.stop.side_effect = lambda: (
+                setattr(mock_rest_strategy.stop, "called", True)
                 or mock_rest_strategy.stop.async_mock()
             )
 
             mock_rest_strategy.poll_once = MagicMock()
             mock_rest_strategy.poll_once.called = False
             mock_rest_strategy.poll_once.async_mock = AsyncMock(return_value=[])
-            mock_rest_strategy.poll_once.side_effect = lambda *args, **kwargs: setattr(
-                mock_rest_strategy.poll_once, "called", True
-            ) or mock_rest_strategy.poll_once.async_mock(*args, **kwargs)
+            mock_rest_strategy.poll_once.side_effect = lambda *args, **kwargs: (
+                setattr(mock_rest_strategy.poll_once, "called", True)
+                or mock_rest_strategy.poll_once.async_mock(*args, **kwargs)
+            )
 
             # Apply these mocks to our feed instance
             feed._ws_strategy = mock_ws_strategy

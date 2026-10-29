@@ -13,6 +13,8 @@ except ImportError:
 from candles_feed.core.metrics import MetricsCollector
 from candles_feed.monitoring.prometheus_exporter import PrometheusExporter
 
+pytestmark = pytest.mark.skipif(not PROMETHEUS_AVAILABLE, reason="prometheus_client not available")
+
 
 @pytest.fixture
 def metrics_collector() -> MetricsCollector:
@@ -20,7 +22,6 @@ def metrics_collector() -> MetricsCollector:
     return MetricsCollector()
 
 
-@pytest.mark.skipif(not PROMETHEUS_AVAILABLE, reason="prometheus_client not available")
 @pytest.fixture(scope="session")
 def prometheus_exporter() -> PrometheusExporter:
     """Fixture for a PrometheusExporter instance.

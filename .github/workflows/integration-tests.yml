@@ -89,7 +89,8 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.13
         with:
           environments: ${{ matrix.pixi-environment }}
-          cache: true
+          cache: false
+          locked: false
 
       - name: Install project
         run: |
@@ -146,7 +147,8 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.13
         with:
           environments: test-hb
-          cache: true
+          cache: false
+          locked: false
 
       - name: Install project
         run: pixi run -e test-hb pip install -e .
