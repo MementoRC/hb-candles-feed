@@ -77,15 +77,15 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         :returns: A dictionary of test API keys with associated metadata.
         """
         return {
-            "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A": {
-                "api_secret": "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j",
+            "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A": {  # pragma: allowlist secret
+                "api_secret": "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j",  # pragma: allowlist secret
                 "permissions": ["SPOT", "MARGIN", "FUTURES"],
                 "ip_whitelist": ["*"],  # Allowed IPs, * means all
                 "created_time": int(time.time() * 1000) - 86400000,  # 1 day ago
                 "enabled": True,
             },
-            "TESTKEY123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ": {
-                "api_secret": "TESTSECRET123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            "TESTKEY123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ": {  # pragma: allowlist secret
+                "api_secret": "TESTSECRET123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",  # pragma: allowlist secret
                 "permissions": ["SPOT"],
                 "ip_whitelist": ["127.0.0.1"],
                 "created_time": int(time.time() * 1000),
