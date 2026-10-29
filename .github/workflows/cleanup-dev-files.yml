@@ -48,7 +48,7 @@ jobs:
         ".vscode/settings.json", ".idea/**", "*.code-workspace",
         "*.tmp", "*.dev", ".DS_Store", "Thumbs.db"]
       workflow_name: 'hb-candles-feed Cleanup'
-    secrets: inherit
+    secrets: inherit  # pragma: allowlist secret
     permissions:
       contents: write
       pull-requests: write

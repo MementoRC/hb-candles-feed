@@ -66,7 +66,7 @@ class ExchangePlugin(abc.ABC):
         # Default implementation that can be overridden by specific exchanges
         return {
             "test_key": {
-                "api_secret": "test_secret",
+                "api_secret": "test_secret",  # pragma: allowlist secret
                 "permissions": ["READ", "TRADE"],
                 "ip_whitelist": ["*"],
                 "created_time": int(time.time() * 1000) - 86400000,  # 1 day ago

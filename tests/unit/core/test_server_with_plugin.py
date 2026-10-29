@@ -77,13 +77,14 @@ async def test_server_uses_plugin_api_keys(client, binance_server):
 
     # Verify these match what we expect from the Binance plugin
     assert "binance" in api_keys
-    assert "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A" in api_keys["binance"]
+    test_api_key = "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"  # pragma: allowlist secret
+    assert test_api_key in api_keys["binance"]
 
     # Test authentication with a valid API key
     response = await client.get(
         "/api/v3/account",
         headers={
-            "X-MBX-APIKEY": "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"
+            "X-MBX-APIKEY": "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"  # pragma: allowlist secret
         },
     )
     # Since we don't have the authentication logic implemented in this test,
