@@ -54,7 +54,7 @@ dev = [
     "aioresponses>=0.7.0",
     "pre-commit>=2.15.0",
     "prometheus-client>=0.17.0",
-    "pytest>=7.0.0",
+    "pytest>=7.0.0,<9.1",
     "pytest-aiohttp>=1.1.0",
     "pytest-asyncio>=0.21.0",
     "pytest-benchmark>=4.0.0",
@@ -171,7 +171,7 @@ pymdown-extensions = ">=8.0.0"
 
 [tool.pixi.feature.dev.dependencies]
 pre-commit = ">=2.15.0"
-pytest = ">=7.0.0"
+pytest = ">=7.0.0,<9.1"
 pytest-aiohttp = ">=1.1.0"
 pytest-asyncio = ">=0.21.0"
 pytest-cov = ">=4.1.0"
@@ -194,7 +194,7 @@ locust = ">=2.20.0"
 [tool.pixi.feature.ci.dependencies]
 ruff = "=0.15.10"
 mypy = ">=1.5.1"
-pytest = ">=7.0.0"
+pytest = ">=7.0.0,<9.1"
 pytest-cov = ">=4.1.0"
 bandit = ">=1.8.0"
 pre-commit = ">=2.15.0"
