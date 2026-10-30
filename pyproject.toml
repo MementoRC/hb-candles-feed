@@ -63,7 +63,6 @@ dev = [
     "pytest-timeout>=2.1.0",
     "pytest-xdist>=3.0.0",
     "pyupgrade",
-    "ruff==0.17.2",
     "mypy>=1.5.1",
     "cython-lint>=0.19.0",
     # Enhanced integration testing dependencies
