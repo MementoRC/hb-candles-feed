@@ -39,7 +39,8 @@ def norm_spec(spec: str) -> str:
     spec = spec.replace(" ", "")
     if spec in ("", "*"):
         return "*"
-    return ",".join(sorted(spec.split(",")))
+    parts = [f"={p}" if re.fullmatch(r"=[^=<>!~].*", p) else p for p in spec.split(",")]
+    return ",".join(sorted(parts))
 
 
 def conda_spec(value: object) -> str:
