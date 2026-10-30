@@ -28,7 +28,7 @@ dependencies = [
     # (ABI break in integration-test mocks). Keep <3.12 in sync with the
     # [tool.pixi.dependencies] pin until aioresponses ships a fix.
     # Upstream: https://github.com/pnuckowski/aioresponses/issues/289
-    "aiohttp>=3.8.0,<3.15",
+    "aiohttp>=3.8.0,<3.12",
     "ccxt",
     # ADR 0001 Group D (issue #78): canonical structured-logging sub-package,
     # replacing the bespoke StructuredLogger/MonitoringManager/JSONFormatter
@@ -54,7 +54,7 @@ dev = [
     "aioresponses>=0.7.0",
     "pre-commit>=2.15.0",
     "prometheus-client>=0.17.0",
-    "pytest>=7.0.0,<9.2",
+    "pytest>=7.0.0,<9.1",
     "pytest-aiohttp>=1.1.0",
     "pytest-asyncio>=0.21.0",
     "pytest-benchmark>=4.0.0",
@@ -129,11 +129,23 @@ paths = ["candles_feed"]
 [tool.pixi.dependencies]
 cython = ">=3.2.4"
 wheel = ">=0.37.0"
-aioresponses = "*"
+# Runtime dependencies. Ranges mirror [project.dependencies] exactly; enforced by
+# scripts/check_conda_first.py (conda-first policy: everything from conda-forge).
+# conda-forge name for PyPI `ccxt` is `ccxt-py` (see [tool.conda-first.names]).
+ccxt-py = "*"
+numpy = ">=1.20.0"
+pandas = ">=1.0.0"
+pydantic = ">=2"
 # aioresponses 0.7.8 is incompatible with aiohttp>=3.12 (stream_writer ABI break).
 # Pin aiohttp below 3.12 until aioresponses releases a compatible version.
 # Upstream issue: https://github.com/pnuckowski/aioresponses/issues/289
 aiohttp = ">=3.8.0,<3.12"
+
+# Conda-first gate (scripts/check_conda_first.py): PyPI name -> conda-forge name,
+# only where the two differ beyond case and "-"/"_".
+[tool.conda-first.names]
+ccxt = "ccxt-py"
+redis = "redis-py"
 
 # Tasks equivalent to hatch scripts
 [tool.pixi.tasks]
@@ -152,7 +164,8 @@ quality = { depends-on = ["lint", "format-check", "typecheck"] }
 # live tests excluded — they hit real exchange APIs and fail under geo-restrictions
 # slow tests excluded — probabilistic timing-sensitive tests unsuitable for default check
 test-no-live = "pytest tests -m 'not live and not slow'"
-check = { depends-on = ["format", "lint", "typecheck", "test-no-live"] }
+check-conda-first = "python scripts/check_conda_first.py"
+check = { depends-on = ["check-conda-first", "format", "lint", "typecheck", "test-no-live"] }
 check-live = { depends-on = ["format", "lint", "type-check", "test"] }
 
 # Documentation tasks
@@ -170,6 +183,7 @@ mkdocstrings = ">=0.18.0"
 pymdown-extensions = ">=8.0.0"
 
 [tool.pixi.feature.dev.dependencies]
+aioresponses = ">=0.7.0"
 pre-commit = ">=2.15.0"
 pytest = ">=7.0.0,<9.1"
 pytest-aiohttp = ">=1.1.0"
@@ -180,9 +194,9 @@ pytest-timeout = ">=2.1.0"
 pytest-xdist = ">=3.0.0"
 pytest-benchmark = ">=4.0.0"
 pyupgrade = "*"
-ruff = "=0.17.2"
+ruff = "==0.17.2"
 mypy = ">=1.5.1"
-cython-lint = ">=0.15.0"
+cython-lint = ">=0.19.0"
 # Prometheus metrics (conda package name uses underscore)
 prometheus_client = ">=0.17.0"
 # Enhanced integration testing dependencies
@@ -192,7 +206,7 @@ websockets = ">=11.0.0"
 locust = ">=2.20.0"
 
 [tool.pixi.feature.ci.dependencies]
-ruff = "=0.17.2"
+ruff = "==0.17.2"
 mypy = ">=1.5.1"
 pytest = ">=7.0.0,<9.1"
 pytest-cov = ">=4.1.0"
@@ -232,6 +246,10 @@ test-parity = "pytest tests/unit/core/test_data_processor_parity.py -v"
 # dependency of candles-feed (ADR 0001: L2 sub-packages stay independent); the tests and
 # hb_compat fall back from `hummingbot.core.*` to `web_assistant.*`. Kept out of `dev`
 # so the shared envs stay pure-conda. Pinned to a commit like sibling sub-packages.
+# hb-web-assistant's own PyPI requirement (ujson) is supplied from conda-forge.
+[tool.pixi.feature.hb-web-assistant.dependencies]
+ujson = "*"
+
 [tool.pixi.feature.hb-web-assistant.pypi-dependencies]
 hb-web-assistant = { git = "https://github.com/MementoRC/hb-web-assistant.git", tag = "v0.1.1" }
 
