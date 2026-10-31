@@ -276,7 +276,7 @@ Monitor triage decisions in GitHub Actions logs:
 
 #### Low Confidence Scores
 **Problem**: Issues consistently getting low confidence scores
-**Solution**: 
+**Solution**:
 - Review and expand keyword dictionaries
 - Adjust confidence thresholds
 - Add more technical patterns
