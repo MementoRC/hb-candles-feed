@@ -34,7 +34,7 @@ dependencies = [
     # replacing the bespoke StructuredLogger/MonitoringManager/JSONFormatter
     # stack in candles_feed/core/monitoring.py. Git-pinned (not a published
     # wheel), following the hb-event-bus precedent (Group D Target 1).
-    "hb-logger @ git+https://github.com/MementoRC/hb-logger.git@v0.1.0",
+    "hb-logger @ git+https://github.com/MementoRC/hb-logger.git@v0.2.0",
     # v0.4.1 (signed tag). Same tag hb-web-assistant pins, so the `test-hb` env
     # resolves one hb-rate-limit instead of two conflicting git refs.
     "hb-rate-limit @ git+https://github.com/MementoRC/hb-rate-limit.git@v0.4.1",
