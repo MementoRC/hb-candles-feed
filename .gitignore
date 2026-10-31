@@ -94,9 +94,10 @@ tasks/
 .aider.chat.history.md
 .aider.tags.cache.v4/
 
-# Development environment and caching
+# Pixi (pixi.lock is committed: CI installs --locked and check-conda-first gates it)
 .pixi/
-pixi.lock
+
+# Development environment and caching
 .mypy_cache/
 .ruff_cache/
 .cache/
