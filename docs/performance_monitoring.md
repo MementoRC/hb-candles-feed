@@ -7,7 +7,7 @@ This document explains how to configure performance alert notifications for the 
 The performance alert system provides real-time notifications when performance regressions are detected during CI runs or scheduled monitoring. The system integrates with:
 
 - **Slack** - Team notifications
-- **Discord** - Community notifications  
+- **Discord** - Community notifications
 - **GitHub Issues** - Automated issue creation for tracking
 - **TaskMaster** - Integration with task tracking system
 
@@ -124,7 +124,7 @@ Associated TaskMaster ID: 10.4
 - Timestamp and repository information
 - Performance data tables
 
-### Discord Integration  
+### Discord Integration
 - Embedded messages with color indicators
 - Repository and threshold information
 - Timestamp and footer branding
