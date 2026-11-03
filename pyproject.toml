@@ -50,27 +50,6 @@ Documentation = "https://mementorc.github.io/hb-candles-feed"
 Repository = "https://github.com/MementoRC/hb-candles-feed/tree/master"
 
 [project.optional-dependencies]
-dev = [
-    "aioresponses>=0.7.0",
-    "pre-commit>=2.15.0",
-    "prometheus-client>=0.17.0",
-    "pytest>=7.0.0,<9.1",
-    "pytest-aiohttp>=1.1.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-benchmark>=4.0.0",
-    "pytest-cov>=4.1.0",
-    "pytest-mock>=3.11.0",
-    "pytest-timeout>=2.1.0",
-    "pytest-xdist>=3.0.0",
-    "pyupgrade",
-    "mypy>=1.5.1",
-    "cython-lint>=0.19.0",
-    # Enhanced integration testing dependencies
-    "redis>=4.5.0",
-    "websockets>=11.0.0",
-    # Load testing dependencies
-    "locust>=2.20.0",
-]
 doc = [
     "mkdocs",
     "mkdocs-git-revision-date-localized-plugin",
