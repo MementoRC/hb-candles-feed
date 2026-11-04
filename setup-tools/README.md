@@ -44,36 +44,13 @@ Directory containing Hatch build hooks that replace CMake for Cython compilation
 
 - **`cython_build_hook.py`** - Automatically detects and compiles Python modules marked with `@cython` decorator
 
-### `setup-dev-env.sh`
+### Development environment
 
-Shell script to set up a development environment using conda based on the dependencies defined in pyproject.toml.
+The legacy `setup-dev-env.sh` helper was removed. Set up the environment with pixi:
 
 ```bash
-# Run from the template package root directory to set up the environment
-./setup-dev-env.sh
-
-# If you need to install the package in development mode
-./setup-dev-env.sh --install
-```
-
-This script reads dependency information directly from pyproject.toml and installs them into a conda environment, eliminating the need for a separate environment.yml file. It handles both conda and pip dependencies, including pip packages that need the `--no-deps` flag.
-
-The environment configuration in pyproject.toml supports both regular and pip dependencies with the `--no-deps` flag:
-
-```toml
-# Regular dependencies (installed via conda)
-[tool.hatch.envs.default.dependencies]
-dependencies = [
-  "pandas>=1.0.0",
-  "numpy>=1.20.0",
-]
-
-# Dependencies installed with pip --no-deps
-[tool.hatch.envs.default.pip-no-deps]
-dependencies = [
-  "hatch-conda>=0.5.2",
-  "some-package==1.0.0",
-]
+pixi install
+pixi run check
 ```
 
 ## Using These Tools with Hatch
@@ -82,7 +59,7 @@ The typical workflow for creating a new sub-package is:
 
 1. Run `create_subpackage.py` to create a new package based on the template
 2. Change to the newly created package directory
-3. Run `setup-dev-env.sh` to set up the development environment
+3. Run `pixi install` to set up the development environment
 4. Use Hatch commands to run tests, format code, and more
 5. Start implementing your package functionality
 
@@ -106,8 +83,8 @@ For example:
 # Change to the new package directory
 cd ../market-data
 
-# Set up the development environment with Hatch
-./setup-dev-env.sh
+# Set up the development environment with pixi
+pixi install
 
 # Run all tests using Hatch
 hatch run test

@@ -13,8 +13,8 @@ with Cython (AC2).
 
 PUBLISHING BOUNDARY (AC3). ``cython`` is never added to ``[project.dependencies]`` and
 ``hb-cython-framework`` is never added to ``[build-system].requires`` or runtime deps.
-Real Cython is build/dev-only and exposed via the optional ``candles-feed[accelerated]``
-extra. The framework hook is referenced ONLY via a lazy, guarded import that runs solely
+Real Cython is build/dev-only and exposed via the pixi ``accel``
+environment. The framework hook is referenced ONLY via a lazy, guarded import that runs solely
 when ``HB_COMPILE_AUGMENTED`` is set; the framework is supplied on the build path by the
 hummingbot accelerated env (orchestrator-owned), never by this package's published
 metadata. The hook FAILS CLOSED — it skips compilation instead of raising — when the

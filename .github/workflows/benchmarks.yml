@@ -46,7 +46,6 @@ jobs:
       - name: Install project dependencies
         run: |
           pixi install -e default
-          pixi run -e default pip install -e . --verbose
 
       - name: Create benchmark results directory
         run: mkdir -p benchmark-results
