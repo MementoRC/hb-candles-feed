@@ -11,6 +11,15 @@ permissions: read-all
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    # The repo default token is read-only. release-please needs write access to
+    # push the release branch/tag (contents), open the release PR (pull-requests)
+    # and create its "autorelease: *" labels (issues). actions: write lets it
+    # dispatch CI on the release branch (see the last step).
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
     steps:
       - name: Import GPG key and configure Git
         env:
@@ -29,7 +38,26 @@ jobs:
         id: release
         uses: googleapis/release-please-action@v4
         with:
-          token: ${{ secrets.CI_BOT_TOKEN || secrets.GITHUB_TOKEN }}
-          release-type: python
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # No release-type input: setting it makes the action ignore the
+          # config file (extra-files, changelog-sections, pre-major bumps).
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # A PR opened or updated with github.token starts no push/pull_request
+      # workflows, so main's required checks ("Security Scanning", "CI Success",
+      # both from ci.yml) would never report. workflow_dispatch is the documented
+      # exception: dispatch CI on the release branch so the checks land on its
+      # head commit (same zero-secret pattern as pixi-lock-refresh, ci-framework #387).
+      - name: Dispatch CI on the release PR branch
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+        run: |
+          if ! gh workflow run ci.yml --ref "$RELEASE_BRANCH"; then
+            echo "::error title=CI dispatch failed::Could not dispatch ci.yml on $RELEASE_BRANCH. Check that ci.yml lists 'workflow_dispatch:' under 'on:'."
+            exit 1
+          fi
+          echo "Dispatched ci.yml on $RELEASE_BRANCH"
