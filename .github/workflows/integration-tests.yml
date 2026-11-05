@@ -95,7 +95,6 @@ jobs:
       - name: Install project
         run: |
           pixi install -e ${{ matrix.pixi-environment }}
-          pixi run -e ${{ matrix.pixi-environment }} pip install -e .
 
       - name: Wait for service containers
         run: |
@@ -149,9 +148,6 @@ jobs:
           environments: test-hb
           cache: false
           locked: false
-
-      - name: Install project
-        run: pixi run -e test-hb pip install -e .
 
       - name: Run hb_compat tests on web-assistant
         env:
