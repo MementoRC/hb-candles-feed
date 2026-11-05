@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 
@@ -81,7 +81,7 @@ class RepositoryMetricsReport:
 
     repo_owner: str
     repo_name: str
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     collection_duration_seconds: float = 0.0
 
     issues: IssueMetrics = field(default_factory=IssueMetrics)

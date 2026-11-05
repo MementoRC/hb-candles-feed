@@ -3,9 +3,11 @@ KuCoin perpetual exchange adapter for the Candle Feed framework.
 """
 
 import time
+from typing import override
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import KucoinBaseAdapter
 from .constants import (
@@ -20,7 +22,12 @@ from .constants import (
 class KucoinPerpetualAdapter(KucoinBaseAdapter):
     """KuCoin perpetual exchange adapter."""
 
+    # hummingbot/data_feed/candles_feed/kucoin_perpetual_candles/constants.py:55-56,60,65 — 2000 weight/30s, candles weight 3 -> floor(2000/3)
+    REST_RATE_LIMIT = RestRateLimit(max_requests=666, period_seconds=30)
+    # No host pool: kucoin_perpetual_candles/constants.py:51-54 states the connector has no global weight pool; REQUEST_WEIGHT is candle-local.
+
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -29,6 +36,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         return f"{PERPETUAL_REST_URL}{PERPETUAL_CANDLES_ENDPOINT}"
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 
@@ -36,6 +44,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
         """
         return PERPETUAL_WSS_URL
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -73,6 +82,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -98,10 +108,10 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
 
         candles: list[CandleData] = []
 
-        if data is None:
-            return candles
+        if not (isinstance(data, dict) and isinstance(data.get("data"), list)):
+            raise self._bad_response(data)
 
-        if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
+        if data["data"]:
             candles.extend(
                 CandleData(
                     timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),  # Already in seconds
@@ -120,6 +130,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
             )
         return candles
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -137,6 +148,7 @@ class KucoinPerpetualAdapter(KucoinBaseAdapter):
             "response": True,
         }
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 

@@ -2,6 +2,8 @@
 Bybit spot exchange adapter for the Candle Feed framework.
 """
 
+from typing import override
+
 from candles_feed.adapters.bybit.base_adapter import BybitBaseAdapter
 from candles_feed.adapters.bybit.constants import (
     SPOT_CANDLES_ENDPOINT,
@@ -16,6 +18,11 @@ from candles_feed.core.network_config import NetworkConfig
 class BybitSpotAdapter(BybitBaseAdapter):
     """Bybit spot exchange adapter."""
 
+    # hummingbot/data_feed/candles_feed/bybit_spot_candles/constants.py:42 links candles to "ALL" at weight 1 (pool also in connector/exchange/bybit/bybit_constants.py:102)
+    # Pool ids differ between spot and perpetual, so each variant declares its own.
+    REST_HOST_RATE_LIMIT_ID = "ALL"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
+
     def __init__(self, *args, network_config: NetworkConfig | None = None, **kwargs):
         """Initialize the adapter.
 
@@ -28,6 +35,7 @@ class BybitSpotAdapter(BybitBaseAdapter):
         super().__init__(*args, **kwargs)
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -36,6 +44,7 @@ class BybitSpotAdapter(BybitBaseAdapter):
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 
@@ -43,6 +52,7 @@ class BybitSpotAdapter(BybitBaseAdapter):
         """
         return SPOT_WSS_URL
 
+    @override
     def get_category_param(self) -> str:
         """Get the category parameter for the market type.
 

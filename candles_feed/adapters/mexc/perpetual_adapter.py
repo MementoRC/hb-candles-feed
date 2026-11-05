@@ -3,9 +3,11 @@ MEXC perpetual exchange adapter for the Candle Feed framework.
 """
 
 import contextlib
+from typing import override
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import MEXCBaseAdapter
 from .constants import (
@@ -22,7 +24,12 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
 
     TIMESTAMP_UNIT = "seconds"
 
+    # hummingbot/data_feed/candles_feed/mexc_perpetual_candles/constants.py:25 — contract kline endpoint 20 req/2s (separate contract.mexc.com host from spot)
+    REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=2)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
+
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -31,6 +38,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         return PERPETUAL_REST_URL
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL.
 
@@ -38,6 +46,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         return PERPETUAL_WSS_URL
 
+    @override
     def get_kline_topic(self) -> str:
         """Get WebSocket kline topic prefix.
 
@@ -45,6 +54,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         return PERPETUAL_KLINE_TOPIC
 
+    @override
     def get_interval_format(self, interval: str) -> str:
         """Get exchange-specific interval format.
 
@@ -53,6 +63,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         """
         return INTERVAL_TO_PERPETUAL_FORMAT.get(interval, interval)
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -82,19 +93,15 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if (
-            data is None
-            or not isinstance(data, dict)
-            or "data" not in data
-            or not isinstance(data["data"], list)
-        ):
-            return []
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise self._bad_response(data)
 
         # MEXC Contract REST API format:
         # {
@@ -132,6 +139,7 @@ class MEXCPerpetualAdapter(MEXCBaseAdapter):
         )
         return candles
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 

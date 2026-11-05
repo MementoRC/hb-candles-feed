@@ -7,11 +7,12 @@ candles-feed and Hummingbot's rate limiting and network components.
 
 import json
 import time
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from candles_feed.core.hummingbot_network_client_adapter import (
+from candles_feed.hb_compat.hummingbot_network_client_adapter import (
     HummingbotNetworkClient,
     HummingbotThrottlerAdapter,
     HummingbotWSAssistantAdapter,
@@ -49,7 +50,7 @@ class TestAsyncThrottlerIntegration:
 
         # Test that execute_task works as a context manager
         start_time = time.time()
-        async with await adapter.execute_task("api_calls"):
+        async with adapter.execute_task("api_calls"):
             pass
         execution_time = time.time() - start_time
 
@@ -68,7 +69,7 @@ class TestAsyncThrottlerIntegration:
         start_time = time.time()
 
         for _ in range(3):
-            async with await adapter.execute_task("api_calls"):
+            async with adapter.execute_task("api_calls"):
                 pass
 
         time.time() - start_time
@@ -82,11 +83,11 @@ class TestAsyncThrottlerIntegration:
         adapter = HummingbotThrottlerAdapter(rate_limited_throttler)
 
         # Execute tasks with different limit IDs
-        async with await adapter.execute_task("api_calls"):
+        async with adapter.execute_task("api_calls"):
             pass
-        async with await adapter.execute_task("heavy_operations"):
+        async with adapter.execute_task("heavy_operations"):
             pass
-        async with await adapter.execute_task("api_calls"):
+        async with adapter.execute_task("api_calls"):
             pass
 
         # Should have logged 3 tasks with correct IDs
@@ -99,7 +100,7 @@ class TestAsyncThrottlerIntegration:
 
         # Create a throttler that raises an exception
         class FailingThrottler:
-            async def execute_task(self, limit_id: str):
+            def execute_task(self, limit_id: str):
                 class FailingContext:
                     async def __aenter__(self):
                         raise RuntimeError("Throttler failure")
@@ -113,7 +114,7 @@ class TestAsyncThrottlerIntegration:
 
         # Should propagate the exception
         with pytest.raises(RuntimeError, match="Throttler failure"):
-            async with await adapter.execute_task("test_limit"):
+            async with adapter.execute_task("test_limit"):
                 pass
 
 
@@ -185,9 +186,13 @@ class TestWebAssistantsFactoryIntegration:
 
         # Make a REST call
         response = await rest_assistant.call(
-            url="https://api.binance.com/api/v3/klines",
-            method="GET",
-            params={"symbol": "BTCUSDT", "interval": "1m"},
+            request=SimpleNamespace(
+                url="https://api.binance.com/api/v3/klines",
+                method="GET",
+                params={"symbol": "BTCUSDT", "interval": "1m"},
+                data=None,
+                headers=None,
+            )
         )
 
         # Verify response
@@ -270,7 +275,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_creation_with_components(self, integrated_components):
         """Test creating HummingbotNetworkClient with components."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -284,7 +289,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_rest_operations(self, integrated_components):
         """Test REST operations through network client."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -301,14 +306,13 @@ class TestHummingbotNetworkClientIntegration:
             assert len(response) == 1
             assert response[0][1] == "35000"  # Open price
 
-            # Verify throttler was used
-            throttler_logs = integrated_components["throttler"].task_logs
-            assert len(throttler_logs) >= 1
+            # Throttling happens once in RateLimitedNetworkClient, not in this client.
+            assert integrated_components["throttler"].task_logs == []
 
     async def test_network_client_websocket_operations(self, integrated_components):
         """Test WebSocket operations through network client."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -333,7 +337,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_context_manager(self, integrated_components):
         """Test network client as async context manager."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             async with HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -349,7 +353,7 @@ class TestHummingbotNetworkClientIntegration:
     async def test_network_client_error_handling(self, integrated_components):
         """Test error handling in network client operations."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = HummingbotNetworkClient(
                 throttler=integrated_components["throttler"],
@@ -372,7 +376,7 @@ class TestNetworkClientFactory:
         components = create_mock_hummingbot_components()
 
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = NetworkClientFactory.create_client(hummingbot_components=components)
 
@@ -384,7 +388,7 @@ class TestNetworkClientFactory:
         """Test factory falls back to standalone client when components unavailable."""
         # Test with no components
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", False
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", False
         ):
             client = NetworkClientFactory.create_client()
 
@@ -399,7 +403,7 @@ class TestNetworkClientFactory:
         partial_components = {"throttler": MockAsyncThrottler()}
 
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.HUMMINGBOT_AVAILABLE", True
         ):
             client = NetworkClientFactory.create_client(hummingbot_components=partial_components)
 

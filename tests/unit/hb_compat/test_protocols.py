@@ -17,6 +17,7 @@ class TestCandlesBaseProtocol:
         from candles_feed.hb_compat.protocols import CandlesBaseProtocol
 
         class FakeCandles:
+            # Python 3.12+ requires @property for Protocol property members
             @property
             def name(self) -> str:
                 return "test"

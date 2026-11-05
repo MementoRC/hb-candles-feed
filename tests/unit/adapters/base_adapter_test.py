@@ -129,7 +129,9 @@ class BaseAdapterTest(abc.ABC):
     def test_get_ws_url(self, adapter):
         """Test WebSocket URL retrieval."""
         expected_url = self.get_expected_ws_url()
-        assert adapter._get_ws_url() == expected_url
+        # Not every adapter has the private helper; get_ws_url() is the public contract.
+        if hasattr(adapter, "_get_ws_url"):
+            assert adapter._get_ws_url() == expected_url
         assert adapter.get_ws_url() == expected_url
 
     def test_get_rest_params_minimal(self, adapter, trading_pair, interval):
@@ -174,9 +176,9 @@ class BaseAdapterTest(abc.ABC):
         # Further validation can be added in concrete adapter tests
 
     def test_parse_rest_response_none(self, adapter):
-        """Test parsing None REST API response."""
-        candles = adapter._parse_rest_response(None)
-        assert candles == []
+        """A None REST response is unparseable and must raise, not read as 'no data'."""
+        with pytest.raises(ValueError):
+            adapter._parse_rest_response(None)
 
     def test_get_ws_subscription_payload(self, adapter, trading_pair, interval):
         """Test WebSocket subscription payload generation."""

@@ -2,7 +2,7 @@
 Unit tests for the CoinbaseAdvancedTradeSpotPlugin class.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -87,7 +87,7 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
 
         # Check first candle
         candle_data = formatted["candles"][0]
-        expected_iso = datetime.fromtimestamp(candles[0].timestamp, tz=timezone.utc).strftime(
+        expected_iso = datetime.fromtimestamp(candles[0].timestamp, tz=UTC).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
         assert candle_data["start"] == expected_iso
@@ -127,7 +127,7 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
 
         # Check candle data
         candle_data = message["events"][0]["candles"][0]
-        expected_iso = datetime.fromtimestamp(candle.timestamp, tz=timezone.utc).strftime(
+        expected_iso = datetime.fromtimestamp(candle.timestamp, tz=UTC).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
         assert candle_data["start"] == expected_iso

@@ -5,7 +5,7 @@ Global test fixtures and configuration for the Candles Feed framework tests.
 import logging
 import os
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -14,8 +14,10 @@ from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.collection_strategies import RESTPollingStrategy, WebSocketStrategy
 from candles_feed.core.data_processor import DataProcessor
+from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.network_client import NetworkClient, cleanup_unclosed_sessions
 from candles_feed.core.protocols import WSAssistant
+from candles_feed.core.rate_limiter import reset_rate_limiters
 from candles_feed.mocking_resources import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
@@ -46,6 +48,15 @@ async def cleanup_aiohttp_sessions():
     yield  # Run the test
     # Clean up any unclosed sessions after each test
     await cleanup_unclosed_sessions()
+
+
+# Keep the process-wide REST rate-limit budget from leaking between tests
+@pytest.fixture(scope="function", autouse=True)
+def reset_rest_rate_limiters():
+    """Reset shared REST rate limiters before and after each test."""
+    reset_rate_limiters()
+    yield
+    reset_rate_limiters()
 
 
 # Add URL pollution prevention fixture
@@ -128,6 +139,18 @@ def prevent_url_pollution():
 # pytest-asyncio now provides this functionality natively
 
 
+@pytest.fixture(scope="function", autouse=True)
+def isolate_exchange_registry():
+    """Snapshot ExchangeRegistry before each test and restore it afterwards.
+
+    Adapters register once at import time, so a test that clears or replaces the
+    registry would otherwise leave every later test without adapters.
+    """
+    snapshot = dict(ExchangeRegistry._registry)
+    yield
+    ExchangeRegistry._registry = snapshot
+
+
 @pytest.fixture
 def unused_tcp_port():
     """Find an unused TCP port for testing."""
@@ -145,7 +168,7 @@ def unused_tcp_port():
 def mock_candle():
     """Create a mock candle for testing."""
     return CandleData(
-        timestamp_raw=int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()),
+        timestamp_raw=int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()),
         open=50000.0,
         high=51000.0,
         low=49000.0,
@@ -161,7 +184,7 @@ def mock_candle():
 @pytest.fixture
 def mock_candles():
     """Create a list of mock candles for testing."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return [
         CandleData(
@@ -333,9 +356,10 @@ def mock_server_url_coinbase(coinbase_mock_server):
 @pytest.fixture
 def mock_throttler():
     """Create a mock throttler for testing."""
-    # Create a simple mock with async throttle method
+    # Upstream shape: execute_task is a plain method returning an async context manager
+    # (a MagicMock supports ``async with``).
     throttler = MagicMock()
-    throttler.execute_task = AsyncMock()
+    throttler.execute_task = MagicMock()
     return throttler
 
 
@@ -409,7 +433,7 @@ def mock_adapter():
 def sample_candle_data():
     """Create sample candle data for testing."""
     return CandleData(
-        timestamp_raw=int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()),
+        timestamp_raw=int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()),
         open=50000.0,
         high=51000.0,
         low=49000.0,
@@ -425,7 +449,7 @@ def sample_candle_data():
 @pytest.fixture
 def sample_candles() -> list[CandleData]:
     """Create a list of sample candles for testing."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return [
         CandleData(
@@ -467,7 +491,7 @@ def sample_candles() -> list[CandleData]:
 def candlestick_response_binance():
     """Create a sample Binance REST API response."""
     base_time = (
-        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
     )  # Binance uses milliseconds
 
     return [
@@ -506,7 +530,7 @@ def candlestick_response_binance():
 def websocket_message_binance():
     """Create a sample Binance WebSocket message."""
     base_time = (
-        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+        int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
     )  # Binance uses milliseconds
 
     return {
@@ -538,9 +562,7 @@ def websocket_message_binance():
 @pytest.fixture
 def candlestick_response_bybit():
     """Create a sample Bybit REST API response."""
-    base_time = (
-        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
-    )  # Bybit uses milliseconds
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000  # Bybit uses milliseconds
 
     return {
         "retCode": 0,
@@ -566,9 +588,7 @@ def candlestick_response_bybit():
 @pytest.fixture
 def websocket_message_bybit():
     """Create a sample Bybit WebSocket message."""
-    base_time = (
-        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
-    )  # Bybit uses milliseconds
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000  # Bybit uses milliseconds
 
     return {
         "topic": "kline.1m.BTCUSDT",
@@ -595,7 +615,7 @@ def websocket_message_bybit():
 @pytest.fixture
 def candlestick_response_coinbase():
     """Create a sample Coinbase REST API response."""
-    base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
+    base_time = datetime(2023, 1, 1, tzinfo=UTC).isoformat()
 
     return {
         "candles": [
@@ -608,7 +628,7 @@ def candlestick_response_coinbase():
                 "volume": "100.0",
             },
             {
-                "start": (datetime(2023, 1, 1, 0, 1, tzinfo=timezone.utc)).isoformat(),
+                "start": (datetime(2023, 1, 1, 0, 1, tzinfo=UTC)).isoformat(),
                 "low": "50000.0",
                 "high": "52000.0",
                 "open": "50500.0",
@@ -622,12 +642,12 @@ def candlestick_response_coinbase():
 @pytest.fixture
 def websocket_message_coinbase():
     """Create a sample Coinbase WebSocket message."""
-    base_time = datetime(2023, 1, 1, tzinfo=timezone.utc).isoformat()
+    base_time = datetime(2023, 1, 1, tzinfo=UTC).isoformat()
 
     return {
         "channel": "candles",
         "client_id": "test-client",
-        "timestamp": datetime(2023, 1, 1, 0, 0, 1, tzinfo=timezone.utc).isoformat(),
+        "timestamp": datetime(2023, 1, 1, 0, 0, 1, tzinfo=UTC).isoformat(),
         "sequence_num": 1234,
         "events": [
             {
@@ -650,7 +670,7 @@ def websocket_message_coinbase():
 @pytest.fixture
 def candlestick_response_kraken():
     """Create a sample Kraken REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return {
         "error": [],
@@ -667,7 +687,7 @@ def candlestick_response_kraken():
 @pytest.fixture
 def websocket_message_kraken():
     """Create a sample Kraken WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return {
         "channelID": 42,
@@ -692,7 +712,7 @@ def websocket_message_kraken():
 @pytest.fixture
 def candlestick_response_kucoin():
     """Create a sample KuCoin REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return {
         "code": "200000",
@@ -717,7 +737,7 @@ def candlestick_response_kucoin():
 @pytest.fixture
 def websocket_message_kucoin():
     """Create a sample KuCoin WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return {
         "type": "message",
@@ -742,9 +762,7 @@ def websocket_message_kucoin():
 @pytest.fixture
 def candlestick_response_okx():
     """Create a sample OKX REST API response."""
-    base_time = (
-        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
-    )  # OKX uses milliseconds
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000  # OKX uses milliseconds
 
     return {
         "code": "0",
@@ -767,7 +785,7 @@ def candlestick_response_okx():
 @pytest.fixture
 def candlestick_response_gate_io():
     """Create a sample Gate.io REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return [
         [
@@ -796,9 +814,7 @@ def candlestick_response_gate_io():
 @pytest.fixture
 def websocket_message_okx():
     """Create a sample OKX WebSocket message."""
-    base_time = (
-        int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
-    )  # OKX uses milliseconds
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000  # OKX uses milliseconds
 
     return {
         "arg": {"channel": "candle1m", "instId": "BTC-USDT"},
@@ -811,7 +827,7 @@ def websocket_message_okx():
 @pytest.fixture
 def websocket_message_gate_io():
     """Create a sample Gate.io WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return {
         "method": "update",
@@ -835,7 +851,7 @@ def websocket_message_gate_io():
 @pytest.fixture
 def candlestick_response_hyperliquid():
     """Create a sample HyperLiquid REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return [
         [base_time, "50000.0", "51000.0", "49000.0", "50500.0", "100.0", "5000000.0"],
@@ -846,7 +862,7 @@ def candlestick_response_hyperliquid():
 @pytest.fixture
 def websocket_message_hyperliquid():
     """Create a sample HyperLiquid WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
     return {
         "channel": "candles",
@@ -857,7 +873,7 @@ def websocket_message_hyperliquid():
 @pytest.fixture
 def candlestick_response_mexc():
     """Create a sample MEXC REST API response."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
 
     return [
         [
@@ -892,7 +908,7 @@ def candlestick_response_mexc():
 @pytest.fixture
 def websocket_message_mexc():
     """Create a sample MEXC WebSocket message."""
-    base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp()) * 1000
+    base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp()) * 1000
 
     return {
         "d": {

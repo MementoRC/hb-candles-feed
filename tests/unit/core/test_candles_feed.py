@@ -2,8 +2,9 @@
 Unit tests for the CandlesFeed class.
 """
 
+import asyncio
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -48,7 +49,7 @@ class TestCandlesFeed:
     def candles_feed(self, mock_exchange_registry, mock_network_client):
         """Create a CandlesFeed instance with mocked dependencies."""
         with patch(
-            "candles_feed.core.hummingbot_network_client_adapter.NetworkClientFactory.create_client",
+            "candles_feed.hb_compat.hummingbot_network_client_adapter.NetworkClientFactory.create_client",
             return_value=mock_network_client,
         ):
             # Create a feed
@@ -56,47 +57,51 @@ class TestCandlesFeed:
                 exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
             )
 
+            # Mock the strategies
+            # Create properly mocked strategy classes
+            # (note: we're not patching the class, just creating a mock instance)
             mock_ws_strategy = MagicMock()
             mock_ws_strategy.start = MagicMock()
             mock_ws_strategy.start.called = False
             mock_ws_strategy.start.async_mock = AsyncMock()
-            mock_ws_strategy.start.side_effect = (
-                lambda: setattr(mock_ws_strategy.start, "called", True)
+            mock_ws_strategy.start.side_effect = lambda: (
+                setattr(mock_ws_strategy.start, "called", True)
                 or mock_ws_strategy.start.async_mock()
             )
 
             mock_ws_strategy.stop = MagicMock()
             mock_ws_strategy.stop.called = False
             mock_ws_strategy.stop.async_mock = AsyncMock()
-            mock_ws_strategy.stop.side_effect = (
-                lambda: setattr(mock_ws_strategy.stop, "called", True)
-                or mock_ws_strategy.stop.async_mock()
+            mock_ws_strategy.stop.side_effect = lambda: (
+                setattr(mock_ws_strategy.stop, "called", True) or mock_ws_strategy.stop.async_mock()
             )
 
             mock_rest_strategy = MagicMock()
             mock_rest_strategy.start = MagicMock()
             mock_rest_strategy.start.called = False
             mock_rest_strategy.start.async_mock = AsyncMock()
-            mock_rest_strategy.start.side_effect = (
-                lambda: setattr(mock_rest_strategy.start, "called", True)
+            mock_rest_strategy.start.side_effect = lambda: (
+                setattr(mock_rest_strategy.start, "called", True)
                 or mock_rest_strategy.start.async_mock()
             )
 
             mock_rest_strategy.stop = MagicMock()
             mock_rest_strategy.stop.called = False
             mock_rest_strategy.stop.async_mock = AsyncMock()
-            mock_rest_strategy.stop.side_effect = (
-                lambda: setattr(mock_rest_strategy.stop, "called", True)
+            mock_rest_strategy.stop.side_effect = lambda: (
+                setattr(mock_rest_strategy.stop, "called", True)
                 or mock_rest_strategy.stop.async_mock()
             )
 
             mock_rest_strategy.poll_once = MagicMock()
             mock_rest_strategy.poll_once.called = False
             mock_rest_strategy.poll_once.async_mock = AsyncMock(return_value=[])
-            mock_rest_strategy.poll_once.side_effect = lambda *args, **kwargs: setattr(
-                mock_rest_strategy.poll_once, "called", True
-            ) or mock_rest_strategy.poll_once.async_mock(*args, **kwargs)
+            mock_rest_strategy.poll_once.side_effect = lambda *args, **kwargs: (
+                setattr(mock_rest_strategy.poll_once, "called", True)
+                or mock_rest_strategy.poll_once.async_mock(*args, **kwargs)
+            )
 
+            # Apply these mocks to our feed instance
             feed._ws_strategy = mock_ws_strategy
             feed._rest_strategy = mock_rest_strategy
 
@@ -108,9 +113,11 @@ class TestCandlesFeed:
             exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
         )
 
+        # Verify the adapter was fetched from the registry
         assert mock_exchange_registry.called
         assert mock_exchange_registry.call_args[0][0] == "binance_spot"
 
+        # Verify properties were set correctly
         assert feed.exchange == "binance_spot"
         assert feed.trading_pair == "BTC-USDT"
         assert feed.interval == "1m"
@@ -121,56 +128,153 @@ class TestCandlesFeed:
 
     async def test_start_with_websocket(self, candles_feed):
         """Test starting the feed with WebSocket strategy."""
+        # Patch internal CandlesFeed methods to avoid real network calls
         with (
             patch.object(CandlesFeed, "_create_ws_strategy"),
             patch.object(WebSocketStrategy, "start", new_callable=AsyncMock),
         ):
+            # Setup adapter to report WebSocket is supported
             candles_feed._adapter.get_ws_supported_intervals.return_value = ["1m"]
+
+            # Start the feed
             await candles_feed.start(strategy="websocket")
+
+            # Verify feed state
             assert candles_feed._active is True
             assert candles_feed._using_ws is True
 
     async def test_start_with_rest(self, candles_feed):
         """Test starting the feed with REST strategy."""
+        # Patch internal CandlesFeed methods to avoid real network calls
         with (
             patch.object(CandlesFeed, "_create_rest_strategy"),
             patch.object(RESTPollingStrategy, "start", new_callable=AsyncMock),
         ):
+            # Start the feed with REST strategy
             await candles_feed.start(strategy="polling")
+
+            # Verify feed state
             assert candles_feed._active is True
             assert candles_feed._using_ws is False
 
     async def test_start_with_auto_strategy_ws_available(self, candles_feed):
         """Test auto strategy selection when WS is available."""
+        # Patch internal CandlesFeed methods to avoid real network calls
         with (
             patch.object(CandlesFeed, "_create_ws_strategy"),
             patch.object(WebSocketStrategy, "start", new_callable=AsyncMock),
         ):
+            # Setup adapter to report WebSocket is supported
             candles_feed._adapter.get_ws_supported_intervals.return_value = ["1m"]
+
+            # Start with auto strategy
             await candles_feed.start(strategy="auto")
+
+            # Verify WebSocket was chosen
             assert candles_feed._using_ws is True
 
     async def test_start_with_auto_strategy_ws_unavailable(self, candles_feed):
         """Test auto strategy selection when WS is unavailable."""
+        # Patch internal CandlesFeed methods to avoid real network calls
         with (
             patch.object(CandlesFeed, "_create_rest_strategy"),
             patch.object(RESTPollingStrategy, "start", new_callable=AsyncMock),
         ):
-            candles_feed._adapter.get_ws_supported_intervals.return_value = ["5m"]
+            # Setup adapter to report WebSocket is not supported
+            candles_feed._adapter.get_ws_supported_intervals.return_value = [
+                "5m"
+            ]  # 1m not available
+
+            # Start with auto strategy
             await candles_feed.start(strategy="auto")
+
+            # Verify REST was chosen
             assert candles_feed._using_ws is False
 
     async def test_stop(self, candles_feed):
         """Test stopping the feed."""
+        # Patch the stop method to avoid real network calls
         with patch.object(WebSocketStrategy, "stop", new_callable=AsyncMock):
+            # First start the feed
             candles_feed._active = True
             candles_feed._using_ws = True
+
+            # Stop the feed
             await candles_feed.stop()
+
+            # Verify feed state after stopping
             assert candles_feed._active is False
+
+    @staticmethod
+    def _slow_strategy():
+        async def hang():
+            await asyncio.sleep(10)
+
+        strategy = MagicMock()
+        strategy.start = AsyncMock(side_effect=hang)
+        strategy.stop = AsyncMock()
+        return strategy
+
+    async def test_stop_on_never_started_feed_is_noop(self, candles_feed):
+        client = MagicMock()
+        candles_feed._network_client = client
+        candles_feed._ws_strategy = None
+        candles_feed._rest_strategy = None
+
+        await candles_feed.stop()
+
+        client.__aexit__.assert_not_called()
+        assert candles_feed._active is False
+
+    async def test_cancelled_start_after_client_enter_releases_client(self, candles_feed):
+        client = MagicMock()
+        candles_feed._network_client = client
+        candles_feed._rest_strategy = self._slow_strategy()
+
+        task = asyncio.ensure_future(candles_feed.start(strategy="polling"))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        client.__aenter__.assert_awaited_once()
+
+        await candles_feed.stop()
+
+        client.__aexit__.assert_awaited_once()
+        assert candles_feed._network_client_context_entered is False
+        assert candles_feed._active is False
+
+    async def test_cancelled_start_after_strategy_start_stops_strategy(self, candles_feed):
+        candles_feed._network_client = MagicMock()
+        strategy = self._slow_strategy()
+        candles_feed._ws_strategy = strategy
+
+        task = asyncio.ensure_future(candles_feed.start(strategy="websocket"))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        await candles_feed.stop()
+
+        strategy.stop.assert_awaited_once()
+
+    async def test_double_stop_is_safe(self, candles_feed):
+        client = MagicMock()
+        candles_feed._network_client = client
+        candles_feed._rest_strategy = MagicMock(start=AsyncMock(), stop=AsyncMock())
+
+        await candles_feed.start(strategy="polling")
+        await candles_feed.stop()
+        await candles_feed.stop()
+
+        client.__aexit__.assert_awaited_once()
+        assert candles_feed._active is False
 
     async def test_get_candles(self, candles_feed):
         """Test getting candles."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        # Create some test candles
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         test_candles = [
             CandleData(
                 timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
@@ -184,15 +288,22 @@ class TestCandlesFeed:
                 volume=15.0,
             ),
         ]
+
+        # Add the candles to the feed
         candles_feed._candles.extend(test_candles)
+
+        # Get the candles
         candles = candles_feed.get_candles()
+
+        # Verify the returned candles
         assert len(candles) == 2
         assert candles[0].timestamp == base_time
         assert candles[1].timestamp == base_time + 60
 
     async def test_fetch_candles(self, candles_feed):
         """Test fetching historical candles."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        # Setup test data
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         mock_candles = [
             CandleData(
                 timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
@@ -207,19 +318,25 @@ class TestCandlesFeed:
             ),
         ]
 
+        # Set up the mock
         with patch.object(RESTPollingStrategy, "poll_once", new_callable=AsyncMock) as mock_poll:
             mock_poll.return_value = mock_candles
+
+            # Set the mocked strategy
             candles_feed._rest_strategy.poll_once = mock_poll
-            await candles_feed.fetch_candles()
+
+            # Fetch the candles
+            result = await candles_feed.fetch_candles()
+
+            # Verify the method was called and data returned without touching the store
             assert mock_poll.called
-            candles_feed._candles.clear()
-            for candle in mock_candles:
-                candles_feed._candles.append(candle)
-            assert len(candles_feed._candles) == 2
+            assert result == mock_candles
+            assert len(candles_feed._candles) == 0
 
     async def test_fetch_candles_with_limit(self, candles_feed):
-        """Test fetching historical candles with limit."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        """Test fetching historical candles."""
+        # Setup test data
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         mock_candles = [
             CandleData(
                 timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
@@ -234,23 +351,39 @@ class TestCandlesFeed:
             ),
         ]
 
+        # Set up the mock
         with patch.object(RESTPollingStrategy, "poll_once", new_callable=AsyncMock) as mock_poll:
             mock_poll.return_value = mock_candles
+
+            # Set the mocked strategy
             candles_feed._rest_strategy.poll_once = mock_poll
-            await candles_feed.fetch_candles(limit=2)
+
+            # Fetch the candles
+            result = await candles_feed.fetch_candles(limit=2)
+
+            # Verify the method was called with the limit and the store is untouched
             assert mock_poll.called
-            candles_feed._candles.clear()
-            for candle in mock_candles:
-                candles_feed._candles.append(candle)
-            assert len(candles_feed._candles) == 2
+            assert mock_poll.call_args.kwargs["limit"] == 2
+            assert result == mock_candles
+            assert len(candles_feed._candles) == 0
+
+    def test_max_candles_per_request_property(self, candles_feed):
+        """Property exposes the adapter's per-request maximum."""
+        candles_feed._adapter.MAX_CANDLES_PER_REQUEST = 1234
+        assert candles_feed.max_candles_per_request == 1234
 
     async def test_add_candle(self, candles_feed):
         """Test adding a single candle."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        # Create a test candle
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         candle = CandleData(
             timestamp_raw=base_time, open=100.0, high=101.0, low=99.0, close=100.5, volume=10.0
         )
+
+        # Add the candle
         candles_feed.add_candle(candle)
+
+        # Verify it was added
         assert len(candles_feed._candles) == 1
         assert candles_feed._candles[0].timestamp == base_time
 
@@ -271,10 +404,12 @@ class TestCandlesFeed:
 
     async def test_max_records_limit(self, candles_feed):
         """Test the max records limit is enforced."""
+        # Set a small max records limit
         candles_feed.max_records = 3
         candles_feed._candles = deque(maxlen=3)
 
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        # Create some test candles
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         for i in range(5):
             candle = CandleData(
                 timestamp_raw=base_time + i * 60,
@@ -286,6 +421,7 @@ class TestCandlesFeed:
             )
             candles_feed.add_candle(candle)
 
+        # Verify only the most recent 3 candles are kept
         candles = candles_feed.get_candles()
         assert len(candles) == 3
         assert candles[0].timestamp == base_time + 2 * 60

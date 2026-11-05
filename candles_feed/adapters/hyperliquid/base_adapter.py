@@ -6,11 +6,13 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CHANNEL_NAME,
@@ -29,6 +31,16 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/hyperliquid_spot_candles/constants.py:36-37 (same in hyperliquid_perpetual_candles/constants.py:36-37) — "All" pool 1200/60s, weight 1
+    # Spot and perpetual POST to the same /info endpoint with the same pool, so they share one pool.
+    REST_RATE_LIMIT = RestRateLimit(max_requests=1200, period_seconds=60)
+    REST_RATE_LIMIT_POOL = "hyperliquid"
+    # hummingbot/data_feed/candles_feed/hyperliquid_spot_candles/constants.py:37 (same in perpetual :37) links /info to "All" at weight 1
+    # (pool also in connector/exchange/hyperliquid/hyperliquid_constants.py:96 and connector/derivative/hyperliquid_perpetual/hyperliquid_perpetual_constants.py:119)
+    REST_HOST_RATE_LIMIT_ID = "All"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -46,6 +58,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -54,6 +67,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         return self._get_ws_url()
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -64,6 +78,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         base, _ = trading_pair.split("-", 1)
         return base
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -94,14 +109,15 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None or not isinstance(data, list):
-            return []
+        if not isinstance(data, list):
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for candle_row in data:
@@ -122,6 +138,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                 )
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -148,6 +165,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -164,6 +182,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
         }
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
@@ -195,6 +214,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return None
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -202,6 +222,7 @@ class HyperliquidBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 

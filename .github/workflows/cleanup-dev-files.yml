@@ -30,7 +30,7 @@ on:
 jobs:
   cleanup:
     if: false
-    uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@v2.5.1
+    uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@2e45ef2ffe9211214d5fefa67d5036d3ac780a13 # v4.1.0
     with:
       target_branches: >-
         ${{
@@ -48,7 +48,7 @@ jobs:
         ".vscode/settings.json", ".idea/**", "*.code-workspace",
         "*.tmp", "*.dev", ".DS_Store", "Thumbs.db"]
       workflow_name: 'hb-candles-feed Cleanup'
-    secrets: inherit
+    secrets: inherit  # pragma: allowlist secret
     permissions:
       contents: write
       pull-requests: write

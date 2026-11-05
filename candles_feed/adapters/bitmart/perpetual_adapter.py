@@ -3,13 +3,14 @@ Bitmart perpetual exchange adapter for the Candle Feed framework.
 """
 
 import time
-from typing import Any
+from typing import Any, override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -28,8 +29,14 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Bitmart perpetual exchange adapter."""
 
     TIMESTAMP_UNIT: str = "seconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/bitmart_perpetual_candles/constants.py:33 — kline endpoint 12 req/2s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=12, period_seconds=2)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -38,6 +45,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return trading_pair.replace("-", "")
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -45,6 +53,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
@@ -52,6 +61,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WS_INTERVALS
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -59,6 +69,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WSS_URL
 
+    @override
     def _get_rest_url(self) -> str:
         """Get REST API URL for candles.
 
@@ -66,6 +77,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return f"{REST_URL}{CANDLES_ENDPOINT}"
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -101,6 +113,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             "end_time": end_time,
         }
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -124,29 +137,26 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
                 ]
             }
         """
-        if data is None:
-            return []
-
-        if not isinstance(data, dict):
-            return []
-        candle_list = data.get("data", [])
+        candle_list = data.get("data") if isinstance(data, dict) else None
         if not isinstance(candle_list, list):
-            return []
+            raise self._bad_response(data)
 
-        candles: list[CandleData] = []
-        candles.extend(
-            CandleData(
-                timestamp_raw=self.ensure_timestamp_in_seconds(row["timestamp"]),
-                open=float(row["open_price"]),
-                high=float(row["high_price"]),
-                low=float(row["low_price"]),
-                close=float(row["close_price"]),
-                volume=float(row["volume"]),
-            )
-            for row in candle_list
-        )
-        return candles
+        try:
+            return [
+                CandleData(
+                    timestamp_raw=self.ensure_timestamp_in_seconds(row["timestamp"]),
+                    open=float(row["open_price"]),
+                    high=float(row["high_price"]),
+                    low=float(row["low_price"]),
+                    close=float(row["close_price"]),
+                    volume=float(row["volume"]),
+                )
+                for row in candle_list
+            ]
+        except (KeyError, TypeError, ValueError) as e:
+            raise self._bad_response(data) from e
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -173,6 +183,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -194,6 +205,7 @@ class BitmartPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             "args": [f"futures/klineBin{ws_interval}:{symbol}"],
         }
 
+    @override
     def parse_ws_message(self, data: dict[str, Any] | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 

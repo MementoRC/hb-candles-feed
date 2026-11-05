@@ -4,13 +4,14 @@ CCXT base adapter for the Candle Feed framework.
 This module provides a base implementation for exchange adapters using CCXT.
 """
 
-from typing import Any, Literal
+from typing import Any, Literal, override
 
 import ccxt  # type: ignore
 
 from candles_feed.adapters.adapter_mixins import SyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.rate_limiter import RateLimitExceededError
 
 
 class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
@@ -26,6 +27,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
     TIMESTAMP_UNIT: str = "milliseconds"
 
     # NoWebSocketSupportMixin methods
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -33,6 +35,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         raise NotImplementedError("This adapter does not support WebSocket")
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
@@ -40,6 +43,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         raise NotImplementedError("This adapter does not support WebSocket")
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -49,6 +53,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         raise NotImplementedError("This adapter does not support WebSocket")
 
+    @override
     def parse_ws_message(self, data: Any) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
@@ -90,6 +95,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         return options
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to CCXT format.
 
@@ -98,6 +104,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         """
         return trading_pair.replace("-", "/")
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -121,6 +128,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         }
         return params
 
+    @override
     def _parse_rest_response(self, data: dict[Any, Any] | list[Any] | None) -> list[CandleData]:
         """Parse CCXT OHLCV response into CandleData objects.
 
@@ -128,12 +136,10 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         :returns: List of CandleData objects
         """
         candles: list[CandleData] = []
-        if data is None:
-            return candles
 
         # CCXT returns a list of OHLCV data
         if not isinstance(data, list):
-            return candles
+            raise self._bad_response(data)
 
         for row in data:
             if isinstance(row, list) and len(row) >= 6:
@@ -149,6 +155,7 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
                 )
         return candles
 
+    @override
     def fetch_rest_candles_synchronous(
         self,
         trading_pair: str,
@@ -165,14 +172,19 @@ class CCXTBaseAdapter(BaseAdapter, SyncOnlyAdapter):
         :returns: List of CandleData objects
         """
         params = self._get_rest_params(trading_pair, interval, start_time, limit=limit)
-        ohlcv = self.exchange.fetch_ohlcv(
-            symbol=params["symbol"],
-            timeframe=params["timeframe"],
-            since=params["since"],
-            limit=params["limit"],
-        )
+        try:
+            ohlcv = self.exchange.fetch_ohlcv(
+                symbol=params["symbol"],
+                timeframe=params["timeframe"],
+                since=params["since"],
+                limit=params["limit"],
+            )
+        except (ccxt.RateLimitExceeded, ccxt.DDoSProtection) as e:
+            # ccxt does not expose the status or Retry-After, so the default 429 backoff applies.
+            raise RateLimitExceededError(status=429, retry_after=None, message=str(e)) from e
         return self._parse_rest_response(ohlcv)
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals from CCXT.
 

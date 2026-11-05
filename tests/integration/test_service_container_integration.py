@@ -14,7 +14,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -97,9 +97,9 @@ class TestServiceContainerIntegration:
                 logger.info(f"Successfully connected to Redis and pinged on attempt {attempt}.")
                 break  # Success
             except (
+                TimeoutError,
                 redis.exceptions.ConnectionError,
                 redis.exceptions.TimeoutError,
-                asyncio.TimeoutError,
             ) as e:
                 last_exception = e
                 logger.warning(
@@ -179,7 +179,7 @@ class TestServiceContainerIntegration:
         cache_key = "candles:btcusdt:1m"
 
         # Generate some test candle data
-        base_timestamp = int(datetime.now(timezone.utc).timestamp())
+        base_timestamp = int(datetime.now(UTC).timestamp())
         test_candles = []
 
         for i in range(5):
@@ -289,11 +289,11 @@ class TestServiceContainerIntegration:
                     )
 
             except (
+                TimeoutError,
                 json.JSONDecodeError,
                 websockets.exceptions.InvalidURI,
                 websockets.exceptions.WebSocketException,
                 ConnectionRefusedError,
-                asyncio.TimeoutError,
                 OSError,
             ) as e:  # Added OSError for e.g. Host Down and json.JSONDecodeError for empty responses
                 last_exception = e
@@ -388,7 +388,7 @@ class TestServiceContainerIntegration:
             "trading_pair": feed.trading_pair,
             "interval": feed.interval,
             "max_records": feed.max_records,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "status": "initialized",
         }
 
@@ -407,7 +407,7 @@ class TestServiceContainerIntegration:
 
         # Update state to "running"
         state_data["status"] = "running"
-        state_data["last_update"] = datetime.now(timezone.utc).isoformat()
+        state_data["last_update"] = datetime.now(UTC).isoformat()
         await redis_client.setex(feed_state_key, 1800, json.dumps(state_data))
 
         # Verify update

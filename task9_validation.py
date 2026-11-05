@@ -10,7 +10,7 @@ Hummingbot implementation.
 import asyncio
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from candles_feed.core.candle_data import CandleData
@@ -72,7 +72,7 @@ def validate_candle_data_to_array():
         (1609459200000000, 1609459200.0),  # microseconds
         ("1609459200", 1609459200.0),  # string
         ("2021-01-01T00:00:00Z", 1609459200.0),  # ISO format
-        (datetime(2021, 1, 1, tzinfo=timezone.utc), 1609459200.0),  # datetime
+        (datetime(2021, 1, 1, tzinfo=UTC), 1609459200.0),  # datetime
     ]
 
     for input_ts, expected_ts in timestamp_tests:
@@ -80,9 +80,9 @@ def validate_candle_data_to_array():
             timestamp_raw=input_ts, open=100.0, high=101.0, low=99.0, close=100.5, volume=1000.0
         )
         array_result = candle.to_array()
-        assert (
-            array_result[0] == expected_ts
-        ), f"Timestamp conversion failed for {input_ts}: {array_result[0]} != {expected_ts}"
+        assert array_result[0] == expected_ts, (
+            f"Timestamp conversion failed for {input_ts}: {array_result[0]} != {expected_ts}"
+        )
 
     logger.info("✅ CandleData.to_array() format validation passed")
 
@@ -113,12 +113,15 @@ def validate_dataframe_structure():
     mock_adapter = MagicMock()
     mock_adapter.get_supported_intervals.return_value = {"1m": 60}
 
-    with patch(
-        "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=mock_adapter,
-    ), patch(
-        "candles_feed.core.network_client.NetworkClient",
-        return_value=MagicMock(),
+    with (
+        patch(
+            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+            return_value=mock_adapter,
+        ),
+        patch(
+            "candles_feed.core.network_client.NetworkClient",
+            return_value=MagicMock(),
+        ),
     ):
         feed = CandlesFeed(
             exchange="test_exchange",
@@ -149,9 +152,9 @@ def validate_dataframe_structure():
         ]
 
         # Validate column names
-        assert (
-            list(df.columns) == expected_columns
-        ), f"Column mismatch: {list(df.columns)} != {expected_columns}"
+        assert list(df.columns) == expected_columns, (
+            f"Column mismatch: {list(df.columns)} != {expected_columns}"
+        )
 
         # Validate data types
         expected_types = {
@@ -169,9 +172,9 @@ def validate_dataframe_structure():
 
         for col, allowed_types in expected_types.items():
             actual_type = str(df[col].dtype)
-            assert (
-                actual_type in allowed_types
-            ), f"Type mismatch for {col}: {actual_type} not in {allowed_types}"
+            assert actual_type in allowed_types, (
+                f"Type mismatch for {col}: {actual_type} not in {allowed_types}"
+            )
 
         # Validate DataFrame content
         assert len(df) == 5, f"Expected 5 rows, got {len(df)}"
@@ -220,9 +223,9 @@ def validate_timestamp_rounding():
     for input_ts, interval_sec, expected in test_cases:
         # Test utility function
         result_util = round_timestamp_to_interval(input_ts, interval_sec)
-        assert (
-            result_util == expected
-        ), f"Utility function failed: round_timestamp_to_interval({input_ts}, {interval_sec}) = {result_util}, expected {expected}"
+        assert result_util == expected, (
+            f"Utility function failed: round_timestamp_to_interval({input_ts}, {interval_sec}) = {result_util}, expected {expected}"
+        )
 
         # Test CandlesFeed method (requires mock setup)
         mock_adapter = MagicMock()
@@ -230,12 +233,15 @@ def validate_timestamp_rounding():
         interval_str = interval_map.get(interval_sec, "1m")
         mock_adapter.get_supported_intervals.return_value = {interval_str: interval_sec}
 
-        with patch(
-            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-            return_value=mock_adapter,
-        ), patch(
-            "candles_feed.core.network_client.NetworkClient",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+                return_value=mock_adapter,
+            ),
+            patch(
+                "candles_feed.core.network_client.NetworkClient",
+                return_value=MagicMock(),
+            ),
         ):
             feed = CandlesFeed(
                 exchange="test_exchange",
@@ -245,9 +251,9 @@ def validate_timestamp_rounding():
             )
 
             result_feed = feed._round_timestamp_to_interval_multiple(input_ts)
-            assert (
-                result_feed == expected
-            ), f"CandlesFeed method failed: _round_timestamp_to_interval_multiple({input_ts}) = {result_feed}, expected {expected}"
+            assert result_feed == expected, (
+                f"CandlesFeed method failed: _round_timestamp_to_interval_multiple({input_ts}) = {result_feed}, expected {expected}"
+            )
 
     logger.info("✅ Timestamp rounding validation passed")
 
@@ -259,12 +265,15 @@ def validate_check_candles_sorted_and_equidistant():
     mock_adapter = MagicMock()
     mock_adapter.get_supported_intervals.return_value = {"1m": 60}
 
-    with patch(
-        "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
-        return_value=mock_adapter,
-    ), patch(
-        "candles_feed.core.network_client.NetworkClient",
-        return_value=MagicMock(),
+    with (
+        patch(
+            "candles_feed.core.exchange_registry.ExchangeRegistry.get_adapter_instance",
+            return_value=mock_adapter,
+        ),
+        patch(
+            "candles_feed.core.network_client.NetworkClient",
+            return_value=MagicMock(),
+        ),
     ):
         feed = CandlesFeed(
             exchange="test_exchange",
@@ -302,9 +311,9 @@ def validate_check_candles_sorted_and_equidistant():
                 )
             )
 
-        assert (
-            feed.check_candles_sorted_and_equidistant()
-        ), "Sorted equidistant candles should return True"
+        assert feed.check_candles_sorted_and_equidistant(), (
+            "Sorted equidistant candles should return True"
+        )
 
         # Test 4: External data validation (using array format)
         external_data = [
@@ -313,9 +322,9 @@ def validate_check_candles_sorted_and_equidistant():
             [1609459320, 50200.0, 51200.0, 49200.0, 50700.0, 100.0, 0.0, 0, 0.0, 0.0],
         ]
 
-        assert feed.check_candles_sorted_and_equidistant(
-            external_data
-        ), "External sorted data should return True"
+        assert feed.check_candles_sorted_and_equidistant(external_data), (
+            "External sorted data should return True"
+        )
 
         # Test 5: Unsorted data (should return False)
         unsorted_data = [
@@ -345,9 +354,9 @@ def validate_check_candles_sorted_and_equidistant():
             ],  # Earlier timestamp second
         ]
 
-        assert not feed.check_candles_sorted_and_equidistant(
-            unsorted_data
-        ), "Unsorted data should return False"
+        assert not feed.check_candles_sorted_and_equidistant(unsorted_data), (
+            "Unsorted data should return False"
+        )
 
         # Test 6: Non-equidistant data (should return False)
         non_equidistant_data = [
@@ -378,9 +387,9 @@ def validate_check_candles_sorted_and_equidistant():
             ],  # 90-second gap
         ]
 
-        assert not feed.check_candles_sorted_and_equidistant(
-            non_equidistant_data
-        ), "Non-equidistant data should return False"
+        assert not feed.check_candles_sorted_and_equidistant(non_equidistant_data), (
+            "Non-equidistant data should return False"
+        )
 
         # Test 7: Large dataset performance test
         start_time = time.time()
@@ -422,13 +431,13 @@ def validate_backward_compatibility():
     # Validate roundtrip conversion
     for i, (original, converted) in enumerate(zip(original_data, converted_back, strict=True)):
         if i == 7:  # n_trades gets converted to int then back to float
-            assert int(original) == int(
-                converted
-            ), f"n_trades conversion mismatch at index {i}: {original} != {converted}"
+            assert int(original) == int(converted), (
+                f"n_trades conversion mismatch at index {i}: {original} != {converted}"
+            )
         else:
-            assert (
-                original == converted
-            ), f"Roundtrip conversion mismatch at index {i}: {original} != {converted}"
+            assert original == converted, (
+                f"Roundtrip conversion mismatch at index {i}: {original} != {converted}"
+            )
 
     # Test dictionary conversion with various key formats
     dict_tests = [
@@ -474,7 +483,7 @@ def validate_backward_compatibility():
         1609459200000000,  # Unix microseconds
         "1609459200",  # String seconds
         "2021-01-01T00:00:00Z",  # ISO format
-        datetime(2021, 1, 1, tzinfo=timezone.utc),  # datetime object
+        datetime(2021, 1, 1, tzinfo=UTC),  # datetime object
     ]
 
     for ts_format in timestamp_formats:
@@ -486,9 +495,9 @@ def validate_backward_compatibility():
             close=50500.0,
             volume=100.0,
         )
-        assert (
-            candle.timestamp == 1609459200
-        ), f"Timestamp format {type(ts_format)} failed: {candle.timestamp}"
+        assert candle.timestamp == 1609459200, (
+            f"Timestamp format {type(ts_format)} failed: {candle.timestamp}"
+        )
 
     logger.info("✅ Backward compatibility validation passed")
 

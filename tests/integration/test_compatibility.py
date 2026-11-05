@@ -253,11 +253,8 @@ class TestCompatibilityWithOriginal:
             assert candles[0].timestamp == 1609459200, "First candle timestamp should match"
             assert candles[1].timestamp == 1609459260, "Second candle timestamp should match"
 
-            # Verify candles are added to the store
-            df = feed.get_candles_df()
-            assert len(df) == 2, "DataFrame should contain 2 candles"
-            assert df.iloc[0]["timestamp"] == 1609459200, "First candle timestamp should match"
-            assert df.iloc[1]["timestamp"] == 1609459260, "Second candle timestamp should match"
+            # fetch_candles returns data only; the live store is untouched
+            assert feed.get_candles_df().empty, "Fetched candles must not be stored"
 
     async def test_get_historical_candles_compatibility(self, sample_candles_data):
         """Test that get_historical_candles method is compatible with the original."""
@@ -277,6 +274,7 @@ class TestCompatibilityWithOriginal:
         # Mock strategies
         mock_rest_strategy = MagicMock()
         mock_rest_strategy.poll_once = AsyncMock(return_value=sample_candles_data["new"])
+        mock_rest_strategy.fetch_rest_page = AsyncMock(return_value=sample_candles_data["new"])
 
         # Patch dependencies
         with (
@@ -304,14 +302,14 @@ class TestCompatibilityWithOriginal:
             # Prefill with some data
             await feed.fetch_candles()
 
-            # Clear the rest strategy poll_once mock to track next calls
-            mock_rest_strategy.poll_once.reset_mock()
+            # Clear the rest strategy mock to track next calls
+            mock_rest_strategy.fetch_rest_page.reset_mock()
 
             # Call get_historical_candles
             historical_df = await feed.get_historical_candles(1609459000, 1609459300)
 
             # Verify the method was called with proper parameters
-            mock_rest_strategy.poll_once.assert_called_once()
+            mock_rest_strategy.fetch_rest_page.assert_called_once()
 
             # Verify data format is compatible with original implementation
             assert isinstance(historical_df, pd.DataFrame), "Should return a DataFrame"
@@ -717,16 +715,18 @@ class TestCandlesFeedWithHummingbotComponents:
 
         # Skip if hummingbot components aren't available
         try:
-            from hummingbot.core.api_throttler.async_throttler import AsyncThrottler
-            from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
+            from candles_feed.hb_compat._web_stack import import_web_stack
 
-            async_throttler_class = AsyncThrottler
-            web_assistants_factory_class = WebAssistantsFactory
+            async_throttler_class = import_web_stack("throttler", "async_throttler").AsyncThrottler
+            web_assistants_factory_class = import_web_stack(
+                "web", "web_assistants_factory"
+            ).WebAssistantsFactory
         except ImportError:
             pytest.skip("Hummingbot components not available")
 
         # Mock Hummingbot components
         mock_throttler = MagicMock(spec=async_throttler_class)
+        mock_throttler.get_related_limits.return_value = (None, [])  # no limits registered
         mock_web_assistants_factory = MagicMock(spec=web_assistants_factory_class)
 
         # Mock adapter

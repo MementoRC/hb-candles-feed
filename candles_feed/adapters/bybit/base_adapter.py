@@ -6,11 +6,13 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
@@ -28,6 +30,12 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/bybit_perpetual_candles/constants.py:34,37 — GET limit 49 req/1s (spot: bybit_spot_candles/constants.py:34 shared 600/5s is looser)
+    # Spot and perpetual use the same host and /v5/market/kline, so they share one pool at the stricter declared rate.
+    REST_RATE_LIMIT = RestRateLimit(max_requests=49, period_seconds=1)
+    REST_RATE_LIMIT_POOL = "bybit"
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -45,6 +53,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -53,6 +62,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         return self._get_ws_url()
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -69,6 +79,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -99,6 +110,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -124,17 +136,14 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   }
         # }
 
-        if data is None:
-            return []
-
-        if not isinstance(data, dict):
-            return []
+        if not isinstance(data, dict) or data.get("retCode", 0) != 0:
+            raise self._bad_response(data)
         result_data = data.get("result", {})
         if not isinstance(result_data, dict):
-            return []
+            raise self._bad_response(data)
         candle_list_data = result_data.get("list", [])
         if not isinstance(candle_list_data, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         candles.extend(
@@ -151,6 +160,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         )
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -177,6 +187,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -192,6 +203,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             ],
         }
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
@@ -249,6 +261,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return None
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -256,6 +269,7 @@ class BybitBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 

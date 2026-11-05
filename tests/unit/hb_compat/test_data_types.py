@@ -35,7 +35,7 @@ class TestCandlesConfig:
         from candles_feed.hb_compat.data_types import CandlesConfig
 
         with pytest.raises(ValidationError):
-            CandlesConfig(connector="binance")
+            CandlesConfig(connector="binance")  # missing trading_pair
 
 
 class TestHistoricalCandlesConfig:
@@ -52,6 +52,8 @@ class TestHistoricalCandlesConfig:
             end_time=2000000,
         )
         assert config.connector_name == "binance"
+        assert config.trading_pair == "BTC-USDT"
+        assert config.interval == "1m"
         assert config.start_time == 1000000
         assert config.end_time == 2000000
 

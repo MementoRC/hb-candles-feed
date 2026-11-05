@@ -2,7 +2,7 @@
 Tests for the GateIoBaseAdapter using the base adapter test class.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from candles_feed.adapters.gate_io.base_adapter import GateIoBaseAdapter
 from candles_feed.adapters.gate_io.constants import (
@@ -88,51 +88,51 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
+        # Gate.io v4 order: [ts, quote_vol, close, high, low, open, base_vol, closed]
         return [
             [
-                str(base_time),  # timestamp
-                "50000.0",  # open
-                "50500.0",  # close
-                "49000.0",  # low
-                "51000.0",  # high
-                "100.0",  # volume
-                "5000000.0",  # quote currency volume
-                "BTC_USDT",  # currency pair
+                str(base_time),
+                "5000000.0",
+                "50500.0",
+                "51000.0",
+                "49000.0",
+                "50000.0",
+                "100.0",
+                "true",
             ],
             [
-                str(base_time + 60),  # timestamp
-                "50500.0",  # open
-                "51500.0",  # close
-                "50000.0",  # low
-                "52000.0",  # high
-                "150.0",  # volume
-                "7500000.0",  # quote currency volume
-                "BTC_USDT",  # currency pair
+                str(base_time + 60),
+                "7500000.0",
+                "51500.0",
+                "52000.0",
+                "50000.0",
+                "50500.0",
+                "150.0",
+                "false",
             ],
         ]
 
     def get_mock_websocket_message(self):
         """Return a mock WebSocket message for the adapter."""
-        base_time = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        base_time = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
 
         return {
-            "method": "update",
+            "time": base_time,
             "channel": SPOT_CHANNEL_NAME,
-            "params": [
-                {"currency_pair": "BTC_USDT", "interval": "1m", "status": "open"},
-                [
-                    str(base_time),  # timestamp
-                    "50000.0",  # open
-                    "50500.0",  # close
-                    "49000.0",  # low
-                    "51000.0",  # high
-                    "100.0",  # volume
-                    "5000000.0",  # quote currency volume
-                    "BTC_USDT",  # currency pair
-                ],
-            ],
+            "event": "update",
+            "result": {
+                "t": str(base_time),
+                "v": "5000000.0",
+                "c": "50500.0",
+                "h": "51000.0",
+                "l": "49000.0",
+                "o": "50000.0",
+                "n": "1m_BTC_USDT",
+                "a": "100.0",
+                "w": False,
+            },
         }
 
     # Additional test cases specific to GateIoBaseAdapter
@@ -172,16 +172,16 @@ class TestGateIoBaseAdapter(BaseAdapterTest):
     def test_candle_data_field_mapping(self, adapter):
         """Test mapping of raw API data to CandleData fields."""
         # Test parsing a single candle record
-        timestamp = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
+        timestamp = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp())
         candle_data = [
-            str(timestamp),  # timestamp
-            "50000.0",  # open
-            "50500.0",  # close
-            "49000.0",  # low
-            "51000.0",  # high
-            "100.0",  # volume
+            str(timestamp),
             "5000000.0",  # quote currency volume
-            "BTC_USDT",  # currency pair
+            "50500.0",  # close
+            "51000.0",  # high
+            "49000.0",  # low
+            "50000.0",  # open
+            "100.0",  # base currency volume
+            "true",  # window closed
         ]
 
         # Parse a mocked rest response with a single candle

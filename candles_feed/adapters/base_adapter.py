@@ -5,11 +5,13 @@ This module provides a base implementation for exchange adapters to reduce code 
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
-from typing import Any  # Added Any
+from typing import Any, ClassVar
 
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.network_config import NetworkConfig
+from candles_feed.core.rate_limiter import DEFAULT_REST_RATE_LIMIT, RestRateLimit
 
 
 class BaseAdapter(ABC):
@@ -19,8 +21,42 @@ class BaseAdapter(ABC):
     the required interface methods for all exchange adapters.
     """
 
+    # REST pacing for every request this adapter makes (fetch, pagination, polling).
+    # The default of 5 requests/second (300/min) is deliberately conservative: it sits
+    # below the documented public-endpoint budgets of the major exchanges while still
+    # allowing historical pagination to finish quickly. Override per adapter once the
+    # exchange's documented limit is known. Weights are not modelled yet.
+    REST_RATE_LIMIT: RestRateLimit = DEFAULT_REST_RATE_LIMIT
+
+    # Adapters sharing one exchange-side budget (e.g. spot and perpetual) set the same
+    # pool name; None means one pool per adapter class.
+    REST_RATE_LIMIT_POOL: str | None = None
+
+    # Id of the host connector's shared rate-limit pool (e.g. "REQUEST_WEIGHT") that one
+    # klines request draws from. When a hummingbot connector is passed to the feed, requests
+    # are also charged against that pool; None means no host pool is linked.
+    REST_HOST_RATE_LIMIT_ID: ClassVar[str | None] = None
+
+    # Weight of one klines request against the host pool named by REST_HOST_RATE_LIMIT_ID.
+    REST_HOST_RATE_LIMIT_WEIGHT: ClassVar[int] = 1
+
+    # Maximum candles one REST request returns; historical pagination uses it as page size.
+    MAX_CANDLES_PER_REQUEST: ClassVar[int] = 500
+
     # Common timestamp handling
     TIMESTAMP_UNIT: str = ""
+
+    def __init__(self, *args: Any, network_config: NetworkConfig | None = None, **kwargs: Any):
+        """Initialize the adapter, accepting an optional network configuration.
+
+        Mixins (e.g. TestnetSupportMixin) may already have set ``network_config``
+        before calling ``super().__init__()``; do not overwrite it with None.
+
+        :param network_config: Optional network configuration for the adapter
+        """
+        super().__init__(*args, **kwargs)
+        if network_config is not None or not hasattr(self, "network_config"):
+            self.network_config = network_config
 
     @staticmethod
     @abstractmethod
@@ -118,6 +154,17 @@ class BaseAdapter(ABC):
         """
         raise NotImplementedError("Subclasses must implement _parse_rest_response")
 
+    def _bad_response(self, data: object) -> ValueError:
+        """Build the error raised when a REST response cannot be parsed at all.
+
+        An empty candle list is legitimate "no data"; a missing/wrongly-typed payload
+        (e.g. an error body served with HTTP 200) must not be mistaken for it.
+
+        :param data: The unparseable REST response
+        :returns: ValueError to raise
+        """
+        return ValueError(f"{type(self).__name__}: unexpected REST response: {str(data)[:200]}")
+
     def convert_timestamp_to_exchange(self, timestamp: int | float | Decimal) -> int | str:
         """Convert timestamp from seconds to exchange timestamp format.
 
@@ -129,10 +176,10 @@ class BaseAdapter(ABC):
             return int(timestamp)
         if self.TIMESTAMP_UNIT.lower() == "milliseconds":
             return int(timestamp * 1000)
+        if self.TIMESTAMP_UNIT.lower() == "nanoseconds":
+            return int(timestamp * 1_000_000_000)
         if self.TIMESTAMP_UNIT == "iso8601":
-            return datetime.fromtimestamp(float(timestamp), timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
+            return datetime.fromtimestamp(float(timestamp), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         raise NotImplementedError("Exchange must define TIMESTAMP_UNIT.")
 
     @staticmethod
@@ -145,7 +192,7 @@ class BaseAdapter(ABC):
         """
         if timestamp is None:
             # Return current time in seconds if None is provided
-            return int(datetime.now(timezone.utc).timestamp())
+            return int(datetime.now(UTC).timestamp())
 
         if isinstance(timestamp, str) and ":" in timestamp:
             return int(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp())

@@ -3,6 +3,7 @@ AscendEx spot exchange adapter for the Candle Feed framework.
 """
 
 from abc import abstractmethod
+from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -26,6 +27,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -43,6 +45,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -51,6 +54,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         return self._get_ws_url()
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -59,6 +63,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return trading_pair.replace("-", "/")
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -88,6 +93,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -111,15 +117,12 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #     ]
         # }
 
-        if data is None:
-            return []
-
-        if not isinstance(data, dict):
-            return []
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
 
-        for candle_item in data.get("data", []):
+        for candle_item in data["data"]:
             if not isinstance(candle_item, dict):
                 continue
             candle_payload = candle_item.get("data")
@@ -144,6 +147,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             )
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -170,6 +174,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -182,6 +187,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             "ch": f"bar:{INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)}:{self.get_trading_pair_format(trading_pair)}",
         }
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
@@ -230,6 +236,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             ]
         return None
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -237,6 +244,7 @@ class AscendExBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 

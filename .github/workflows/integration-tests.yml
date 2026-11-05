@@ -22,7 +22,7 @@ jobs:
     outputs:
       src-changed: ${{ steps.changes.outputs.src-changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check for changes
         id: changes
         run: |
@@ -83,18 +83,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.8.13
+        uses: prefix-dev/setup-pixi@v0.11.2
         with:
           environments: ${{ matrix.pixi-environment }}
-          cache: true
+          cache: false
+          locked: false
 
       - name: Install project
         run: |
           pixi install -e ${{ matrix.pixi-environment }}
-          pixi run -e ${{ matrix.pixi-environment }} pip install -e .
 
       - name: Wait for service containers
         run: |
@@ -108,6 +108,7 @@ jobs:
           REDIS_URL: redis://localhost:6379
           WEBSOCKET_ECHO_URL: ws://localhost:8080
           TEST_WITH_SERVICES: true
+          PYTHONNOUSERSITE: "1"
         run: |
           pixi run -e ${{ matrix.pixi-environment }} pytest tests \
             -m "integration and not benchmark" \
@@ -118,12 +119,40 @@ jobs:
             -q
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: integration-results-${{ matrix.python-version }}-${{ github.run_id }}
           path: test-results-*.xml
           retention-days: 14
+
+  # Runs the hb_compat throttler/REST tests against the standalone hb-web-assistant
+  # package (test-only `test-hb` env; not a runtime dependency). Not in integration-status.
+  test-hb-web-assistant:
+    name: hb_compat on hb-web-assistant
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: changes
+    if: needs.changes.outputs.src-changed == 'true'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Pixi
+        uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          environments: test-hb
+          cache: false
+          locked: false
+
+      - name: Run hb_compat tests on web-assistant
+        env:
+          PYTHONNOUSERSITE: "1"
+        run: pixi run -e test-hb test-hb --timeout=1200 --tb=short -q
 
   integration-status:
     name: Integration Status

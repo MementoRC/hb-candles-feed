@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "hatchling>=1.18.0",
-    "Cython>=3",
+    "Cython>=3.2.4",
     "wheel>=0.37.0",
 ]
 build-backend = "hatchling.build"
@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 name = "hb-candles-feed"
 description = "A Hummingbot candles-feed sub-package"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Memento RC Mori", email = "claude.rc@gmail.com"}
@@ -19,15 +19,25 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Cython",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "aiohttp>=3.8.0",
+    # aioresponses 0.7.8 lacks the stream_writer kwarg required by aiohttp>=3.12
+    # (ABI break in integration-test mocks). Keep <3.12 in sync with the
+    # [tool.pixi.dependencies] pin until aioresponses ships a fix.
+    # Upstream: https://github.com/pnuckowski/aioresponses/issues/289
+    "aiohttp>=3.8.0,<3.12",
     "ccxt",
+    # ADR 0001 Group D (issue #78): canonical structured-logging sub-package,
+    # replacing the bespoke StructuredLogger/MonitoringManager/JSONFormatter
+    # stack in candles_feed/core/monitoring.py. Git-pinned (not a published
+    # wheel), following the hb-event-bus precedent (Group D Target 1).
+    "hb-logger @ git+https://github.com/MementoRC/hb-logger.git@v0.2.0",
+    # v0.4.1 (signed tag). Same tag hb-web-assistant pins, so the `test-hb` env
+    # resolves one hb-rate-limit instead of two conflicting git refs.
+    "hb-rate-limit @ git+https://github.com/MementoRC/hb-rate-limit.git@v0.4.1",
     "numpy>=1.20.0",
     "pandas>=1.0.0",
     "pydantic>=2",
@@ -38,39 +48,6 @@ dynamic = ["version"]
 Homepage = "https://github.com/MementoRC/hb-candles-feed"
 Documentation = "https://mementorc.github.io/hb-candles-feed"
 Repository = "https://github.com/MementoRC/hb-candles-feed/tree/master"
-
-[project.optional-dependencies]
-dev = [
-    "aioresponses>=0.7.0",
-    "pre-commit>=2.15.0",
-    "prometheus-client>=0.17.0",
-    "pytest>=7.0.0",
-    "pytest-aiohttp>=1.1.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-benchmark>=4.0.0",
-    "pytest-cov>=4.1.0",
-    "pytest-mock>=3.11.0",
-    "pytest-timeout>=2.1.0",
-    "pytest-xdist>=3.0.0",
-    "pyupgrade",
-    "ruff>=0.1.6",
-    "mypy>=1.5.1",
-    "cython-lint>=0.15.0",
-    # Enhanced integration testing dependencies
-    "redis>=4.5.0",
-    "websockets>=11.0.0",
-    # Load testing dependencies
-    "locust>=2.20.0",
-]
-doc = [
-    "mkdocs",
-    "mkdocs-git-revision-date-localized-plugin",
-    "mkdocs-material>=8.2.0",
-    "mkdocstrings-python",
-    "mkdocstrings>=0.18.0",
-    "pymdown-extensions>=8.0.0",
-]
-hummingbot = []
 
 # Pixi configuration
 [tool.pixi.workspace]
@@ -83,16 +60,48 @@ platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 [tool.hatch.version]
 path = "candles_feed/__about__.py"
 
+# Required for the hb-logger git+ dependency in [project.dependencies] (ADR 0001
+# Group D, issue #78) — hatchling rejects direct references (git/url/path) unless
+# explicitly allowed. Same fix as hb-market-connector PR #43.
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["candles_feed"]
+
+# Repo-owned build hook (hatch_build.py) — issue #76, Phase 3. Passive no-op
+# unless HB_COMPILE_AUGMENTED is truthy; then it delegates to hb-cython-framework
+# to compile augmented-pure-python modules to native extensions. See hatch_build.py.
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
+# Scope the framework's augmented-module scan to the package; without it the scan
+# walks the whole project dir, including .worktrees/* checkouts, and fails on
+# non-importable module names (hb-cython-framework #31).
+paths = ["candles_feed"]
 
 # Conda dependencies
 # Note: prometheus_client (underscore) is available on conda-forge and included in pixi dev dependencies.
 # pip uses prometheus-client (hyphen) while conda uses prometheus_client (underscore).
 [tool.pixi.dependencies]
-cython = ">=3"
+cython = ">=3.2.4"
 wheel = ">=0.37.0"
-aioresponses = "*"
+# Runtime dependencies. Ranges mirror [project.dependencies] exactly; enforced by
+# scripts/check_conda_first.py (conda-first policy: everything from conda-forge).
+# conda-forge name for PyPI `ccxt` is `ccxt-py` (see [tool.conda-first.names]).
+ccxt-py = "*"
+numpy = ">=1.20.0"
+pandas = ">=1.0.0"
+pydantic = ">=2"
+# aioresponses 0.7.8 is incompatible with aiohttp>=3.12 (stream_writer ABI break).
+# Pin aiohttp below 3.12 until aioresponses releases a compatible version.
+# Upstream issue: https://github.com/pnuckowski/aioresponses/issues/289
+aiohttp = ">=3.8.0,<3.12"
+
+# Conda-first gate (scripts/check_conda_first.py): PyPI name -> conda-forge name,
+# only where the two differ beyond case and "-"/"_".
+[tool.conda-first.names]
+ccxt = "ccxt-py"
+redis = "redis-py"
 
 # Tasks equivalent to hatch scripts
 [tool.pixi.tasks]
@@ -107,8 +116,13 @@ typecheck = "mypy candles_feed"
 type-check = "mypy candles_feed"
 security = "bandit -c pyproject.toml -r candles_feed/"
 lint-cython = "cython-lint candles_feed"
-quality = { depends-on = ["lint", "type-check"] }
-check = { depends-on = ["format", "lint", "type-check", "test"] }
+quality = { depends-on = ["check-conda-first", "lint", "format-check", "typecheck"] }
+# live tests excluded — they hit real exchange APIs and fail under geo-restrictions
+# slow tests excluded — probabilistic timing-sensitive tests unsuitable for default check
+test-no-live = "pytest tests -m 'not live and not slow'"
+check-conda-first = "python scripts/check_conda_first.py"
+check = { depends-on = ["check-conda-first", "format", "lint", "typecheck", "test-no-live"] }
+check-live = { depends-on = ["format", "lint", "type-check", "test"] }
 
 # Documentation tasks
 docs-build = "mkdocs build --clean"
@@ -125,8 +139,9 @@ mkdocstrings = ">=0.18.0"
 pymdown-extensions = ">=8.0.0"
 
 [tool.pixi.feature.dev.dependencies]
+aioresponses = ">=0.7.0"
 pre-commit = ">=2.15.0"
-pytest = ">=7.0.0"
+pytest = ">=7.0.0,<9.1"
 pytest-aiohttp = ">=1.1.0"
 pytest-asyncio = ">=0.21.0"
 pytest-cov = ">=4.1.0"
@@ -135,9 +150,9 @@ pytest-timeout = ">=2.1.0"
 pytest-xdist = ">=3.0.0"
 pytest-benchmark = ">=4.0.0"
 pyupgrade = "*"
-ruff = ">=0.1.6"
+ruff = "=0.17.2"
 mypy = ">=1.5.1"
-cython-lint = ">=0.15.0"
+cython-lint = ">=0.19.0"
 # Prometheus metrics (conda package name uses underscore)
 prometheus_client = ">=0.17.0"
 # Enhanced integration testing dependencies
@@ -147,9 +162,9 @@ websockets = ">=11.0.0"
 locust = ">=2.20.0"
 
 [tool.pixi.feature.ci.dependencies]
-ruff = ">=0.1.6"
+ruff = "=0.17.2"
 mypy = ">=1.5.1"
-pytest = ">=7.0.0"
+pytest = ">=7.0.0,<9.1"
 pytest-cov = ">=4.1.0"
 bandit = ">=1.8.0"
 pre-commit = ">=2.15.0"
@@ -170,26 +185,47 @@ hatchling = "*"
 [tool.pixi.feature.quality-ci.tasks]
 build = "python -m build"
 
+# Accelerated-tier tooling — ISOLATED to the `accel` environment only.
+# hb-cython-framework is maintainer-local/unpublished and adds a pypi/uv layer;
+# keeping it out of default/ci/py312 keeps those envs pure-conda (== development)
+# so `pip install -e .` installs into the pixi env, not user/system-site.
+[tool.pixi.feature.accel.dependencies]
+c-compiler = "*"
+
+[tool.pixi.feature.accel.pypi-dependencies]
+hb-cython-framework = { git = "https://github.com/MementoRC/hb-cython-framework.git", branch = "development" }
+
+[tool.pixi.feature.accel.tasks]
+test-parity = "pytest tests/unit/core/test_data_processor_parity.py -v"
+
+# Test-only throttler/REST stack for the hb_compat tests (`test-hb` env). Not a runtime
+# dependency of candles-feed (ADR 0001: L2 sub-packages stay independent); the tests and
+# hb_compat fall back from `hummingbot.core.*` to `web_assistant.*`. Kept out of `dev`
+# so the shared envs stay pure-conda. Pinned to a commit like sibling sub-packages.
+# hb-web-assistant's own PyPI requirement (ujson) is supplied from conda-forge.
+[tool.pixi.feature.hb-web-assistant.dependencies]
+ujson = "*"
+
+[tool.pixi.feature.hb-web-assistant.pypi-dependencies]
+hb-web-assistant = { git = "https://github.com/MementoRC/hb-web-assistant.git", tag = "v0.1.1" }
+
+[tool.pixi.feature.hb-web-assistant.tasks]
+test-hb = "pytest tests/unit/hb_compat/test_throttler_bridge.py tests/unit/core/test_rate_limit_backoff.py tests/integration/test_rate_limit_backoff_integration.py tests/integration/test_compatibility.py -m 'not live and not slow'"
+
 # Python version features
-[tool.pixi.feature.py310.dependencies]
-python = "3.10.*"
-
-[tool.pixi.feature.py311.dependencies]
-python = "3.11.*"
-
 [tool.pixi.feature.py312.dependencies]
-python = "3.12.*"
+python = ">=3.12,<3.13"
 
 # Environments
 [tool.pixi.environments]
-default = { features = ["dev"], solve-group = "default" }
-docs = { features = ["docs"], solve-group = "default" }
-ci = { features = ["ci", "dev"], solve-group = "default" }
-quality-extended = { features = ["quality-extended"], solve-group = "default" }
-quality-ci = { features = ["quality-ci"], solve-group = "default" }
-py310 = { features = ["py310", "dev"], solve-group = "py310" }
-py311 = { features = ["py311", "dev"], solve-group = "py311" }
+default = { features = ["dev", "py312"], solve-group = "default" }
+docs = { features = ["docs", "py312"], solve-group = "default" }
+ci = { features = ["ci", "dev", "py312"], solve-group = "default" }
+quality-extended = { features = ["quality-extended", "py312"], solve-group = "default" }
+quality-ci = { features = ["quality-ci", "py312"], solve-group = "default" }
 py312 = { features = ["py312", "dev"], solve-group = "py312" }
+accel = { features = ["accel", "dev", "py312"] }
+test-hb = { features = ["hb-web-assistant", "dev", "py312"] }
 
 # Keep existing tool configurations
 [tool.coverage.run]
@@ -208,7 +244,7 @@ skip_empty = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:", "raise NotImplementedError"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 100
 
 [tool.ruff.format]
@@ -255,6 +291,7 @@ markers = [
     "asyncio: marks tests as asyncio tests",
     "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
     "live: marks tests that hit real exchange APIs (deselect with '-m \"not live\"')",
+    "slow: marks probabilistic/timing-sensitive tests excluded from default check (deselect with '-m \"not slow\"')",
 ]
 log_cli = true
 log_cli_level = "DEBUG"
@@ -266,7 +303,7 @@ addopts = "--strict-markers --strict-config"
 minversion = "7.0"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 ignore_missing_imports = true
 strict_optional = false
 warn_return_any = false
@@ -299,6 +336,8 @@ test_paths = ["test/hummingbot/data_feed/candles_feed"]
 connectors = [
     "aevo_perpetual",
     "ascend_ex",
+    "backpack",
+    "backpack_perpetual",
     "binance",
     "binance_perpetual",
     "bitget",
@@ -308,14 +347,19 @@ connectors = [
     "bybit",
     "bybit_perpetual",
     "coinbase_advanced_trade",
+    "decibel_perpetual",
     "dexalot",
+    "evedex_perpetual",
     "gate_io",
     "gate_io_perpetual",
+    "grvt_perpetual",
     "hyperliquid",
     "hyperliquid_perpetual",
     "kraken",
     "kucoin",
     "kucoin_perpetual",
+    "lighter",
+    "lighter_perpetual",
     "mexc",
     "mexc_perpetual",
     "okx",

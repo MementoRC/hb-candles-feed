@@ -3,9 +3,11 @@ MEXC spot exchange adapter for the Candle Feed framework.
 """
 
 import contextlib
+from typing import override
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .base_adapter import MEXCBaseAdapter
 from .constants import (
@@ -23,7 +25,14 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
 
     TIMESTAMP_UNIT = "milliseconds"
 
+    # hummingbot/data_feed/candles_feed/mexc_spot_candles/constants.py:37,39 — IP pool 20000 weight/60s, klines weight 1
+    REST_RATE_LIMIT = RestRateLimit(max_requests=20000, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/mexc_spot_candles/constants.py:39 links klines to IP_REQUEST_WEIGHT at weight 1 (pool also in connector/exchange/mexc/mexc_constants.py:43)
+    REST_HOST_RATE_LIMIT_ID = "IP_REQUEST_WEIGHT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
+
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -32,6 +41,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
     @staticmethod
+    @override
     def _get_ws_url() -> str:
         """Get WebSocket URL (internal implementation).
 
@@ -39,6 +49,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         """
         return SPOT_WSS_URL
 
+    @override
     def get_kline_topic(self) -> str:
         """Get WebSocket kline topic prefix.
 
@@ -46,6 +57,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         """
         return SPOT_KLINE_TOPIC
 
+    @override
     def get_interval_format(self, interval: str) -> str:
         """Get exchange-specific interval format.
 
@@ -54,6 +66,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
         """
         return INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval)
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -83,14 +96,15 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None:
-            return []
+        if not isinstance(data, list):
+            raise self._bad_response(data)
 
         # MEXC REST API format is similar to Binance
         # [
@@ -131,6 +145,7 @@ class MEXCSpotAdapter(MEXCBaseAdapter):
             )
         return candles
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 

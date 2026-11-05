@@ -4,9 +4,12 @@ Core candles feed class for the Candle Feed framework.
 This module provides the main class for managing candle data feeds.
 """
 
+import asyncio
 import logging
 import typing
 from collections import deque
+from collections.abc import Iterable
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -18,13 +21,41 @@ from candles_feed.core.collection_strategies import (
 )
 from candles_feed.core.data_processor import DataProcessor
 from candles_feed.core.exchange_registry import ExchangeRegistry
-
-# Import the adapter factory
-from candles_feed.core.hummingbot_network_client_adapter import NetworkClientFactory
+from candles_feed.core.intervals import (
+    floor_timestamp,
+    is_valid_step,
+    is_variable_length_interval,
+    next_boundary,
+)
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.core.protocols import (
     Logger,
+    RestRateLimiterProtocol,
 )
+from candles_feed.core.rate_limiter import (
+    RateLimitedNetworkClient,
+    RateLimitExceededError,
+    resolve_adapter_rate_limiter,
+    set_adapter_rate_limiter,
+)
+
+HISTORICAL_MAX_ATTEMPTS = 3
+HISTORICAL_RETRY_BASE_DELAY = 0.5  # seconds; doubles after each failed attempt
+HISTORICAL_MAX_RATE_LIMIT_RETRIES = 5  # HTTP 429/418 responses per page; not counted above
+_MAX_LOGGED_GAPS = 5
+
+
+class HistoricalCandlesError(Exception):
+    """Raised when a historical page keeps failing, so the result would be silently truncated.
+
+    :ivar partial: Candles fetched before the failure (same columns as normal output)
+    :ivar failed_at: Start timestamp of the page that kept failing
+    """
+
+    def __init__(self, message: str, partial: pd.DataFrame, failed_at: int):
+        super().__init__(message)
+        self.partial = partial
+        self.failed_at = failed_at
 
 
 class CandlesFeed:
@@ -43,6 +74,7 @@ class CandlesFeed:
         logger: Logger | None = None,
         hummingbot_components: dict | None = None,
         network_config: NetworkConfig | None = None,
+        rate_limiter: RestRateLimiterProtocol | None = None,
     ):
         """Initialize the candles feed.
 
@@ -55,6 +87,10 @@ class CandlesFeed:
             - throttler: AsyncThrottlerBase instance
             - web_assistants_factory: WebAssistantsFactory instance
         :param network_config: Optional network configuration for testnet support
+        :param rate_limiter: Optional limiter acquired once before every REST request of this
+            feed, replacing the adapter's process-wide pool (e.g. a ``ConnectorThrottlerBridge``
+            sharing a host connector's budget). When omitted and ``hummingbot_components``
+            has a throttler, a bridge onto that throttler is used.
         """
         self.exchange = exchange
         self.trading_pair = trading_pair
@@ -74,9 +110,24 @@ class CandlesFeed:
         # Initialize components
         self._candles: deque[CandleData] = deque(maxlen=max_records)
 
-        # Create the appropriate network client based on available components
-        self._network_client = NetworkClientFactory.create_client(
-            hummingbot_components=hummingbot_components, logger=self.logger
+        # Create the appropriate network client based on available components.
+        # Imported locally to avoid a circular import: hb_compat's package
+        # __init__ imports CandlesBaseAdapter, which imports CandlesFeed.
+        from candles_feed.hb_compat.hummingbot_network_client_adapter import (
+            NetworkClientFactory,
+        )
+
+        # All REST calls made through this client are paced by one limiter: the injected
+        # one, else one drawing on the host throttler, else the adapter's shared pool.
+        if rate_limiter is None:
+            rate_limiter = self._limiter_from_components(hummingbot_components)
+        if rate_limiter is not None:
+            set_adapter_rate_limiter(self._adapter, rate_limiter)
+        self._network_client = RateLimitedNetworkClient(
+            NetworkClientFactory.create_client(
+                hummingbot_components=hummingbot_components, logger=self.logger
+            ),
+            resolve_adapter_rate_limiter(self._adapter),
         )
         self._network_client_context_entered = False
         self._data_processor = DataProcessor()
@@ -89,6 +140,23 @@ class CandlesFeed:
 
         # Store the components for potential later use
         self._hummingbot_components = hummingbot_components
+
+    def _limiter_from_components(
+        self, hummingbot_components: dict | None
+    ) -> RestRateLimiterProtocol | None:
+        """Build a limiter on the host throttler from ``hummingbot_components``, if any.
+
+        The bridge module is imported only here so core never hard-depends on hummingbot;
+        None is returned (shared pool is used) without a throttler or without hummingbot.
+        """
+        throttler = (hummingbot_components or {}).get("throttler")
+        if throttler is None:
+            return None
+        from candles_feed.hb_compat.throttler_bridge import ConnectorThrottlerBridge
+
+        return ConnectorThrottlerBridge.from_connector(
+            SimpleNamespace(throttler=throttler), self._adapter
+        )
 
     def _create_ws_strategy(self):
         """Create a WebSocket strategy instance.
@@ -121,7 +189,9 @@ class CandlesFeed:
     async def start(self, strategy: str = "auto") -> None:
         """Start the feed.
 
-        :param strategy: Strategy to use ("auto", "websocket", or "polling")
+        :param strategy: Strategy to use ("auto", "websocket", or "polling").
+            "auto" uses websocket when the adapter supports it for the interval, otherwise
+            REST polling. Polling latency is roughly max(interval / 2, 1) seconds.
         """
         if self._active:
             return
@@ -137,9 +207,19 @@ class CandlesFeed:
         use_websocket = False
 
         if strategy == "auto":
-            # Check if the interval is supported by websocket
-            ws_intervals = self._adapter.get_ws_supported_intervals()
-            use_websocket = self.interval in ws_intervals
+            # Use websocket only if the adapter supports it for this interval;
+            # REST-only adapters raise NotImplementedError.
+            get_ws_intervals = getattr(self._adapter, "get_ws_supported_intervals", None)
+            try:
+                use_websocket = get_ws_intervals is not None and self.interval in get_ws_intervals()
+            except NotImplementedError:
+                use_websocket = False
+            if not use_websocket:
+                poll_seconds = max(self.interval_in_seconds / 2, 1)
+                self.logger.info(
+                    f"{self.exchange} has no websocket for {self.interval}; "
+                    f"using REST polling every {poll_seconds:g}s"
+                )
         elif strategy == "websocket":
             use_websocket = True
         elif strategy not in ["auto", "websocket", "rest", "polling"]:
@@ -172,16 +252,17 @@ class CandlesFeed:
         self._active = True
 
     async def stop(self) -> None:
-        """Stop the feed."""
-        if not self._active:
-            return
+        """Stop the feed and release everything start() acquired so far.
 
+        Safe on a feed that never started, on one whose start() was cancelled part
+        way (network client entered and/or a strategy started), and when called twice.
+        Strategy ``stop()`` is idempotent, so any existing strategy is stopped.
+        """
         self.logger.debug(f"Stopping candles feed for {self.trading_pair}")
 
-        if self._using_ws and self._ws_strategy:
-            await self._ws_strategy.stop()
-        elif self._rest_strategy:
-            await self._rest_strategy.stop()
+        for strategy in (self._ws_strategy, self._rest_strategy):
+            if strategy:
+                await strategy.stop()
 
         # Clean up network client resources using context manager pattern
         if self._network_client_context_entered:
@@ -197,6 +278,14 @@ class CandlesFeed:
         """
         return list(self._candles)
 
+    @property
+    def max_candles_per_request(self) -> int:
+        """Maximum number of candles the exchange returns per REST request.
+
+        :return: The adapter's ``MAX_CANDLES_PER_REQUEST`` (500 if undefined)
+        """
+        return int(getattr(self._adapter, "MAX_CANDLES_PER_REQUEST", 500))
+
     def add_candle(self, candle: CandleData) -> None:
         """Add a candle to the feed manually.
 
@@ -205,6 +294,14 @@ class CandlesFeed:
         :param candle: Candle data to add
         """
         self._candles.append(candle)
+
+    def replace_candles(self, candles: Iterable[CandleData]) -> None:
+        """Replace all candles in one pass; keeps the newest ``max_records``.
+
+        :param candles: Candles in chronological order
+        """
+        self._candles.clear()
+        self._candles.extend(candles)
 
     def clear_candles(self) -> None:
         """Remove all candles from the feed.
@@ -242,7 +339,9 @@ class CandlesFeed:
         end_time: int | None = None,
         limit: int = 500,
     ) -> list[CandleData]:
-        """Fetch historical candles.
+        """Fetch historical candles with a single REST request.
+
+        Results are returned without being written to the live candle store.
 
         :param start_time: Start time for fetching candles (timestamp in seconds)
         :param end_time: End time for fetching candles (timestamp in seconds)
@@ -258,29 +357,138 @@ class CandlesFeed:
         strategy = self._rest_strategy or self._create_rest_strategy()
 
         # Use poll_once which is the actual method implemented in RESTPollingStrategy
-        candles = await strategy.poll_once(
+        return await strategy.poll_once(
             start_time=start_time,
             end_time=end_time,
             limit=limit,
         )
 
-        # Add the fetched candles to the store
-        for candle in candles:
-            self.add_candle(candle)
-
-        return candles
-
     async def get_historical_candles(self, start_time: int, end_time: int) -> pd.DataFrame:
-        """Get historical candles between start and end time.
+        """Get historical candles between start and end time (inclusive).
 
-        This is a compatibility method for the original implementation.
+        Pages forward from start_time in chunks of the adapter's
+        ``MAX_CANDLES_PER_REQUEST`` until end_time is reached, the exchange runs out of
+        data, or pagination stops making progress. Results are returned without being
+        written to the live candle store.
 
         :param start_time: Start time in seconds
         :param end_time: End time in seconds
-        :return: DataFrame with candle data
+        :return: DataFrame with candle data, ascending by timestamp
         """
-        candles = await self.fetch_candles(start_time=start_time, end_time=end_time)
-        return pd.DataFrame(
+        if not self._network_client_context_entered:
+            await self._network_client.__aenter__()
+            self._network_client_context_entered = True
+
+        strategy = self._rest_strategy or self._create_rest_strategy()
+        step = self.interval_in_seconds
+        start_time = floor_timestamp(start_time, self.interval, step)
+        end_time = floor_timestamp(end_time, self.interval, step)
+        page_limit = self.max_candles_per_request
+        max_pages = max(0, end_time - start_time) // (step * page_limit) + 3
+
+        merged: dict[int, CandleData] = {}
+        page_start = start_time
+        for _ in range(max_pages):
+            page = await self._fetch_historical_page(strategy, page_start, page_limit, merged)
+            if not page:
+                break
+            for candle in page:
+                if page_start <= candle.timestamp <= end_time:
+                    merged[candle.timestamp] = candle
+            last_ts = max(c.timestamp for c in page)
+            if last_ts >= end_time or last_ts < page_start:
+                break
+            next_start = next_boundary(last_ts, self.interval, step)
+            if next_start <= page_start:
+                break
+            page_start = next_start
+        else:
+            self.logger.warning(
+                f"Historical candle pagination for {self.trading_pair} on {self.exchange} "
+                f"hit the page cap ({max_pages}); result may be incomplete"
+            )
+
+        df = self._candles_to_df([merged[ts] for ts in sorted(merged)])
+        gaps = self._find_gaps(df["timestamp"].tolist() if not df.empty else [], step)
+        if gaps:
+            shown = ", ".join(f"{a}->{b}" for a, b in gaps[:_MAX_LOGGED_GAPS])
+            self.logger.warning(
+                f"Historical candles for {self.trading_pair} on {self.exchange} contain "
+                f"{len(gaps)} gap(s) (first: {shown}); exchange has no data there"
+            )
+        df.attrs["gaps"] = gaps
+        return df
+
+    async def _fetch_historical_page(
+        self,
+        strategy: RESTPollingStrategy,
+        page_start: int,
+        page_limit: int,
+        merged: dict[int, CandleData],
+    ) -> list[CandleData]:
+        """Fetch one historical page, retrying transient failures with exponential backoff.
+
+        :param strategy: REST strategy used for the request
+        :param page_start: Start timestamp of the page in seconds
+        :param page_limit: Maximum candles per page
+        :param merged: Candles collected so far (used as partial result on failure)
+        :return: Raw candles of the page; empty list means end of data
+        :raises HistoricalCandlesError: If every attempt fails
+        """
+        # HTTP 429/418 is handled differently from other failures: the limiter has already
+        # paused the whole pool, so the next fetch's acquire() waits out the pause. We
+        # therefore retry at once (no extra sleep on top of the pause) and do not spend
+        # one of the HISTORICAL_MAX_ATTEMPTS on it; rate-limit retries have their own
+        # small cap so a persistent ban still ends in HistoricalCandlesError.
+        last_exc: Exception | None = None
+        failures = 0
+        rate_limited = 0
+        while True:
+            try:
+                return await strategy.fetch_rest_page(start_time=page_start, limit=page_limit)
+            except RateLimitExceededError as e:
+                last_exc = e
+                rate_limited += 1
+                if rate_limited >= HISTORICAL_MAX_RATE_LIMIT_RETRIES:
+                    break
+            except Exception as e:
+                last_exc = e
+                failures += 1
+                if failures >= HISTORICAL_MAX_ATTEMPTS:
+                    break
+                await asyncio.sleep(HISTORICAL_RETRY_BASE_DELAY * 2 ** (failures - 1))
+        self.logger.error(
+            f"Historical candle fetch for {self.trading_pair} on {self.exchange} failed at "
+            f"{page_start} after {failures} failed and {rate_limited} rate-limited "
+            f"attempts: {last_exc!r}"
+        )
+        raise HistoricalCandlesError(
+            f"Failed fetching historical candles at {page_start}: {last_exc!r}",
+            partial=self._candles_to_df([merged[ts] for ts in sorted(merged)]),
+            failed_at=page_start,
+        ) from last_exc
+
+    def _find_gaps(self, timestamps: list[int], step: int) -> list[tuple[int, int]]:
+        """Return (previous, next) timestamp pairs that are not consecutive candles.
+
+        :param timestamps: Ascending candle timestamps
+        :param step: Nominal interval length in seconds
+        :return: List of gap boundaries
+        """
+        return [
+            (prev, nxt)
+            for prev, nxt in zip(timestamps, timestamps[1:], strict=False)
+            if not is_valid_step(prev, nxt, self.interval, step)
+        ]
+
+    @staticmethod
+    def _candles_to_df(candles: list[CandleData]) -> pd.DataFrame:
+        """Convert candles to a DataFrame with the standard columns.
+
+        :param candles: Candles to convert
+        :return: DataFrame (``attrs["gaps"]`` set to an empty list)
+        """
+        df = pd.DataFrame(
             [
                 {
                     "timestamp": c.timestamp,
@@ -295,9 +503,10 @@ class CandlesFeed:
                     "taker_buy_quote_volume": c.taker_buy_quote_volume,
                 }
                 for c in candles
-                if start_time <= c.timestamp <= end_time
             ]
         )
+        df.attrs["gaps"] = []
+        return df
 
     @property
     def ready(self) -> bool:
@@ -342,7 +551,7 @@ class CandlesFeed:
         :return: Rounded timestamp
         """
         interval_seconds = self._adapter.get_supported_intervals()[self.interval]
-        return int(timestamp - timestamp % interval_seconds)
+        return floor_timestamp(int(timestamp), self.interval, interval_seconds)
 
     def check_candles_sorted_and_equidistant(self, candles_data=None) -> bool:
         """Check if candles are sorted by timestamp and have equal intervals.
@@ -372,7 +581,14 @@ class CandlesFeed:
         if len(timestamp_diffs) > 0:
             unique_diffs = np.unique(timestamp_diffs)
             interval_seconds = self._adapter.get_supported_intervals()[self.interval]
-            if not np.all(np.isclose(unique_diffs, interval_seconds, rtol=1e-5)):
+            if is_variable_length_interval(self.interval):
+                equidistant = all(
+                    is_valid_step(int(a), int(b), self.interval, interval_seconds)
+                    for a, b in zip(timestamps[:-1], timestamps[1:], strict=True)
+                )
+            else:
+                equidistant = bool(np.all(np.isclose(unique_diffs, interval_seconds, rtol=1e-5)))
+            if not equidistant:
                 self.logger.warning("Candles do not have equal intervals")
                 return False
 

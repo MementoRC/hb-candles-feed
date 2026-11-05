@@ -18,7 +18,7 @@ from candles_feed.adapters.kraken.spot_adapter import KrakenSpotAdapter
 from candles_feed.adapters.kucoin.spot_adapter import KucoinSpotAdapter
 from candles_feed.adapters.okx.spot_adapter import OKXSpotAdapter
 from candles_feed.core.candle_data import CandleData
-from candles_feed.core.candles_feed import CandlesFeed
+from candles_feed.core.candles_feed import CandlesFeed, HistoricalCandlesError
 from candles_feed.core.collection_strategies import (
     CollectionStrategyFactory,
     RESTPollingStrategy,
@@ -43,6 +43,7 @@ __all__ = [
     # Core components
     "CandleData",
     "CandlesFeed",
+    "HistoricalCandlesError",
     "ExchangeRegistry",
     "DataProcessor",
     "NetworkClient",

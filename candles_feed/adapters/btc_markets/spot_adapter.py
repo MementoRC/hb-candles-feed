@@ -5,11 +5,14 @@ BTC Markets is an Australian cryptocurrency exchange. This adapter supports
 REST polling only - BTC Markets does not provide a WebSocket API for candles.
 """
 
+from typing import override
+
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter, NoWebSocketSupportMixin
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -33,8 +36,14 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
     """
 
     TIMESTAMP_UNIT: str = "iso8601"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/btc_markets_spot_candles/constants.py:41 — candles endpoint 50 req/10s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=50, period_seconds=10)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to BTC Markets exchange format.
 
@@ -46,6 +55,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
         """
         return trading_pair
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -53,6 +63,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
@@ -63,6 +74,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
         """
         return WS_INTERVALS
 
+    @override
     def _get_rest_url(self) -> str:
         """Get the REST API base URL for candles.
 
@@ -87,6 +99,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
         endpoint = CANDLES_ENDPOINT.format(market_id=exchange_pair)
         return f"{REST_URL}{endpoint}"
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -116,6 +129,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -133,7 +147,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
         :returns: List of CandleData objects parsed from the response.
         """
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for row in data:
@@ -152,6 +166,7 @@ class BTCMarketsSpotAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapt
             )
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,

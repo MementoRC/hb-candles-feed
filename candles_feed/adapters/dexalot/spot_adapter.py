@@ -2,13 +2,14 @@
 Dexalot spot exchange adapter for the Candle Feed framework.
 """
 
-from typing import Any
+from typing import Any, override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     CANDLES_ENDPOINT,
@@ -30,8 +31,16 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "iso8601"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/dexalot_spot_candles/constants.py:30,32 — IP pool 200/60s, candles weight 1 (own 20000/60s is looser)
+    REST_RATE_LIMIT = RestRateLimit(max_requests=200, period_seconds=60)
+    # hummingbot/data_feed/candles_feed/dexalot_spot_candles/constants.py:32 links candles to IP_REQUEST_WEIGHT at weight 1 (pool also in connector/exchange/dexalot/dexalot_constants.py:67)
+    REST_HOST_RATE_LIMIT_ID = "IP_REQUEST_WEIGHT"
+    REST_HOST_RATE_LIMIT_WEIGHT = 1
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to Dexalot exchange format.
 
@@ -40,6 +49,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return trading_pair.replace("-", "/")
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -47,6 +57,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -54,6 +65,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WSS_URL
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
@@ -62,6 +74,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         return WS_INTERVALS
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -93,6 +106,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         intervalnum = exchange_fmt[1:]
         return intervalnum, intervalstr
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -128,6 +142,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -148,7 +163,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: List of CandleData objects.
         """
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for candle_item in data:
@@ -177,6 +192,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
             )
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -203,6 +219,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -216,6 +233,7 @@ class DexalotSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
             "type": "chart-v2-subscribe",
         }
 
+    @override
     def parse_ws_message(self, data: dict[str, Any] | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 

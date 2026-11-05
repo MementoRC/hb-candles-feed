@@ -8,6 +8,11 @@ using Python's typing.Protocol system.
 from collections.abc import AsyncGenerator
 from typing import Any, Protocol, runtime_checkable
 
+# Rate-limiting protocols live in hb-rate-limit; re-exported here under the same names.
+from rate_limit import AsyncThrottlerProtocol as AsyncThrottlerProtocol
+from rate_limit import PausableRateLimiterProtocol as PausableRateLimiterProtocol
+from rate_limit import RestRateLimiterProtocol as RestRateLimiterProtocol
+
 from candles_feed.core.candle_data import CandleData
 
 
@@ -153,23 +158,4 @@ class NetworkClientProtocol(Protocol):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit the async context manager."""
-        ...
-
-
-@runtime_checkable
-class AsyncThrottlerProtocol(Protocol):
-    """Protocol for API rate limiters.
-
-    This protocol abstracts the rate limiting functionality,
-    allowing for different implementations.
-    """
-
-    async def execute_task(self, limit_id: str, weight: int = 1) -> None:
-        """Execute a task respecting rate limits.
-
-        :param limit_id: The rate limit identifier
-        :param weight: The weight of the task (default: 1)
-
-        This method should delay execution if necessary to respect rate limits.
-        """
         ...

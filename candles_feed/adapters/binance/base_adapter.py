@@ -6,6 +6,7 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -28,6 +29,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -45,6 +47,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -53,6 +56,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         return self._get_ws_url()
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -61,6 +65,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return trading_pair.replace("-", "")
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -87,6 +92,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -111,12 +117,9 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   ]
         # ]
 
-        if data is None:
-            return []
-
         candles: list[CandleData] = []
         if not isinstance(data, list):
-            return []
+            raise self._bad_response(data)
         candles.extend(
             CandleData(
                 timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
@@ -134,6 +137,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         )
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -160,6 +164,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -175,6 +180,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             "id": 1,
         }
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
@@ -229,6 +235,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                 ]
         return None
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -236,6 +243,7 @@ class BinanceBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 

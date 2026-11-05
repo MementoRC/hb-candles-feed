@@ -2,13 +2,14 @@
 Bitget spot exchange adapter for the Candle Feed framework.
 """
 
-from typing import Any
+from typing import Any, override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import RestRateLimit
 
 from .constants import (
     INTERVALS,
@@ -27,8 +28,14 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Bitget spot exchange adapter."""
 
     TIMESTAMP_UNIT: str = "milliseconds"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
+
+    # hummingbot/data_feed/candles_feed/bitget_spot_candles/constants.py:56 — candles endpoint 20 req/1s
+    REST_RATE_LIMIT = RestRateLimit(max_requests=20, period_seconds=1)
+    # No host pool: the upstream candles constants link no shared pool (REST_HOST_RATE_LIMIT_* keep their defaults).
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -37,6 +44,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return trading_pair.replace("-", "")
 
+    @override
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.
 
@@ -44,6 +52,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return INTERVALS
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -51,6 +60,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return WSS_URL
 
+    @override
     def get_ws_supported_intervals(self) -> list[str]:
         """Get intervals supported by WebSocket API.
 
@@ -59,6 +69,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         return WS_INTERVALS
 
     @staticmethod
+    @override
     def _get_rest_url() -> str:
         """Get REST API URL for candles.
 
@@ -66,6 +77,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}"
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -95,6 +107,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
@@ -116,18 +129,15 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        if data is None:
-            return []
-
         # Bitget may wrap data in a "data" key or return direct array
         if isinstance(data, dict):
             candle_list = data.get("data")
             if not isinstance(candle_list, list):
-                return []
+                raise self._bad_response(data)
         elif isinstance(data, list):
             candle_list = data
         else:
-            return []
+            raise self._bad_response(data)
 
         candles: list[CandleData] = []
         for row in candle_list:
@@ -147,6 +157,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
             )
         return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -173,6 +184,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -192,6 +204,7 @@ class BitgetSpotAdapter(BaseAdapter, AsyncOnlyAdapter):
             ],
         }
 
+    @override
     def parse_ws_message(self, data: dict[str, Any] | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 

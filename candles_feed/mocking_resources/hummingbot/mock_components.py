@@ -31,10 +31,21 @@ class MockAsyncThrottler:
         self.rate_limits: list[dict[str, Any]] = rate_limits or []
         self.task_logs: list[tuple[str, float]] = []
 
-    async def execute_task(self, limit_id: str):
-        """Execute a task respecting rate limits.
+    def add_rate_limits(self, rate_limits: list[Any]) -> None:
+        """Record added rate limits (additive; ids already present are skipped).
 
-        This is a context manager that simulates rate limiting.
+        :param rate_limits: Rate limit objects with a ``limit_id`` attribute.
+        """
+        known = {r["limit_id"] if isinstance(r, dict) else r.limit_id for r in self.rate_limits}
+        for rate_limit in rate_limits:
+            if rate_limit.limit_id not in known:
+                self.rate_limits.append(rate_limit)
+                known.add(rate_limit.limit_id)
+
+    def execute_task(self, limit_id: str):
+        """Return an async context manager simulating rate limiting.
+
+        Synchronous like upstream ``AsyncThrottlerBase.execute_task``.
 
         :param limit_id: The rate limit identifier.
         """
@@ -63,6 +74,7 @@ class MockRESTConnection:
         """
         self.responses: dict[str, Any] = responses or {}
         self.requests: list[dict[str, Any]] = []
+        self.errors: dict[str, tuple[int, dict[str, str]]] = {}
 
     async def call(
         self,
@@ -97,15 +109,29 @@ class MockRESTConnection:
             raise ValueError(f"No mock response configured for URL: {url}")
 
         response_data_val: dict[str, Any] = self.responses[url]
+        response_status, response_headers = self.errors.get(url, (200, {}))
 
         # Create a mock response object
         class MockResponse:
             async def json(self) -> dict[str, Any]:
                 return response_data_val
 
-            status: int = 200
+            async def text(self) -> str:
+                return json.dumps(response_data_val)
+
+            status: int = response_status
+            headers: dict[str, str] = response_headers
 
         return MockResponse()
+
+    def set_error(self, url: str, status: int, headers: dict[str, str] | None = None) -> None:
+        """Make calls to ``url`` answer ``status`` (with ``headers``) instead of 200.
+
+        :param url: URL to fail (must also have a configured response body).
+        :param status: HTTP status to answer.
+        :param headers: Response headers, e.g. ``{"Retry-After": "7"}``.
+        """
+        self.errors[url] = (status, headers or {})
 
 
 class MockWSConnection:
@@ -166,24 +192,18 @@ class MockRESTAssistant:
         """
         self.connection: MockRESTConnection = connection
 
-    async def call(
-        self,
-        url: str,
-        method: str = "GET",
-        params: dict[str, Any] | None = None,
-        data: Any | None = None,
-        headers: dict[str, str] | None = None,
-    ):
-        """Make a mock REST call.
+    async def call(self, request: Any, timeout: float | None = None):
+        """Make a mock REST call, shaped like upstream ``RESTAssistant.call``.
 
-        :param url: URL to call.
-        :param method: HTTP method.
-        :param params: Query parameters.
-        :param data: Request data.
-        :param headers: Request headers.
-        :returns: Mock response for the given URL.
+        :param request: A RESTRequest-like object (``url``, ``method``, ``params``,
+            ``data``, ``headers``).
+        :param timeout: Ignored.
+        :returns: Mock response for the request's URL.
         """
-        return await self.connection.call(url, method, params, data, headers)
+        method = getattr(request.method, "name", request.method)
+        return await self.connection.call(
+            request.url, method, request.params, request.data, request.headers
+        )
 
 
 class MockWSAssistant:
@@ -223,6 +243,17 @@ class MockWSAssistant:
             yield message
 
 
+@dataclass
+class MockRESTRequest:
+    """Duck-typed stand-in for hummingbot's ``RESTRequest`` (``method`` is a plain string)."""
+
+    method: str
+    url: str | None = None
+    params: Any = None
+    data: Any = None
+    headers: Any = None
+
+
 class MockWebAssistantsFactory:
     """Mock WebAssistantsFactory for testing."""
 
@@ -239,6 +270,8 @@ class MockWebAssistantsFactory:
         :param ws_messages: list of messages to return when iterating.
         """
         self.throttler: MockAsyncThrottler = throttler or MockAsyncThrottler()
+        # Used by HummingbotNetworkClient when hummingbot's RESTRequest is not importable.
+        self.rest_request_class: type[MockRESTRequest] = MockRESTRequest
         self.rest_connection: MockRESTConnection = MockRESTConnection(rest_responses)
         self.ws_connection: MockWSConnection = MockWSConnection(ws_messages)
 

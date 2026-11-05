@@ -7,6 +7,7 @@ Hummingbot's WebAssistantsFactory and AsyncThrottler when available.
 
 import json
 import logging
+from contextlib import AbstractAsyncContextManager
 from typing import Any, cast
 
 from candles_feed.core.protocols import (
@@ -15,23 +16,20 @@ from candles_feed.core.protocols import (
     NetworkClientProtocol,
     WSAssistant,
 )
+from candles_feed.core.rate_limiter import RATE_LIMIT_STATUSES, RateLimitExceededError
+from candles_feed.hb_compat._web_stack import import_web_stack
 
 # These imports use type-checking guard to avoid direct dependency
 # They will only be imported at runtime if the components are available
 try:
-    from hummingbot.core.api_throttler.async_throttler_base import AsyncThrottlerBase
-    from hummingbot.core.web_assistant.rest_assistant import RESTAssistant
-    from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFactory
-    from hummingbot.core.web_assistant.ws_assistant import WSAssistant as HummingbotWSAssistant
+    # hummingbot, or the standalone hb-web-assistant package when hummingbot is absent
+    import_web_stack("throttler", "async_throttler_base")
+    import_web_stack("web", "rest_assistant")
+    import_web_stack("web", "web_assistants_factory")
+    import_web_stack("web", "ws_assistant")
 
     HUMMINGBOT_AVAILABLE = True
 except ImportError:
-    # Define placeholder types for type checking
-
-    WebAssistantsFactory = Any
-    RESTAssistant = Any
-    HummingbotWSAssistant = Any
-    AsyncThrottlerBase = Any
     HUMMINGBOT_AVAILABLE = False
 
 
@@ -96,21 +94,23 @@ class HummingbotWSAssistantAdapter(WSAssistant):
 class HummingbotThrottlerAdapter(AsyncThrottlerProtocol):
     """Adapter for Hummingbot's AsyncThrottler to match our AsyncThrottlerProtocol."""
 
-    def __init__(self, throttler: AsyncThrottlerBase):
+    def __init__(self, throttler: Any):
         """Initialize the adapter.
 
         :param throttler: Hummingbot's AsyncThrottler instance
         """
         self._throttler = throttler
 
-    async def execute_task(self, limit_id: str, weight: int = 1):
-        """Execute a task respecting rate limits.
+    def execute_task(self, limit_id: str) -> AbstractAsyncContextManager[Any]:
+        """Return the throttler's async context manager for a task.
+
+        Use as ``async with adapter.execute_task(limit_id): ...`` (the upstream shape;
+        the upstream method is synchronous and returns the context manager).
 
         :param limit_id: The rate limit identifier
-        :param weight: The weight of the task (default: 1)
         :return: Async context manager for rate limiting
         """
-        return await self._throttler.execute_task(limit_id=limit_id)
+        return self._throttler.execute_task(limit_id=limit_id)
 
 
 class HummingbotNetworkClient(NetworkClientProtocol):
@@ -139,12 +139,34 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         self._web_assistants_factory = web_assistants_factory
         self._throttler_adapter = HummingbotThrottlerAdapter(throttler)
         self._logger: Logger = logger or cast("Logger", logging.getLogger(__name__))
-        self._rest_assistant: RESTAssistant | None = None
+        self._rest_assistant: Any | None = None
 
     async def _ensure_rest_assistant(self):
         """Ensure REST assistant is initialized."""
         if self._rest_assistant is None:
             self._rest_assistant = await self._web_assistants_factory.get_rest_assistant()
+
+    def _build_rest_request(
+        self, method: str, url: str, params: Any, data: Any, headers: Any
+    ) -> Any:
+        """Build upstream's ``RESTRequest`` (imported lazily).
+
+        Without hummingbot installed (mock components only), the factory must supply a
+        duck-typed ``rest_request_class``.
+        """
+        try:
+            data_types = import_web_stack("web", "connections.data_types")
+            RESTMethod, RESTRequest = data_types.RESTMethod, data_types.RESTRequest  # noqa: N806
+        except ImportError:
+            request_cls = getattr(self._web_assistants_factory, "rest_request_class", None)
+            if request_cls is None:
+                raise
+            return request_cls(
+                method=method.upper(), url=url, params=params, data=data, headers=headers
+            )
+        return RESTRequest(
+            method=RESTMethod[method.upper()], url=url, params=params, data=data, headers=headers
+        )
 
     async def get_rest_data(
         self,
@@ -172,20 +194,27 @@ class HummingbotNetworkClient(NetworkClientProtocol):
         )
         cleaned_data = None if data is None else {k: v for k, v in data.items() if v is not None}
 
-        # Use throttler for rate limiting
-        async with await self._throttler_adapter.execute_task("api_request"):
-            try:
-                response = await self._rest_assistant.call(
-                    url=url,
-                    params=cleaned_params,
-                    data=json.dumps(cleaned_data) if cleaned_data else None,
-                    headers=headers,
-                    method=method,
+        # Rate limiting happens once per request in RateLimitedNetworkClient (CandlesFeed
+        # wraps this client), not here.
+        request = self._build_rest_request(
+            method, url, cleaned_params, json.dumps(cleaned_data) if cleaned_data else None, headers
+        )
+        try:
+            # RESTAssistant.call takes a RESTRequest and does not check the status.
+            response = await self._rest_assistant.call(request=request)
+            if response.status in RATE_LIMIT_STATUSES:
+                raise RateLimitExceededError.from_response(
+                    response.status, response.headers, f"HTTP {response.status} from {url}"
                 )
-                return await response.json()
-            except Exception as e:
-                self._logger.error(f"REST request to {url} failed: {e}")
-                raise
+            if response.status >= 400:
+                raise OSError(
+                    f"Error executing request {method} {url}. HTTP status is "
+                    f"{response.status}. Error: {await response.text()}"
+                )
+            return await response.json()
+        except Exception as e:
+            self._logger.error(f"REST request to {url} failed: {e}")
+            raise
 
     async def establish_ws_connection(self, url: str) -> WSAssistant:
         """Establish a WebSocket connection using Hummingbot's WS assistant.

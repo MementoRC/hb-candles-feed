@@ -79,14 +79,15 @@ class TestGateIoPerpetualPlugin:
         # Check formatted data
         assert isinstance(formatted, list)
         assert len(formatted) == 1
-        assert formatted[0][0] == "1620000000"  # Timestamp in seconds as string
-        assert formatted[0][1] == str(candles[0].open)  # Open
-        assert formatted[0][2] == str(candles[0].close)  # Close
-        assert formatted[0][3] == str(candles[0].low)  # Low
-        assert formatted[0][4] == str(candles[0].high)  # High
-        assert formatted[0][5] == str(candles[0].volume)  # Volume
-        assert formatted[0][6] == str(candles[0].quote_asset_volume)  # Quote volume
-        assert formatted[0][7] == "BTC_USDT"  # Trading pair
+        assert formatted[0] == {
+            "t": 1620000000,
+            "v": candles[0].volume,
+            "c": str(candles[0].close),
+            "h": str(candles[0].high),
+            "l": str(candles[0].low),
+            "o": str(candles[0].open),
+            "sum": str(candles[0].quote_asset_volume),
+        }
 
     def test_format_ws_candle_message(self):
         """Test formatting WebSocket candle message."""

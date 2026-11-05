@@ -109,6 +109,6 @@ class TestMockPluginIntegration:
                     assert "symbol" in update
                     assert "interval" in update
                     assert "data" in update
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # It's okay if we don't get an update in this short timeframe
                 pass

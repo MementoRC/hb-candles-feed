@@ -3,15 +3,21 @@ Monitoring and logging infrastructure for the Candle Feed framework.
 
 This module provides structured logging, metrics collection, and monitoring
 integration compatible with Hummingbot's monitoring infrastructure.
+
+Structured logging (``StructuredLogger``/``JSONFormatter``) is backed by the
+canonical ``hb-logger`` sub-package via
+``candles_feed.hb_compat.logger_adapter`` -- ADR 0001 Group D, issue #78.
+``MonitoringManager``'s non-logging responsibilities (metrics collection,
+health status, Prometheus export) are unchanged.
 """
 
-import json
-import logging
-import sys
 import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, ClassVar, Protocol
+
+from candles_feed.hb_compat.logger_adapter import StructuredJSONFormatter as JSONFormatter
+from candles_feed.hb_compat.logger_adapter import StructuredLoggerAdapter as StructuredLogger
 
 
 class LogLevel(Enum):
@@ -73,118 +79,9 @@ class LogContext:
         return {k: v for k, v in self.__dict__.items() if v}
 
 
-class JSONFormatter(logging.Formatter):
-    """JSON formatter for structured logging."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        """Format log record as JSON.
-
-        :param record: Log record to format
-        :return: JSON formatted log string
-        """
-        log_data = {
-            "timestamp": time.time(),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "module": record.module,
-            "function": record.funcName,
-            "line": record.lineno,
-        }
-
-        # Add context if available
-        if hasattr(record, "context") and record.context:
-            log_data.update(record.context.to_dict())
-
-        # Add exception info if present
-        if record.exc_info:
-            log_data["exception"] = self.formatException(record.exc_info)
-
-        # Add extra fields
-        for key, value in record.__dict__.items():
-            if key not in log_data and not key.startswith("_"):
-                log_data[key] = value
-
-        return json.dumps(log_data, default=str)
-
-
-class StructuredLogger:
-    """Structured logger with context support."""
-
-    def __init__(
-        self, name: str, config: MonitoringConfig | None = None, context: LogContext | None = None
-    ):
-        """Initialize structured logger.
-
-        :param name: Logger name
-        :param config: Monitoring configuration
-        :param context: Default log context
-        """
-        self.config = config or MonitoringConfig()
-        self.context = context or LogContext()
-        self._logger = logging.getLogger(name)
-
-        # Configure logger if structured logging is enabled
-        if self.config.enable_structured_logging and self.config.log_format == "json":
-            self._configure_json_logging()
-
-    def _configure_json_logging(self):
-        """Configure JSON logging format."""
-        if not self._logger.handlers:
-            handler = logging.StreamHandler(sys.stdout)
-            handler.setFormatter(JSONFormatter())
-            self._logger.addHandler(handler)
-            self._logger.setLevel(getattr(logging, self.config.log_level.value))
-
-    def with_context(self, **kwargs) -> "StructuredLogger":
-        """Create logger with additional context.
-
-        :param kwargs: Context fields to add
-        :return: New logger instance with extended context
-        """
-        new_context = LogContext(**{**self.context.__dict__, **kwargs})
-        return StructuredLogger(self._logger.name, self.config, new_context)
-
-    def debug(self, message: str, **kwargs):
-        """Log debug message with context."""
-        self._log(logging.DEBUG, message, **kwargs)
-
-    def info(self, message: str, **kwargs):
-        """Log info message with context."""
-        self._log(logging.INFO, message, **kwargs)
-
-    def warning(self, message: str, **kwargs):
-        """Log warning message with context."""
-        self._log(logging.WARNING, message, **kwargs)
-
-    def error(self, message: str, **kwargs):
-        """Log error message with context."""
-        self._log(logging.ERROR, message, **kwargs)
-
-    def exception(self, message: str, **kwargs):
-        """Log exception message with traceback."""
-        self._log(logging.ERROR, message, exc_info=True, **kwargs)
-
-    def _log(self, level: int, message: str, **kwargs):
-        """Internal log method with context injection.
-
-        :param level: Log level
-        :param message: Log message
-        :param kwargs: Additional context
-        """
-        if self.config.enable_structured_logging:
-            # Merge only valid LogContext fields
-            context_fields = {k: v for k, v in kwargs.items() if hasattr(LogContext(), k)}
-            context = LogContext(**{**self.context.__dict__, **context_fields})
-            extra = {"context": context}
-
-            # Add remaining kwargs as extra fields
-            non_context_kwargs = {k: v for k, v in kwargs.items() if not hasattr(LogContext(), k)}
-            extra.update(non_context_kwargs)
-
-            self._logger.log(level, message, extra=extra)
-        else:
-            self._logger.log(level, message)
+# JSONFormatter and StructuredLogger are re-exported (imported above) from
+# candles_feed.hb_compat.logger_adapter, which backs them with hb-logger's
+# HummingbotLogger instead of raw logging.getLogger. See module docstring.
 
 
 class MonitoringProtocol(Protocol):

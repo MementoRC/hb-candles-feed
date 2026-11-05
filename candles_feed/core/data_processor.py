@@ -1,3 +1,5 @@
+# cython: language_level=3str
+# cython: augmented_pure_python=True
 """
 Data processing utilities for the Candle Feed framework.
 """
@@ -7,10 +9,17 @@ import logging
 from collections import deque
 from collections.abc import Sequence
 
+try:  # pragma: no cover - real Cython present in build/dev/compiled envs
+    import cython
+except ImportError:  # pragma: no cover - passive runtime, no Cython installed
+    from candles_feed.core import _cython_shim as cython  # type: ignore[no-redef]
+
 from candles_feed.core.candle_data import CandleData
+from candles_feed.core.intervals import is_valid_step
 from candles_feed.core.protocols import Logger
 
 
+@cython.cclass
 class DataProcessor:
     """Handles data processing, validation, and sanitization.
 
@@ -18,6 +27,9 @@ class DataProcessor:
     ensuring that the data is consistent and reliable. Optimized for performance
     with binary search and efficient data structures.
     """
+
+    logger: Logger
+    _timestamp_cache: dict
 
     def __init__(self, logger: Logger | None = None):
         """Initialize the DataProcessor.
@@ -30,7 +42,10 @@ class DataProcessor:
         self._timestamp_cache: dict[int, int] = {}
 
     def sanitize_candles(
-        self, candles: Sequence[CandleData], interval_in_seconds: int
+        self,
+        candles: Sequence[CandleData],
+        interval_in_seconds: int,
+        interval: str | None = None,
     ) -> list[CandleData]:
         """Find and return the longest valid sequence of candles.
 
@@ -43,6 +58,7 @@ class DataProcessor:
 
         :param candles: Sequence of candle data
         :param interval_in_seconds: Expected interval between candles in seconds
+        :param interval: Interval string; "1w"/"1M" are validated against calendar boundaries
         :return: List of validated, chronological candles with uniform intervals
         """
         if not candles:
@@ -74,8 +90,8 @@ class DataProcessor:
         current_start = 0
         current_length = 1
 
-        for i, diff in enumerate(differences):
-            if diff == interval_in_seconds:
+        for i in range(len(differences)):
+            if is_valid_step(timestamps[i], timestamps[i + 1], interval, interval_in_seconds):
                 current_length += 1
             else:
                 # Check if current sequence is better
@@ -100,12 +116,16 @@ class DataProcessor:
         return result
 
     def validate_candle_intervals(
-        self, candles: Sequence[CandleData], interval_in_seconds: int
+        self,
+        candles: Sequence[CandleData],
+        interval_in_seconds: int,
+        interval: str | None = None,
     ) -> bool:
         """Validate that all candles have the correct interval.
 
         :param candles: Sequence of candle data
         :param interval_in_seconds: Expected interval between candles in seconds
+        :param interval: Interval string; "1w"/"1M" are validated against calendar boundaries
         :return: True if all candles have the correct interval, False otherwise
         """
         if len(candles) <= 1:
@@ -114,7 +134,12 @@ class DataProcessor:
         sorted_candles = sorted(candles, key=lambda x: x.timestamp)
 
         return all(
-            sorted_candles[i + 1].timestamp - sorted_candles[i].timestamp == interval_in_seconds
+            is_valid_step(
+                sorted_candles[i].timestamp,
+                sorted_candles[i + 1].timestamp,
+                interval,
+                interval_in_seconds,
+            )
             for i in range(len(sorted_candles) - 1)
         )
 

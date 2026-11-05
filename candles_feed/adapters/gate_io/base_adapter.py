@@ -6,6 +6,7 @@ to reduce code duplication across spot and perpetual markets.
 """
 
 from abc import abstractmethod
+from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
@@ -16,6 +17,7 @@ from .constants import (
     INTERVAL_TO_EXCHANGE_FORMAT,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
+    SPOT_CHANNEL_NAME,
     WS_INTERVALS,
 )
 
@@ -28,6 +30,8 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
     """
 
     TIMESTAMP_UNIT: str = "seconds"
+    REST_PAIR_PARAM: str = "currency_pair"  # futures endpoint calls it "contract"
+    MAX_CANDLES_PER_REQUEST = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST
 
     @abstractmethod
     def _get_rest_url(self) -> str:
@@ -45,6 +49,7 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         pass
 
+    @override
     def get_ws_url(self) -> str:
         """Get WebSocket URL.
 
@@ -61,6 +66,7 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         pass
 
     @staticmethod
+    @override
     def get_trading_pair_format(trading_pair: str) -> str:
         """Convert standard trading pair format to exchange format.
 
@@ -69,6 +75,7 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         """
         return trading_pair.replace("-", "_")
 
+    @override
     def _get_rest_params(
         self,
         trading_pair: str,
@@ -85,7 +92,7 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :returns: Dictionary of parameters for REST API request
         """
         params: dict[str, str | int] = {  # type: ignore
-            "currency_pair": self.get_trading_pair_format(trading_pair),
+            self.REST_PAIR_PARAM: self.get_trading_pair_format(trading_pair),
             "interval": INTERVAL_TO_EXCHANGE_FORMAT.get(interval, interval),
             "limit": limit,
         }
@@ -95,51 +102,62 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         return params
 
+    @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
         """Parse REST API response into CandleData objects.
 
         :param data: REST API response
         :returns: List of CandleData objects
         """
-        # Gate.io candle format:
-        # [
-        #   [
-        #     "1626770400",  // timestamp
-        #     "29932.21",    // open
-        #     "30326.37",    // close
-        #     "29586.26",    // low
-        #     "30549.57",    // high
-        #     "2501.976433", // volume
-        #     "74626209.16", // quote currency volume
-        #     "BTC_USDT"     // currency pair
-        #   ],
-        #   ...
-        # ]
+        # Gate.io v4 spot candle format (list rows):
+        #   [ts, quote_volume, close, high, low, open, base_volume, window_closed]
+        # Gate.io v4 futures candle format (dict rows):
+        #   {"t": ts, "v": contracts, "c": close, "h": high, "l": low, "o": open, "sum": quote}
+        if not isinstance(data, list):
+            raise self._bad_response(data)
 
-        if data is None:
-            return []
+        return [self._row_to_candle(row) for row in data]
 
-        candles: list[CandleData] = []
-        if not isinstance(data, list):  # Gate.io returns a list of lists
-            return candles
+    def _row_to_candle(self, row: list | dict) -> CandleData:
+        """Convert a single REST row (spot list or futures dict) to CandleData.
 
-        candles.extend(
-            CandleData(
-                timestamp_raw=self.ensure_timestamp_in_seconds(row[0]),
-                open=float(row[1]),
-                high=float(row[4]),  # Gate.io has high at index 4
-                low=float(row[3]),  # Gate.io has low at index 3
-                close=float(row[2]),
-                volume=float(row[5]),
-                quote_asset_volume=float(row[6]),
-                n_trades=0,  # No trade count data available
-                taker_buy_base_volume=0.0,  # No taker data available
-                taker_buy_quote_volume=0.0,  # No taker data available
-            )
-            for row in data
+        :param row: Raw candle row from the Gate.io REST API
+        :returns: CandleData object
+        """
+        if isinstance(row, dict):
+            timestamp = row["t"]
+            open_, high, low, close = row["o"], row["h"], row["l"], row["c"]
+            volume, quote_volume = row["v"], row.get("sum", 0)
+        else:
+            timestamp = row[0]
+            quote_volume, close, high, low, open_, volume = row[1:7]
+        return self._build_candle(timestamp, open_, high, low, close, volume, quote_volume)
+
+    def _build_candle(
+        self,
+        timestamp: str | int,
+        open_: str | float,
+        high: str | float,
+        low: str | float,
+        close: str | float,
+        volume: str | float,
+        quote_volume: str | float,
+    ) -> CandleData:
+        """Build a CandleData from raw Gate.io values."""
+        return CandleData(
+            timestamp_raw=self.ensure_timestamp_in_seconds(timestamp),
+            open=float(open_),
+            high=float(high),
+            low=float(low),
+            close=float(close),
+            volume=float(volume),
+            quote_asset_volume=float(quote_volume),
+            n_trades=0,  # No trade count data available
+            taker_buy_base_volume=0.0,  # No taker data available
+            taker_buy_quote_volume=0.0,  # No taker data available
         )
-        return candles
 
+    @override
     async def fetch_rest_candles(
         self,
         trading_pair: str,
@@ -166,6 +184,7 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             network_client=network_client,
         )
 
+    @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
         """Get WebSocket subscription payload.
 
@@ -185,54 +204,46 @@ class GateIoBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
             "id": 12345,
         }
 
+    @override
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse WebSocket message into CandleData objects.
 
         :param data: WebSocket message
         :returns: List of CandleData objects or None if message is not a candle update
         """
-        # Gate.io WS candle format (similar to REST format):
-        # [
-        #   "1626770400",  // timestamp
-        #   "29932.21",    // open
-        #   "30326.37",    // close
-        #   "29586.26",    // low
-        #   "30549.57",    // high
-        #   "2501.976433", // volume
-        #   "74626209.16", // quote currency volume
-        #   "BTC_USDT"     // currency pair
-        # ]
-        if data is None:
+        # Gate.io WS candle update:
+        # {"channel": "spot.candlesticks", "event": "update",
+        #  "result": {"t": ts, "v": quote_volume, "c": close, "h": high, "l": low,
+        #             "o": open, "n": "1m_BTC_USDT", "a": base_amount, "w": false}}
+        # Futures sends "result" as a list of such dicts (v = contracts, a = quote amount).
+        if (
+            not isinstance(data, dict)
+            or data.get("event") != "update"
+            or data.get("channel") != self.get_channel_name()  # type: ignore
+        ):
             return None
 
-        if (
-            isinstance(data, dict)
-            and data.get("method") == "update"
-            and data.get("channel") == self.get_channel_name()  # type: ignore
-        ):
-            params_data = data.get("params")
-            if not isinstance(params_data, list) or len(params_data) < 2:
-                return None
-
-            candle_payload = params_data[1]
-            if not isinstance(candle_payload, list) or len(candle_payload) < 7:
-                return None
-
-            return [
-                CandleData(
-                    timestamp_raw=self.ensure_timestamp_in_seconds(candle_payload[0]),
-                    open=float(candle_payload[1]),
-                    high=float(candle_payload[4]),  # Gate.io has high at index 4
-                    low=float(candle_payload[3]),  # Gate.io has low at index 3
-                    close=float(candle_payload[2]),
-                    volume=float(candle_payload[5]),
-                    quote_asset_volume=float(candle_payload[6]),
-                    n_trades=0,  # No trade count data available
-                    taker_buy_base_volume=0.0,  # No taker data available
-                    taker_buy_quote_volume=0.0,  # No taker data available
+        result = data.get("result")
+        items = result if isinstance(result, list) else [result]
+        is_spot = self.get_channel_name() == SPOT_CHANNEL_NAME
+        candles: list[CandleData] = []
+        for item in items:
+            if not isinstance(item, dict) or not {"t", "o", "h", "l", "c", "v"} <= item.keys():
+                continue
+            volume, quote_volume = (
+                (item.get("a", 0), item["v"])
+                if is_spot
+                else (
+                    item["v"],
+                    item.get("a", 0),
                 )
-            ]
-        return None
+            )
+            candles.append(
+                self._build_candle(
+                    item["t"], item["o"], item["h"], item["l"], item["c"], volume, quote_volume
+                )
+            )
+        return candles or None
 
     def get_supported_intervals(self) -> dict[str, int]:
         """Get supported intervals and their durations in seconds.

@@ -2,7 +2,7 @@
 Unit tests for the CandleData class.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -71,7 +71,7 @@ class TestCandleData:
             (1622505600000000, 1622505600),  # Microseconds
             ("1622505600", 1622505600),  # String integer
             ("2021-06-01T00:00:00Z", 1622505600),  # ISO string
-            (datetime(2021, 6, 1, tzinfo=timezone.utc), 1622505600),  # Datetime
+            (datetime(2021, 6, 1, tzinfo=UTC), 1622505600),  # Datetime
         ],
     )
     def test_normalize_timestamp(self, timestamp_raw, expected_seconds):

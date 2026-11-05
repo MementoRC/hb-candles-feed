@@ -4,6 +4,8 @@ Exchange adapters for the Candles Feed package.
 
 from .aevo.perpetual_adapter import AevoPerpetualAdapter
 from .ascend_ex.spot_adapter import AscendExSpotAdapter
+from .backpack.perpetual_adapter import BackpackPerpetualAdapter
+from .backpack.spot_adapter import BackpackSpotAdapter
 from .binance.perpetual_adapter import BinancePerpetualAdapter
 from .binance.spot_adapter import BinanceSpotAdapter
 from .bitget.perpetual_adapter import BitgetPerpetualAdapter
@@ -13,14 +15,19 @@ from .btc_markets.spot_adapter import BTCMarketsSpotAdapter
 from .bybit.perpetual_adapter import BybitPerpetualAdapter
 from .bybit.spot_adapter import BybitSpotAdapter
 from .coinbase_advanced_trade.spot_adapter import CoinbaseAdvancedTradeSpotAdapter
+from .decibel.perpetual_adapter import DecibelPerpetualAdapter
 from .dexalot.spot_adapter import DexalotSpotAdapter
+from .evedex.perpetual_adapter import EvedexPerpetualAdapter
 from .gate_io.perpetual_adapter import GateIoPerpetualAdapter
 from .gate_io.spot_adapter import GateIoSpotAdapter
+from .grvt.perpetual_adapter import GrvtPerpetualAdapter
 from .hyperliquid.perpetual_adapter import HyperliquidPerpetualAdapter
 from .hyperliquid.spot_adapter import HyperliquidSpotAdapter
 from .kraken.spot_adapter import KrakenSpotAdapter
 from .kucoin.perpetual_adapter import KucoinPerpetualAdapter
 from .kucoin.spot_adapter import KucoinSpotAdapter
+from .lighter.perpetual_adapter import LighterPerpetualAdapter
+from .lighter.spot_adapter import LighterSpotAdapter
 from .mexc.perpetual_adapter import MEXCPerpetualAdapter
 from .mexc.spot_adapter import MEXCSpotAdapter
 from .okx.perpetual_adapter import OKXPerpetualAdapter
@@ -30,6 +37,7 @@ from .pacifica.perpetual_adapter import PacificaPerpetualAdapter
 __all__ = [
     # Spot adapters
     "AscendExSpotAdapter",
+    "BackpackSpotAdapter",
     "BinanceSpotAdapter",
     "BitgetSpotAdapter",
     "BTCMarketsSpotAdapter",
@@ -40,17 +48,23 @@ __all__ = [
     "HyperliquidSpotAdapter",
     "KrakenSpotAdapter",
     "KucoinSpotAdapter",
+    "LighterSpotAdapter",
     "MEXCSpotAdapter",
     "OKXSpotAdapter",
     # Perpetual adapters
     "AevoPerpetualAdapter",
+    "BackpackPerpetualAdapter",
     "BinancePerpetualAdapter",
     "BitgetPerpetualAdapter",
     "BitmartPerpetualAdapter",
     "BybitPerpetualAdapter",
+    "DecibelPerpetualAdapter",
+    "EvedexPerpetualAdapter",
     "GateIoPerpetualAdapter",
+    "GrvtPerpetualAdapter",
     "HyperliquidPerpetualAdapter",
     "KucoinPerpetualAdapter",
+    "LighterPerpetualAdapter",
     "MEXCPerpetualAdapter",
     "OKXPerpetualAdapter",
     "PacificaPerpetualAdapter",

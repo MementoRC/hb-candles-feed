@@ -71,6 +71,13 @@ def _get_plugin_from_registry(exchange_type: ExchangeType) -> "ExchangePlugin | 
         ExchangeType.HYPERLIQUID_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.spot_plugin.HyperliquidSpotPlugin",
         ExchangeType.HYPERLIQUID_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.hyperliquid.perpetual_plugin.HyperliquidPerpetualPlugin",
         ExchangeType.ASCEND_EX_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.ascend_ex.spot_plugin.AscendExSpotPlugin",
+        ExchangeType.AEVO_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.aevo.perpetual_plugin.AevoPerpetualPlugin",
+        ExchangeType.BITGET_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.bitget.spot_plugin.BitgetSpotPlugin",
+        ExchangeType.BITGET_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.bitget.perpetual_plugin.BitgetPerpetualPlugin",
+        ExchangeType.BITMART_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.bitmart.perpetual_plugin.BitmartPerpetualPlugin",
+        ExchangeType.BTC_MARKETS_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.btc_markets.spot_plugin.BTCMarketsSpotPlugin",
+        ExchangeType.DEXALOT_SPOT: "candles_feed.mocking_resources.exchange_server_plugins.dexalot.spot_plugin.DexalotSpotPlugin",
+        ExchangeType.PACIFICA_PERPETUAL: "candles_feed.mocking_resources.exchange_server_plugins.pacifica.perpetual_plugin.PacificaPerpetualPlugin",
         ExchangeType.MOCK: "candles_feed.mocking_resources.exchange_server_plugins.mocked_plugin.MockedPlugin",
     }
 

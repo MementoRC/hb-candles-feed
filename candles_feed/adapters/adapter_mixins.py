@@ -13,6 +13,7 @@ from typing import Any, Protocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.network_config import EndpointType, NetworkConfig
 from candles_feed.core.protocols import NetworkClientProtocol
+from candles_feed.core.rate_limiter import resolve_adapter_rate_limiter, run_paced
 
 
 class SyncOnlyAdapter:
@@ -57,9 +58,15 @@ class SyncOnlyAdapter:
         :param network_client: Ignored for sync adapters
         :returns: List of CandleData objects
         """
+        # Sync adapters never touch the network client, so pace them here (with the
+        # feed's injected limiter if it has one, else the shared pool).
+        # A RateLimitExceededError raised by the sync fetch pauses the pool (run_paced).
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None, self.fetch_rest_candles_synchronous, trading_pair, interval, start_time, limit
+        return await run_paced(
+            resolve_adapter_rate_limiter(self),
+            lambda: loop.run_in_executor(
+                None, self.fetch_rest_candles_synchronous, trading_pair, interval, start_time, limit
+            ),
         )
 
 

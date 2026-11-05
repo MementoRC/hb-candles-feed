@@ -647,3 +647,93 @@ async def test_update_candles_rest_strategy(
 
     # Assert
     assert mock_data_processor.process_candle.call_count == expected_calls
+
+
+async def _run_ws_subscribe_once(
+    mock_network_client,
+    mock_adapter,
+    mock_data_processor,
+    candles_store,
+    mock_logger,
+    mock_ws_assistant,
+):
+    """Run one subscribe cycle of WebSocketStrategy._listen_for_updates, then stop."""
+    strategy = WebSocketStrategy(
+        mock_network_client,
+        mock_adapter,
+        "BTC-USDT",
+        "1m",
+        mock_data_processor,
+        candles_store,
+        mock_logger,
+    )
+    candles_store.append(CandleData(1, 1.0, 1.0, 1.0, 1.0, 1.0))  # skip REST init
+    mock_network_client.establish_ws_connection = AsyncMock(return_value=mock_ws_assistant)
+
+    async def stop_after_send(*_args, **_kwargs):
+        strategy._running = False
+
+    mock_network_client.send_ws_message.side_effect = stop_after_send
+
+    async def no_messages():
+        return
+        yield  # pragma: no cover
+
+    mock_ws_assistant.iter_messages = MagicMock(side_effect=no_messages)
+    strategy._running = True
+    await asyncio.wait_for(strategy._listen_for_updates(), timeout=5)
+
+
+# Coverage for the prepare_ws_subscription hook (passes against the current core).
+async def test_ws_strategy_awaits_prepare_ws_subscription_before_payload_and_send(
+    mock_network_client,
+    mock_adapter,
+    mock_data_processor,
+    candles_store,
+    mock_logger,
+    mock_ws_assistant,
+):
+    manager = MagicMock()
+    mock_adapter.prepare_ws_subscription = AsyncMock()
+    mock_adapter.get_ws_subscription_payload = MagicMock(return_value={"subscribe": "test"})
+    manager.attach_mock(mock_adapter.prepare_ws_subscription, "prepare")
+    manager.attach_mock(mock_adapter.get_ws_subscription_payload, "payload")
+    manager.attach_mock(mock_network_client.send_ws_message, "send")
+
+    await _run_ws_subscribe_once(
+        mock_network_client,
+        mock_adapter,
+        mock_data_processor,
+        candles_store,
+        mock_logger,
+        mock_ws_assistant,
+    )
+
+    mock_adapter.prepare_ws_subscription.assert_awaited_once_with("BTC-USDT", mock_network_client)
+    assert [c[0] for c in manager.mock_calls] == ["prepare", "payload", "send"]
+
+
+async def test_ws_strategy_subscribes_when_adapter_has_no_prepare_hook(
+    mock_network_client,
+    mock_adapter,
+    mock_data_processor,
+    candles_store,
+    mock_logger,
+    mock_ws_assistant,
+):
+    assert not hasattr(mock_adapter, "prepare_ws_subscription")
+    mock_adapter.get_ws_subscription_payload = MagicMock(return_value={"subscribe": "test"})
+
+    await _run_ws_subscribe_once(
+        mock_network_client,
+        mock_adapter,
+        mock_data_processor,
+        candles_store,
+        mock_logger,
+        mock_ws_assistant,
+    )
+
+    mock_adapter.get_ws_subscription_payload.assert_called_once_with("BTC-USDT", "1m")
+    mock_network_client.send_ws_message.assert_awaited_once_with(
+        mock_ws_assistant, {"subscribe": "test"}
+    )

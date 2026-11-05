@@ -83,11 +83,14 @@ This should output a list of available exchange adapters.
 For development, testing, and documentation, you may want to install additional packages:
 
 ```bash
-# Development dependencies
-pip install -e ".[dev]"
+# Development dependencies (pixi dev feature)
+pixi install
 
 # Documentation dependencies
-pip install -e ".[doc]"
+pixi install -e docs
+
+# Serve the documentation locally
+pixi run -e docs docs-serve
 ```
 
 ## Troubleshooting
