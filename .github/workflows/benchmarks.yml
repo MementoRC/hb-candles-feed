@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pixi environment caching
         uses: actions/cache@v4
@@ -37,7 +37,7 @@ jobs:
             pixi-${{ runner.os }}-default-
 
       - name: Install Pixi
-        uses: prefix-dev/setup-pixi@v0.9.4
+        uses: prefix-dev/setup-pixi@v0.11.2
         with:
           environments: default
           cache: false
@@ -109,7 +109,7 @@ jobs:
           fi
 
       - name: Store benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: benchmark-results-${{ github.run_id }}
