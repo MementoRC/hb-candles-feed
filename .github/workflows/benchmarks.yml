@@ -25,12 +25,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      # Cache only the project env. Caching ~/.pixi restores ~/.pixi/bin/pixi,
+      # and setup-pixi then fails with "Destination file path ... already exists".
       - name: Setup pixi environment caching
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.pixi
-            .pixi
+          path: .pixi
           key: pixi-${{ runner.os }}-default-benchmark-${{ hashFiles('pixi.lock', 'pyproject.toml') }}
           restore-keys: |
             pixi-${{ runner.os }}-default-benchmark-
