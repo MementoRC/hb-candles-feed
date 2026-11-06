@@ -116,7 +116,7 @@ class PrometheusMetricsExporter:
 
         # Custom metrics from monitoring manager
         for metric_name, metric_entries in metrics_data.items():
-            if metric_entries and len(metric_entries) > 0:
+            if isinstance(metric_entries, list | tuple) and len(metric_entries) > 0:
                 # Get the latest metric value (most recent entry)
                 latest_entry = metric_entries[-1]
                 metric_value = latest_entry["value"]
@@ -375,7 +375,10 @@ class ExternalMonitoringIntegration:
                 break
             except Exception as e:
                 self.logger.error(f"Error in external endpoint monitoring: {e}")
-                await asyncio.sleep(self.config.check_interval_seconds)
+                try:
+                    await asyncio.sleep(self.config.check_interval_seconds)
+                except asyncio.CancelledError:
+                    break
 
     async def start(self) -> None:
         """Start all external monitoring components."""

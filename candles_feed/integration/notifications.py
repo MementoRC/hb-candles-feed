@@ -335,7 +335,10 @@ class NotificationIntegration:
                 break
             except Exception as e:
                 self.logger.error(f"Error in health and performance monitoring: {e}")
-                await asyncio.sleep(30)
+                try:
+                    await asyncio.sleep(30)
+                except asyncio.CancelledError:
+                    break
 
     async def start_monitoring(self) -> None:
         """Start background monitoring for alerts."""
