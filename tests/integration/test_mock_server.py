@@ -44,7 +44,7 @@ class TestMockServer:
     async def standalone_mock_server(self):
         """Create a standalone mock server for testing."""
         plugin = BinanceSpotPlugin() if HAS_BINANCE_PLUGIN else MockedPlugin(ExchangeType.MOCK)
-        server = MockedExchangeServer(plugin, "127.0.0.1", 8790)
+        server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
         # Add trading pairs
         server.add_trading_pair("BTCUSDT", "1m", 50000.0)
@@ -101,11 +101,8 @@ class TestMockServer:
 
     async def test_server_websocket_connection_simple(self, standalone_mock_server):
         """Test basic WebSocket connection to the mock server."""
-        server_host = standalone_mock_server.host
-        server_port = standalone_mock_server.port
-
-        # Create WebSocket URL
-        ws_url = f"ws://{server_host}:{server_port}/ws"
+        # Create WebSocket URL from the bound (ephemeral) address
+        ws_url = f"ws://{standalone_mock_server.url.removeprefix('http://')}/ws"
 
         # Just test that we can connect to the WebSocket endpoint
         async with aiohttp.ClientSession() as session, session.ws_connect(ws_url) as ws:
@@ -147,7 +144,7 @@ class TestMockServer:
         )
 
         plugin = MockedPlugin(ExchangeType.MOCK)  # Use MOCK instead of BINANCE_SPOT
-        server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
+        server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
         # Add multiple trading pairs with different prices
         trading_pairs = [

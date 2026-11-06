@@ -52,9 +52,7 @@ def sample_candles():
 @pytest.fixture
 async def binance_mock_server():
     """Create and start a Binance mock server for testing."""
-    server = create_mock_server(
-        exchange_type=ExchangeType.BINANCE_SPOT, host="127.0.0.1", port=8080
-    )
+    server = create_mock_server(exchange_type=ExchangeType.BINANCE_SPOT, host="127.0.0.1", port=0)
 
     if server is None:
         pytest.skip("Failed to create Binance mock server")

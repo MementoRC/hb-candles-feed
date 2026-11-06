@@ -113,6 +113,9 @@ class MockedExchangeServer:
         # Background tasks
         self._tasks: list[asyncio.Task] = []
 
+        # Client IP per active WebSocket (WebSocketResponse has no .request)
+        self._ws_client_ips: dict[web.WebSocketResponse, str | None] = {}
+
         # Setup routes
         self._setup_routes()
         self._url: str = ""
@@ -306,7 +309,13 @@ class MockedExchangeServer:
         self.site = web.TCPSite(self.runner, self.host, self.port)
         await self.site.start()
 
-        self._url = f"http://{self.host}:{self.port}"
+        # Use the actually bound port (differs from self.port when port=0)
+        bound_port = self.port
+        for address in self.runner.addresses:
+            if isinstance(address, tuple) and len(address) >= 2:
+                bound_port = address[1]
+                break
+        self._url = f"http://{self.host}:{bound_port}"
         self.logger.info(f"Mock exchange server started at {self._url}")
 
         # Start background tasks
@@ -922,6 +931,7 @@ class MockedExchangeServer:
 
         # Add to active connections
         self.ws_connections.add(ws)
+        self._ws_client_ips[ws] = client_ip
 
         # Track this IP's connection count
         if client_ip not in self.request_counts["ws"]:
@@ -1070,7 +1080,7 @@ class MockedExchangeServer:
                     del self.subscriptions[subscription_key]
 
             # Remove from client's tracked subscriptions
-            client_ip = ws.request.remote
+            client_ip = self._ws_client_ips.get(ws)
             if client_ip in self.request_counts["ws"]:
                 self.request_counts["ws"][client_ip]["subscriptions"].discard(subscription_key)
 
@@ -1110,7 +1120,6 @@ class MockedExchangeServer:
             del self.subscriptions[key]
 
         # Remove from client tracking
-        # hasattr check is not strictly necessary as ws.request should exist for a prepared WebSocketResponse
-        client_ip = ws.request.remote
+        client_ip = self._ws_client_ips.pop(ws, None)
         if client_ip in self.request_counts["ws"]:
             self.request_counts["ws"][client_ip]["subscriptions"] = set()  # type: ignore

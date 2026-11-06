@@ -146,7 +146,7 @@ class TestServiceContainerIntegration:
     async def mock_server_with_caching(self):
         """Create mock server with Redis caching capabilities."""
         plugin = BinanceSpotPlugin()
-        server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
+        server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
         # Add trading pairs
         server.add_trading_pair("BTCUSDT", "1m", 50000.0)

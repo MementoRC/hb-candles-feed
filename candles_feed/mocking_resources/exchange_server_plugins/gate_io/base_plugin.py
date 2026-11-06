@@ -165,7 +165,7 @@ class GateIoBasePlugin(ExchangePlugin, ABC):
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         subscriptions = []
-        if message.get("method") == "subscribe":
+        if message.get("method") in ("subscribe", "unsubscribe"):
             params = message.get("params", [])
             if len(params) >= 2 and isinstance(params[0], str) and isinstance(params[1], dict):
                 channel = params[0]

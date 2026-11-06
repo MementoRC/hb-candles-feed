@@ -166,14 +166,14 @@ class MockedPlugin(ExchangePlugin):
         subscriptions: list[tuple[str, str]] = []
 
         # Support both our format and the Binance format for compatibility
-        if message.get("type") == "subscribe":
-            # Our format
+        if message.get("type") in ("subscribe", "unsubscribe"):
+            # Our format (unsubscribe carries the same payload)
             for sub in message.get("subscriptions", []):
                 trading_pair = sub.get("symbol")
                 interval = sub.get("interval")
                 if trading_pair and interval:
                     subscriptions.append((trading_pair, interval))
-        elif message.get("method") == "SUBSCRIBE":
+        elif message.get("method") in ("SUBSCRIBE", "UNSUBSCRIBE"):
             # Binance format
             for param in message.get("params", []):
                 # Format is: "btcusdt@kline_1m"
@@ -197,7 +197,7 @@ class MockedPlugin(ExchangePlugin):
         :returns: A subscription success response message.
         """
         # Handle the Binance format if it's detected
-        if message.get("method") == "SUBSCRIBE":
+        if message.get("method") in ("SUBSCRIBE", "UNSUBSCRIBE"):
             # Binance format response
             return {"result": None, "id": message.get("id", 1)}
 
@@ -205,9 +205,12 @@ class MockedPlugin(ExchangePlugin):
         subscription_details = [
             {"symbol": pair, "interval": interval} for pair, interval in subscriptions
         ]
+        result_type = (
+            "unsubscribe_result" if message.get("type") == "unsubscribe" else "subscribe_result"
+        )
 
         return {
-            "type": "subscribe_result",
+            "type": result_type,
             "status": "success",
             "subscriptions": subscription_details,
         }
@@ -542,7 +545,10 @@ class MockedPlugin(ExchangePlugin):
                                         await asyncio.sleep(0.1)
                                         await ws.send_json(message_dict)
 
-                        elif data_dict.get("method") == "UNSUBSCRIBE":
+                        elif (
+                            data_dict.get("type") == "unsubscribe"
+                            or data_dict.get("method") == "UNSUBSCRIBE"
+                        ):
                             # Parse subscriptions
                             subscriptions_list = self.parse_ws_subscription(data_dict)
 

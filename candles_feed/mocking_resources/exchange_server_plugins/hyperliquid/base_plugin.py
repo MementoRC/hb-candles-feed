@@ -141,7 +141,10 @@ class HyperliquidBasePlugin(ExchangePlugin, ABC):
         #   "interval": "1"
         # }
 
-        if message.get("method") == "subscribe" and message.get("channel") == "candles":
+        if (
+            message.get("method") in ("subscribe", "unsubscribe")
+            and message.get("channel") == "candles"
+        ):
             coin = message.get("coin")
             interval = message.get("interval")
 
