@@ -236,10 +236,11 @@ class CandleDataFactory:
         )
 
         # Add some price events (1-3 significant moves)
-        num_events = random.randint(1, 3)
+        # Don't place events too close to the start or end
+        buffer = max(5, count // 10)
+        # Skip events entirely when the series is too short for a valid range
+        num_events = random.randint(1, 3) if count - buffer - 1 >= buffer else 0
         for _ in range(num_events):
-            # Don't place events too close to the start or end
-            buffer = max(5, count // 10)
             event_index = random.randint(buffer, count - buffer - 1)
             event_magnitude = 0.01 + (random.random() * 0.02)  # 1% to 3% price event (reduced)
             candles = CandleDataFactory.create_price_event(

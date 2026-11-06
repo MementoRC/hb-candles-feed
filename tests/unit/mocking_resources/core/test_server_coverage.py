@@ -27,10 +27,9 @@ NOW = 1_700_000_000.0
 
 
 class StubWebSocket:
-    """Hashable WebSocket stand-in exposing ``request`` and ``send_json``."""
+    """Hashable WebSocket stand-in exposing ``send_json`` (no ``request``, like aiohttp)."""
 
-    def __init__(self, request):
-        self.request = request
+    def __init__(self):
         self.send_json = AsyncMock()
 
 
@@ -235,6 +234,13 @@ class TestTradingPairs:
         assert [b.timestamp - a.timestamp for a, b in zip(candles, candles[1:], strict=False)] == [
             60
         ] * 19
+
+    @pytest.mark.parametrize("count", [1, 5, 10, 11, 12])
+    def test_tiny_counts_do_not_raise(self, server, count):
+        server.candles["BTC-USDT"] = {"1m": []}
+        server.last_candle_time["BTC-USDT"] = {"1m": 0}
+        server._generate_initial_candles("BTC-USDT", "1m", 100.0, num_candles=count)
+        assert len(server.candles["BTC-USDT"]["1m"]) == count
 
     def test_no_candles_leaves_last_time_untouched(self, server, monkeypatch):
         monkeypatch.setattr(
@@ -591,12 +597,42 @@ class TestWebSocket:
         await ws.close()
 
     @staticmethod
-    def stub_ws(remote="127.0.0.1"):
-        """Stand-in exposing the ``request`` attribute the server's unsubscribe/cleanup read."""
-        return StubWebSocket(SimpleNamespace(remote=remote))
+    def stub_ws(server, remote="127.0.0.1"):
+        """Stand-in registered with the server's client-IP map, as the WS handler does."""
+        ws = StubWebSocket()
+        server._ws_client_ips[ws] = remote
+        return ws
+
+    async def test_unsubscribe_over_real_socket(self, client, loaded_server):
+        ws = await client.ws_connect("/ws")
+        await ws.send_json(self.sub([["BTCUSDT", "1m"]]))
+        await ws.receive_json()
+        await ws.receive_json()
+        assert loaded_server.subscriptions
+        await ws.send_json(self.sub([["BTCUSDT", "1m"]], method="UNSUBSCRIBE", msg_id=3))
+        assert await ws.receive_json() == {"result": None, "id": 3, "n": 1}
+        assert loaded_server.subscriptions == {}
+        assert all(
+            not entry["subscriptions"] for entry in loaded_server.request_counts["ws"].values()
+        )
+        await ws.close()
+
+    async def test_real_disconnect_cleans_up_client_tracking(self, client, loaded_server):
+        ws = await client.ws_connect("/ws")
+        await ws.send_json(self.sub([["BTCUSDT", "1m"]]))
+        await ws.receive_json()
+        await ws.receive_json()
+        assert len(loaded_server._ws_client_ips) == 1
+        await ws.close()
+        await wait_until(lambda: not loaded_server.ws_connections)
+        assert loaded_server._ws_client_ips == {}
+        assert loaded_server.subscriptions == {}
+        assert all(
+            not entry["subscriptions"] for entry in loaded_server.request_counts["ws"].values()
+        )
 
     async def test_unsubscribe_removes_subscription(self, loaded_server):
-        ws = self.stub_ws()
+        ws = self.stub_ws(loaded_server)
         loaded_server.subscriptions["BTC-USDT_1m"] = {ws}
         loaded_server.request_counts["ws"]["127.0.0.1"] = {
             "timestamps": deque(),
@@ -609,13 +645,13 @@ class TestWebSocket:
         assert loaded_server.request_counts["ws"]["127.0.0.1"]["subscriptions"] == set()
 
     async def test_unsubscribe_keeps_other_subscribers(self, loaded_server):
-        ws, other = self.stub_ws(), object()
+        ws, other = self.stub_ws(loaded_server), object()
         loaded_server.subscriptions["BTC-USDT_1m"] = {ws, other}
         await loaded_server._handle_unsubscription(ws, self.sub([["BTCUSDT", "1m"]]))
         assert loaded_server.subscriptions["BTC-USDT_1m"] == {other}
 
     async def test_unsubscribe_unknown_key_still_acks(self, loaded_server):
-        ws = self.stub_ws("5.5.5.5")
+        ws = self.stub_ws(loaded_server, "5.5.5.5")
         await loaded_server._handle_unsubscription(
             ws, self.sub([["NOPEUSDT", "1m"]], method="UNSUBSCRIBE", msg_id=4)
         )
@@ -680,7 +716,7 @@ class TestWebSocket:
         assert loaded_server.subscriptions == {}
 
     def test_cleanup_resets_client_subscription_tracking(self, loaded_server):
-        ws = self.stub_ws()
+        ws = self.stub_ws(loaded_server)
         loaded_server.ws_connections.add(ws)
         loaded_server.subscriptions = {"mine": {ws}, "shared": {ws, object()}}
         loaded_server.request_counts["ws"]["127.0.0.1"] = {
@@ -692,9 +728,10 @@ class TestWebSocket:
         assert set(loaded_server.subscriptions) == {"shared"}
         assert ws not in loaded_server.subscriptions["shared"]
         assert loaded_server.request_counts["ws"]["127.0.0.1"]["subscriptions"] == set()
+        assert ws not in loaded_server._ws_client_ips
 
     def test_cleanup_ignores_untracked_client(self, loaded_server):
-        loaded_server._cleanup_websocket(self.stub_ws("9.9.9.9"))
+        loaded_server._cleanup_websocket(self.stub_ws(loaded_server, "9.9.9.9"))
         assert "9.9.9.9" not in loaded_server.request_counts["ws"]
 
     def test_get_subscriptions_for_connection(self, server):
@@ -773,11 +810,12 @@ class TestCandleGeneration:
 class TestLifecycle:
     async def test_start_serves_requests_and_stop_closes_everything(self, loaded_server):
         url = await loaded_server.start()
-        assert url == "http://127.0.0.1:0"
+        port = loaded_server.runner.addresses[0][1]
+        assert port != 0
+        assert url == f"http://127.0.0.1:{port}"
         assert loaded_server.mocked_exchange_url == url
         assert len(loaded_server._tasks) == 1
 
-        port = loaded_server.runner.addresses[0][1]
         async with aiohttp.ClientSession() as session:
             async with session.get(f"http://127.0.0.1:{port}/ping") as resp:
                 assert resp.status == 200
