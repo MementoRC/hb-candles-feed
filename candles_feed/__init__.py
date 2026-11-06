@@ -3,7 +3,7 @@ Candles Feed - A modular, plugin-based framework for fetching and managing candl
 from cryptocurrency exchanges.
 """
 
-__version__ = "0.1.0"
+from candles_feed.__about__ import __version__
 
 # Import core components for easy access
 from candles_feed.adapters.base_adapter import BaseAdapter
