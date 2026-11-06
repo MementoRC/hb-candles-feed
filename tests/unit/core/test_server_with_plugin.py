@@ -8,6 +8,7 @@ with the refactored plugin framework that provides exchange-specific settings.
 import pytest
 import pytest_asyncio
 
+from candles_feed.adapters.binance import constants
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher
@@ -23,7 +24,7 @@ async def binance_server():
     plugin = BinanceSpotPlugin()
 
     # Create and start the server (use different port to avoid conflict with service containers)
-    server = MockedExchangeServer(plugin, "127.0.0.1", 8081)
+    server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
     # Add test trading pairs
     server.add_trading_pair("BTC-USDT", "1m", 50000.0)
@@ -115,15 +116,20 @@ async def test_network_conditions_simulation(client, binance_server):
 async def test_url_patcher(binance_server):
     """Test that the URL patcher works correctly."""
     # Create a URL patcher
-    patcher = ExchangeURLPatcher(ExchangeType.BINANCE_SPOT, "127.0.0.1", 8081)
+    bound_port = int(binance_server.mocked_exchange_url.rsplit(":", 1)[1])
+    patcher = ExchangeURLPatcher(ExchangeType.BINANCE_SPOT, "127.0.0.1", bound_port)
 
     # Patch the URLs
     success = patcher.patch_urls(binance_server.plugin)
     assert success
 
-    # Test code would include verifying the URLs are patched correctly
-    # by checking the adapter module directly or through the adapter behavior
+    assert bound_port != 0
+    assert f"http://127.0.0.1:{bound_port}" == constants.SPOT_REST_URL
+    assert f"ws://127.0.0.1:{bound_port}/ws" == constants.SPOT_WSS_URL
+    assert binance_server.mocked_exchange_url.endswith(f":{bound_port}")
 
     # Restore the URLs
     success = patcher.restore_urls()
     assert success
+    assert constants.SPOT_REST_URL == "https://api.binance.com"
+    assert constants.SPOT_WSS_URL == "wss://stream.binance.com:9443/ws"

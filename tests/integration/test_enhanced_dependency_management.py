@@ -130,7 +130,7 @@ class TestEnhancedDependencyManagement:
         # Patch URLs with error handling
         try:
             rest_url = f"{mock_server.url}/api/v3/klines"
-            ws_url = f"ws://{mock_server.host}:{mock_server.port}/ws"
+            ws_url = f"ws://{mock_server.url.removeprefix('http://')}/ws"
 
             # Patch REST URL
             if hasattr(adapter_class, "_get_rest_url"):
