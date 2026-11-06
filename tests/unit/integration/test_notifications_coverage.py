@@ -291,6 +291,16 @@ class TestMonitorLoop:
         logger.error.assert_called_once_with("Error in health and performance monitoring: down")
         assert sleeper.calls == [30, 30]
 
+    async def test_cancel_during_error_backoff_sleep_exits_cleanly(
+        self, manager, logger, sleeper, mocker
+    ):
+        mon = FakeMonitoring()
+        mocker.patch.object(mon, "get_health_status", side_effect=RuntimeError("down"))
+        i = make(manager, logger, mon)
+        await i._monitor_health_and_performance()  # must not raise CancelledError
+        assert sleeper.calls == [30]
+        logger.error.assert_called_once_with("Error in health and performance monitoring: down")
+
 
 class TestLifecycle:
     async def test_start_without_monitoring_manager_noop(self, manager, logger):

@@ -69,6 +69,12 @@ class TestPrometheusFormat:
         assert "# TYPE candles_feed_request_duration_seconds histogram" in text
         assert "candles_feed_request_timing 0.5" in text
 
+    def test_numeric_timing_metric_renders(self, manager, config):
+        manager.get_metrics.return_value = {"fetch_timing": 0.25, "x_duration": 3}
+        text = PrometheusMetricsExporter(manager, config)._format_prometheus_metrics()
+        assert 'candles_feed_request_duration_seconds{operation="fetch"} 0.25' in text
+        assert 'candles_feed_request_duration_seconds{operation="x"} 3' in text
+
 
 class TestPrometheusHandler:
     async def test_handler_ok(self, manager, config):
@@ -284,6 +290,20 @@ class TestExternalMonitoringIntegration:
         await ExternalMonitoringIntegration(manager, cfg, logger)._monitor_external_endpoints()
         logger.error.assert_called_once()
         assert "Error in external endpoint monitoring" in logger.error.call_args.args[0]
+
+    async def test_cancel_during_error_backoff_sleep_exits_cleanly(
+        self, manager, logger, monkeypatch
+    ):
+        seq = [RuntimeError("sleep failed"), asyncio.CancelledError()]
+
+        async def fake_sleep(_):
+            raise seq.pop(0)
+
+        monkeypatch.setattr(mon.asyncio, "sleep", fake_sleep)
+        await ExternalMonitoringIntegration(
+            manager, MonitoringIntegrationConfig(), logger
+        )._monitor_external_endpoints()  # must not raise CancelledError
+        assert seq == []
 
     async def test_start_stop_with_endpoints(self, manager, logger, monkeypatch):
         cfg = MonitoringIntegrationConfig(
