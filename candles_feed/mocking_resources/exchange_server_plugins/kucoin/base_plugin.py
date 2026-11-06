@@ -132,7 +132,7 @@ class KucoinBasePlugin(ExchangePlugin, ABC):
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         subscriptions = []
-        if message.get("type") == "subscribe":
+        if message.get("type") in ("subscribe", "unsubscribe"):
             topics = message.get("topic", "").split(",")
             for topic in topics:
                 if topic.startswith("/market/candles:"):

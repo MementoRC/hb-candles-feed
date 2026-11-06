@@ -111,13 +111,34 @@ def test_parse_ws_subscription_contract_topic(plugin):
     ]
 
 
+def test_parse_ws_subscription_spot_topic(plugin):
+    message = {
+        "method": "sub",
+        "params": ["spot@public.kline.Min1_btcusdt", "spot@public.kline.Hour4_ethbtc"],
+    }
+    assert MEXCBasePlugin.parse_ws_subscription(plugin, message) == [
+        ("BTC-USDT", "1m"),
+        ("ETH-BTC", "4h"),
+    ]
+
+
+def test_parse_ws_subscription_unsub_parses_like_sub(plugin):
+    message = {"method": "unsub", "params": ["spot@public.kline.Min1_btcusdt"]}
+    assert MEXCBasePlugin.parse_ws_subscription(plugin, message) == [("BTC-USDT", "1m")]
+
+
 def test_parse_ws_subscription_keeps_unknown_interval_and_unsplittable_symbol(plugin):
     message = {"method": "sub", "params": ["contract@kline.Bogus_abcdef"]}
     assert MEXCBasePlugin.parse_ws_subscription(plugin, message) == [("ABCDEF", "Bogus")]
 
 
 def test_parse_ws_subscription_ignores_other_methods_and_malformed_topics(plugin):
-    assert MEXCBasePlugin.parse_ws_subscription(plugin, {"method": "unsub", "params": []}) == []
+    assert (
+        MEXCBasePlugin.parse_ws_subscription(
+            plugin, {"method": "other", "params": ["spot@public.kline.Min1_btcusdt"]}
+        )
+        == []
+    )
     params = ["spot@trades.btcusdt", "a@b@kline.Min1_btcusdt", "x@kline.Min1", "x@kline."]
     message = {"method": "sub", "params": params}
     assert MEXCBasePlugin.parse_ws_subscription(plugin, message) == []

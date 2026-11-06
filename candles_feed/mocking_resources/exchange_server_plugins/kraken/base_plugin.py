@@ -198,7 +198,10 @@ class KrakenBasePlugin(ExchangePlugin, ABC):
         # }
 
         subscriptions = []
-        if isinstance(message, dict) and message.get("name") == "subscribe":
+        if isinstance(message, dict) and message.get("name") in (
+            "subscribe",
+            "unsubscribe",
+        ):
             subscription = message.get("subscription", {})
 
             if subscription.get("name") == "ohlc":

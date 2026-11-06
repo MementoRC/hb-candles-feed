@@ -147,6 +147,10 @@ class TestHelpers:
         }
         assert plugin.parse_ws_subscription(msg) == [("BTC-USDT", "1m"), ("ETH-BTC", "5m")]
 
+    def test_parse_ws_unsubscribe_parses_like_subscribe(self, plugin):
+        msg = {"method": "UNSUBSCRIBE", "params": ["btcusdt@kline_1m", "ethbtc@kline_5m"]}
+        assert plugin.parse_ws_subscription(msg) == [("BTC-USDT", "1m"), ("ETH-BTC", "5m")]
+
     def test_parse_ws_subscription_non_subscribe(self, plugin):
         assert plugin.parse_ws_subscription({"method": "OTHER"}) == []
 
@@ -369,6 +373,7 @@ class TestWebSocket:
 
         await ws.send_json({"method": "UNSUBSCRIBE", "params": ["btcusdt@kline_1m"], "id": 8})
         assert await ws.receive_json() == {"result": None, "id": 8}
+        assert "btcusdt@kline_1m" not in server.subscriptions
 
         await ws.close()
 

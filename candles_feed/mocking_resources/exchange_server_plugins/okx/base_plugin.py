@@ -158,7 +158,7 @@ class OKXBasePlugin(ExchangePlugin, ABC):
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         subscriptions: list[tuple[str, str]] = []
-        if message.get("op") == "subscribe":
+        if message.get("op") in ("subscribe", "unsubscribe"):
             subscriptions.extend(
                 (arg["instId"], arg["channel"][6:])
                 for arg in message.get("args", [])
