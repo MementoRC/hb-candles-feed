@@ -120,9 +120,12 @@ quality = { depends-on = ["check-conda-first", "lint", "format-check", "typechec
 # live tests excluded — they hit real exchange APIs and fail under geo-restrictions
 # slow tests excluded — probabilistic timing-sensitive tests unsuitable for default check
 test-no-live = "pytest tests -m 'not live and not slow'"
+# Same selection as test-no-live, measured. --cov stays out of addopts so the
+# test-unit/test-integration subsets don't trip fail_under.
+coverage = "pytest tests -m 'not live and not slow' --cov=candles_feed --cov-report=term-missing"
 check-conda-first = "python scripts/check_conda_first.py"
-check = { depends-on = ["check-conda-first", "format", "lint", "typecheck", "test-no-live"] }
-check-live = { depends-on = ["format", "lint", "type-check", "test"] }
+check = { depends-on = ["check-conda-first", "format-check", "lint", "typecheck", "coverage"] }
+check-live = { depends-on = ["format-check", "lint", "type-check", "test"] }
 
 # Documentation tasks
 docs-build = "mkdocs build --clean"
@@ -237,7 +240,7 @@ omit = [
 ]
 
 [tool.coverage.report]
-fail_under = 0
+fail_under = 90
 show_missing = true
 skip_covered = true
 skip_empty = true
