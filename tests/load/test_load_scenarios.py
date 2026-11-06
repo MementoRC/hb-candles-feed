@@ -204,7 +204,7 @@ class CandlesFeedLoadTester:
 async def mock_server():
     """Fixture to provide a mock exchange server for load testing."""
     plugin = BinanceSpotPlugin()
-    server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
+    server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
     # Add trading pairs with all intervals needed for testing
     trading_pairs = [
@@ -281,7 +281,7 @@ if __name__ == "__main__":
         # Standalone mode - start server and run tests
         async def run_standalone_tests():
             plugin = BinanceSpotPlugin()
-            server = MockedExchangeServer(plugin, "127.0.0.1", 8791)
+            server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
             # Add trading pairs with multiple intervals for comprehensive testing
             trading_pairs = [("BTCUSDT", 50000.0), ("ETHUSDT", 3000.0)]

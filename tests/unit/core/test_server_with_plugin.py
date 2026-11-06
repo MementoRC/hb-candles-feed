@@ -23,7 +23,7 @@ async def binance_server():
     plugin = BinanceSpotPlugin()
 
     # Create and start the server (use different port to avoid conflict with service containers)
-    server = MockedExchangeServer(plugin, "127.0.0.1", 8081)
+    server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
     # Add test trading pairs
     server.add_trading_pair("BTC-USDT", "1m", 50000.0)
@@ -115,7 +115,8 @@ async def test_network_conditions_simulation(client, binance_server):
 async def test_url_patcher(binance_server):
     """Test that the URL patcher works correctly."""
     # Create a URL patcher
-    patcher = ExchangeURLPatcher(ExchangeType.BINANCE_SPOT, "127.0.0.1", 8081)
+    bound_port = int(binance_server.mocked_exchange_url.rsplit(":", 1)[1])
+    patcher = ExchangeURLPatcher(ExchangeType.BINANCE_SPOT, "127.0.0.1", bound_port)
 
     # Patch the URLs
     success = patcher.patch_urls(binance_server.plugin)

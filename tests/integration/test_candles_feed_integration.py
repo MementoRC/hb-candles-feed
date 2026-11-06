@@ -42,7 +42,7 @@ class TestCandlesFeedIntegration:
         """Create a standalone mock server for testing."""
         # Create a mock exchange server for Binance Spot
         plugin = BinanceSpotPlugin()
-        server = MockedExchangeServer(plugin, "127.0.0.1", 8789)
+        server = MockedExchangeServer(plugin, "127.0.0.1", 0)
 
         # Add default trading pairs - ensure both formats are registered
         # Server-side format (BTCUSDT) and client-side format (BTC-USDT)
@@ -60,7 +60,7 @@ class TestCandlesFeedIntegration:
 
         # Create mapping for URL patching
         server.rest_url_override = f"{url}/api/v3/klines"
-        server.ws_url_override = f"ws://{server.host}:{server.port}/ws"
+        server.ws_url_override = f"ws://{url.removeprefix('http://')}/ws"
 
         yield server
 

@@ -39,7 +39,7 @@ class TestMockServerBackoffIntegration:
             BinanceSpotPlugin,
         )
 
-        server = MockedExchangeServer(BinanceSpotPlugin(), "127.0.0.1", 8793)
+        server = MockedExchangeServer(BinanceSpotPlugin(), "127.0.0.1", 0)
         server.add_trading_pair("BTCUSDT", "1m", 50000.0)
         server.url = await server.start()
         yield server
