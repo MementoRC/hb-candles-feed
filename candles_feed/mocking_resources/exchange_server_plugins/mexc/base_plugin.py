@@ -152,11 +152,11 @@ class MEXCBasePlugin(ExchangePlugin, ABC):
         subscriptions = []
 
         # MEXC uses a method and params format similar to Binance, but with different topics
-        if message.get("method") == "sub":
+        if message.get("method") in ("sub", "unsub"):
             for param in message.get("params", []):
                 # For spot: spot@public.kline.Min1_btcusdt
                 # For perp: contract@kline.Min1_btcusdt
-                if "@kline." in param:
+                if "kline." in param and "@" in param:
                     parts = param.split("@")
                     if len(parts) == 2:
                         topic_parts = parts[1].split(".")

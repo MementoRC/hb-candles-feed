@@ -438,7 +438,8 @@ class BinanceBasePlugin(ExchangePlugin, ABC):
         #   "id": 1
         # }
 
-        if message.get("method") == "SUBSCRIBE":
+        # UNSUBSCRIBE uses the identical params format and is parsed the same way.
+        if message.get("method") in ("SUBSCRIBE", "UNSUBSCRIBE"):
             for param in message.get("params", []):
                 # Format is: "btcusdt@kline_1m"
                 if "@kline_" in param:

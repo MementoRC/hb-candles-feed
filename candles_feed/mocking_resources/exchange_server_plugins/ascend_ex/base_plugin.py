@@ -168,7 +168,7 @@ class AscendExBasePlugin(ExchangePlugin, ABC):
         #   "ch": "bar:1:BTC/USDT"
         # }
 
-        if message.get("op") == "sub" and "ch" in message:
+        if message.get("op") in ("sub", "unsub") and "ch" in message:
             ch = message["ch"]
             if ch.startswith("bar:"):
                 parts = ch.split(":")

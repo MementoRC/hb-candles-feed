@@ -241,6 +241,14 @@ class TestWebSocket:
         assert update["is_final"] is True
         assert len(server.subscriptions["BTC-USDT_1m"]) == 1
 
+        await ws.send_json(
+            {"type": "unsubscribe", "subscriptions": [{"symbol": "BTCUSDT", "interval": "1m"}]}
+        )
+        unsub_ack = await ws.receive_json()
+        assert unsub_ack["type"] == "unsubscribe_result"
+        assert unsub_ack["subscriptions"] == [{"symbol": "BTCUSDT", "interval": "1m"}]
+        assert "BTC-USDT_1m" not in server.subscriptions
+
         await ws.close()
 
     async def test_binance_format_subscribe(self, ws_env):
@@ -253,9 +261,10 @@ class TestWebSocket:
         assert await ws.receive_json() == {"result": None, "id": 11}
         # only the known pair/interval is tracked, and it has no candle to push
         assert set(server.subscriptions) == {"BTC-USDT_5m"}
-        # an UNSUBSCRIBE is always acknowledged
-        await ws.send_json({"method": "UNSUBSCRIBE", "params": ["zzzusdt@kline_1m"], "id": 12})
-        assert "type" in await ws.receive_json()
+        # an UNSUBSCRIBE is acknowledged and removes the subscription
+        await ws.send_json({"method": "UNSUBSCRIBE", "params": ["btcusdt@kline_5m"], "id": 12})
+        assert await ws.receive_json() == {"result": None, "id": 12}
+        assert "BTC-USDT_5m" not in server.subscriptions
         await ws.close()
 
     async def test_invalid_json_and_internal_error(self, ws_env):

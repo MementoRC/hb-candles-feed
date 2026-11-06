@@ -104,7 +104,7 @@ def test_parse_ws_subscription_unknown_interval_kept(plugin):
 @pytest.mark.parametrize(
     "message",
     [
-        {"method": "unsubscribe", "channel": "candles", "coin": "BTC", "interval": "1"},
+        {"method": "other", "channel": "candles", "coin": "BTC", "interval": "1"},
         {"method": "subscribe", "channel": "trades", "coin": "BTC", "interval": "1"},
         {"method": "subscribe", "channel": "candles", "interval": "1"},
         {"method": "subscribe", "channel": "candles", "coin": "BTC"},

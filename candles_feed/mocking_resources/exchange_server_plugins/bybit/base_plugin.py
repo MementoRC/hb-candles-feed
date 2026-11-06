@@ -176,7 +176,7 @@ class BybitBasePlugin(ExchangePlugin, ABC):
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         subscriptions = []
-        if message.get("op") == "subscribe":
+        if message.get("op") in ("subscribe", "unsubscribe"):
             for topic in message.get("args", []):
                 if topic.startswith("kline."):
                     # Format: kline.{interval}.{trading_pair}

@@ -188,7 +188,7 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         subscriptions = []
         if (
             isinstance(message, dict)
-            and message.get("type") == "subscribe"
+            and message.get("type") in ("subscribe", "unsubscribe")
             and message.get("channel") == "candles"
         ):
             granularity = message.get("granularity")
