@@ -8,6 +8,7 @@ with the refactored plugin framework that provides exchange-specific settings.
 import pytest
 import pytest_asyncio
 
+from candles_feed.adapters.binance import constants
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 from candles_feed.mocking_resources.core.url_patcher import ExchangeURLPatcher
@@ -122,9 +123,13 @@ async def test_url_patcher(binance_server):
     success = patcher.patch_urls(binance_server.plugin)
     assert success
 
-    # Test code would include verifying the URLs are patched correctly
-    # by checking the adapter module directly or through the adapter behavior
+    assert bound_port != 0
+    assert f"http://127.0.0.1:{bound_port}" == constants.SPOT_REST_URL
+    assert f"ws://127.0.0.1:{bound_port}/ws" == constants.SPOT_WSS_URL
+    assert binance_server.mocked_exchange_url.endswith(f":{bound_port}")
 
     # Restore the URLs
     success = patcher.restore_urls()
     assert success
+    assert constants.SPOT_REST_URL == "https://api.binance.com"
+    assert constants.SPOT_WSS_URL == "wss://stream.binance.com:9443/ws"
