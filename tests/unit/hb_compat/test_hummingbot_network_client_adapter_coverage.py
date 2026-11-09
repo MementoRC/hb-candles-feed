@@ -176,6 +176,22 @@ async def test_ws_adapter_iter_messages_decodes_and_skips_empty_and_invalid():
     assert "{not json" in logger.error.call_args.args[0]
 
 
+async def test_ws_adapter_iter_messages_passes_empty_dict_ping():
+    ws_adapter = HummingbotWSAssistantAdapter(
+        FakeWS([SimpleNamespace(data={}), SimpleNamespace(data="{}")]), Mock()
+    )
+    assert [m async for m in ws_adapter.iter_messages()] == [{}, {}]
+
+
+async def test_ws_adapter_iter_messages_splits_batched_str_frame():
+    logger = Mock()
+    ws_adapter = HummingbotWSAssistantAdapter(
+        FakeWS([SimpleNamespace(data='{"a": 1}\n{}\nbad\n{"b": 2}')]), logger
+    )
+    assert [m async for m in ws_adapter.iter_messages()] == [{"a": 1}, {}, {"b": 2}]
+    logger.error.assert_called_once()
+
+
 async def test_ws_adapter_iter_messages_logs_and_reraises_stream_errors():
     logger = Mock()
     ws_adapter = HummingbotWSAssistantAdapter(FakeWS(error=RuntimeError("socket died")), logger)

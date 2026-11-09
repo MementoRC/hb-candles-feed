@@ -10,6 +10,7 @@ import logging
 from contextlib import AbstractAsyncContextManager
 from typing import Any, cast
 
+from candles_feed.core.network_client import iter_json_frame
 from candles_feed.core.protocols import (
     AsyncThrottlerProtocol,
     Logger,
@@ -74,14 +75,15 @@ class HummingbotWSAssistantAdapter(WSAssistant):
         try:
             # Adapt the Hummingbot WSAssistant message format to our expected format
             async for ws_response in self._ws.iter_messages():
-                if ws_response.data:
-                    try:
-                        if isinstance(ws_response.data, str):
-                            yield json.loads(ws_response.data)
-                        else:
-                            yield ws_response.data
-                    except json.JSONDecodeError:
-                        self._logger.error(f"Failed to parse WebSocket message: {ws_response.data}")
+                data = ws_response.data
+                if data is None:
+                    continue
+                # Falsy payloads such as Centrifugo's `{}` ping must reach the adapter
+                if isinstance(data, str):
+                    for parsed in iter_json_frame(data, self._logger):
+                        yield parsed
+                else:
+                    yield data
         except Exception as e:
             self._logger.error(f"Error iterating WebSocket messages: {e}")
             raise

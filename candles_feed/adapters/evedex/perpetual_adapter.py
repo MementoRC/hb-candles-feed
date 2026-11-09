@@ -174,18 +174,21 @@ class EvedexPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
         # Weekly/monthly buckets are not epoch-aligned (Monday / month start): keep as returned
         if interval_seconds and interval_seconds < INTERVALS["1w"]:
             seconds -= seconds % interval_seconds
-        return CandleData(
-            timestamp_raw=seconds,
-            open=float(open_),
-            high=float(high),
-            low=float(low),
-            close=float(close),
-            volume=float(volume),
-            quote_asset_volume=float(volume_usd),
-            n_trades=0,
-            taker_buy_base_volume=0.0,
-            taker_buy_quote_volume=0.0,
-        )
+        try:
+            return CandleData(
+                timestamp_raw=seconds,
+                open=float(open_),
+                high=float(high),
+                low=float(low),
+                close=float(close),
+                volume=float(volume),
+                quote_asset_volume=float(volume_usd),
+                n_trades=0,
+                taker_buy_base_volume=0.0,
+                taker_buy_quote_volume=0.0,
+            )
+        except (TypeError, ValueError):
+            return None
 
     @override
     def _parse_rest_response(

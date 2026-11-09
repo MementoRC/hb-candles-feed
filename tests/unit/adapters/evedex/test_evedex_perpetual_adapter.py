@@ -356,6 +356,13 @@ class TestEvedexWebSocket:
         (candle,) = adapter.parse_ws_message({"data": ROWS_6[0]})
         assert candle.timestamp == T0
 
+    def test_non_numeric_values_drop_ws_push_and_rest_row(self, adapter):
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        bad = {"t": T0 * 1000, "o": "abc", "c": 2, "h": 3, "l": 1, "v": 4}
+        assert adapter.parse_ws_message(_push(bad)) is None
+        rows = [bad, ROWS_6[0]]
+        assert len(adapter._parse_rest_response(rows, interval_seconds=60)) == 1
+
     @pytest.mark.parametrize(
         "message",
         [

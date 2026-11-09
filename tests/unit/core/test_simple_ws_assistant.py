@@ -41,6 +41,25 @@ async def test_batched_frame_skips_bad_lines_and_logs():
     logger.error.assert_called_once()
 
 
+def test_no_adapter_raises_on_empty_dict_message():
+    """`{}` now reaches parse_ws_message through the hummingbot client path."""
+    from candles_feed.core.exchange_registry import ExchangeRegistry
+
+    for name in ExchangeRegistry.get_registered_exchanges():
+        adapter_cls = ExchangeRegistry.get_adapter_class(name)
+        if not adapter_cls.__module__.startswith("candles_feed.adapters."):
+            continue  # skip mocks registered by other tests
+        try:
+            adapter = adapter_cls()
+        except TypeError:
+            continue
+        try:
+            result = adapter.parse_ws_message({})
+        except NotImplementedError:
+            continue
+        assert not result, name
+
+
 async def test_garbage_frame_yields_nothing_and_does_not_raise():
     messages, logger = await _collect(["garbage"])
     assert messages == []

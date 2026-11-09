@@ -5,6 +5,7 @@ Network communication client for the Candle Feed framework.
 import json
 import logging
 import weakref
+from collections.abc import Iterator
 from typing import Any, cast
 
 import aiohttp
@@ -15,6 +16,24 @@ from candles_feed.core.rate_limiter import RATE_LIMIT_STATUSES, RateLimitExceede
 
 # Global registry to track unclosed sessions for defensive cleanup
 _ACTIVE_SESSIONS: weakref.WeakSet[aiohttp.ClientSession] = weakref.WeakSet()
+
+
+def iter_json_frame(text: str, logger: Logger) -> Iterator[Any]:
+    """Decode a text frame as JSON; on failure fall back to newline-delimited JSON objects.
+
+    Batched frames (e.g. Centrifugo) carry several objects separated by newlines. Lines that
+    still do not parse are logged and skipped.
+    """
+    try:
+        yield json.loads(text)
+        return
+    except json.JSONDecodeError:
+        pass
+    for line in filter(None, (ln.strip() for ln in text.splitlines())):
+        try:
+            yield json.loads(line)
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse WebSocket message: {line}")
 
 
 class NetworkClient:
@@ -234,17 +253,8 @@ class SimpleWSAssistant(WSAssistant):
         try:
             async for msg in self._ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    try:
-                        yield json.loads(msg.data)
-                    except json.JSONDecodeError:
-                        # Batched frame (e.g. Centrifugo): newline-delimited JSON objects
-                        for line in filter(None, (ln.strip() for ln in msg.data.splitlines())):
-                            try:
-                                parsed = json.loads(line)
-                            except json.JSONDecodeError:
-                                self._logger.error(f"Failed to parse WebSocket message: {line}")
-                                continue
-                            yield parsed
+                    for parsed in iter_json_frame(msg.data, self._logger):
+                        yield parsed
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self._logger.error(f"WebSocket error: {msg}")
                     break
