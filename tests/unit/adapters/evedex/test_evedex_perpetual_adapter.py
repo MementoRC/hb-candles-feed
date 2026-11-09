@@ -67,11 +67,9 @@ class TestEvedexStatic:
     def test_derived_symbol(self, pair, expected):
         assert EvedexPerpetualAdapter.get_trading_pair_format(pair) == expected
 
-    def test_no_websocket(self, adapter):
-        with pytest.raises(NotImplementedError):
-            adapter.get_ws_url()
-        with pytest.raises(NotImplementedError):
-            adapter.get_ws_supported_intervals()
+    def test_ws_url_and_intervals(self, adapter):
+        assert adapter.get_ws_url() == "wss://ws.evedex.com/connection/websocket"
+        assert adapter.get_ws_supported_intervals() == list(INTERVALS)
 
     def test_url_templates(self, adapter):
         assert adapter._get_rest_url() == f"{MARKET_DATA_REST_URL}{CANDLES_ENDPOINT}"
@@ -298,6 +296,81 @@ class TestEvedexFetch:
     async def test_requires_network_client(self, adapter):
         with pytest.raises(ValueError, match="network_client"):
             await adapter.fetch_rest_candles("BTC-USDT", "1m")
+
+
+def _push(data):
+    return {"push": {"channel": "c", "pub": {"data": data}}}
+
+
+class TestEvedexWebSocket:
+    def test_connect_payload_resets_id_per_call(self, adapter):
+        assert adapter.get_ws_connect_payload() == {"connect": {"name": "js"}, "id": 1}
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        assert adapter.get_ws_connect_payload() == {"connect": {"name": "js"}, "id": 1}
+
+    async def test_subscription_payload_uses_resolved_instrument(self, adapter):
+        client = TestEvedexFetch._client()
+        adapter.get_ws_connect_payload()
+        await adapter.prepare_ws_subscription("BTC-USDT", client)
+        payload = adapter.get_ws_subscription_payload("BTC-USDT", "5m")
+        assert payload == {
+            "subscribe": {
+                "channel": "market-data:last-candlestick-BTCUSD:PERP-5m",
+                "recoverable": True,
+                "flag": 1,
+            },
+            "id": 2,
+        }
+        assert adapter.get_ws_subscription_payload("BTC-USDT", "5m")["id"] == 3
+
+    def test_subscription_payload_falls_back_to_derived_instrument(self, adapter):
+        payload = adapter.get_ws_subscription_payload("SOL-USDT", "1h")
+        assert payload["subscribe"]["channel"] == "market-data:last-candlestick-SOLUSD-1h"
+        assert payload["id"] == 1
+
+    def test_get_ws_reply(self, adapter):
+        assert adapter.get_ws_reply({}) == {}
+        assert adapter.get_ws_reply({"ping": {}}) == {"pong": {}}
+        assert adapter.get_ws_reply(_push(ROWS_6[0])) is None
+        assert adapter.get_ws_reply({"id": 1, "connect": {}}) is None
+
+    def test_parse_push_with_dict_data(self, adapter):
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        row = {"t": T0 * 1000 + 7, "o": 1, "c": 2, "h": 3, "l": 0.5, "v": 4}
+        (candle,) = adapter.parse_ws_message(_push(row))
+        assert candle.timestamp == T0
+        assert (candle.open, candle.close, candle.volume) == (1.0, 2.0, 4.0)
+
+    def test_parse_push_with_list_row(self, adapter):
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        (candle,) = adapter.parse_ws_message(_push(ROWS_7[0]))
+        assert candle.timestamp == T0 + 60
+        assert candle.quote_asset_volume == 126450.0
+
+    def test_parse_push_with_wrapped_list(self, adapter):
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        (candle,) = adapter.parse_ws_message(_push({"data": ROWS_6[0]}))
+        assert candle.timestamp == T0
+
+    def test_parse_top_level_data(self, adapter):
+        (candle,) = adapter.parse_ws_message({"data": ROWS_6[0]})
+        assert candle.timestamp == T0
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            {"id": 1, "connect": {"client": "x"}},
+            {"id": 2, "subscribe": {}},
+            {},
+            {"push": {"pub": {}}},
+            {"push": {"pub": {"data": "x"}}},
+            _push([1, 2]),
+            None,
+            "x",
+        ],
+    )
+    def test_parse_ignores_non_candle_frames(self, adapter, message):
+        assert adapter.parse_ws_message(message) is None
 
 
 class TestEvedexRegistration:

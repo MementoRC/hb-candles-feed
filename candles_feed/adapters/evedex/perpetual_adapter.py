@@ -1,9 +1,9 @@
 """
 Evedex perpetual exchange adapter for the Candle Feed framework.
 
-REST only: Evedex streams candles over a Centrifugo websocket that needs a
-connect handshake and ping/pong replies, which the framework's single-payload
-websocket model cannot express. The framework falls back to REST polling.
+REST plus websocket: Evedex streams candles over a Centrifugo websocket that needs a
+connect handshake and ping/pong replies. The handshake and replies are expressed through
+the framework's optional ``get_ws_connect_payload`` and ``get_ws_reply`` adapter hooks.
 """
 
 import logging
@@ -11,7 +11,7 @@ import time
 from datetime import UTC, datetime
 from typing import Any, override
 
-from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter, NoWebSocketSupportMixin
+from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.exchange_registry import ExchangeRegistry
@@ -29,6 +29,9 @@ from .constants import (
     MARKET_DATA_REST_URL,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     NANOSECOND_TIMESTAMP_THRESHOLD,
+    WS_CANDLES_CHANNEL,
+    WS_INTERVALS,
+    WSS_URL,
 )
 
 _WRAPPER_KEYS = ("data", "result", "candles")
@@ -43,7 +46,7 @@ def _pick(row: dict[str, Any], keys: tuple[str, ...], default: Any = None) -> An
 
 
 @ExchangeRegistry.register("evedex_perpetual")
-class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdapter):
+class EvedexPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     """Evedex perpetual exchange adapter.
 
     Trading pair format: "BTC-USDT" -> derived "BTCUSD" (USDT quoted as USD); the exact
@@ -64,6 +67,8 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
         super().__init__()
         self.network_config = network_config
         self._instrument_names: dict[str, str] = {}
+        self._ws_message_id = 0
+        self._ws_interval_seconds: int | None = None
         self._logger = logging.getLogger(__name__)
 
     @staticmethod
@@ -247,3 +252,66 @@ class EvedexPerpetualAdapter(NoWebSocketSupportMixin, BaseAdapter, AsyncOnlyAdap
             params=self._get_rest_params(trading_pair, interval, start_time, limit),
         )
         return self._parse_rest_response(response, interval_seconds=INTERVALS.get(interval))
+
+    @override
+    def get_ws_url(self) -> str:
+        """Get the Centrifugo websocket URL."""
+        return WSS_URL
+
+    @override
+    def get_ws_supported_intervals(self) -> list[str]:
+        """Get the intervals supported over websocket."""
+        return WS_INTERVALS
+
+    def _next_ws_id(self) -> int:
+        """Next Centrifugo command id for this connection."""
+        self._ws_message_id += 1
+        return self._ws_message_id
+
+    def get_ws_connect_payload(self) -> dict[str, Any]:
+        """Optional hook: Centrifugo connect handshake; restarts the per-connection id counter."""
+        self._ws_message_id = 0
+        return {"connect": {"name": "js"}, "id": self._next_ws_id()}
+
+    async def prepare_ws_subscription(
+        self, trading_pair: str, network_client: NetworkClientProtocol
+    ) -> None:
+        """Resolve the instrument name so the channel uses it."""
+        await self._resolve_instrument(trading_pair, network_client)
+
+    @override
+    def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict[str, Any]:
+        """Centrifugo subscribe command for the pair's candle channel (public, no token)."""
+        instrument = self._instrument_names.get(
+            trading_pair, self.get_trading_pair_format(trading_pair)
+        )
+        self._ws_interval_seconds = INTERVALS.get(interval)
+        channel = f"{WS_CANDLES_CHANNEL}-{instrument}-{INTERVAL_TO_EXCHANGE_FORMAT[interval]}"
+        return {
+            "subscribe": {"channel": channel, "recoverable": True, "flag": 1},
+            "id": self._next_ws_id(),
+        }
+
+    def get_ws_reply(self, message: Any) -> dict[str, Any] | None:
+        """Optional hook: answer Centrifugo server pings (``{}`` or ``{"ping": ...}``)."""
+        if message == {}:
+            return {}
+        if isinstance(message, dict) and "ping" in message:
+            return {"pong": {}}
+        return None
+
+    @override
+    def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
+        """Parse a Centrifugo publication into a single candle; other frames yield None."""
+        if not isinstance(data, dict):
+            return None
+        push = data.get("push")
+        if isinstance(push, dict):
+            pub = push.get("pub")
+            payload = pub.get("data") if isinstance(pub, dict) else None
+        else:
+            payload = data.get("data")
+        if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+            payload = payload["data"]
+        candle = self._row_to_candle(payload, self._ws_interval_seconds)
+        return [candle] if candle is not None else None

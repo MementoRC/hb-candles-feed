@@ -237,7 +237,14 @@ class SimpleWSAssistant(WSAssistant):
                     try:
                         yield json.loads(msg.data)
                     except json.JSONDecodeError:
-                        self._logger.error(f"Failed to parse WebSocket message: {msg.data}")
+                        # Batched frame (e.g. Centrifugo): newline-delimited JSON objects
+                        for line in filter(None, (ln.strip() for ln in msg.data.splitlines())):
+                            try:
+                                parsed = json.loads(line)
+                            except json.JSONDecodeError:
+                                self._logger.error(f"Failed to parse WebSocket message: {line}")
+                                continue
+                            yield parsed
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     self._logger.error(f"WebSocket error: {msg}")
                     break
