@@ -364,6 +364,13 @@ class TestEvedexWebSocket:
         rows = [bad, ROWS_6[0]]
         assert len(adapter._parse_rest_response(rows, interval_seconds=60)) == 1
 
+    def test_int_too_large_for_float_drops_ws_push_and_rest_row(self, adapter):
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        huge = {"t": T0 * 1000, "o": 10**400, "c": 2, "h": 3, "l": 1, "v": 4}
+        assert adapter.parse_ws_message(_push(huge)) is None
+        rows = [huge, ROWS_6[0]]
+        assert len(adapter._parse_rest_response(rows, interval_seconds=60)) == 1
+
     @pytest.mark.parametrize("ts", [None, [1], {"a": 1}, 1e400, float("inf"), float("nan")])
     def test_bad_timestamp_type_or_overflow_drops_row(self, adapter, ts):
         row = [ts, "1", "2", "3", "0.5", "7"]

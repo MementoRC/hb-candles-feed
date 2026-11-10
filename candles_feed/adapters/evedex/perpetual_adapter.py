@@ -177,7 +177,7 @@ class EvedexPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             seconds -= seconds % interval_seconds
         try:
             values = [float(v) for v in (open_, high, low, close, volume, volume_usd)]
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return None
         if not all(math.isfinite(v) for v in values):
             return None
