@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0](https://github.com/MementoRC/hb-candles-feed/compare/v3.0.0...v3.1.0) (2026-11-10)
+
+
+### Features
+
+* **evedex:** stream candles over the Centrifugo websocket ([#173](https://github.com/MementoRC/hb-candles-feed/issues/173)) ([d8991dc](https://github.com/MementoRC/hb-candles-feed/commit/d8991dc8f57c625cfd275cff2ffa06b00fb193ac))
+
+
+### Bug Fixes
+
+* **ci:** guard fromJSON on empty release-please pr output ([#169](https://github.com/MementoRC/hb-candles-feed/issues/169)) ([4e6e980](https://github.com/MementoRC/hb-candles-feed/commit/4e6e98024b89065cb7de1b6ad4ca8753ad03edbf))
+* **evedex:** harden websocket parsing from the [#175](https://github.com/MementoRC/hb-candles-feed/issues/175) review ([#177](https://github.com/MementoRC/hb-candles-feed/issues/177)) ([1274461](https://github.com/MementoRC/hb-candles-feed/commit/127446115a7021616a191a740343006b706bee64))
+
 ## [3.0.0](https://github.com/MementoRC/hb-candles-feed/compare/v2.4.0...v3.0.0) (2026-11-05)
 
 
