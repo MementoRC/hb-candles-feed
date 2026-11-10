@@ -1,5 +1,6 @@
 """Tests for the Evedex perpetual adapter (offline, fixture based)."""
 
+import logging
 import time
 from unittest.mock import AsyncMock, MagicMock
 
@@ -362,6 +363,52 @@ class TestEvedexWebSocket:
         assert adapter.parse_ws_message(_push(bad)) is None
         rows = [bad, ROWS_6[0]]
         assert len(adapter._parse_rest_response(rows, interval_seconds=60)) == 1
+
+    def test_int_too_large_for_float_drops_ws_push_and_rest_row(self, adapter):
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        huge = {"t": T0 * 1000, "o": 10**400, "c": 2, "h": 3, "l": 1, "v": 4}
+        assert adapter.parse_ws_message(_push(huge)) is None
+        rows = [huge, ROWS_6[0]]
+        assert len(adapter._parse_rest_response(rows, interval_seconds=60)) == 1
+
+    @pytest.mark.parametrize("ts", [None, [1], {"a": 1}, 1e400, float("inf"), float("nan")])
+    def test_bad_timestamp_type_or_overflow_drops_row(self, adapter, ts):
+        row = [ts, "1", "2", "3", "0.5", "7"]
+        assert adapter._row_to_candle(row, 60) is None
+
+    def test_overflowing_timestamp_is_dropped(self, adapter):
+        row = [10**400, "1", "2", "3", "0.5", "7"]
+        assert adapter._row_to_candle(row, 60) is None
+
+    @pytest.mark.parametrize("bad", ["nan", "inf", "-inf", float("nan"), float("inf")])
+    @pytest.mark.parametrize("position", [1, 2, 3, 4, 5])
+    def test_non_finite_values_drop_rest_row(self, adapter, bad, position):
+        row = [T0 * 1000, "1", "2", "3", "0.5", "7"]
+        row[position] = bad
+        assert adapter._parse_rest_response([row, ROWS_6[0]], interval_seconds=60)[0].open == 1.0
+        assert len(adapter._parse_rest_response([row], interval_seconds=60)) == 0
+
+    @pytest.mark.parametrize("bad", ["nan", float("inf")])
+    @pytest.mark.parametrize("key", ["o", "h", "l", "c", "v", "q"])
+    def test_non_finite_values_drop_ws_push(self, adapter, bad, key):
+        adapter.get_ws_subscription_payload("BTC-USDT", "1m")
+        row = {"t": T0 * 1000, "o": 1, "c": 2, "h": 3, "l": 0.5, "v": 4, "q": 5}
+        row[key] = bad
+        assert adapter.parse_ws_message(_push(row)) is None
+
+    def test_error_reply_is_logged_and_dropped(self, adapter, caplog):
+        message = {"id": 3, "error": {"code": 102, "message": "unknown channel"}}
+        with caplog.at_level(logging.ERROR):
+            assert adapter.parse_ws_message(message) is None
+        assert "id=3" in caplog.text
+        assert "code=102" in caplog.text
+        assert "unknown channel" in caplog.text
+
+    def test_success_replies_are_silent(self, adapter, caplog):
+        with caplog.at_level(logging.DEBUG):
+            assert adapter.parse_ws_message({"id": 1, "connect": {"client": "x"}}) is None
+            assert adapter.parse_ws_message({"id": 2, "subscribe": {}}) is None
+        assert caplog.text == ""
 
     @pytest.mark.parametrize(
         "message",
