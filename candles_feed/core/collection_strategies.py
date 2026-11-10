@@ -15,7 +15,7 @@ from collections import deque
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
-from candles_feed.core.intervals import floor_timestamp, shift_boundaries
+from candles_feed.core.intervals import floor_timestamp, is_valid_step, shift_boundaries
 from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.protocols import (
     CollectionStrategy,
@@ -32,6 +32,7 @@ class WebSocketStrategy:
     RECONNECT_MAX_DELAY = 30.0
     MIN_INACTIVITY_TIMEOUT = 60
     MAX_INACTIVITY_TIMEOUT = 600
+    MAX_CATCH_UP_PAGES = 10
 
     def __init__(
         self,
@@ -207,6 +208,8 @@ class WebSocketStrategy:
         #       (re)connection, before the subscription.
         #   get_ws_reply(message) -> dict | None: reply (e.g. pong) sent back for a
         #       server message instead of parsing it as candles; {} is a valid reply.
+        #   get_ws_inactivity_timeout() -> float | None: receive-silence limit before
+        #       reconnecting; None disables the watchdog.
         connect_hook = getattr(self.adapter, "get_ws_connect_payload", None)
         if callable(connect_hook) and (connect_payload := connect_hook()) is not None:
             await self.network_client.send_ws_message(self._ws_assistant, connect_payload)
@@ -252,6 +255,13 @@ class WebSocketStrategy:
                 validated_candles = self.data_processor.sanitize_candles(
                     candles, interval_seconds, self.interval
                 )
+                # A candle that skips past the next expected one means the post-subscribe
+                # catch-up failed or the subscription went live late: backfill before merging
+                if validated_candles:
+                    if not self._candles:
+                        await self._initialize_candles()
+                    elif self._opens_gap(validated_candles[0].timestamp, interval_seconds):
+                        await self._catch_up_candles()
                 self._update_candles(validated_candles)
 
     async def _disconnect_ws(self) -> None:
@@ -264,16 +274,43 @@ class WebSocketStrategy:
             finally:
                 self._ws_assistant = None
 
+    def _opens_gap(self, timestamp: int, interval_seconds: int) -> bool:
+        """Return True when ``timestamp`` skips past the candle after the latest stored one.
+
+        :param timestamp: Timestamp of the incoming candle in seconds.
+        :param interval_seconds: Nominal interval length in seconds.
+        :returns: True if at least one candle is missing between the store and ``timestamp``.
+        """
+        last = self._candles[-1].timestamp
+        return timestamp > last and not is_valid_step(
+            last, timestamp, self.interval, interval_seconds
+        )
+
     async def _catch_up_candles(self) -> None:
-        """Fetch candles from the latest stored timestamp onward via REST and merge them."""
+        """Fetch candles missed since the latest stored one via REST and merge them.
+
+        A gap at least as long as the store is replaced by the newest ``maxlen`` candles,
+        since merging would leave a hole; a shorter gap is paged forward from the latest
+        stored timestamp until REST reaches the open candle or stops advancing.
+        """
+        interval_seconds = self.adapter.get_supported_intervals()[self.interval]
+        maxlen = self._candles.maxlen
         since = self._candles[-1].timestamp
-        candles = await self.poll_once(start_time=since, limit=self._candles.maxlen)
-        self._update_candles(candles)
+        self.logger.debug(f"Catching up candles since {since} for {self.trading_pair}")
+        if maxlen is not None and (time.time() - since) / interval_seconds >= maxlen:
+            if candles := await self.poll_once(limit=maxlen):
+                self._candles.clear()
+                self._candles.extend(candles)
+        else:
+            for _ in range(self.MAX_CATCH_UP_PAGES):
+                candles = await self.poll_once(start_time=since, limit=maxlen)
+                self._update_candles(candles)
+                if not candles or candles[-1].timestamp <= since:
+                    break
+                since = candles[-1].timestamp
+                if since + interval_seconds > time.time():
+                    break  # reached the open candle
         self._ready_event.set()
-        if candles:
-            self.logger.debug(
-                f"Caught up {len(candles)} candles since {since} for {self.trading_pair}"
-            )
 
     async def _initialize_candles(self) -> None:
         """Initialize candles using REST API."""

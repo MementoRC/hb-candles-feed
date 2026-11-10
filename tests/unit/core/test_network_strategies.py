@@ -184,7 +184,11 @@ async def test_listen_for_updates(
     mock_adapter.get_ws_url = MagicMock(return_value="ws://test.url")
     mock_adapter.get_ws_subscription_payload = MagicMock(return_value={"subscribe": "test"})
     mock_adapter.get_supported_intervals = MagicMock(return_value={"1m": 60})
-    mock_adapter.parse_ws_message = MagicMock(return_value=[CandleData(2, 2.0, 2.0, 2.0, 2.0, 2.0)])
+    mock_adapter.fetch_rest_candles = AsyncMock(return_value=[])  # catch-up finds nothing new
+    # Timestamp 61 is the contiguous next candle after 1, so it triggers no gap backfill
+    mock_adapter.parse_ws_message = MagicMock(
+        return_value=[CandleData(61, 2.0, 2.0, 2.0, 2.0, 2.0)]
+    )
 
     # Create strategy instance
     strategy = MockStrategy(
@@ -214,9 +218,14 @@ async def test_listen_for_updates(
         strategy._running = False
 
     # Act - run the listen updates method until the first reconnect backoff
-    with patch(
-        "candles_feed.core.collection_strategies.asyncio.sleep",
-        new=AsyncMock(side_effect=stop_on_backoff),
+    # "Now" is shortly after the stored candle, so the catch-up is a normal forward page
+    # rather than a full-store replacement
+    with (
+        patch(
+            "candles_feed.core.collection_strategies.asyncio.sleep",
+            new=AsyncMock(side_effect=stop_on_backoff),
+        ),
+        patch("candles_feed.core.collection_strategies.time.time", return_value=90),
     ):
         await asyncio.wait_for(strategy._listen_for_updates(), timeout=5)
 
@@ -225,7 +234,7 @@ async def test_listen_for_updates(
     mock_adapter.parse_ws_message.assert_called_once_with(mock_message)
     # With stored candles, the REST catch-up after subscribe also merges once
     assert update_candles_mock.call_count == (2 if initial_candles else 1)
-    update_candles_mock.assert_called_with([CandleData(2, 2.0, 2.0, 2.0, 2.0, 2.0)])
+    update_candles_mock.assert_called_with([CandleData(61, 2.0, 2.0, 2.0, 2.0, 2.0)])
     mock_logger.exception.assert_not_called()
 
     # Verify the correct calls were made
@@ -234,9 +243,10 @@ async def test_listen_for_updates(
         mock_ws_assistant, {"subscribe": "test"}
     )
 
-    # With an empty store, init runs at startup and again right after the first subscribe
+    # With an empty store, init runs at startup, right after the first subscribe, and again
+    # before the first message is merged (the mocked init leaves the store empty)
     if not initial_candles:
-        assert initialize_candles_mock.await_count == 2
+        assert initialize_candles_mock.await_count == 3
 
 
 async def test_initialize_candles_success(
