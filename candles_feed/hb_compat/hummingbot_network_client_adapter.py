@@ -82,7 +82,7 @@ class HummingbotWSAssistantAdapter(WSAssistant):
                 if isinstance(data, str):
                     for parsed in iter_json_frame(data, self._logger):
                         yield parsed
-                else:
+                elif data or data == {}:
                     yield data
         except Exception as e:
             self._logger.error(f"Error iterating WebSocket messages: {e}")

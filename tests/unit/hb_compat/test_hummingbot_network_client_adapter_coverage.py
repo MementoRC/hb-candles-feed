@@ -183,6 +183,12 @@ async def test_ws_adapter_iter_messages_passes_empty_dict_ping():
     assert [m async for m in ws_adapter.iter_messages()] == [{}, {}]
 
 
+async def test_ws_adapter_iter_messages_skips_falsy_non_dict_payloads():
+    messages = [SimpleNamespace(data=data) for data in ([], 0, False, {}, {"a": 1}, [1])]
+    ws_adapter = HummingbotWSAssistantAdapter(FakeWS(messages), Mock())
+    assert [m async for m in ws_adapter.iter_messages()] == [{}, {"a": 1}, [1]]
+
+
 async def test_ws_adapter_iter_messages_splits_batched_str_frame():
     logger = Mock()
     ws_adapter = HummingbotWSAssistantAdapter(

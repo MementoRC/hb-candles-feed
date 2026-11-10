@@ -7,6 +7,7 @@ the framework's optional ``get_ws_connect_payload`` and ``get_ws_reply`` adapter
 """
 
 import logging
+import math
 import time
 from datetime import UTC, datetime
 from typing import Any, override
@@ -169,26 +170,30 @@ class EvedexPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
             return None
         try:
             seconds = self._timestamp_seconds(ts)
-        except ValueError:
+        except (TypeError, ValueError, OverflowError):
             return None
         # Weekly/monthly buckets are not epoch-aligned (Monday / month start): keep as returned
         if interval_seconds and interval_seconds < INTERVALS["1w"]:
             seconds -= seconds % interval_seconds
         try:
-            return CandleData(
-                timestamp_raw=seconds,
-                open=float(open_),
-                high=float(high),
-                low=float(low),
-                close=float(close),
-                volume=float(volume),
-                quote_asset_volume=float(volume_usd),
-                n_trades=0,
-                taker_buy_base_volume=0.0,
-                taker_buy_quote_volume=0.0,
-            )
+            values = [float(v) for v in (open_, high, low, close, volume, volume_usd)]
         except (TypeError, ValueError):
             return None
+        if not all(math.isfinite(v) for v in values):
+            return None
+        open_f, high_f, low_f, close_f, volume_f, volume_usd_f = values
+        return CandleData(
+            timestamp_raw=seconds,
+            open=open_f,
+            high=high_f,
+            low=low_f,
+            close=close_f,
+            volume=volume_f,
+            quote_asset_volume=volume_usd_f,
+            n_trades=0,
+            taker_buy_base_volume=0.0,
+            taker_buy_quote_volume=0.0,
+        )
 
     @override
     def _parse_rest_response(
@@ -307,6 +312,14 @@ class EvedexPerpetualAdapter(BaseAdapter, AsyncOnlyAdapter):
     def parse_ws_message(self, data: dict | None) -> list[CandleData] | None:
         """Parse a Centrifugo publication into a single candle; other frames yield None."""
         if not isinstance(data, dict):
+            return None
+        error = data.get("error")
+        if error is not None:
+            err = error if isinstance(error, dict) else {"message": error}
+            self._logger.error(
+                f"Evedex websocket command failed: id={data.get('id')} "
+                f"code={err.get('code')} message={err.get('message')}"
+            )
             return None
         push = data.get("push")
         if isinstance(push, dict):
