@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from collections import deque
-from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -42,7 +41,9 @@ def mock_adapter():
 @pytest.fixture
 def mock_data_processor():
     processor = MagicMock(DataProcessor)
-    processor.sanitize_candles = MagicMock(side_effect=lambda candles, interval: candles)
+    processor.sanitize_candles = MagicMock(
+        side_effect=lambda candles, interval_in_seconds, interval=None: candles
+    )
     processor.process_candle = MagicMock()
     return processor
 
@@ -50,7 +51,7 @@ def mock_data_processor():
 @pytest.fixture
 def mock_ws_assistant():
     assistant = AsyncMock(WSAssistant)
-    assistant.iter_messages = AsyncMock(return_value=AsyncMock(AsyncGenerator))
+    assistant.iter_messages = MagicMock()
     return assistant
 
 
@@ -200,22 +201,32 @@ async def test_listen_for_updates(
     if initial_candles:
         strategy._ready_event.set()
 
-    # Act - run the listen updates method for a short time
-    listen_task = asyncio.create_task(strategy._listen_for_updates())
-
-    # Set up mock for websocket communication
+    # Set up mock for websocket communication: one message, then the stream ends
     mock_message = {"data": "test"}
-    mock_ws_assistant.iter_messages = AsyncMock()
-    mock_ws_assistant.iter_messages.__aiter__.return_value = mock_ws_assistant.iter_messages
-    mock_ws_assistant.iter_messages.__anext__.side_effect = [mock_message, StopAsyncIteration()]
 
-    # Wait for the task to process
-    await asyncio.sleep(0.1)
-    strategy._running = False  # Stop the listening loop
-    await listen_task
+    async def messages():
+        yield mock_message
+
+    mock_ws_assistant.iter_messages = MagicMock(return_value=messages())
+
+    # The stream ending triggers the reconnect backoff sleep; stop the loop there
+    async def stop_on_backoff(_delay):
+        strategy._running = False
+
+    # Act - run the listen updates method until the first reconnect backoff
+    with patch(
+        "candles_feed.core.collection_strategies.asyncio.sleep",
+        new=AsyncMock(side_effect=stop_on_backoff),
+    ):
+        await asyncio.wait_for(strategy._listen_for_updates(), timeout=5)
 
     # Assert
     assert list(candles_store) == expected_candles
+    mock_adapter.parse_ws_message.assert_called_once_with(mock_message)
+    # With stored candles, the REST catch-up after subscribe also merges once
+    assert update_candles_mock.call_count == (2 if initial_candles else 1)
+    update_candles_mock.assert_called_with([CandleData(2, 2.0, 2.0, 2.0, 2.0, 2.0)])
+    mock_logger.exception.assert_not_called()
 
     # Verify the correct calls were made
     mock_network_client.establish_ws_connection.assert_awaited_once_with("ws://test.url")
@@ -223,9 +234,9 @@ async def test_listen_for_updates(
         mock_ws_assistant, {"subscribe": "test"}
     )
 
-    # Check initialize_candles was called if necessary
+    # With an empty store, init runs at startup and again right after the first subscribe
     if not initial_candles:
-        initialize_candles_mock.assert_awaited_once()
+        assert initialize_candles_mock.await_count == 2
 
 
 async def test_initialize_candles_success(
