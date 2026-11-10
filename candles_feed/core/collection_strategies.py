@@ -8,13 +8,14 @@ including both WebSocket and REST-based approaches.
 import asyncio
 import inspect
 import logging
+import random
 import time
 from collections import deque
 
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.data_processor import DataProcessor
-from candles_feed.core.intervals import floor_timestamp, shift_boundaries
+from candles_feed.core.intervals import floor_timestamp, is_valid_step, shift_boundaries
 from candles_feed.core.network_client import NetworkClient
 from candles_feed.core.protocols import (
     CollectionStrategy,
@@ -26,6 +27,12 @@ from candles_feed.core.rate_limiter import resolve_adapter_rate_limiter, run_pac
 
 class WebSocketStrategy:
     """Implementation for websocket-based candle retrieval."""
+
+    RECONNECT_BASE_DELAY = 1.0
+    RECONNECT_MAX_DELAY = 30.0
+    MIN_INACTIVITY_TIMEOUT = 60
+    MAX_INACTIVITY_TIMEOUT = 600
+    MAX_CATCH_UP_PAGES = 10
 
     def __init__(
         self,
@@ -58,6 +65,7 @@ class WebSocketStrategy:
         self._listen_task: asyncio.Task | None = None
         self._running = False
         self._ready_event = asyncio.Event()
+        self._reconnect_attempts = 0
 
     async def start(self) -> None:
         """Start listening for websocket updates."""
@@ -135,8 +143,34 @@ class WebSocketStrategy:
             self.logger.error(f"Error fetching candles via REST: {e}")
             return []
 
+    def _next_reconnect_delay(self) -> float:
+        """Return the jittered exponential backoff delay for the next reconnect attempt.
+
+        :returns: Delay in seconds, between half and all of the capped exponential step.
+        """
+        step = self.RECONNECT_BASE_DELAY * 2 ** min(self._reconnect_attempts, 16)
+        self._reconnect_attempts += 1
+        # Jitter spreads reconnects of many feeds; it is not security-sensitive
+        return min(step, self.RECONNECT_MAX_DELAY) * random.uniform(0.5, 1.0)  # noqa: S311
+
+    def _ws_inactivity_timeout(self) -> float | None:
+        """Return how long the receive loop may stay silent before forcing a reconnect.
+
+        Adapters may override this with an optional ``get_ws_inactivity_timeout()`` hook
+        (e.g. a few times the server ping interval); returning None disables the watchdog.
+
+        :returns: Timeout in seconds, or None for no watchdog.
+        """
+        hook = getattr(self.adapter, "get_ws_inactivity_timeout", None)
+        if callable(hook):
+            return hook()
+        interval_seconds = self.adapter.get_supported_intervals()[self.interval]
+        return float(
+            min(max(2 * interval_seconds, self.MIN_INACTIVITY_TIMEOUT), self.MAX_INACTIVITY_TIMEOUT)
+        )
+
     async def _listen_for_updates(self) -> None:
-        """Listen for websocket updates."""
+        """Listen for websocket updates, reconnecting with backoff when the connection drops."""
         # If we have no initial data, fetch it via REST API
         if not self._candles:
             await self._initialize_candles()
@@ -145,61 +179,138 @@ class WebSocketStrategy:
 
         while self._running:
             try:
-                ws_url = self.adapter.get_ws_url()
-                self._ws_assistant = await self.network_client.establish_ws_connection(ws_url)
-
-                # Optional adapter hooks (not part of BaseAdapter's API):
-                #   get_ws_connect_payload() -> dict | None: handshake sent once per
-                #       (re)connection, before the subscription.
-                #   get_ws_reply(message) -> dict | None: reply (e.g. pong) sent back for a
-                #       server message instead of parsing it as candles; {} is a valid reply.
-                connect_hook = getattr(self.adapter, "get_ws_connect_payload", None)
-                if callable(connect_hook) and (connect_payload := connect_hook()) is not None:
-                    await self.network_client.send_ws_message(self._ws_assistant, connect_payload)
-
-                # Let adapters that need exchange metadata resolve it before subscribing
-                prepare = getattr(self.adapter, "prepare_ws_subscription", None)
-                if callable(prepare) and inspect.isawaitable(
-                    pending := prepare(self.trading_pair, self.network_client)
-                ):
-                    await pending
-
-                # Subscribe to candle updates
-                payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
-                await self.network_client.send_ws_message(self._ws_assistant, payload)
-
-                # Process incoming messages
-                async for message in self._ws_assistant.iter_messages():
-                    if not self._running:
-                        break
-
-                    reply_hook = getattr(self.adapter, "get_ws_reply", None)
-                    if callable(reply_hook) and (reply := reply_hook(message)) is not None:
-                        await self.network_client.send_ws_message(self._ws_assistant, reply)
-                        continue
-
-                    if candles := self.adapter.parse_ws_message(message):
-                        interval_seconds = self.adapter.get_supported_intervals()[self.interval]
-                        validated_candles = self.data_processor.sanitize_candles(
-                            candles, interval_seconds, self.interval
-                        )
-                        self._update_candles(validated_candles)
-
+                await self._connect_and_listen()
             except asyncio.CancelledError:
                 raise
+            except TimeoutError:
+                self.logger.warning(
+                    f"No websocket message for {self.trading_pair} within the inactivity timeout"
+                )
             except Exception as e:
                 self.logger.exception(f"Error in websocket connection: {e}")
-                # If we have a connection, try to disconnect
-                if self._ws_assistant:
-                    try:
-                        await self._ws_assistant.disconnect()
-                    except Exception:  # Use explicit Exception instead of bare except
-                        pass
-                    finally:
-                        self._ws_assistant = None
 
-                if self._running:
-                    await asyncio.sleep(1.0)
+            await self._disconnect_ws()
+            if self._running:
+                delay = self._next_reconnect_delay()
+                self.logger.info(f"Reconnecting websocket for {self.trading_pair} in {delay:.1f}s")
+                await asyncio.sleep(delay)
+
+    async def _connect_and_listen(self) -> None:
+        """Run one websocket session: connect, subscribe, catch up via REST, process messages.
+
+        Returns when the server closes the stream; raises TimeoutError when it goes silent.
+        """
+        ws_url = self.adapter.get_ws_url()
+        self._ws_assistant = await self.network_client.establish_ws_connection(ws_url)
+
+        # Optional adapter hooks (not part of BaseAdapter's API):
+        #   get_ws_connect_payload() -> dict | None: handshake sent once per
+        #       (re)connection, before the subscription.
+        #   get_ws_reply(message) -> dict | None: reply (e.g. pong) sent back for a
+        #       server message instead of parsing it as candles; {} is a valid reply.
+        #   get_ws_inactivity_timeout() -> float | None: receive-silence limit before
+        #       reconnecting; None disables the watchdog.
+        connect_hook = getattr(self.adapter, "get_ws_connect_payload", None)
+        if callable(connect_hook) and (connect_payload := connect_hook()) is not None:
+            await self.network_client.send_ws_message(self._ws_assistant, connect_payload)
+
+        # Let adapters that need exchange metadata resolve it before subscribing
+        prepare = getattr(self.adapter, "prepare_ws_subscription", None)
+        if callable(prepare) and inspect.isawaitable(
+            pending := prepare(self.trading_pair, self.network_client)
+        ):
+            await pending
+
+        # Subscribe to candle updates
+        payload = self.adapter.get_ws_subscription_payload(self.trading_pair, self.interval)
+        await self.network_client.send_ws_message(self._ws_assistant, payload)
+
+        # Candles published before the subscription became active (startup snapshot, or the
+        # time spent disconnected) never arrive over the websocket, so fill them via REST
+        if self._candles:
+            await self._catch_up_candles()
+        else:
+            await self._initialize_candles()
+
+        # Process incoming messages
+        timeout = self._ws_inactivity_timeout()
+        messages = aiter(self._ws_assistant.iter_messages())
+        while self._running:
+            try:
+                async with asyncio.timeout(timeout):
+                    message = await anext(messages)
+            except StopAsyncIteration:
+                return
+
+            # The server is delivering again, so the next drop starts a fresh backoff
+            self._reconnect_attempts = 0
+
+            reply_hook = getattr(self.adapter, "get_ws_reply", None)
+            if callable(reply_hook) and (reply := reply_hook(message)) is not None:
+                await self.network_client.send_ws_message(self._ws_assistant, reply)
+                continue
+
+            if candles := self.adapter.parse_ws_message(message):
+                interval_seconds = self.adapter.get_supported_intervals()[self.interval]
+                validated_candles = self.data_processor.sanitize_candles(
+                    candles, interval_seconds, self.interval
+                )
+                # A candle that skips past the next expected one means the post-subscribe
+                # catch-up failed or the subscription went live late: backfill before merging
+                if validated_candles:
+                    if not self._candles:
+                        await self._initialize_candles()
+                    elif self._opens_gap(validated_candles[0].timestamp, interval_seconds):
+                        await self._catch_up_candles()
+                self._update_candles(validated_candles)
+
+    async def _disconnect_ws(self) -> None:
+        """Disconnect the current websocket, if any, ignoring errors from a dead connection."""
+        if self._ws_assistant:
+            try:
+                await self._ws_assistant.disconnect()
+            except Exception:  # Use explicit Exception instead of bare except
+                pass
+            finally:
+                self._ws_assistant = None
+
+    def _opens_gap(self, timestamp: int, interval_seconds: int) -> bool:
+        """Return True when ``timestamp`` skips past the candle after the latest stored one.
+
+        :param timestamp: Timestamp of the incoming candle in seconds.
+        :param interval_seconds: Nominal interval length in seconds.
+        :returns: True if at least one candle is missing between the store and ``timestamp``.
+        """
+        last = self._candles[-1].timestamp
+        return timestamp > last and not is_valid_step(
+            last, timestamp, self.interval, interval_seconds
+        )
+
+    async def _catch_up_candles(self) -> None:
+        """Fetch candles missed since the latest stored one via REST and merge them.
+
+        A gap at least as long as the store is replaced by the newest ``maxlen`` candles,
+        since merging would leave a hole; a shorter gap is paged forward from the latest
+        stored timestamp until REST reaches the open candle or stops advancing.
+        """
+        interval_seconds = self.adapter.get_supported_intervals()[self.interval]
+        maxlen = self._candles.maxlen
+        since = self._candles[-1].timestamp
+        self.logger.debug(f"Catching up candles since {since} for {self.trading_pair}")
+        if maxlen is not None and (time.time() - since) / interval_seconds >= maxlen:
+            if candles := await self.poll_once(limit=maxlen):
+                self._candles.clear()
+                self._candles.extend(candles)
+        else:
+            for _ in range(self.MAX_CATCH_UP_PAGES):
+                candles = await self.poll_once(start_time=since, limit=maxlen)
+                self._update_candles(candles)
+                if not candles or candles[-1].timestamp <= since:
+                    break
+                since = candles[-1].timestamp
+                if since + interval_seconds > time.time():
+                    break  # reached the open candle
+        self._ready_event.set()
 
     async def _initialize_candles(self) -> None:
         """Initialize candles using REST API."""
