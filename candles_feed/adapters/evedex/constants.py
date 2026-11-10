@@ -24,6 +24,12 @@ INTERVALS: dict[str, int] = {
 # Evedex uses the same interval codes as our standard intervals
 INTERVAL_TO_EXCHANGE_FORMAT: dict[str, str] = {k: k for k in INTERVALS}
 
+# hummingbot/data_feed/candles_feed/evedex_perpetual_candles/constants.py — Centrifugo websocket
+WSS_URL = "wss://ws.evedex.com/connection/websocket"
+# Channel prefix: f"{WS_CANDLES_CHANNEL}-{instrument}-{interval}" (in-tree evedex_perpetual_candles.py:223-353)
+WS_CANDLES_CHANNEL = "market-data:last-candlestick"
+WS_INTERVALS: list[str] = list(INTERVALS)
+
 MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST = 1000
 
 # Candles are served by the market-data host; instruments by the exchange host.

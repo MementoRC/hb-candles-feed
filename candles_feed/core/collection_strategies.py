@@ -148,6 +148,15 @@ class WebSocketStrategy:
                 ws_url = self.adapter.get_ws_url()
                 self._ws_assistant = await self.network_client.establish_ws_connection(ws_url)
 
+                # Optional adapter hooks (not part of BaseAdapter's API):
+                #   get_ws_connect_payload() -> dict | None: handshake sent once per
+                #       (re)connection, before the subscription.
+                #   get_ws_reply(message) -> dict | None: reply (e.g. pong) sent back for a
+                #       server message instead of parsing it as candles; {} is a valid reply.
+                connect_hook = getattr(self.adapter, "get_ws_connect_payload", None)
+                if callable(connect_hook) and (connect_payload := connect_hook()) is not None:
+                    await self.network_client.send_ws_message(self._ws_assistant, connect_payload)
+
                 # Let adapters that need exchange metadata resolve it before subscribing
                 prepare = getattr(self.adapter, "prepare_ws_subscription", None)
                 if callable(prepare) and inspect.isawaitable(
@@ -163,6 +172,11 @@ class WebSocketStrategy:
                 async for message in self._ws_assistant.iter_messages():
                     if not self._running:
                         break
+
+                    reply_hook = getattr(self.adapter, "get_ws_reply", None)
+                    if callable(reply_hook) and (reply := reply_hook(message)) is not None:
+                        await self.network_client.send_ws_message(self._ws_assistant, reply)
+                        continue
 
                     if candles := self.adapter.parse_ws_message(message):
                         interval_seconds = self.adapter.get_supported_intervals()[self.interval]
