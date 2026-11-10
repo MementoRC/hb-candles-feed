@@ -1,5 +1,6 @@
 """Calendar-aware (1w / 1M) behaviour of DataProcessor."""
 
+from collections import deque
 from datetime import UTC, datetime
 
 import pytest
@@ -25,6 +26,35 @@ def _month_starts(n: int = 13, year: int = 2023, month: int = 1) -> list[int]:
         m = month - 1 + i
         out.append(_ts(year + m // 12, m % 12 + 1))
     return out
+
+
+def _full_store(timestamps: list[int]) -> deque[CandleData]:
+    return deque((_candle(t) for t in timestamps), maxlen=len(timestamps))
+
+
+def test_process_candle_ignores_older_candle_when_bounded_store_is_full():
+    store = _full_store([100, 160, 220])
+    DataProcessor().process_candle(_candle(40), store)
+    assert [c.timestamp for c in store] == [100, 160, 220]
+
+
+def test_process_candle_prepends_older_candle_when_store_has_room():
+    store = deque((_candle(t) for t in (100, 160)), maxlen=5)
+    DataProcessor().process_candle(_candle(40), store)
+    assert [c.timestamp for c in store] == [40, 100, 160]
+
+
+def test_process_candle_updates_and_appends_on_full_bounded_store():
+    store = _full_store([100, 160, 220])
+    processor = DataProcessor()
+    replacement = CandleData(100, 9.0, 9.0, 9.0, 9.0, 9.0)
+    processor.process_candle(replacement, store)
+    processor.process_candle(_candle(280), store)
+    assert [c.timestamp for c in store] == [160, 220, 280]
+    store = _full_store([100, 160, 220])
+    processor.process_candle(replacement, store)
+    assert store[0].open == 9.0
+    assert len(store) == 3
 
 
 def test_sanitize_keeps_all_real_months_with_interval():

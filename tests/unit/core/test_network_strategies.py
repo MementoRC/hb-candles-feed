@@ -737,3 +737,84 @@ async def test_ws_strategy_subscribes_when_adapter_has_no_prepare_hook(
     mock_network_client.send_ws_message.assert_awaited_once_with(
         mock_ws_assistant, {"subscribe": "test"}
     )
+
+
+async def test_ws_strategy_sends_connect_payload_before_subscription(
+    mock_network_client,
+    mock_adapter,
+    mock_data_processor,
+    candles_store,
+    mock_logger,
+    mock_ws_assistant,
+):
+    mock_adapter.get_ws_connect_payload = MagicMock(return_value={"connect": {}})
+    mock_adapter.get_ws_subscription_payload = MagicMock(return_value={"subscribe": "test"})
+    sent = []
+    mock_network_client.send_ws_message = AsyncMock(
+        side_effect=lambda _ws, payload: sent.append(payload)
+    )
+    strategy = WebSocketStrategy(
+        mock_network_client,
+        mock_adapter,
+        "BTC-USDT",
+        "1m",
+        mock_data_processor,
+        candles_store,
+        mock_logger,
+    )
+    candles_store.append(CandleData(1, 1.0, 1.0, 1.0, 1.0, 1.0))
+    mock_network_client.establish_ws_connection = AsyncMock(return_value=mock_ws_assistant)
+
+    async def no_messages():
+        strategy._running = False
+        return
+        yield  # pragma: no cover
+
+    mock_ws_assistant.iter_messages = MagicMock(side_effect=no_messages)
+    strategy._running = True
+    await asyncio.wait_for(strategy._listen_for_updates(), timeout=5)
+
+    mock_adapter.get_ws_connect_payload.assert_called_once_with()
+    assert sent == [{"connect": {}}, {"subscribe": "test"}]
+
+
+async def test_ws_strategy_sends_reply_and_skips_parsing(
+    mock_network_client,
+    mock_adapter,
+    mock_data_processor,
+    candles_store,
+    mock_logger,
+    mock_ws_assistant,
+):
+    replies = {"ping": {"pong": {}}, "empty": {}}
+    mock_adapter.get_ws_reply = MagicMock(side_effect=lambda m: replies.get(m))
+    mock_adapter.get_ws_subscription_payload = MagicMock(return_value={"subscribe": "test"})
+    mock_adapter.parse_ws_message = MagicMock(return_value=None)
+    sent = []
+    mock_network_client.send_ws_message = AsyncMock(
+        side_effect=lambda _ws, payload: sent.append(payload)
+    )
+    strategy = WebSocketStrategy(
+        mock_network_client,
+        mock_adapter,
+        "BTC-USDT",
+        "1m",
+        mock_data_processor,
+        candles_store,
+        mock_logger,
+    )
+    candles_store.append(CandleData(1, 1.0, 1.0, 1.0, 1.0, 1.0))
+    mock_network_client.establish_ws_connection = AsyncMock(return_value=mock_ws_assistant)
+
+    async def messages():
+        yield "ping"
+        yield "empty"
+        yield "candle"
+        strategy._running = False
+
+    mock_ws_assistant.iter_messages = MagicMock(side_effect=messages)
+    strategy._running = True
+    await asyncio.wait_for(strategy._listen_for_updates(), timeout=5)
+
+    assert sent == [{"subscribe": "test"}, {"pong": {}}, {}]
+    mock_adapter.parse_ws_message.assert_called_once_with("candle")

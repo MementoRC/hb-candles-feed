@@ -173,6 +173,9 @@ class DataProcessor:
             if candle_timestamp == candles_store[0].timestamp:
                 # Update existing candle at the beginning
                 candles_store[0] = candle
+            elif candles_store.maxlen is not None and len(candles_store) >= candles_store.maxlen:
+                # Full bounded store: prepending would evict the newest candle, so drop the old one
+                return
             else:
                 # Simple prepend
                 candles_store.appendleft(candle)
