@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0](https://github.com/MementoRC/hb-candles-feed/compare/v3.1.0...v3.2.0) (2026-11-11)
+
+
+### Features
+
+* **ws:** reconnect backoff, REST catch-up and inactivity watchdog ([#180](https://github.com/MementoRC/hb-candles-feed/issues/180)) ([e30fc50](https://github.com/MementoRC/hb-candles-feed/commit/e30fc506988ae949a043c29b9fad79bc64bfc21d))
+
 ## [3.1.0](https://github.com/MementoRC/hb-candles-feed/compare/v3.0.0...v3.1.0) (2026-11-10)
 
 
