@@ -116,7 +116,8 @@ typecheck = "mypy candles_feed"
 type-check = "mypy candles_feed"
 security = "bandit -c pyproject.toml -r candles_feed/"
 lint-cython = "cython-lint candles_feed"
-quality = { depends-on = ["check-conda-first", "lint", "format-check", "typecheck"] }
+lint-boundaries = "lint-imports"
+quality = { depends-on = ["check-conda-first", "lint", "format-check", "typecheck", "lint-boundaries"] }
 # live tests excluded — they hit real exchange APIs and fail under geo-restrictions
 # slow tests excluded — probabilistic timing-sensitive tests unsuitable for default check
 test-no-live = "pytest tests -m 'not live and not slow'"
@@ -155,6 +156,7 @@ pytest-benchmark = ">=4.0.0"
 pyupgrade = "*"
 ruff = "=0.17.2"
 mypy = ">=1.5.1"
+import-linter = ">=2.0"
 cython-lint = ">=0.19.0"
 # Prometheus metrics (conda package name uses underscore)
 prometheus_client = ">=0.17.0"
@@ -167,6 +169,7 @@ locust = ">=2.20.0"
 [tool.pixi.feature.ci.dependencies]
 ruff = "=0.17.2"
 mypy = ">=1.5.1"
+import-linter = ">=2.0"
 pytest = ">=7.0.0,<9.1"
 pytest-cov = ">=4.1.0"
 bandit = ">=1.8.0"
@@ -280,6 +283,16 @@ known-first-party = ["candles_feed"]
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
+
+[tool.importlinter]
+root_package = "candles_feed"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "candles_feed never imports hummingbot (ADR 0001)"
+type = "forbidden"
+source_modules = ["candles_feed"]
+forbidden_modules = ["hummingbot"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
