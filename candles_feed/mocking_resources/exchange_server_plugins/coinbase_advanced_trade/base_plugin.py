@@ -5,27 +5,36 @@ This class provides shared functionality for Coinbase Advanced Trade plugins.
 """
 
 from abc import ABC
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from aiohttp import web
 
 from candles_feed.adapters.base_adapter import BaseAdapter
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
-    INTERVALS,
+    INTERVAL_TO_GRANULARITY,
+    MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     SPOT_REST_URL,
     SPOT_WSS_URL,
+    WS_INTERVALS,
 )
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_plugin import ExchangePlugin
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.exchange_server_plugins.server_delegating_mixin import (
+    ServerDelegatingMixin,
+)
+
+_GRANULARITY_TO_INTERVAL = {v: k for k, v in INTERVAL_TO_GRANULARITY.items()}
+_QUOTE_SUFFIXES = ("USDT", "USDC", "USD", "EUR", "GBP", "BTC", "ETH")
 
 
-class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
+class CoinbaseAdvancedTradeBasePlugin(ServerDelegatingMixin, ExchangePlugin, ABC):
     """
     Base class for Coinbase Advanced Trade exchange plugins.
 
     This class provides shared functionality for Coinbase Advanced Trade plugins.
+    Candle lookup and subscription bookkeeping are delegated to the mock server.
     """
 
     def __init__(self, exchange_type: ExchangeType, adapter_class: type[BaseAdapter]):
@@ -64,8 +73,30 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         """
         return {"/": "handle_websocket"}
 
+    def normalize_trading_pair(self, trading_pair: str) -> str:
+        """
+        Normalize a trading pair to Coinbase's ``BASE-QUOTE`` product id.
+
+        Pairs registered without a separator (e.g. "BTCUSD") get one inserted before
+        the quote currency.
+
+        :param trading_pair: The trading pair, with or without separator.
+        :returns: The upper-case product id (e.g. "BTC-USD").
+        """
+        pair = trading_pair.upper()
+        if "-" in pair:
+            return pair
+        for quote in _QUOTE_SUFFIXES:
+            if pair.endswith(quote) and len(pair) > len(quote):
+                return f"{pair[: -len(quote)]}-{quote}"
+        return pair
+
     def format_rest_candles(
-        self, candles: list[CandleData], trading_pair: str, interval: str
+        self,
+        candles: list[CandleData],
+        trading_pair: str,
+        interval: str,
+        timezone_adjustment_ms: int = 0,
     ) -> dict:
         """
         Format candle data as a Coinbase Advanced Trade REST API response.
@@ -73,13 +104,15 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         :param candles: List of candle data to format.
         :param trading_pair: The trading pair.
         :param interval: The candle interval.
+        :param timezone_adjustment_ms: Unused; accepted for server compatibility.
         :returns: Formatted response as expected from Coinbase Advanced Trade's REST API.
         """
-        # Format according to Coinbase REST API candle response:
+        # Format according to Coinbase REST API candle response (all values are strings,
+        # `start` is UNIX seconds, newest candle first):
         # {
         #   "candles": [
         #     {
-        #       "start": "2022-05-15T16:00:00Z",
+        #       "start": "1639508050",
         #       "low": "29288.38",
         #       "high": "29477.29",
         #       "open": "29405.34",
@@ -89,24 +122,24 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         #     ...
         #   ]
         # }
+        return {"candles": [self._candle_dict(c) for c in reversed(candles)]}
 
-        formatted_candles = []
-        for candle in candles:
-            timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=UTC).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
-            formatted_candles.append(
-                {
-                    "start": timestamp_iso,
-                    "low": str(candle.low),
-                    "high": str(candle.high),
-                    "open": str(candle.open),
-                    "close": str(candle.close),
-                    "volume": str(candle.volume),
-                }
-            )
+    @staticmethod
+    def _candle_dict(candle: CandleData) -> dict[str, str]:
+        """
+        Build the Coinbase candle object shared by REST and WebSocket payloads.
 
-        return {"candles": formatted_candles}
+        :param candle: Candle data to format.
+        :returns: The candle as a dict of strings.
+        """
+        return {
+            "start": str(int(candle.timestamp)),
+            "low": str(candle.low),
+            "high": str(candle.high),
+            "open": str(candle.open),
+            "close": str(candle.close),
+            "volume": str(candle.volume),
+        }
 
     def format_ws_candle_message(
         self, candle: CandleData, trading_pair: str, interval: str, is_final: bool = False
@@ -123,47 +156,36 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         # Format according to Coinbase WS candle format:
         # {
         #   "channel": "candles",
-        #   "client_id": "...",
+        #   "client_id": "",
         #   "timestamp": "2023-02-14T17:02:36.346Z",
         #   "sequence_num": 1234,
         #   "events": [
         #     {
-        #       "type": "candle",
+        #       "type": "snapshot" | "update",
         #       "candles": [
         #         {
-        #           "start": "2023-02-14T17:01:00Z",
-        #           "low": "22537.4",
-        #           "high": "22540.7",
-        #           "open": "22537.4",
-        #           "close": "22540.7",
-        #           "volume": "0.1360142"
+        #           "start": "1676394060",
+        #           "high": "22540.7", "low": "22537.4", "open": "22537.4",
+        #           "close": "22540.7", "volume": "0.1360142", "product_id": "BTC-USD"
         #         }
         #       ]
         #     }
         #   ]
         # }
-
-        timestamp_iso = datetime.fromtimestamp(candle.timestamp, tz=UTC).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        current_time_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3]
+        current_time_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
         return {
             "channel": "candles",
-            "client_id": "mock-client",
+            "client_id": "",
             "timestamp": current_time_iso,
             "sequence_num": int(candle.timestamp * 1000) % 100000,
             "events": [
                 {
-                    "type": "candle",
+                    "type": "update",
                     "candles": [
                         {
-                            "start": timestamp_iso,
-                            "low": str(candle.low),
-                            "high": str(candle.high),
-                            "open": str(candle.open),
-                            "close": str(candle.close),
-                            "volume": str(candle.volume),
+                            **self._candle_dict(candle),
+                            "product_id": self.normalize_trading_pair(trading_pair),
                         }
                     ],
                 }
@@ -174,35 +196,24 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         """
         Parse a Coinbase Advanced Trade WebSocket subscription message.
 
+        The candles channel has no granularity option; it is fixed at 5 minutes.
+
         :param message: The subscription message from the client.
         :returns: A list of (trading_pair, interval) tuples that the client wants to subscribe to.
         """
         # Coinbase subscription format:
         # {
         #   "type": "subscribe",
-        #   "product_ids": ["BTC-USD"],
         #   "channel": "candles",
-        #   "granularity": 60
+        #   "product_ids": ["BTC-USD"]
         # }
-
-        subscriptions = []
         if (
             isinstance(message, dict)
             and message.get("type") in ("subscribe", "unsubscribe")
             and message.get("channel") == "candles"
         ):
-            granularity = message.get("granularity")
-            if granularity is not None:
-                # Convert granularity (seconds) to interval format
-                interval = next(
-                    (k for k, v in INTERVALS.items() if v == granularity),
-                    f"{granularity}s",  # Fallback if not found
-                )
-
-                for product_id in message.get("product_ids", []):
-                    subscriptions.append((product_id, interval))
-
-        return subscriptions
+            return [(product_id, WS_INTERVALS[0]) for product_id in message.get("product_ids", [])]
+        return []
 
     def create_ws_subscription_success(
         self, message: dict, subscriptions: list[tuple[str, str]]
@@ -216,18 +227,13 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         """
         # Coinbase subscription success format:
         # {
-        #   "type": "subscriptions",
-        #   "channels": [
-        #     {
-        #       "name": "candles",
-        #       "product_ids": ["BTC-USD"]
-        #     }
-        #   ]
+        #   "channel": "subscriptions",
+        #   "events": [{"subscriptions": {"candles": ["BTC-USD"]}}]
         # }
-
         return {
-            "type": "subscriptions",
-            "channels": [{"name": "candles", "product_ids": [tp for tp, _ in subscriptions]}],
+            "channel": "subscriptions",
+            "client_id": "",
+            "events": [{"subscriptions": {"candles": [tp for tp, _ in subscriptions]}}],
         }
 
     def create_ws_subscription_key(self, trading_pair: str, interval: str) -> str:
@@ -238,67 +244,41 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         :param interval: The candle interval.
         :returns: A string key used to track subscriptions.
         """
-        # Format matching Coinbase's subscription parameters
-        granularity = self._interval_to_seconds(interval)
-        return f"candles_{trading_pair}_{granularity}"
-
-    def _interval_to_seconds(self, interval: str) -> int:
-        """
-        Convert interval string to seconds.
-
-        :param interval: Interval string (e.g., "1m", "1h").
-        :returns: Interval in seconds.
-        """
-        return INTERVALS.get(interval, 60)  # Default to 1m if not found
+        return f"candles_{self.normalize_trading_pair(trading_pair)}_{interval}"
 
     def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
         """
         Parse REST API parameters for Coinbase Advanced Trade candle requests.
 
         :param request: The web request.
-        :returns: A dictionary with standardized parameter names.
+        :returns: A dictionary with standardized parameter names (times in milliseconds).
         """
-        params = request.query
+        query = request.query
+        granularity = query.get("granularity", "")
+        interval = _GRANULARITY_TO_INTERVAL.get(granularity)
+        if interval is None:
+            return {
+                "valid": False,
+                "error": {"message": f"Invalid granularity: {granularity!r}"},
+            }
 
-        # In Coinbase the product_id is in the URL path, extract it from the request's url
-        product_id = request.path.rsplit("/", 2)[-2] if "/products/" in request.path else None
-
-        # Convert Coinbase-specific parameter names to generic ones
-        granularity = params.get("granularity")
-        start = params.get("start")
-        end = params.get("end")
-
-        # Convert granularity to interval format
-        interval = next(
-            (k for k, v in INTERVALS.items() if str(v) == granularity),
-            "1m",  # Default to 1m if not found
-        )
-
-        # Map Coinbase parameters to generic parameters
-        result = {
-            "symbol": product_id,
+        params: dict[str, Any] = {
+            "symbol": request.match_info.get("product_id"),
             "interval": interval,
-            "limit": 300,  # Coinbase maximum
+            "limit": MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
         }
 
-        # Handle ISO timestamps
-        if start:
-            try:
-                # Try to parse ISO format first
-                dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-                result["start_time"] = int(dt.timestamp())
-            except ValueError:
-                # If not ISO, assume it's already a timestamp
-                result["start_time"] = start
+        limit = query.get("limit", "")
+        if limit.isdigit():
+            params["limit"] = min(int(limit), MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST)
 
-        if end:
-            try:
-                dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
-                result["end_time"] = int(dt.timestamp())
-            except ValueError:
-                result["end_time"] = end
+        # start/end are UNIX seconds; the server compares milliseconds
+        for key, name in (("start", "start_time"), ("end", "end_time")):
+            value = query.get(key, "")
+            if value.isdigit():
+                params[name] = int(value) * 1000
 
-        return result
+        return params
 
     async def handle_products(self, server, request):
         """
@@ -316,10 +296,11 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
 
         products = []
         for trading_pair in server.trading_pairs:
-            base, quote = trading_pair.split("-", 1)
+            product_id = self.normalize_trading_pair(trading_pair)
+            base, quote = product_id.split("-", 1)
             products.append(
                 {
-                    "product_id": trading_pair,
+                    "product_id": product_id,
                     "price": str(server.trading_pairs[trading_pair]),
                     "price_percentage_change_24h": "0.0",
                     "volume_24h": "1000.0",

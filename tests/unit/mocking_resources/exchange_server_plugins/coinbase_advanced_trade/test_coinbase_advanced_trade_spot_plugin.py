@@ -2,8 +2,6 @@
 Unit tests for the CoinbaseAdvancedTradeSpotPlugin class.
 """
 
-from datetime import UTC, datetime, timezone
-
 import pytest
 
 from candles_feed.core.candle_data import CandleData
@@ -30,10 +28,18 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         assert self.plugin.wss_url.startswith("wss://")
         assert "/" in self.plugin.ws_routes
 
-    def test_interval_to_seconds_defaults_to_one_minute(self):
-        """Test interval conversion, including the 1m fallback."""
+    def test_interval_to_seconds(self):
+        """Test interval conversion; unknown units are rejected."""
         assert self.plugin._interval_to_seconds("1h") == 3600
-        assert self.plugin._interval_to_seconds("bogus") == 60
+        assert self.plugin._interval_to_seconds("5m") == 300
+        with pytest.raises(ValueError, match="Unknown interval unit"):
+            self.plugin._interval_to_seconds("5x")
+
+    def test_normalize_trading_pair(self):
+        """Pairs without a separator get one before the quote currency."""
+        assert self.plugin.normalize_trading_pair("BTC-USD") == "BTC-USD"
+        assert self.plugin.normalize_trading_pair("BTCUSD") == "BTC-USD"
+        assert self.plugin.normalize_trading_pair("ethusdt") == "ETH-USDT"
 
     def test_server_add_trading_pair_does_not_raise(self):
         """Test MockedExchangeServer can add a trading pair with this plugin."""
@@ -44,9 +50,11 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
     def test_rest_routes(self):
         """Test REST API routes."""
         routes = self.plugin.rest_routes
-        assert "/api/v3/brokerage/products/{product_id}/candles" in routes
-        assert routes["/api/v3/brokerage/products/{product_id}/candles"][0] == "GET"
-        assert routes["/api/v3/brokerage/products/{product_id}/candles"][1] == "handle_klines"
+        candles_route = "/api/v3/brokerage/market/products/{product_id}/candles"
+        assert routes[candles_route] == ("GET", "handle_klines")
+        assert self.plugin.ws_routes == {"/": "handle_websocket"}
+        assert callable(self.plugin.handle_klines)
+        assert callable(self.plugin.handle_websocket)
         assert "/api/v3/time" in routes
         assert "/api/v3/brokerage/products" in routes
 
@@ -57,19 +65,36 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
 
         request = make_mocked_request(
             "GET",
-            "/api/v3/brokerage/products/BTC-USD/candles?granularity=60&start=2023-01-01T00:00:00Z&end=2023-01-01T01:00:00Z",
+            "/api/v3/brokerage/market/products/BTC-USD/candles"
+            "?granularity=FIVE_MINUTE&start=1672531200&end=1672534800&limit=100",
             headers={},
+            match_info={"product_id": "BTC-USD"},
         )
 
         # Parse parameters
         params = self.plugin.parse_rest_candles_params(request)
 
-        # Check parsed parameters
+        # Seconds in the request become the milliseconds the server compares
         assert params["symbol"] == "BTC-USD"
-        assert params["interval"] == "1m"
-        assert params["limit"] == 300  # Coinbase maximum
-        assert params["start_time"] == 1672531200  # Corresponds to 2023-01-01T00:00:00Z
-        assert params["end_time"] == 1672534800  # Corresponds to 2023-01-01T01:00:00Z
+        assert params["interval"] == "5m"
+        assert params["limit"] == 100
+        assert params["start_time"] == 1672531200 * 1000
+        assert params["end_time"] == 1672534800 * 1000
+
+    def test_parse_rest_candles_params_caps_limit_and_rejects_seconds_granularity(self):
+        """Limit is capped at 350 and a seconds-valued granularity is invalid."""
+        from aiohttp.test_utils import make_mocked_request
+
+        base = "/api/v3/brokerage/market/products/BTC-USD/candles"
+        capped = self.plugin.parse_rest_candles_params(
+            make_mocked_request("GET", f"{base}?granularity=ONE_MINUTE&limit=1000")
+        )
+        assert capped["limit"] == 350
+
+        invalid = self.plugin.parse_rest_candles_params(
+            make_mocked_request("GET", f"{base}?granularity=60")
+        )
+        assert invalid["valid"] is False
 
     def test_format_rest_candles(self):
         """Test formatting REST API candle response."""
@@ -90,19 +115,16 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         ]
 
         # Format candles
-        formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval)
+        formatted = self.plugin.format_rest_candles(candles, self.trading_pair, self.interval, 0)
 
         # Check formatted data
         assert isinstance(formatted, dict)
         assert "candles" in formatted
         assert len(formatted["candles"]) == 1
 
-        # Check first candle
+        # Check first candle: `start` is a UNIX-seconds string
         candle_data = formatted["candles"][0]
-        expected_iso = datetime.fromtimestamp(candles[0].timestamp, tz=UTC).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        assert candle_data["start"] == expected_iso
+        assert candle_data["start"] == "1620000000"
         assert candle_data["open"] == str(candles[0].open)
         assert candle_data["high"] == str(candles[0].high)
         assert candle_data["low"] == str(candles[0].low)
@@ -135,14 +157,12 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         assert "sequence_num" in message
         assert "events" in message
         assert len(message["events"]) == 1
-        assert message["events"][0]["type"] == "candle"
+        assert message["events"][0]["type"] == "update"
 
         # Check candle data
         candle_data = message["events"][0]["candles"][0]
-        expected_iso = datetime.fromtimestamp(candle.timestamp, tz=UTC).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        assert candle_data["start"] == expected_iso
+        assert candle_data["start"] == "1620000000"
+        assert candle_data["product_id"] == "BTC-USD"
         assert candle_data["open"] == str(candle.open)
         assert candle_data["high"] == str(candle.high)
         assert candle_data["low"] == str(candle.low)
@@ -156,18 +176,12 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
             "type": "subscribe",
             "product_ids": ["BTC-USD", "ETH-USD"],
             "channel": "candles",
-            "granularity": 60,
         }
 
-        # Parse subscription
+        # Parse subscription: the candles channel is fixed at 5 minutes
         subscriptions = self.plugin.parse_ws_subscription(message)
 
-        # Check parsed subscriptions
-        assert len(subscriptions) == 2
-        assert subscriptions[0][0] == "BTC-USD"
-        assert subscriptions[0][1] == "1m"
-        assert subscriptions[1][0] == "ETH-USD"
-        assert subscriptions[1][1] == "1m"
+        assert subscriptions == [("BTC-USD", "5m"), ("ETH-USD", "5m")]
 
     def test_create_ws_subscription_success(self):
         """Test creating WebSocket subscription success response."""
@@ -176,26 +190,23 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
             "type": "subscribe",
             "product_ids": ["BTC-USD"],
             "channel": "candles",
-            "granularity": 60,
         }
 
         # Create success response
-        response = self.plugin.create_ws_subscription_success(message, [("BTC-USD", "1m")])
+        response = self.plugin.create_ws_subscription_success(message, [("BTC-USD", "5m")])
 
         # Check response format
-        assert response["type"] == "subscriptions"
-        assert "channels" in response
-        assert len(response["channels"]) == 1
-        assert response["channels"][0]["name"] == "candles"
-        assert response["channels"][0]["product_ids"] == ["BTC-USD"]
+        assert response["channel"] == "subscriptions"
+        assert response["events"] == [{"subscriptions": {"candles": ["BTC-USD"]}}]
 
     def test_create_ws_subscription_key(self):
         """Test creating WebSocket subscription key."""
         # Create subscription key
-        key = self.plugin.create_ws_subscription_key("BTC-USD", "1m")
+        key = self.plugin.create_ws_subscription_key("BTC-USD", "5m")
 
-        # Check key format
-        assert key == "candles_BTC-USD_60"
+        # Check key format; a pair registered without separator maps to the same key
+        assert key == "candles_BTC-USD_5m"
+        assert self.plugin.create_ws_subscription_key("BTCUSD", "5m") == key
 
     async def test_handle_products(self):
         """Test handling products endpoint."""

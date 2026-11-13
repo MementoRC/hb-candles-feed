@@ -3,6 +3,7 @@ Coinbase Advanced Trade adapter for the Candle Feed framework.
 """
 
 from abc import abstractmethod
+from datetime import UTC, datetime
 from typing import override
 
 from candles_feed.adapters.adapter_mixins import AsyncOnlyAdapter
@@ -11,6 +12,7 @@ from candles_feed.core.candle_data import CandleData
 from candles_feed.core.protocols import NetworkClientProtocol
 
 from .constants import (
+    INTERVAL_TO_GRANULARITY,
     INTERVALS,
     MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     WS_INTERVALS,
@@ -63,26 +65,36 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         trading_pair: str,
         interval: str,
         start_time: int | None = None,
-        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,  # limit is part of signature, not used by Coinbase
+        limit: int = MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST,
     ) -> dict[str, str | int]:
         """Get parameters for REST API request.
+
+        Coinbase requires both ``start`` and ``end`` (UNIX seconds as strings). Without a
+        ``start_time`` the window is the last ``limit`` candles ending now.
 
         :param trading_pair: Trading pair.
         :param interval: Candle interval.
         :param start_time: Start time in seconds.
-        :param limit: Maximum number of candles to return (not used by Coinbase for this specific call).
+        :param limit: Maximum number of candles to return (capped at 350).
         :returns: Dictionary of parameters for REST API request.
         """
-        params: dict[str, str | int] = {
-            "granularity": str(INTERVALS[interval])
-        }  # granularity is string like "ONE_MINUTE"
+        limit = max(1, min(limit, MAX_RESULTS_PER_CANDLESTICK_REST_REQUEST))
+        interval_seconds = INTERVALS[interval]
+        now = int(datetime.now(UTC).timestamp())
 
-        if start_time is not None:
-            # Coinbase API expects ISO 8601 format string for start/end, or Unix epoch string.
-            # convert_timestamp_to_exchange should handle this.
-            params["start"] = str(self.convert_timestamp_to_exchange(start_time))
+        if start_time is None:
+            start = now - limit * interval_seconds
+            end = now
+        else:
+            start = int(self.convert_timestamp_to_exchange(start_time))
+            end = max(start + interval_seconds, min(start + limit * interval_seconds, now))
 
-        return params
+        return {
+            "start": str(start),
+            "end": str(end),
+            "granularity": INTERVAL_TO_GRANULARITY[interval],
+            "limit": limit,
+        }
 
     @override
     def _parse_rest_response(self, data: dict | list | None) -> list[CandleData]:
@@ -95,7 +107,7 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         # {
         #   "candles": [
         #     {
-        #       "start": "2022-05-15T16:00:00Z",
+        #       "start": "1652630400",  # UNIX seconds as a string
         #       "low": "29288.38",
         #       "high": "29477.29",
         #       "open": "29405.34",
@@ -144,14 +156,16 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         :param network_client: Network client to use for API requests
         :returns: List of CandleData objects
         """
-        return await AsyncOnlyAdapter._fetch_rest_candles(
-            adapter_implementation=self,
-            trading_pair=trading_pair,
-            interval=interval,
-            start_time=start_time,
-            limit=limit,
-            network_client=network_client,
+        if network_client is None:
+            raise ValueError("network_client is required for async operations")
+
+        params = self._get_rest_params(
+            trading_pair=trading_pair, interval=interval, start_time=start_time, limit=limit
         )
+        # The URL is a template; the product id belongs in the path
+        url = self._get_rest_url().format(product_id=self.get_trading_pair_format(trading_pair))
+        response = await network_client.get_rest_data(url=url, params=params)
+        return self._parse_rest_response(response)
 
     @override
     def get_ws_subscription_payload(self, trading_pair: str, interval: str) -> dict:
@@ -159,13 +173,12 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
 
         :param trading_pair: Trading pair
         :param interval: Candle interval
-        :returns: WebSocket subscription payload
+        :returns: WebSocket subscription payload (the candles channel is fixed at 5 minutes)
         """
         return {
             "type": "subscribe",
-            "product_ids": [trading_pair],
             "channel": "candles",
-            "granularity": INTERVALS[interval],
+            "product_ids": [trading_pair],
         }
 
     @override
@@ -183,15 +196,16 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         #   "sequence_num": 1234,
         #   "events": [
         #     {
-        #       "type": "candle",
+        #       "type": "snapshot" | "update",
         #       "candles": [
         #         {
-        #           "start": "2023-02-14T17:01:00Z",
+        #           "start": "1676394060",  # candle open time, UNIX seconds
         #           "low": "22537.4",
         #           "high": "22540.7",
         #           "open": "22537.4",
         #           "close": "22540.7",
-        #           "volume": "0.1360142"
+        #           "volume": "0.1360142",
+        #           "product_id": "BTC-USD"
         #         }
         #       ]
         #     }
@@ -204,7 +218,6 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
         if not isinstance(data, dict) or "events" not in data:
             return None
 
-        ts: int = self.ensure_timestamp_in_seconds(data.get("timestamp", 0))  # type: ignore
         parsed_candles: list[CandleData] = []
         events_data = data.get("events")
         if not isinstance(events_data, list):
@@ -222,7 +235,9 @@ class CoinbaseAdvancedTradeBaseAdapter(BaseAdapter, AsyncOnlyAdapter):
                 if isinstance(candle_payload, dict):
                     parsed_candles.append(
                         CandleData(
-                            timestamp_raw=ts,  # Using event timestamp for all candles in the event
+                            timestamp_raw=self.ensure_timestamp_in_seconds(
+                                candle_payload.get("start")
+                            ),
                             open=float(candle_payload.get("open", 0)),
                             high=float(candle_payload.get("high", 0)),
                             low=float(candle_payload.get("low", 0)),
