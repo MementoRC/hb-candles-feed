@@ -603,11 +603,15 @@ class TestCrossAdapterCompatibility:
         """Test that all adapters return data in consistent format."""
         logger.info("Testing cross-adapter data format consistency")
 
-        # Coinbase is left out: its mock plugin lacks _interval_to_seconds, so
-        # MockedExchangeServer.add_trading_pair raises (mock-server bug, not an adapter one).
         adapters_to_test = [
             ("binance_spot", "BTC-USDT", BinanceSpotPlugin, BinanceSpotAdapter),
             ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BybitSpotAdapter),
+            (
+                "coinbase_advanced_trade",
+                "BTC-USD",
+                CoinbaseAdvancedTradeSpotPlugin,
+                CoinbaseAdvancedTradeSpotAdapter,
+            ),
         ]
 
         adapter_results = {}
@@ -669,10 +673,15 @@ class TestCrossAdapterCompatibility:
         """Test performance characteristics across adapters using mock servers."""
         logger.info("Testing adapter performance comparison")
 
-        # Coinbase is left out: its mock plugin lacks _interval_to_seconds (mock-server bug).
         adapters_to_test = [
             ("binance_spot", "BTC-USDT", BinanceSpotPlugin, BinanceSpotAdapter),
             ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BybitSpotAdapter),
+            (
+                "coinbase_advanced_trade",
+                "BTC-USD",
+                CoinbaseAdvancedTradeSpotPlugin,
+                CoinbaseAdvancedTradeSpotAdapter,
+            ),
         ]
         performance_results = {}
 
@@ -724,10 +733,15 @@ class TestCrossAdapterCompatibility:
         """Test that all adapters handle errors consistently using mock servers."""
         logger.info("Testing consistent error handling across adapters")
 
-        # Coinbase is left out: its mock plugin lacks _interval_to_seconds (mock-server bug).
         adapters_to_test = [
             ("binance_spot", "INVALID-PAIR", BinanceSpotPlugin, BinanceSpotAdapter),
             ("bybit_spot", "INVALID-PAIR", BybitSpotPlugin, BybitSpotAdapter),
+            (
+                "coinbase_advanced_trade",
+                "INVALID-PAIR",
+                CoinbaseAdvancedTradeSpotPlugin,
+                CoinbaseAdvancedTradeSpotAdapter,
+            ),
         ]
 
         for exchange, pair, plugin_class, adapter_class in adapters_to_test:

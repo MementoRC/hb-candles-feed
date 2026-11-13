@@ -8,6 +8,7 @@ import pytest
 
 from candles_feed.core.candle_data import CandleData
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
+from candles_feed.mocking_resources.core.server import MockedExchangeServer
 from candles_feed.mocking_resources.exchange_server_plugins.coinbase_advanced_trade.spot_plugin import (
     CoinbaseAdvancedTradeSpotPlugin,
 )
@@ -28,6 +29,17 @@ class TestCoinbaseAdvancedTradeSpotPlugin:
         assert self.plugin.rest_url.startswith("https://")
         assert self.plugin.wss_url.startswith("wss://")
         assert "/" in self.plugin.ws_routes
+
+    def test_interval_to_seconds_defaults_to_one_minute(self):
+        """Test interval conversion, including the 1m fallback."""
+        assert self.plugin._interval_to_seconds("1h") == 3600
+        assert self.plugin._interval_to_seconds("bogus") == 60
+
+    def test_server_add_trading_pair_does_not_raise(self):
+        """Test MockedExchangeServer can add a trading pair with this plugin."""
+        server = MockedExchangeServer(self.plugin, "127.0.0.1", 0)
+        server.add_trading_pair(self.trading_pair, self.interval, 50000.0)
+        assert self.trading_pair in server.candles
 
     def test_rest_routes(self):
         """Test REST API routes."""

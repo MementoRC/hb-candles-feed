@@ -239,8 +239,17 @@ class CoinbaseAdvancedTradeBasePlugin(ExchangePlugin, ABC):
         :returns: A string key used to track subscriptions.
         """
         # Format matching Coinbase's subscription parameters
-        granularity = INTERVALS.get(interval, 60)  # Default to 1m (60 seconds)
+        granularity = self._interval_to_seconds(interval)
         return f"candles_{trading_pair}_{granularity}"
+
+    def _interval_to_seconds(self, interval: str) -> int:
+        """
+        Convert interval string to seconds.
+
+        :param interval: Interval string (e.g., "1m", "1h").
+        :returns: Interval in seconds.
+        """
+        return INTERVALS.get(interval, 60)  # Default to 1m if not found
 
     def parse_rest_candles_params(self, request: web.Request) -> dict[str, Any]:
         """
