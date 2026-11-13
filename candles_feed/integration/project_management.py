@@ -9,6 +9,7 @@ import asyncio
 import contextlib
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 from collections.abc import Callable
@@ -20,6 +21,16 @@ import aiohttp
 from aiohttp import web
 
 from candles_feed.core.protocols import Logger
+
+
+def _is_loopback_host(host: str) -> bool:
+    """Return True if host is localhost or a loopback IP literal."""
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 class TaskStatus(Enum):
@@ -86,7 +97,6 @@ class ProjectManagementConfig:
     """Configuration for project management integration."""
 
     webhook_enabled: bool = True
-    webhook_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
     webhook_port: int = 8081
     webhook_path: str = "/webhook/project-management"
     webhook_secret: str | None = None
@@ -110,6 +120,8 @@ class ProjectManagementConfig:
     # Task mapping configuration
     status_mapping: dict[str, TaskStatus] | None = None
     priority_mapping: dict[str, TaskPriority] | None = None
+
+    webhook_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
 
     def __post_init__(self):
         """Initialize default mappings."""
@@ -365,6 +377,12 @@ class WebhookHandler:
         if not self.config.webhook_enabled:
             self.logger.debug("Webhook server disabled")
             return
+
+        if not self.config.webhook_secret and not _is_loopback_host(self.config.webhook_host):
+            raise ValueError(
+                f"Refusing to start unauthenticated webhook server on non-loopback host "
+                f"{self.config.webhook_host!r}: set webhook_secret or bind to a loopback host"
+            )
 
         try:
             self._app = web.Application()

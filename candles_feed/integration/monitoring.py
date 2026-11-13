@@ -22,7 +22,6 @@ from candles_feed.core.protocols import Logger
 class MonitoringIntegrationConfig:
     """Configuration for external monitoring integration."""
 
-    bind_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
     prometheus_enabled: bool = True
     prometheus_port: int = 9090
     prometheus_path: str = "/metrics"
@@ -32,6 +31,7 @@ class MonitoringIntegrationConfig:
     external_endpoints: dict[str, str] = field(default_factory=dict)
     check_interval_seconds: float = 30.0
     timeout_seconds: float = 10.0
+    bind_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
 
 
 class PrometheusMetricsExporter:

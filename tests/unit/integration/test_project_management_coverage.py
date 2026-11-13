@@ -358,9 +358,29 @@ class TestWebhookLifecycle:
         mocker.patch.object(pm.web, "AppRunner", return_value=runner)
         site = mocker.Mock(start=mocker.AsyncMock())
         site_cls = mocker.patch.object(pm.web, "TCPSite", return_value=site)
-        cfg = ProjectManagementConfig(webhook_host="10.1.2.3", webhook_port=9999)
+        cfg = ProjectManagementConfig(
+            webhook_host="10.1.2.3", webhook_port=9999, webhook_secret="s3cret"
+        )
         await WebhookHandler(cfg, logger=logger).start()
         site_cls.assert_called_once_with(runner, "10.1.2.3", 9999)
+
+    @pytest.mark.parametrize("host", ["0.0.0.0", "10.1.2.3", "example.com"])
+    async def test_non_loopback_without_secret_refused(self, mocker, logger, host):
+        runner_cls = mocker.patch.object(pm.web, "AppRunner")
+        cfg = ProjectManagementConfig(webhook_host=host)
+        with pytest.raises(ValueError, match="webhook_secret"):
+            await WebhookHandler(cfg, logger=logger).start()
+        runner_cls.assert_not_called()
+
+    @pytest.mark.parametrize("host", ["127.0.0.1", "::1", "localhost"])
+    async def test_loopback_without_secret_starts(self, mocker, logger, host):
+        runner = mocker.Mock(setup=mocker.AsyncMock(), cleanup=mocker.AsyncMock())
+        mocker.patch.object(pm.web, "AppRunner", return_value=runner)
+        site = mocker.Mock(start=mocker.AsyncMock())
+        mocker.patch.object(pm.web, "TCPSite", return_value=site)
+        cfg = ProjectManagementConfig(webhook_host=host, webhook_port=9999)
+        await WebhookHandler(cfg, logger=logger).start()
+        site.start.assert_awaited_once()
 
     async def test_start_failure_reraises(self, mocker, logger):
         runner = mocker.Mock(setup=mocker.AsyncMock(side_effect=OSError("in use")))
