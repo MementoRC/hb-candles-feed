@@ -2,6 +2,7 @@
 Coinbase Advanced Trade Spot plugin implementation for the mock exchange server.
 """
 
+from candles_feed.adapters.coinbase_advanced_trade.constants import SPOT_CANDLES_ENDPOINT
 from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
     CoinbaseAdvancedTradeSpotAdapter,
 )
@@ -33,7 +34,7 @@ class CoinbaseAdvancedTradeSpotPlugin(CoinbaseAdvancedTradeBasePlugin):
         :returns: A dictionary mapping URL paths to tuples of (HTTP method, handler name).
         """
         return {
-            "/api/v3/brokerage/products/{product_id}/candles": ("GET", "handle_klines"),
+            SPOT_CANDLES_ENDPOINT: ("GET", "handle_klines"),
             "/api/v3/time": ("GET", "handle_time"),
             "/api/v3/brokerage/products": ("GET", "handle_products"),
         }

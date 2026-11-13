@@ -351,7 +351,6 @@ class TestBinanceSpotAdapter:
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Temporarily disabled due to URL routing issues - will fix in next task")
 class TestCoinbaseAdvancedTradeAdapter:
     """Integration tests for Coinbase Advanced Trade adapter."""
 
@@ -366,13 +365,15 @@ class TestCoinbaseAdvancedTradeAdapter:
 
         # Add trading pairs - Coinbase uses different format
         server.add_trading_pair("BTC-USD", "1m", 50000.0)
+        server.add_trading_pair("BTC-USD", "5m", 50000.0)  # the WS candles channel is 5m only
         server.add_trading_pair("ETH-USD", "1m", 3000.0)
+        server.add_trading_pair("SOL-USD", "1m", 150.0)
         server.add_trading_pair("SOL-USD", "5m", 150.0)
 
         await server.start()
 
         server.mock_rest_url_base = f"http://{host}:{port}"
-        server.mock_ws_url = f"ws://{host}:{port}/ws"  # Assuming default /ws path for Coinbase
+        server.mock_ws_url = f"ws://{host}:{port}/"  # Coinbase serves its WebSocket at the root
 
         redirect_rest(CoinbaseAdvancedTradeSpotAdapter, server.mock_rest_url_base)
         yield server
@@ -408,25 +409,28 @@ class TestCoinbaseAdvancedTradeAdapter:
 
         logger.info(f"  Coinbase REST: Fetched {len(candles)} candles successfully")
 
-    async def test_websocket_streaming(self, coinbase_mock_server, coinbase_candles_feed):
-        """Test WebSocket streaming for Coinbase."""
+    async def test_websocket_streaming(self, coinbase_mock_server):
+        """Test WebSocket streaming for Coinbase (5m is its only WS interval)."""
         logger.info("Testing Coinbase WebSocket streaming")
 
-        received_candles = []
-
-        def candle_callback(candle: CandleData):
-            received_candles.append(candle)
-
-        # Temporarily patch the adapter's _get_ws_url method for this test
-        adapter_class = coinbase_candles_feed._adapter.__class__
+        feed = CandlesFeed(
+            exchange="coinbase_advanced_trade",
+            trading_pair="BTC-USD",
+            interval="5m",
+            max_records=100,
+            network_config=NetworkConfig.for_testing(),
+        )
+        adapter_class = feed._adapter.__class__
         mock_ws_url = coinbase_mock_server.mock_ws_url
 
         with patch.object(adapter_class, "_get_ws_url", return_value=mock_ws_url):
-            await coinbase_candles_feed.start(strategy="websocket", candle_callback=candle_callback)
+            await feed.start(strategy="websocket")
             await asyncio.sleep(1.5)
-            await coinbase_candles_feed.stop()
+            received_candles = feed.get_candles()
+            await feed.stop()
 
         assert len(received_candles) > 0, "Should receive Coinbase WebSocket candles"
+        assert all(isinstance(candle, CandleData) for candle in received_candles)
 
         logger.info(f"  Coinbase WebSocket: Received {len(received_candles)} candles")
 
@@ -595,7 +599,6 @@ class TestBybitSpotAdapter:
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Temporarily disabled due to URL routing issues - will fix in next task")
 class TestCrossAdapterCompatibility:
     """Test compatibility and consistency across different exchange adapters."""
 
@@ -603,11 +606,15 @@ class TestCrossAdapterCompatibility:
         """Test that all adapters return data in consistent format."""
         logger.info("Testing cross-adapter data format consistency")
 
-        # Coinbase is left out: its mock plugin lacks _interval_to_seconds, so
-        # MockedExchangeServer.add_trading_pair raises (mock-server bug, not an adapter one).
         adapters_to_test = [
             ("binance_spot", "BTC-USDT", BinanceSpotPlugin, BinanceSpotAdapter),
             ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BybitSpotAdapter),
+            (
+                "coinbase_advanced_trade",
+                "BTC-USD",
+                CoinbaseAdvancedTradeSpotPlugin,
+                CoinbaseAdvancedTradeSpotAdapter,
+            ),
         ]
 
         adapter_results = {}
@@ -669,10 +676,15 @@ class TestCrossAdapterCompatibility:
         """Test performance characteristics across adapters using mock servers."""
         logger.info("Testing adapter performance comparison")
 
-        # Coinbase is left out: its mock plugin lacks _interval_to_seconds (mock-server bug).
         adapters_to_test = [
             ("binance_spot", "BTC-USDT", BinanceSpotPlugin, BinanceSpotAdapter),
             ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BybitSpotAdapter),
+            (
+                "coinbase_advanced_trade",
+                "BTC-USD",
+                CoinbaseAdvancedTradeSpotPlugin,
+                CoinbaseAdvancedTradeSpotAdapter,
+            ),
         ]
         performance_results = {}
 
@@ -724,10 +736,15 @@ class TestCrossAdapterCompatibility:
         """Test that all adapters handle errors consistently using mock servers."""
         logger.info("Testing consistent error handling across adapters")
 
-        # Coinbase is left out: its mock plugin lacks _interval_to_seconds (mock-server bug).
         adapters_to_test = [
             ("binance_spot", "INVALID-PAIR", BinanceSpotPlugin, BinanceSpotAdapter),
             ("bybit_spot", "INVALID-PAIR", BybitSpotPlugin, BybitSpotAdapter),
+            (
+                "coinbase_advanced_trade",
+                "INVALID-PAIR",
+                CoinbaseAdvancedTradeSpotPlugin,
+                CoinbaseAdvancedTradeSpotAdapter,
+            ),
         ]
 
         for exchange, pair, plugin_class, adapter_class in adapters_to_test:

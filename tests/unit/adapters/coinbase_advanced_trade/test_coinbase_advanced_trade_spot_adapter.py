@@ -5,9 +5,8 @@ Tests for the CoinbaseAdvancedTradeSpotAdapter using the base adapter test class
 from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from candles_feed.adapters.coinbase_advanced_trade.constants import (
+    INTERVAL_TO_GRANULARITY,
     INTERVALS,
     SPOT_CANDLES_ENDPOINT,
     SPOT_REST_URL,
@@ -41,16 +40,17 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
     def get_expected_rest_params_minimal(self, trading_pair, interval):
         """Return the expected minimal REST params for the adapter."""
         return {
-            "granularity": str(INTERVALS[interval]),
+            "granularity": INTERVAL_TO_GRANULARITY[interval],
+            "limit": 350,
         }
 
     def get_expected_rest_params_full(self, trading_pair, interval, start_time, limit):
         """Return the expected full REST params for the adapter."""
-        # Coinbase does not use the limit parameter
         return {
-            "granularity": str(INTERVALS[interval]),
+            "granularity": INTERVAL_TO_GRANULARITY[interval],
             "start": str(start_time),  # Coinbase uses seconds, not milliseconds
-            # "end": end_time,  # Excluded: end_time is no longer part of the fetch_rest_candles protocol
+            "end": str(start_time + 350 * INTERVALS[interval]),  # limit is capped at 350
+            "limit": 350,
         }
 
     def get_expected_ws_subscription_payload(self, trading_pair, interval):
@@ -59,8 +59,12 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
             "type": "subscribe",
             "product_ids": [trading_pair],
             "channel": "candles",
-            "granularity": INTERVALS[interval],
         }
+
+    # The Coinbase candles channel only has a fixed 5 minute interval
+    def test_get_ws_supported_intervals(self, adapter):
+        """Test getting WebSocket supported intervals."""
+        assert adapter.get_ws_supported_intervals() == ["5m"]
 
     def get_mock_candlestick_response(self):
         """Return a mock candlestick response for the adapter."""
@@ -176,35 +180,32 @@ class TestCoinbaseAdvancedTradeSpotAdapter(BaseAdapterTest):
         result = adapter.ensure_timestamp_in_seconds(test_data.get("timestamp"))
         assert result == timestamp
 
-    @patch.object(CoinbaseAdvancedTradeSpotAdapter, "_get_rest_url")
-    async def test_fetch_rest_candles_custom(
-        self, mock_get_rest_url, adapter, trading_pair, interval
-    ):
-        """Custom async test for fetch_rest_candles."""
-        # Mock the URL to be pre-formatted with the trading pair
-        formatted_url = f"{SPOT_REST_URL}{SPOT_CANDLES_ENDPOINT}".format(product_id=trading_pair)
-        mock_get_rest_url.return_value = formatted_url
+    async def test_fetch_rest_candles_async(self, adapter, trading_pair, interval):
+        """Override the generic check: the URL is formatted and the params embed "now"."""
+        await self.test_fetch_rest_candles_custom(adapter, interval)
 
-        # Create a mock network client
+    async def test_fetch_rest_candles_custom(self, adapter, interval):
+        """fetch_rest_candles hits the public market endpoint for the real product id."""
         mock_client = MagicMock()
-        mock_client.get_rest_data = AsyncMock()
+        mock_client.get_rest_data = AsyncMock(return_value=self.get_mock_candlestick_response())
+        start_time = 1622505600
 
-        # Configure the mock to return a specific response when called
-        response_data = self.get_mock_candlestick_response()
-        mock_client.get_rest_data.return_value = response_data
-
-        # Test the method with our mock
         candles = await adapter.fetch_rest_candles(
-            trading_pair=trading_pair, interval=interval, network_client=mock_client
+            trading_pair="BTC-USD",
+            interval=interval,
+            start_time=start_time,
+            network_client=mock_client,
         )
 
-        # Verify the result
         assert len(candles) == 2
-
-        # Check that the mock was called with the correct parameters
-        params = adapter._get_rest_params(trading_pair, interval)
-
         mock_client.get_rest_data.assert_called_once()
-        args, kwargs = mock_client.get_rest_data.call_args
-        assert kwargs["url"] == formatted_url
-        assert kwargs["params"] == params
+        _, kwargs = mock_client.get_rest_data.call_args
+        assert kwargs["url"] == (
+            "https://api.coinbase.com/api/v3/brokerage/market/products/BTC-USD/candles"
+        )
+        assert kwargs["params"] == {
+            "start": str(start_time),
+            "end": str(start_time + 350 * INTERVALS[interval]),
+            "granularity": INTERVAL_TO_GRANULARITY[interval],
+            "limit": 350,
+        }
