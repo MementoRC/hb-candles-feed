@@ -86,6 +86,7 @@ class ProjectManagementConfig:
     """Configuration for project management integration."""
 
     webhook_enabled: bool = True
+    webhook_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
     webhook_port: int = 8081
     webhook_path: str = "/webhook/project-management"
     webhook_secret: str | None = None
@@ -372,7 +373,7 @@ class WebhookHandler:
             self._runner = web.AppRunner(self._app)
             await self._runner.setup()
 
-            site = web.TCPSite(self._runner, "0.0.0.0", self.config.webhook_port)
+            site = web.TCPSite(self._runner, self.config.webhook_host, self.config.webhook_port)
             await site.start()
 
             self.logger.info(

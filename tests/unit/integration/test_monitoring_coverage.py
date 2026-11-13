@@ -122,6 +122,32 @@ class TestPrometheusHandler:
         logger.info.assert_called_once()
 
 
+class TestBindHost:
+    def test_default_bind_host_is_loopback(self):
+        assert MonitoringIntegrationConfig().bind_host == "127.0.0.1"
+
+    @pytest.mark.parametrize(
+        ("server_cls", "port_field"),
+        [(PrometheusMetricsExporter, "prometheus_port"), (HealthCheckServer, "health_check_port")],
+    )
+    @pytest.mark.parametrize(
+        ("override", "expected"), [(None, "127.0.0.1"), ("10.1.2.3", "10.1.2.3")]
+    )
+    async def test_site_binds_configured_host(
+        self, manager, monkeypatch, server_cls, port_field, override, expected
+    ):
+        runner = MagicMock(setup=AsyncMock())
+        monkeypatch.setattr(mon.web, "AppRunner", lambda app: runner)
+        site_cls = MagicMock(return_value=MagicMock(start=AsyncMock()))
+        monkeypatch.setattr(mon.web, "TCPSite", site_cls)
+        kwargs = {port_field: 1234}
+        if override:
+            kwargs["bind_host"] = override
+        cfg = MonitoringIntegrationConfig(**kwargs)
+        await server_cls(manager, cfg).start()
+        site_cls.assert_called_once_with(runner, expected, 1234)
+
+
 class TestHealthCheckServer:
     async def test_health_healthy(self, manager, config):
         resp = await HealthCheckServer(manager, config)._health_handler(MagicMock())

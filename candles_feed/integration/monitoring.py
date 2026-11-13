@@ -22,6 +22,7 @@ from candles_feed.core.protocols import Logger
 class MonitoringIntegrationConfig:
     """Configuration for external monitoring integration."""
 
+    bind_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
     prometheus_enabled: bool = True
     prometheus_port: int = 9090
     prometheus_path: str = "/metrics"
@@ -163,7 +164,7 @@ class PrometheusMetricsExporter:
             self._runner = web.AppRunner(self._app)
             await self._runner.setup()
 
-            site = web.TCPSite(self._runner, "0.0.0.0", self.config.prometheus_port)
+            site = web.TCPSite(self._runner, self.config.bind_host, self.config.prometheus_port)
             await site.start()
 
             self.logger.info(
@@ -291,7 +292,7 @@ class HealthCheckServer:
             self._runner = web.AppRunner(self._app)
             await self._runner.setup()
 
-            site = web.TCPSite(self._runner, "0.0.0.0", self.config.health_check_port)
+            site = web.TCPSite(self._runner, self.config.bind_host, self.config.health_check_port)
             await site.start()
 
             self.logger.info(

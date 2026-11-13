@@ -340,7 +340,7 @@ class TestWebhookLifecycle:
 
         await h.start()
         runner.setup.assert_awaited_once()
-        site_cls.assert_called_once_with(runner, "0.0.0.0", 9999)
+        site_cls.assert_called_once_with(runner, "127.0.0.1", 9999)
         site.start.assert_awaited_once()
         routes = [r.resource.canonical for r in h._app.router.routes() if r.method == "POST"]
         assert routes == ["/webhook/project-management"]
@@ -349,6 +349,18 @@ class TestWebhookLifecycle:
         runner.cleanup.assert_awaited_once()
         assert h._runner is None
         assert h._app is None
+
+    def test_default_webhook_host_is_loopback(self):
+        assert ProjectManagementConfig().webhook_host == "127.0.0.1"
+
+    async def test_explicit_webhook_host_honored(self, mocker, logger):
+        runner = mocker.Mock(setup=mocker.AsyncMock(), cleanup=mocker.AsyncMock())
+        mocker.patch.object(pm.web, "AppRunner", return_value=runner)
+        site = mocker.Mock(start=mocker.AsyncMock())
+        site_cls = mocker.patch.object(pm.web, "TCPSite", return_value=site)
+        cfg = ProjectManagementConfig(webhook_host="10.1.2.3", webhook_port=9999)
+        await WebhookHandler(cfg, logger=logger).start()
+        site_cls.assert_called_once_with(runner, "10.1.2.3", 9999)
 
     async def test_start_failure_reraises(self, mocker, logger):
         runner = mocker.Mock(setup=mocker.AsyncMock(side_effect=OSError("in use")))
