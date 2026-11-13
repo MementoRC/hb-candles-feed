@@ -1,15 +1,11 @@
 """Additional branch-coverage tests for RepositoryInsightsCollector."""
 
-import re
 from datetime import UTC, datetime, timedelta
 
 import aiohttp
 import pytest
-from aioresponses import aioresponses
 
 from candles_feed.core.repository_insights import RepositoryInsightsCollector
-
-BASE = RepositoryInsightsCollector.BASE_URL
 
 
 @pytest.fixture
@@ -17,12 +13,15 @@ def collector():
     return RepositoryInsightsCollector("owner", "repo")
 
 
+@pytest.fixture
+def served(serve_get, monkeypatch):
+    """Local server standing in for the GitHub API."""
+    monkeypatch.setattr(RepositoryInsightsCollector, "BASE_URL", serve_get.url)
+    return serve_get
+
+
 def _fmt(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _url(path: str) -> re.Pattern:
-    return re.compile(re.escape(f"{BASE}{path}") + r"(\?.*)?$")
 
 
 class TestInit:
@@ -37,69 +36,59 @@ class TestInit:
 
 
 class TestMakeRequest:
-    async def test_none_params_are_stripped(self, collector):
+    async def test_none_params_are_stripped(self, collector, served):
+        served.add("/x", payload={"ok": 1})
         async with aiohttp.ClientSession() as session:
-            with aioresponses() as m:
-                m.get(_url("/x"), payload={"ok": 1})
-                result = await collector._make_request(
-                    "/x", params={"a": 1, "b": None}, client=session
-                )
-                assert result == {"ok": 1}
-                ((key, calls),) = m.requests.items()
-                assert calls[0].kwargs["params"] == {"a": 1}
+            result = await collector._make_request("/x", params={"a": 1, "b": None}, client=session)
+        assert result == {"ok": 1}
+        (request,) = served.requests
+        assert dict(request.query) == {"a": "1"}
 
-    async def test_provided_client_is_not_closed(self, collector):
+    async def test_provided_client_is_not_closed(self, collector, served):
+        served.add("/x", payload=[])
         async with aiohttp.ClientSession() as session:
-            with aioresponses() as m:
-                m.get(_url("/x"), payload=[])
-                await collector._make_request("/x", client=session)
+            await collector._make_request("/x", client=session)
             assert not session.closed
 
-    async def test_client_error_is_reraised(self, collector):
-        with aioresponses() as m:
-            m.get(_url("/x"), exception=aiohttp.ClientConnectionError("boom"))
-            with pytest.raises(aiohttp.ClientConnectionError):
-                await collector._make_request("/x")
+    async def test_client_error_is_reraised(self, collector, served):
+        served.add("/x", disconnect=True)
+        with pytest.raises(aiohttp.ClientConnectionError):
+            await collector._make_request("/x")
 
 
 class TestFetchPaginated:
-    async def test_stops_when_no_link_header(self, collector):
+    async def test_stops_when_no_link_header(self, collector, served):
+        served.add("/p", payload=[{"id": 1}])
         async with aiohttp.ClientSession() as session:
-            with aioresponses() as m:
-                m.get(_url("/p"), payload=[{"id": 1}])
-                items = await collector._fetch_paginated_data("/p", {"k": None}, session)
-                assert items == [{"id": 1}]
-                assert len(next(iter(m.requests.values()))) == 1
+            items = await collector._fetch_paginated_data("/p", {"k": None}, session)
+        assert items == [{"id": 1}]
+        assert len(served.requests) == 1
 
-    async def test_stops_on_link_without_next(self, collector):
+    async def test_stops_on_link_without_next(self, collector, served):
+        served.add(
+            "/p",
+            payload=[{"id": 1}],
+            headers={"Link": f'<{served.url}/p?page=1>; rel="prev"'},
+        )
         async with aiohttp.ClientSession() as session:
-            with aioresponses() as m:
-                m.get(
-                    _url("/p"),
-                    payload=[{"id": 1}],
-                    headers={"Link": f'<{BASE}/p?page=1>; rel="prev"'},
-                )
-                items = await collector._fetch_paginated_data("/p", client=session)
-                assert items == [{"id": 1}]
+            items = await collector._fetch_paginated_data("/p", client=session)
+        assert items == [{"id": 1}]
 
-    async def test_stops_on_empty_page(self, collector):
+    async def test_stops_on_empty_page(self, collector, served):
+        served.add("/p", payload=[])
         async with aiohttp.ClientSession() as session:
-            with aioresponses() as m:
-                m.get(_url("/p"), payload=[])
-                assert await collector._fetch_paginated_data("/p", client=session) == []
+            assert await collector._fetch_paginated_data("/p", client=session) == []
 
-    async def test_http_error_raises(self, collector):
-        with aioresponses() as m:
-            m.get(_url("/p"), status=500)
-            with pytest.raises(aiohttp.ClientResponseError) as exc:
-                await collector._fetch_paginated_data("/p")
-            assert exc.value.status == 500
+    async def test_http_error_raises(self, collector, served):
+        served.add("/p", status=500)
+        with pytest.raises(aiohttp.ClientResponseError) as exc:
+            await collector._fetch_paginated_data("/p")
+        assert exc.value.status == 500
 
-    async def test_client_error_raises(self, collector):
-        with aioresponses() as m:
-            m.get(_url("/p"), exception=aiohttp.ClientConnectionError("down"))
-            with pytest.raises(aiohttp.ClientConnectionError):
-                await collector._fetch_paginated_data("/p")
+    async def test_client_error_raises(self, collector, served):
+        served.add("/p", disconnect=True)
+        with pytest.raises(aiohttp.ClientConnectionError):
+            await collector._fetch_paginated_data("/p")
 
 
 class TestIssueMetricsEdges:
@@ -149,12 +138,11 @@ class TestCommitActivity:
         metrics = await collector.get_commit_activity(client=mocker.Mock())
         assert metrics.commits_last_7_days == 0
 
-    async def test_other_http_error_is_reraised(self, collector):
+    async def test_other_http_error_is_reraised(self, collector, served):
+        served.add(f"/repos/{collector.repo_path}/stats/commit_activity", status=500)
         async with aiohttp.ClientSession() as session:
-            with aioresponses() as m:
-                m.get(_url(f"/repos/{collector.repo_path}/stats/commit_activity"), status=500)
-                with pytest.raises(aiohttp.ClientResponseError):
-                    await collector.get_commit_activity(client=session)
+            with pytest.raises(aiohttp.ClientResponseError):
+                await collector.get_commit_activity(client=session)
 
     async def test_client_error_is_swallowed(self, collector, mocker):
         mocker.patch.object(

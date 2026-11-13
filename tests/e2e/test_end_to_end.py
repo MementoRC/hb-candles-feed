@@ -7,15 +7,11 @@ to test the Candles Feed in a realistic but controlled environment.
 
 import asyncio
 import logging
-import re
-from urllib.parse import urlparse, urlunparse
 
-import aiohttp
 import pandas as pd
 import pytest
-from aioresponses import CallbackResult, aioresponses
 
-from candles_feed.adapters.binance import constants as binance_constants  # For REAL URLs
+from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.mocking_resources.core.exchange_type import ExchangeType
 from candles_feed.mocking_resources.core.factory import get_plugin
@@ -30,126 +26,32 @@ class TestEndToEnd:
     """End-to-end test suite for the Candles Feed."""
 
     @pytest.fixture
-    async def aioresponses_mock_binance_server(self, unused_tcp_port):
-        """Create a mock Binance server for testing, with aioresponses intercepting calls."""
+    async def local_binance_server(self, unused_tcp_port, redirect_rest):
+        """Run a mock Binance server and point the Binance Spot adapter's REST URL at it."""
         plugin = get_plugin(ExchangeType.BINANCE_SPOT)
-        host = "127.0.0.1"  # Use 127.0.0.1 explicitly
+        host = "127.0.0.1"
         port = unused_tcp_port
 
         server = MockedExchangeServer(plugin, host, port)
 
-        # Add trading pairs to the mock server
-        # These need to match what the test will request
+        # These need to match what the tests will request
         server.add_trading_pair("BTC-USDT", "1m", initial_price=50000.0)
         server.add_trading_pair("ETH-USDT", "1m", initial_price=3000.0)
-
-        # Ensure the server generates some initial candles for these pairs
-        # The add_trading_pair method in MockedExchangeServer already does this.
 
         await server.start()
 
         server.mock_rest_url_base = f"http://{host}:{port}"
+        # BinanceBasePlugin serves its WebSocket at /ws
+        server.mock_ws_url = f"ws://{host}:{port}/ws"
 
-        # For Binance Spot, the WebSocket path is typically /ws or part of a stream path
-        # The BinanceSpotPlugin inherits ws_routes from BinanceBasePlugin which is {"/ws": "handle_websocket"}
-        ws_path = "/ws"  # Default for Binance Spot based on BinanceBasePlugin
-        server.mock_ws_url = f"ws://{host}:{port}{ws_path}"
+        redirect_rest(BinanceSpotAdapter, server.mock_rest_url_base)
 
-        # Create a single ClientSession for all passthrough requests within this fixture instance
-        async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
+        yield server
 
-            async def make_passthrough_callback(
-                target_url_base_for_mock_server, original_request_method
-            ):  # shared_client_session_for_passthrough is captured from the outer scope
-                async def callback(url_obj, **kwargs):  # url_obj is yarl.URL from aioresponses
-                    # Construct the final target URL for the local mock server
-                    final_target_url = urlunparse(
-                        (
-                            urlparse(target_url_base_for_mock_server).scheme,
-                            urlparse(target_url_base_for_mock_server).netloc,
-                            url_obj.path,  # Use path from the intercepted URL
-                            "",  # params for urlunparse
-                            url_obj.query_string,  # Use query string from the intercepted URL
-                            "",  # fragment for urlunparse
-                        )
-                    )
-
-                    request_headers = {}
-                    if kwargs.get("headers"):
-                        request_headers = {
-                            k: v
-                            for k, v in kwargs["headers"].items()
-                            if k.lower() not in ["host", "content-length", "transfer-encoding"]
-                        }
-
-                    outgoing_json_payload = kwargs.get("json")
-                    outgoing_data = kwargs.get("data")
-
-                    if outgoing_json_payload is not None and outgoing_data is not None:
-                        outgoing_data = None  # Prefer JSON if both are somehow provided
-
-                    # Use the shared_client_session_for_passthrough
-                    try:
-                        async with shared_client_session_for_passthrough.request(
-                            original_request_method,
-                            final_target_url,
-                            data=outgoing_data,
-                            json=outgoing_json_payload,
-                            headers=request_headers,
-                            allow_redirects=kwargs.get("allow_redirects", True),
-                        ) as resp:
-                            content = await resp.read()
-                            response_headers = {
-                                k: v
-                                for k, v in resp.headers.items()
-                                if k.lower()
-                                not in [
-                                    "transfer-encoding",
-                                    "content-length",
-                                ]
-                            }
-                            return CallbackResult(
-                                status=resp.status, body=content, headers=response_headers
-                            )
-                    except aiohttp.ClientConnectorError as e:
-                        logger.error(f"Passthrough to {final_target_url} failed: {e}")
-                        return CallbackResult(
-                            status=503, body=f"Mock server connection error: {str(e)}"
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Unexpected error during passthrough to {final_target_url}: {e}",
-                            exc_info=True,
-                        )
-                        return CallbackResult(
-                            status=500, body=f"Unexpected mock server error: {str(e)}"
-                        )
-
-                return callback
-
-            with aioresponses(passthrough=["http://127.0.0.1"]) as m:
-                real_binance_spot_base_url = binance_constants.SPOT_REST_URL
-
-                for route_path, (method, _) in plugin.rest_routes.items():
-                    real_url_to_intercept_pattern = re.compile(
-                        f"^{re.escape(real_binance_spot_base_url + route_path)}(\\?.*)?$"
-                    )
-                    m.add(
-                        real_url_to_intercept_pattern,
-                        method=method.upper(),
-                        callback=await make_passthrough_callback(  # This will use the captured shared session
-                            server.mock_rest_url_base, method.upper()
-                        ),
-                        repeat=True,
-                    )
-                yield server  # Provide the MockedExchangeServer instance to the test
-        # shared_client_session_for_passthrough is automatically closed here by its `async with`
-
-        # Teardown: stop the server
         await server.stop()
 
-    async def test_rest_candles_retrieval(self, aioresponses_mock_binance_server):
-        """Test retrieving candles via REST API using aioresponses."""
+    async def test_rest_candles_retrieval(self, local_binance_server):
+        """Test retrieving candles via REST API from the local mock server."""
         # Create a CandlesFeed instance
         feed = CandlesFeed(
             exchange="binance_spot", trading_pair="BTC-USDT", interval="1m", max_records=100
@@ -162,9 +64,7 @@ class TestEndToEnd:
 
             # Verify candles were received
             assert len(candles) > 0, "No candles received"
-            logger.info(
-                f"Successfully received {len(candles)} candles via aioresponses-intercepted REST"
-            )
+            logger.info(f"Successfully received {len(candles)} candles via local mock REST")
 
             # fetch_candles returns data only; the live store stays untouched
             assert feed.get_candles() == []
@@ -189,7 +89,7 @@ class TestEndToEnd:
             # Clean up resources
             await feed.stop()
 
-    async def test_multiple_trading_pairs(self, aioresponses_mock_binance_server):
+    async def test_multiple_trading_pairs(self, local_binance_server):
         """Test working with multiple trading pairs simultaneously."""
         # Create feeds for different trading pairs
         btc_feed = CandlesFeed(
@@ -214,7 +114,7 @@ class TestEndToEnd:
             btc_price = btc_candles[-1].close
             eth_price = eth_candles[-1].close
 
-            logger.info(f"Latest prices via aioresponses - BTC: {btc_price}, ETH: {eth_price}")
+            logger.info(f"Latest prices via local mock - BTC: {btc_price}, ETH: {eth_price}")
 
             # Prices should be in different ranges based on our mock server configuration
             assert 35000 < btc_price < 65000, "BTC price should be somewhere around 50000"

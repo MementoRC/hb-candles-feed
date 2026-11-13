@@ -1,0 +1,41 @@
+---
+description: Test HTTP code against real local aiohttp servers (serve_get, redirect_rest); never use aioresponses.
+globs: tests/**/*.py
+alwaysApply: false
+---
+
+- **Never reintroduce `aioresponses`.** It pinned `aiohttp<3.12` (see issue #186). Test HTTP against real local servers instead.
+
+- **`serve_get`** (`tests/conftest.py`): starts a local aiohttp server answering GETs from canned routes.
+  - Use it when the code under test builds its own URL from a class or instance attribute you can override (for example `BASE_URL`).
+  - API: `serve_get.add(path, payload=..., status=200, headers=..., body=..., query={...}, disconnect=False)`, plus `serve_get.url` and `serve_get.requests`.
+  - `disconnect=True` drops the connection, which gives `aiohttp.ClientConnectionError`.
+
+  ```python
+  @pytest.fixture
+  def served(serve_get, monkeypatch):
+      monkeypatch.setattr(RepositoryInsightsCollector, "BASE_URL", serve_get.url)
+      return serve_get
+
+  async def test_make_request_success(collector, served):
+      served.add("/test_endpoint", payload={"data": "success"})
+      assert await collector._make_request("/test_endpoint") == {"data": "success"}
+      assert served.requests[0].path == "/test_endpoint"
+  ```
+
+- **`redirect_rest(adapter_cls, local_base_url)`** (`tests/conftest.py`): points an adapter class's `_get_rest_url` at a local server, keeping the real URL path.
+  - Use it with the mocking-resources `MockedExchangeServer`, which already serves the exchange routes.
+
+  ```python
+  server = MockedExchangeServer(plugin, "127.0.0.1", port)
+  await server.start()
+  redirect_rest(BinanceSpotAdapter, f"http://127.0.0.1:{port}")
+  feed = CandlesFeed(exchange="binance_spot", trading_pair="BTC-USDT", interval="1m")
+  candles = await feed.fetch_candles()
+  ```
+
+- **Hard-coded URLs** (for example `api.github.com` in `project_management.py`): patch `aiohttp.ClientSession` with a small fake (see `_FakeHttp` in `tests/unit/integration/test_project_management_coverage.py`).
+
+- **Why class-level patching is safe:** both fixtures patch through `monkeypatch`, which undoes every change at the end of each test. pytest runs one test at a time per process, and xdist workers are separate processes, so the patched class attribute is never shared across tests.
+
+- **Assert on results.** `CandlesFeed.fetch_candles` swallows REST errors and returns `[]`. Assert the candles are non-empty; do not wrap the calls in `try/except Exception`.

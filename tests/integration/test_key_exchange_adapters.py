@@ -16,28 +16,22 @@ Key adapters tested:
 
 import asyncio
 import logging
-import re
 from datetime import UTC, datetime, timezone
 from unittest.mock import patch
-from urllib.parse import urlparse, urlunparse
 
-import aiohttp
 import pytest
-from aioresponses import CallbackResult, aioresponses
 
-# Import constants for real URLs
-from candles_feed.adapters.binance import constants as binance_constants
+from candles_feed.adapters.binance.spot_adapter import BinanceSpotAdapter
+from candles_feed.adapters.bybit.spot_adapter import BybitSpotAdapter
+from candles_feed.adapters.coinbase_advanced_trade.spot_adapter import (
+    CoinbaseAdvancedTradeSpotAdapter,
+)
 from candles_feed.core.candle_data import CandleData
 from candles_feed.core.candles_feed import CandlesFeed
 from candles_feed.core.network_config import NetworkConfig
 from candles_feed.mocking_resources.core.server import MockedExchangeServer
 
-# Define real base URLs for other exchanges if not available as constants
-# These are inferred from common API endpoints for production environments.
-COINBASE_ADVANCED_TRADE_SPOT_REST_URL = "https://api.coinbase.com/api/v3/brokerage"
-BYBIT_SPOT_REST_URL = "https://api.bybit.com"
-
-# Additional exchange base URLs for integration testing
+# Real base URLs for the exchanges, kept for future expansion of these tests
 KRAKEN_SPOT_REST_URL = "https://api.kraken.com"
 GATE_IO_SPOT_REST_URL = "https://api.gateio.ws/api/v4"
 OKX_SPOT_REST_URL = "https://www.okx.com"
@@ -164,82 +158,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# Helper function for aioresponses passthrough callback
-async def make_passthrough_callback(
-    target_url_base_for_mock_server, original_request_method, shared_client_session_for_passthrough
-):
-    """
-    Creates a callback function for aioresponses to passthrough intercepted requests
-    to a local mock server.
-    """
-
-    async def callback(url_obj, **kwargs):
-        # Construct the final target URL for the local mock server
-        final_target_url = urlunparse(
-            (
-                urlparse(target_url_base_for_mock_server).scheme,
-                urlparse(target_url_base_for_mock_server).netloc,
-                url_obj.path,  # Use path from the intercepted URL
-                "",  # params for urlunparse
-                url_obj.query_string,  # Use query string from the intercepted URL
-                "",  # fragment for urlunparse
-            )
-        )
-
-        headers_dict = kwargs.get("headers") or {}
-        request_headers = {
-            k: v
-            for k, v in headers_dict.items()
-            if k.lower() not in ["host", "content-length", "transfer-encoding"]
-        }
-
-        outgoing_json_payload = kwargs.get("json")
-        outgoing_data = kwargs.get("data")
-
-        if outgoing_json_payload is not None and outgoing_data is not None:
-            outgoing_data = None  # Prefer JSON if both are somehow provided
-
-        try:
-            async with shared_client_session_for_passthrough.request(
-                original_request_method,
-                final_target_url,
-                data=outgoing_data,
-                json=outgoing_json_payload,
-                headers=request_headers,
-                allow_redirects=kwargs.get("allow_redirects", True),
-            ) as resp:
-                content = await resp.read()
-                response_headers = {
-                    k: v
-                    for k, v in resp.headers.items()
-                    if k.lower()
-                    not in [
-                        "transfer-encoding",
-                        "content-length",
-                    ]
-                }
-                return CallbackResult(status=resp.status, body=content, headers=response_headers)
-        except aiohttp.ClientConnectorError as e:
-            logger.error(f"Passthrough to {final_target_url} failed: {e}")
-            return CallbackResult(status=503, body=f"Mock server connection error: {str(e)}")
-        except Exception as e:
-            logger.error(
-                f"Unexpected error during passthrough to {final_target_url}: {e}",
-                exc_info=True,
-            )
-            return CallbackResult(status=500, body=f"Unexpected mock server error: {str(e)}")
-
-    return callback
-
-
 @pytest.mark.integration
 @pytest.mark.skip(reason="Temporarily disabled due to URL routing issues - will fix in next task")
 class TestBinanceSpotAdapter:
     """Integration tests for Binance Spot adapter."""
 
     @pytest.fixture
-    async def binance_mock_server(self, unused_tcp_port):
-        """Create mock server for Binance Spot testing, with aioresponses intercepting calls."""
+    async def binance_mock_server(self, unused_tcp_port, redirect_rest):
+        """Create mock server for Binance Spot testing, with the adapter's REST URL redirected."""
         plugin = BinanceSpotPlugin()
         host = "127.0.0.1"
         port = unused_tcp_port
@@ -257,27 +183,8 @@ class TestBinanceSpotAdapter:
         # For Binance Spot, the WebSocket path is typically /ws or part of a stream path
         server.mock_ws_url = f"ws://{host}:{port}/ws"
 
-        # Create a single ClientSession for all passthrough requests within this fixture instance
-        async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
-            with aioresponses(passthrough=[f"http://{host}:{port}"]) as m:
-                real_binance_spot_base_url = binance_constants.SPOT_REST_URL
-
-                for route_path, (method, _) in plugin.rest_routes.items():
-                    real_url_to_intercept_pattern = re.compile(
-                        f"^{re.escape(real_binance_spot_base_url + route_path)}(\\?.*)?$"
-                    )
-                    m.add(
-                        real_url_to_intercept_pattern,
-                        method=method.upper(),
-                        callback=await make_passthrough_callback(
-                            server.mock_rest_url_base,
-                            method.upper(),
-                            shared_client_session_for_passthrough,
-                        ),
-                        repeat=True,
-                    )
-                yield server  # Provide the MockedExchangeServer instance to the test
-        # shared_client_session_for_passthrough is automatically closed here by its `async with`
+        redirect_rest(BinanceSpotAdapter, server.mock_rest_url_base)
+        yield server  # Provide the MockedExchangeServer instance to the test
 
         # Teardown: stop the server
         await server.stop()
@@ -339,7 +246,7 @@ class TestBinanceSpotAdapter:
                 f"Received candle: {candle.timestamp} - O:{candle.open} H:{candle.high} L:{candle.low} C:{candle.close}"
             )
 
-        # For WebSocket, aioresponses does not intercept. We need to temporarily patch
+        # The REST redirect does not cover WebSocket. Temporarily patch
         # the adapter's _get_ws_url method to point to our mock server's WS URL.
         adapter_class = binance_candles_feed._adapter.__class__
         mock_ws_url = binance_mock_server.mock_ws_url
@@ -398,7 +305,7 @@ class TestBinanceSpotAdapter:
         logger.info("Testing Binance error handling")
 
         # Test connection errors by stopping server
-        # This will cause aioresponses' passthrough callback to fail to connect to the mock server.
+        # This will cause the adapter's REST request to fail to connect to the mock server.
         await binance_mock_server.stop()
         logger.info("  Binance mock server stopped for error test.")
 
@@ -449,8 +356,8 @@ class TestCoinbaseAdvancedTradeAdapter:
     """Integration tests for Coinbase Advanced Trade adapter."""
 
     @pytest.fixture
-    async def coinbase_mock_server(self, unused_tcp_port):
-        """Create mock server for Coinbase Advanced Trade testing, with aioresponses intercepting calls."""
+    async def coinbase_mock_server(self, unused_tcp_port, redirect_rest):
+        """Create mock server for Coinbase Advanced Trade testing, with REST URL redirected."""
         plugin = CoinbaseAdvancedTradeSpotPlugin()
         host = "127.0.0.1"
         port = unused_tcp_port
@@ -467,25 +374,8 @@ class TestCoinbaseAdvancedTradeAdapter:
         server.mock_rest_url_base = f"http://{host}:{port}"
         server.mock_ws_url = f"ws://{host}:{port}/ws"  # Assuming default /ws path for Coinbase
 
-        async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
-            with aioresponses(passthrough=[f"http://{host}:{port}"]) as m:
-                real_coinbase_spot_base_url = COINBASE_ADVANCED_TRADE_SPOT_REST_URL
-
-                for route_path, (method, _) in plugin.rest_routes.items():
-                    real_url_to_intercept_pattern = re.compile(
-                        f"^{re.escape(real_coinbase_spot_base_url + route_path)}(\\?.*)?$"
-                    )
-                    m.add(
-                        real_url_to_intercept_pattern,
-                        method=method.upper(),
-                        callback=await make_passthrough_callback(
-                            server.mock_rest_url_base,
-                            method.upper(),
-                            shared_client_session_for_passthrough,
-                        ),
-                        repeat=True,
-                    )
-                yield server
+        redirect_rest(CoinbaseAdvancedTradeSpotAdapter, server.mock_rest_url_base)
+        yield server
         await server.stop()
 
     @pytest.fixture
@@ -588,8 +478,8 @@ class TestBybitSpotAdapter:
     """Integration tests for Bybit Spot adapter."""
 
     @pytest.fixture
-    async def bybit_mock_server(self, unused_tcp_port):
-        """Create mock server for Bybit Spot testing, with aioresponses intercepting calls."""
+    async def bybit_mock_server(self, unused_tcp_port, redirect_rest):
+        """Create mock server for Bybit Spot testing, with the adapter's REST URL redirected."""
         plugin = BybitSpotPlugin()
         host = "127.0.0.1"
         port = unused_tcp_port
@@ -609,25 +499,8 @@ class TestBybitSpotAdapter:
         server.mock_rest_url_base = f"http://{host}:{port}"
         server.mock_ws_url = f"ws://{host}:{port}/ws"  # Assuming default /ws path for Bybit
 
-        async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
-            with aioresponses(passthrough=[f"http://{host}:{port}"]) as m:
-                real_bybit_spot_base_url = BYBIT_SPOT_REST_URL
-
-                for route_path, (method, _) in plugin.rest_routes.items():
-                    real_url_to_intercept_pattern = re.compile(
-                        f"^{re.escape(real_bybit_spot_base_url + route_path)}(\\?.*)?$"
-                    )
-                    m.add(
-                        real_url_to_intercept_pattern,
-                        method=method.upper(),
-                        callback=await make_passthrough_callback(
-                            server.mock_rest_url_base,
-                            method.upper(),
-                            shared_client_session_for_passthrough,
-                        ),
-                        repeat=True,
-                    )
-                yield server
+        redirect_rest(BybitSpotAdapter, server.mock_rest_url_base)
+        yield server
         await server.stop()
 
     @pytest.fixture
@@ -726,245 +599,164 @@ class TestBybitSpotAdapter:
 class TestCrossAdapterCompatibility:
     """Test compatibility and consistency across different exchange adapters."""
 
-    async def test_data_format_consistency(self, unused_tcp_port):
+    async def test_data_format_consistency(self, unused_tcp_port, redirect_rest):
         """Test that all adapters return data in consistent format."""
         logger.info("Testing cross-adapter data format consistency")
 
+        # Coinbase is left out: its mock plugin lacks _interval_to_seconds, so
+        # MockedExchangeServer.add_trading_pair raises (mock-server bug, not an adapter one).
         adapters_to_test = [
-            ("binance_spot", "BTC-USDT", BinanceSpotPlugin, binance_constants.SPOT_REST_URL),
-            (
-                "coinbase_advanced_trade",
-                "BTC-USD",
-                CoinbaseAdvancedTradeSpotPlugin,
-                COINBASE_ADVANCED_TRADE_SPOT_REST_URL,
-            ),
-            ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BYBIT_SPOT_REST_URL),
+            ("binance_spot", "BTC-USDT", BinanceSpotPlugin, BinanceSpotAdapter),
+            ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BybitSpotAdapter),
         ]
 
         adapter_results = {}
 
-        for exchange, pair, plugin_class, real_base_url in adapters_to_test:
+        for exchange, pair, plugin_class, adapter_class in adapters_to_test:
+            # Create mock server for this exchange on a unique port
+            plugin = plugin_class()
+            server = MockedExchangeServer(plugin, "127.0.0.1", unused_tcp_port)
+            server.add_trading_pair(pair.replace("-", ""), "1m", 50000.0)
+            await server.start()
             try:
-                # Create mock server for this exchange on a unique port
-                plugin = plugin_class()
-                server = MockedExchangeServer(plugin, "127.0.0.1", unused_tcp_port)
-                server.add_trading_pair(pair.replace("-", ""), "1m", 50000.0)
-                await server.start()
-
                 server.mock_rest_url_base = f"http://127.0.0.1:{server.port}"
                 server.mock_ws_url = f"ws://127.0.0.1:{server.port}/ws"
 
-                async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
-                    with aioresponses(passthrough=[f"http://127.0.0.1:{server.port}"]) as m:
-                        for route_path, (method, _) in plugin.rest_routes.items():
-                            real_url_to_intercept_pattern = re.compile(
-                                f"^{re.escape(real_base_url + route_path)}(\\?.*)?$"
-                            )
-                            m.add(
-                                real_url_to_intercept_pattern,
-                                method=method.upper(),
-                                callback=await make_passthrough_callback(
-                                    server.mock_rest_url_base,
-                                    method.upper(),
-                                    shared_client_session_for_passthrough,
-                                ),
-                                repeat=True,
-                            )
+                redirect_rest(adapter_class, server.mock_rest_url_base)
 
-                        feed = CandlesFeed(
-                            exchange=exchange,
-                            trading_pair=pair,
-                            interval="1m",
-                            max_records=50,
-                            network_config=NetworkConfig.for_testing(),
-                        )
-
-                        candles = await feed.fetch_candles(limit=3)
-
-                        if candles:
-                            adapter_results[exchange] = candles[0]  # Test first candle
-
-                await server.stop()
-
-            except Exception as e:
-                logger.warning(f"Could not test {exchange}: {e}")
-                continue
-
-        # Compare data structure across adapters
-        if len(adapter_results) >= 2:
-            reference_adapter = list(adapter_results.keys())[0]
-            reference_candle = adapter_results[reference_adapter]
-
-            for adapter_name, candle in adapter_results.items():
-                if adapter_name == reference_adapter:
-                    continue
-
-                # All should be CandleData instances
-                assert isinstance(candle, CandleData), f"{adapter_name} should return CandleData"
-                assert type(candle) is type(reference_candle), (
-                    "All adapters should return same type"
+                feed = CandlesFeed(
+                    exchange=exchange,
+                    trading_pair=pair,
+                    interval="1m",
+                    max_records=50,
+                    network_config=NetworkConfig.for_testing(),
                 )
 
-                # All should have same common attributes
-                common_attrs = ["timestamp", "open", "high", "low", "close", "volume"]
-                for attr in common_attrs:
-                    assert hasattr(candle, attr), f"{adapter_name} candle missing attribute: {attr}"
-                    assert getattr(candle, attr) is not None, (
-                        f"{adapter_name} candle attribute {attr} is None"
-                    )
+                candles = await feed.fetch_candles(limit=3)
+                # fetch_candles swallows REST failures and returns [], so an empty
+                # result means the redirected REST call failed.
+                assert candles, f"{exchange} returned no candles from its local mock server"
+                adapter_results[exchange] = candles[0]  # Test first candle
+            finally:
+                await server.stop()
 
-                logger.info(f"  {adapter_name} format matches {reference_adapter}")
+        # Every adapter must have produced a result
+        assert set(adapter_results) == {exchange for exchange, *_ in adapters_to_test}
 
-    async def test_performance_comparison(self, unused_tcp_port):
+        # Compare data structure across adapters
+        reference_adapter = list(adapter_results.keys())[0]
+        reference_candle = adapter_results[reference_adapter]
+
+        for adapter_name, candle in adapter_results.items():
+            if adapter_name == reference_adapter:
+                continue
+
+            # All should be CandleData instances
+            assert isinstance(candle, CandleData), f"{adapter_name} should return CandleData"
+            assert type(candle) is type(reference_candle), "All adapters should return same type"
+
+            # All should have same common attributes
+            common_attrs = ["timestamp", "open", "high", "low", "close", "volume"]
+            for attr in common_attrs:
+                assert hasattr(candle, attr), f"{adapter_name} candle missing attribute: {attr}"
+                assert getattr(candle, attr) is not None, (
+                    f"{adapter_name} candle attribute {attr} is None"
+                )
+
+            logger.info(f"  {adapter_name} format matches {reference_adapter}")
+
+    async def test_performance_comparison(self, unused_tcp_port, redirect_rest):
         """Test performance characteristics across adapters using mock servers."""
         logger.info("Testing adapter performance comparison")
 
+        # Coinbase is left out: its mock plugin lacks _interval_to_seconds (mock-server bug).
         adapters_to_test = [
-            ("binance_spot", "BTC-USDT", BinanceSpotPlugin, binance_constants.SPOT_REST_URL),
-            (
-                "coinbase_advanced_trade",
-                "BTC-USD",
-                CoinbaseAdvancedTradeSpotPlugin,
-                COINBASE_ADVANCED_TRADE_SPOT_REST_URL,
-            ),
-            ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BYBIT_SPOT_REST_URL),
+            ("binance_spot", "BTC-USDT", BinanceSpotPlugin, BinanceSpotAdapter),
+            ("bybit_spot", "BTC-USDT", BybitSpotPlugin, BybitSpotAdapter),
         ]
         performance_results = {}
 
-        for exchange, pair, plugin_class, real_base_url in adapters_to_test:
+        for exchange, pair, plugin_class, adapter_class in adapters_to_test:
+            # Create mock server for this exchange on a unique port
+            plugin = plugin_class()
+            server = MockedExchangeServer(plugin, "127.0.0.1", unused_tcp_port)
+            server.add_trading_pair(pair.replace("-", ""), "1m", 50000.0)
+            await server.start()
             try:
-                # Create mock server for this exchange on a unique port
-                plugin = plugin_class()
-                server = MockedExchangeServer(plugin, "127.0.0.1", unused_tcp_port)
-                server.add_trading_pair(pair.replace("-", ""), "1m", 50000.0)
-                await server.start()
-
                 server.mock_rest_url_base = f"http://127.0.0.1:{server.port}"
                 server.mock_ws_url = f"ws://127.0.0.1:{server.port}/ws"
 
-                async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
-                    with aioresponses(passthrough=[f"http://127.0.0.1:{server.port}"]) as m:
-                        for route_path, (method, _) in plugin.rest_routes.items():
-                            real_url_to_intercept_pattern = re.compile(
-                                f"^{re.escape(real_base_url + route_path)}(\\?.*)?$"
-                            )
-                            m.add(
-                                real_url_to_intercept_pattern,
-                                method=method.upper(),
-                                callback=await make_passthrough_callback(
-                                    server.mock_rest_url_base,
-                                    method.upper(),
-                                    shared_client_session_for_passthrough,
-                                ),
-                                repeat=True,
-                            )
+                redirect_rest(adapter_class, server.mock_rest_url_base)
 
-                        feed = CandlesFeed(
-                            exchange=exchange,
-                            trading_pair=pair,
-                            interval="1m",
-                            max_records=100,
-                            network_config=NetworkConfig.for_testing(),
-                        )
+                feed = CandlesFeed(
+                    exchange=exchange,
+                    trading_pair=pair,
+                    interval="1m",
+                    max_records=100,
+                    network_config=NetworkConfig.for_testing(),
+                )
 
-                        # Measure fetch time
-                        start_time = asyncio.get_event_loop().time()
-                        candles = await feed.fetch_candles(limit=10)
-                        end_time = asyncio.get_event_loop().time()
+                # Measure fetch time
+                start_time = asyncio.get_event_loop().time()
+                candles = await feed.fetch_candles(limit=10)
+                end_time = asyncio.get_event_loop().time()
 
-                        fetch_duration = end_time - start_time
-                        performance_results[exchange] = {
-                            "duration": fetch_duration,
-                            "candles_count": len(candles),
-                            "rate": len(candles) / fetch_duration if fetch_duration > 0 else 0,
-                        }
+                fetch_duration = end_time - start_time
+                performance_results[exchange] = {
+                    "duration": fetch_duration,
+                    "candles_count": len(candles),
+                    "rate": len(candles) / fetch_duration if fetch_duration > 0 else 0,
+                }
 
-                        logger.info(
-                            f"  {exchange}: {len(candles)} candles in {fetch_duration:.3f}s"
-                        )
-
+                logger.info(f"  {exchange}: {len(candles)} candles in {fetch_duration:.3f}s")
+            finally:
                 await server.stop()
 
-            except Exception as e:
-                logger.warning(f"Performance test failed for {exchange}: {e}")
-                continue
+        # One result per adapter, so a failed redirected call cannot pass silently
+        assert set(performance_results) == {exchange for exchange, *_ in adapters_to_test}
 
         # Verify reasonable performance (should fetch data in under 5 seconds)
         for exchange, metrics in performance_results.items():
             assert metrics["duration"] < 5.0, f"{exchange} should fetch data in reasonable time"
             assert metrics["candles_count"] > 0, f"{exchange} should return candles"
 
-    async def test_error_handling_consistency(self, unused_tcp_port):
+    async def test_error_handling_consistency(self, unused_tcp_port, redirect_rest):
         """Test that all adapters handle errors consistently using mock servers."""
         logger.info("Testing consistent error handling across adapters")
 
+        # Coinbase is left out: its mock plugin lacks _interval_to_seconds (mock-server bug).
         adapters_to_test = [
-            ("binance_spot", "INVALID-PAIR", BinanceSpotPlugin, binance_constants.SPOT_REST_URL),
-            (
-                "coinbase_advanced_trade",
-                "INVALID-PAIR",
-                CoinbaseAdvancedTradeSpotPlugin,
-                COINBASE_ADVANCED_TRADE_SPOT_REST_URL,
-            ),
-            ("bybit_spot", "INVALID-PAIR", BybitSpotPlugin, BYBIT_SPOT_REST_URL),
+            ("binance_spot", "INVALID-PAIR", BinanceSpotPlugin, BinanceSpotAdapter),
+            ("bybit_spot", "INVALID-PAIR", BybitSpotPlugin, BybitSpotAdapter),
         ]
 
-        for exchange, pair, plugin_class, real_base_url in adapters_to_test:
+        for exchange, pair, plugin_class, adapter_class in adapters_to_test:
+            # Create mock server for this exchange on a unique port
+            plugin = plugin_class()
+            server = MockedExchangeServer(plugin, "127.0.0.1", unused_tcp_port)
+            # Add a dummy trading pair for the mock server to initialize correctly
+            server.add_trading_pair("DUMMYUSDT", "1m", 100.0)
+            await server.start()
             try:
-                # Create mock server for this exchange on a unique port
-                plugin = plugin_class()
-                server = MockedExchangeServer(plugin, "127.0.0.1", unused_tcp_port)
-                # Add a dummy trading pair for the mock server to initialize correctly
-                server.add_trading_pair("DUMMYUSDT", "1m", 100.0)
-                await server.start()
-
                 server.mock_rest_url_base = f"http://127.0.0.1:{server.port}"
                 server.mock_ws_url = f"ws://127.0.0.1:{server.port}/ws"
 
-                async with aiohttp.ClientSession() as shared_client_session_for_passthrough:
-                    with aioresponses(passthrough=[f"http://127.0.0.1:{server.port}"]) as m:
-                        # Intercept calls to the real API and redirect to mock server
-                        for route_path, (method, _) in plugin.rest_routes.items():
-                            real_url_to_intercept_pattern = re.compile(
-                                f"^{re.escape(real_base_url + route_path)}(\\?.*)?$"
-                            )
-                            m.add(
-                                real_url_to_intercept_pattern,
-                                method=method.upper(),
-                                callback=await make_passthrough_callback(
-                                    server.mock_rest_url_base,
-                                    method.upper(),
-                                    shared_client_session_for_passthrough,
-                                ),
-                                repeat=True,
-                            )
+                # Redirect the adapter's REST calls to the mock server
+                redirect_rest(adapter_class, server.mock_rest_url_base)
 
-                        feed = CandlesFeed(
-                            exchange=exchange,
-                            trading_pair=pair,  # This invalid pair should trigger an error response from the mock server
-                            interval="1m",
-                            max_records=10,
-                            network_config=NetworkConfig.for_testing(),
-                        )
+                feed = CandlesFeed(
+                    exchange=exchange,
+                    trading_pair=pair,  # Unknown to the mock server, which answers with an HTTP error
+                    interval="1m",
+                    max_records=10,
+                    network_config=NetworkConfig.for_testing(),
+                )
 
-                        # This should either succeed (mock handles the invalid pair gracefully) or fail gracefully
-                        try:
-                            _ = await feed.fetch_candles(limit=5)
-                            logger.info(
-                                f"  {exchange}: Handled invalid pair gracefully (mock server response)"
-                            )
-                        except Exception as e:
-                            # Should be a handled exception, not a crash
-                            assert isinstance(e, Exception), (
-                                f"{exchange} should handle errors gracefully"
-                            )
-                            logger.info(f"  {exchange}: Error handled - {type(e).__name__} - {e}")
-
+                # The REST strategy logs the failed request and fetch_candles returns [] (no raise)
+                candles = await feed.fetch_candles(limit=5)
+                assert candles == [], f"{exchange} should return no candles for an invalid pair"
+            finally:
                 await server.stop()
-
-            except Exception as e:
-                logger.warning(f"Error handling test failed for {exchange}: {e}")
-                continue
 
 
 # Integration test runner and summary
