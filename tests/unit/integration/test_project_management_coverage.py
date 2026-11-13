@@ -7,7 +7,6 @@ import json
 import re
 
 import pytest
-from aioresponses import aioresponses
 
 from candles_feed.integration import project_management as pm
 from candles_feed.integration.project_management import (
@@ -51,6 +50,64 @@ def logger(mocker):
     return mocker.Mock()
 
 
+class _FakeHttp:
+    """Stands in for ``aiohttp.ClientSession`` where the GitHub URL is hard-coded."""
+
+    def __init__(self, status=200, payload=None, exception=None):
+        self.status = status
+        self.payload = payload
+        self.exception = exception
+        self.calls = []
+
+    # ``aiohttp.ClientSession()`` returns the fake itself, usable as a context manager.
+    def __call__(self, *args, **kwargs):
+        return self
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc_info):
+        return False
+
+    def get(self, url, **kwargs):
+        return self._call("GET", url, kwargs)
+
+    def patch(self, url, **kwargs):
+        return self._call("PATCH", url, kwargs)
+
+    def _call(self, method, url, kwargs):
+        self.calls.append((method, url, kwargs))
+        return _FakeCall(self)
+
+    async def json(self):
+        return self.payload
+
+
+class _FakeCall:
+    def __init__(self, http):
+        self._http = http
+
+    async def __aenter__(self):
+        if self._http.exception is not None:
+            raise self._http.exception
+        return self._http
+
+    async def __aexit__(self, *exc_info):
+        return False
+
+
+@pytest.fixture
+def fake_http(monkeypatch):
+    """Install a configurable fake ``aiohttp.ClientSession`` in project_management."""
+
+    def _install(**kwargs):
+        http = _FakeHttp(**kwargs)
+        monkeypatch.setattr(pm.aiohttp, "ClientSession", http)
+        return http
+
+    return _install
+
+
 class TestDataclasses:
     def test_task_defaults(self):
         t = Task("1", "t", "d", TaskStatus.PENDING, TaskPriority.LOW)
@@ -86,7 +143,7 @@ class TestGitHubSync:
         gh = GitHubProjectsIntegration(ProjectManagementConfig())
         assert gh.logger.name == pm.__name__
 
-    async def test_sync_maps_issues(self, logger):
+    async def test_sync_maps_issues(self, logger, fake_http):
         issues = [
             _issue(
                 state="closed",
@@ -98,11 +155,11 @@ class TestGitHubSync:
             _issue(number=10, assignee=None),
         ]
         gh = GitHubProjectsIntegration(_gh_config(), logger)
-        with aioresponses() as m:
-            m.get(ISSUES_URL, payload=issues)
-            tasks = await gh.sync_tasks()
-            (call,) = next(iter(m.requests.values()))
-            assert call.kwargs["headers"]["Authorization"] == "Bearer tok"
+        http = fake_http(payload=issues)
+        tasks = await gh.sync_tasks()
+        ((method, url, kwargs),) = http.calls
+        assert (method, url) == ("GET", ISSUES_URL)
+        assert kwargs["headers"]["Authorization"] == "Bearer tok"
 
         assert [t.id for t in tasks] == ["7", "8", "9", "10"]
         assert tasks[0].status is TaskStatus.DONE
@@ -121,18 +178,16 @@ class TestGitHubSync:
         assert tasks[3].priority is TaskPriority.MEDIUM
         logger.debug.assert_called_once()
 
-    async def test_sync_non_200_logs_error(self, logger):
+    async def test_sync_non_200_logs_error(self, logger, fake_http):
         gh = GitHubProjectsIntegration(_gh_config(), logger)
-        with aioresponses() as m:
-            m.get(ISSUES_URL, status=403)
-            assert await gh.sync_tasks() == []
+        fake_http(status=403)
+        assert await gh.sync_tasks() == []
         assert "403" in logger.error.call_args.args[0]
 
-    async def test_sync_exception_is_logged_and_swallowed(self, logger):
+    async def test_sync_exception_is_logged_and_swallowed(self, logger, fake_http):
         gh = GitHubProjectsIntegration(_gh_config(), logger)
-        with aioresponses() as m:
-            m.get(ISSUES_URL, exception=RuntimeError("net down"))
-            assert await gh.sync_tasks() == []
+        fake_http(exception=RuntimeError("net down"))
+        assert await gh.sync_tasks() == []
         assert "net down" in logger.error.call_args.args[0]
 
 
@@ -150,26 +205,24 @@ class TestGitHubUpdate:
             (TaskStatus.IN_PROGRESS, "open"),
         ],
     )
-    async def test_success_sends_mapped_state(self, logger, status, state):
+    async def test_success_sends_mapped_state(self, logger, fake_http, status, state):
         gh = GitHubProjectsIntegration(_gh_config(), logger)
-        with aioresponses() as m:
-            m.patch(ISSUE_URL, status=200)
-            assert await gh.update_task_status("7", status) is True
-            (call,) = next(iter(m.requests.values()))
-            assert call.kwargs["json"] == {"state": state}
+        http = fake_http(status=200)
+        assert await gh.update_task_status("7", status) is True
+        ((method, url, kwargs),) = http.calls
+        assert (method, url) == ("PATCH", ISSUE_URL)
+        assert kwargs["json"] == {"state": state}
 
-    async def test_failure_status(self, logger):
+    async def test_failure_status(self, logger, fake_http):
         gh = GitHubProjectsIntegration(_gh_config(), logger)
-        with aioresponses() as m:
-            m.patch(ISSUE_URL, status=422)
-            assert await gh.update_task_status("7", TaskStatus.DONE) is False
+        fake_http(status=422)
+        assert await gh.update_task_status("7", TaskStatus.DONE) is False
         assert "422" in logger.error.call_args.args[0]
 
-    async def test_exception(self, logger):
+    async def test_exception(self, logger, fake_http):
         gh = GitHubProjectsIntegration(_gh_config(), logger)
-        with aioresponses() as m:
-            m.patch(ISSUE_URL, exception=RuntimeError("boom"))
-            assert await gh.update_task_status("7", TaskStatus.DONE) is False
+        fake_http(exception=RuntimeError("boom"))
+        assert await gh.update_task_status("7", TaskStatus.DONE) is False
         assert "boom" in logger.error.call_args.args[0]
 
 

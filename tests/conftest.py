@@ -2,13 +2,17 @@
 Global test fixtures and configuration for the Candles Feed framework tests.
 """
 
+import inspect
 import logging
 import os
 from collections import deque
 from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
+from urllib.parse import urlsplit
 
 import pytest
+from aiohttp import web
+from aiohttp.test_utils import TestServer
 
 from candles_feed.adapters.protocols import AdapterProtocol
 from candles_feed.core.candle_data import CandleData
@@ -161,6 +165,90 @@ def unused_tcp_port():
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
     return port
+
+
+class ServedGet:
+    """Canned GET responses served by a real local aiohttp server."""
+
+    def __init__(self) -> None:
+        self.url = ""
+        self.requests: list[web.Request] = []
+        self._routes: list[dict] = []
+
+    def add(
+        self,
+        path: str,
+        payload=None,
+        *,
+        status: int = 200,
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+        query: dict[str, str] | None = None,
+        disconnect: bool = False,
+    ) -> None:
+        """Register a response for GET ``path`` (optionally only when ``query`` matches).
+
+        ``disconnect=True`` drops the connection instead of answering.
+        """
+        self._routes.append(
+            {
+                "path": path,
+                "payload": payload,
+                "status": status,
+                "headers": headers,
+                "body": body,
+                "query": query or {},
+                "disconnect": disconnect,
+            }
+        )
+
+    async def handle(self, request: web.Request) -> web.StreamResponse:
+        self.requests.append(request)
+        for route in self._routes:
+            if route["path"] != request.path:
+                continue
+            if any(request.query.get(k) != v for k, v in route["query"].items()):
+                continue
+            if route["disconnect"]:
+                request.transport.close()
+                return web.Response()
+            if route["payload"] is not None:
+                return web.json_response(
+                    route["payload"], status=route["status"], headers=route["headers"]
+                )
+            return web.Response(
+                text=route["body"], status=route["status"], headers=route["headers"]
+            )
+        return web.Response(status=404, text="no canned response")
+
+
+@pytest.fixture
+async def serve_get():
+    """Start a local aiohttp server answering GETs from ``serve_get.add(...)`` routes."""
+    served = ServedGet()
+    app = web.Application()
+    app.router.add_get("/{tail:.*}", served.handle)
+    server = TestServer(app)
+    await server.start_server()
+    served.url = str(server.make_url("")).rstrip("/")
+    yield served
+    await server.close()
+
+
+@pytest.fixture
+def redirect_rest(monkeypatch):
+    """Point an adapter class's REST URL at a local server, keeping the real URL path."""
+
+    def _redirect(adapter_cls: type, local_base_url: str) -> None:
+        original = inspect.getattr_static(adapter_cls, "_get_rest_url")
+
+        def _get_rest_url(*args):
+            real = original.__func__() if isinstance(original, staticmethod) else original(*args)
+            return f"{local_base_url.rstrip('/')}{urlsplit(real).path}"
+
+        monkeypatch.setattr(adapter_cls, "_get_rest_url", _get_rest_url)
+
+    return _redirect
 
 
 # Mock exchange server fixtures

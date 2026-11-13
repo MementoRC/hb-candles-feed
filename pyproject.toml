@@ -24,11 +24,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    # aioresponses 0.7.8 lacks the stream_writer kwarg required by aiohttp>=3.12
-    # (ABI break in integration-test mocks). Keep <3.12 in sync with the
-    # [tool.pixi.dependencies] pin until aioresponses ships a fix.
-    # Upstream: https://github.com/pnuckowski/aioresponses/issues/289
-    "aiohttp>=3.8.0,<3.12",
+    "aiohttp>=3.8.0",
     "ccxt",
     # ADR 0001 Group D (issue #78): canonical structured-logging sub-package,
     # replacing the bespoke StructuredLogger/MonitoringManager/JSONFormatter
@@ -92,10 +88,7 @@ ccxt-py = "*"
 numpy = ">=1.20.0"
 pandas = ">=1.0.0"
 pydantic = ">=2"
-# aioresponses 0.7.8 is incompatible with aiohttp>=3.12 (stream_writer ABI break).
-# Pin aiohttp below 3.12 until aioresponses releases a compatible version.
-# Upstream issue: https://github.com/pnuckowski/aioresponses/issues/289
-aiohttp = ">=3.8.0,<3.12"
+aiohttp = ">=3.8.0"
 
 # Conda-first gate (scripts/check_conda_first.py): PyPI name -> conda-forge name,
 # only where the two differ beyond case and "-"/"_".
@@ -143,7 +136,6 @@ mkdocstrings = ">=0.18.0"
 pymdown-extensions = ">=8.0.0"
 
 [tool.pixi.feature.dev.dependencies]
-aioresponses = ">=0.7.0"
 pre-commit = ">=2.15.0"
 pytest = ">=7.0.0,<9.1"
 pytest-aiohttp = ">=1.1.0"
@@ -179,6 +171,8 @@ types-setuptools = "*"
 [tool.pixi.feature.quality-extended.dependencies]
 bandit = ">=1.8.0"
 pip-audit = "*"
+# pip-audit's cache imports filelock, but the conda-forge pip-audit package does not depend on it
+filelock = "*"
 
 [tool.pixi.feature.quality-extended.tasks]
 security-scan = "bandit -c pyproject.toml -r candles_feed/"

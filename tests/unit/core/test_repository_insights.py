@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, patch
 
 import aiohttp  # Changed from httpx
 import pytest
-from aioresponses import aioresponses
 
 from candles_feed.core.github_metrics import (
     CICDPerformanceSnapshot,
@@ -34,7 +33,11 @@ def collector():
     )
 
 
-# mock_aiohttp_session fixture is removed
+@pytest.fixture
+def served(serve_get, monkeypatch):
+    """Local server standing in for the GitHub API."""
+    monkeypatch.setattr(RepositoryInsightsCollector, "BASE_URL", serve_get.url)
+    return serve_get
 
 
 class TestRepositoryInsightsCollector:
@@ -45,50 +48,42 @@ class TestRepositoryInsightsCollector:
         assert "Authorization" in collector.headers
         assert collector.headers["Authorization"] == f"Bearer {MOCK_TOKEN}"
 
-    async def test_make_request_success(self, collector):
-        with aioresponses() as m:
-            url = f"{collector.BASE_URL}/test_endpoint"
-            m.get(url, payload={"data": "success"}, status=200)
+    async def test_make_request_success(self, collector, served):
+        served.add("/test_endpoint", payload={"data": "success"})
 
+        # Call with client=None to test internal session creation
+        result = await collector._make_request("/test_endpoint", client=None)
+
+        assert result == {"data": "success"}
+        (request,) = served.requests
+        assert request.path == "/test_endpoint"
+        assert request.headers["Authorization"] == collector.headers["Authorization"]
+
+    async def test_make_request_http_error(self, collector, served):
+        served.add("/test_endpoint", status=404, body="Simulated Not Found")
+
+        with pytest.raises(aiohttp.ClientResponseError) as excinfo:
             # Call with client=None to test internal session creation
-            result = await collector._make_request("/test_endpoint", client=None)
+            await collector._make_request("/test_endpoint", client=None)
 
-            assert result == {"data": "success"}
-            m.assert_called_once_with(url, params=None, headers=collector.headers)
+        assert excinfo.value.status == 404
 
-    async def test_make_request_http_error(self, collector):
-        with aioresponses() as m:
-            url = f"{collector.BASE_URL}/test_endpoint"
-            m.get(url, status=404, body="Simulated Not Found")
-
-            with pytest.raises(aiohttp.ClientResponseError) as excinfo:
-                # Call with client=None to test internal session creation
-                await collector._make_request("/test_endpoint", client=None)
-
-            assert excinfo.value.status == 404
-
-    async def test_fetch_paginated_data_success(self, collector):
+    async def test_fetch_paginated_data_success(self, collector, served):
         endpoint = "/paginated_endpoint"
-        base_url = collector.BASE_URL
+        # Page 1
+        served.add(
+            endpoint,
+            payload=[{"id": 1}, {"id": 2}],
+            headers={"Link": f'<{served.url}/resource?page=2>; rel="next"'},
+            query={"per_page": "100", "page": "1"},
+        )
+        # Page 2
+        served.add(endpoint, payload=[{"id": 3}], query={"per_page": "100", "page": "2"})
 
-        with aioresponses() as m:
-            # Page 1
-            m.get(
-                f"{base_url}{endpoint}?per_page=100&page=1",
-                payload=[{"id": 1}, {"id": 2}],
-                headers={"Link": f'<{base_url}/resource?page=2>; rel="next"'},
-                status=200,
-            )
-            # Page 2
-            m.get(f"{base_url}{endpoint}?per_page=100&page=2", payload=[{"id": 3}], status=200)
-
-            # Call with client=None to test internal session creation
-            results = await collector._fetch_paginated_data(endpoint, client=None)
-            assert results == [{"id": 1}, {"id": 2}, {"id": 3}]
-
-            # Verify calls were made (aioresponses tracks calls automatically)
-            # Example: Check call count if needed, though specific params are checked by matching URLs
-            assert len(m.requests) == 2
+        # Call with client=None to test internal session creation
+        results = await collector._fetch_paginated_data(endpoint, client=None)
+        assert results == [{"id": 1}, {"id": 2}, {"id": 3}]
+        assert [r.query["page"] for r in served.requests] == ["1", "2"]
 
     async def test_get_issue_metrics_basic(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
@@ -205,29 +200,19 @@ class TestRepositoryInsightsCollector:
         assert metrics.commits_last_30_days == (10 + 15 + 5 + 20)
         assert metrics.commit_frequency_per_week == (10 + 15 + 5 + 20) / 4
 
-    async def test_get_commit_activity_empty_or_error(self, collector):
-        url = f"{collector.BASE_URL}/repos/{REPO_OWNER}/{REPO_NAME}/stats/commit_activity"
+    @pytest.mark.parametrize(
+        ("status", "payload"),
+        [(202, None), (204, None), (200, [])],
+        ids=["computing", "no-content", "empty-list"],
+    )
+    async def test_get_commit_activity_empty_or_error(self, collector, served, status, payload):
+        path = f"/repos/{REPO_OWNER}/{REPO_NAME}/stats/commit_activity"
+        served.add(path, payload=payload, status=status)
 
-        # Test 202 (computing)
         async with aiohttp.ClientSession(headers=collector.headers) as session:
-            with aioresponses() as m:
-                m.get(url, status=202)
-                metrics = await collector.get_commit_activity(client=session)
-                assert metrics.commits_last_7_days == 0  # Should return default
+            metrics = await collector.get_commit_activity(client=session)
 
-        # Test 204 (no content)
-        async with aiohttp.ClientSession(headers=collector.headers) as session:
-            with aioresponses() as m:
-                m.get(url, status=204)
-                metrics = await collector.get_commit_activity(client=session)
-                assert metrics.commits_last_7_days == 0
-
-        # Test empty list response
-        async with aiohttp.ClientSession(headers=collector.headers) as session:
-            with aioresponses() as m:
-                m.get(url, payload=[])
-                metrics = await collector.get_commit_activity(client=session)
-                assert metrics.commits_last_7_days == 0
+        assert metrics.commits_last_7_days == 0  # Should return default
 
     async def test_get_release_metrics_success(self, collector):
         async with aiohttp.ClientSession() as session:  # Create a real session
