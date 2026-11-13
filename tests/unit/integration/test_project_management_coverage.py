@@ -340,7 +340,7 @@ class TestWebhookLifecycle:
 
         await h.start()
         runner.setup.assert_awaited_once()
-        site_cls.assert_called_once_with(runner, "0.0.0.0", 9999)
+        site_cls.assert_called_once_with(runner, "127.0.0.1", 9999)
         site.start.assert_awaited_once()
         routes = [r.resource.canonical for r in h._app.router.routes() if r.method == "POST"]
         assert routes == ["/webhook/project-management"]
@@ -349,6 +349,38 @@ class TestWebhookLifecycle:
         runner.cleanup.assert_awaited_once()
         assert h._runner is None
         assert h._app is None
+
+    def test_default_webhook_host_is_loopback(self):
+        assert ProjectManagementConfig().webhook_host == "127.0.0.1"
+
+    async def test_explicit_webhook_host_honored(self, mocker, logger):
+        runner = mocker.Mock(setup=mocker.AsyncMock(), cleanup=mocker.AsyncMock())
+        mocker.patch.object(pm.web, "AppRunner", return_value=runner)
+        site = mocker.Mock(start=mocker.AsyncMock())
+        site_cls = mocker.patch.object(pm.web, "TCPSite", return_value=site)
+        cfg = ProjectManagementConfig(
+            webhook_host="10.1.2.3", webhook_port=9999, webhook_secret="s3cret"
+        )
+        await WebhookHandler(cfg, logger=logger).start()
+        site_cls.assert_called_once_with(runner, "10.1.2.3", 9999)
+
+    @pytest.mark.parametrize("host", ["0.0.0.0", "10.1.2.3", "example.com"])
+    async def test_non_loopback_without_secret_refused(self, mocker, logger, host):
+        runner_cls = mocker.patch.object(pm.web, "AppRunner")
+        cfg = ProjectManagementConfig(webhook_host=host)
+        with pytest.raises(ValueError, match="webhook_secret"):
+            await WebhookHandler(cfg, logger=logger).start()
+        runner_cls.assert_not_called()
+
+    @pytest.mark.parametrize("host", ["127.0.0.1", "::1", "localhost"])
+    async def test_loopback_without_secret_starts(self, mocker, logger, host):
+        runner = mocker.Mock(setup=mocker.AsyncMock(), cleanup=mocker.AsyncMock())
+        mocker.patch.object(pm.web, "AppRunner", return_value=runner)
+        site = mocker.Mock(start=mocker.AsyncMock())
+        mocker.patch.object(pm.web, "TCPSite", return_value=site)
+        cfg = ProjectManagementConfig(webhook_host=host, webhook_port=9999)
+        await WebhookHandler(cfg, logger=logger).start()
+        site.start.assert_awaited_once()
 
     async def test_start_failure_reraises(self, mocker, logger):
         runner = mocker.Mock(setup=mocker.AsyncMock(side_effect=OSError("in use")))

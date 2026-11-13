@@ -39,6 +39,8 @@ services:
       - monitoring_net
     # This is an example command. Users should replace it with their actual app entrypoint.
     # It starts the metrics server for demonstration purposes.
+    # host="0.0.0.0" is an explicit opt-in: the library default is 127.0.0.1, which
+    # Prometheus could not scrape across the bridge network.
     command: >
       python -c "
       import asyncio, time
@@ -47,7 +49,7 @@ services:
 
       async def main():
           collector = MetricsCollector()
-          await start_http_server(collector, port=8080)
+          await start_http_server(collector, host='0.0.0.0', port=8080)
           # Simulate metric changes
           while True:
               collector.record_request_started()

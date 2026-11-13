@@ -38,12 +38,13 @@ async def metrics_handler(request: web.Request) -> web.Response:
 
 
 async def start_http_server(
-    collector: MetricsCollector, host: str = "0.0.0.0", port: int = 8080
+    collector: MetricsCollector, host: str = "127.0.0.1", port: int = 8080
 ) -> web.AppRunner:
     """Start an aiohttp server to expose Prometheus metrics.
 
     :param collector: The MetricsCollector instance to export from.
-    :param host: The host to bind the server to.
+    :param host: The host to bind the server to (default loopback; pass "0.0.0.0" to opt in
+        to all interfaces).
     :param port: The port to bind the server to.
     :return: The aiohttp AppRunner for the server.
     """

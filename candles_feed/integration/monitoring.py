@@ -31,6 +31,7 @@ class MonitoringIntegrationConfig:
     external_endpoints: dict[str, str] = field(default_factory=dict)
     check_interval_seconds: float = 30.0
     timeout_seconds: float = 10.0
+    bind_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
 
 
 class PrometheusMetricsExporter:
@@ -163,7 +164,7 @@ class PrometheusMetricsExporter:
             self._runner = web.AppRunner(self._app)
             await self._runner.setup()
 
-            site = web.TCPSite(self._runner, "0.0.0.0", self.config.prometheus_port)
+            site = web.TCPSite(self._runner, self.config.bind_host, self.config.prometheus_port)
             await site.start()
 
             self.logger.info(
@@ -291,7 +292,7 @@ class HealthCheckServer:
             self._runner = web.AppRunner(self._app)
             await self._runner.setup()
 
-            site = web.TCPSite(self._runner, "0.0.0.0", self.config.health_check_port)
+            site = web.TCPSite(self._runner, self.config.bind_host, self.config.health_check_port)
             await site.start()
 
             self.logger.info(

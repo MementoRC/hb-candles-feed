@@ -76,6 +76,36 @@ class TestStartHttpServer:
         assert created["setup"] and created["started"]
         assert "127.0.0.1:0/metrics" in capsys.readouterr().out
 
+    def test_default_host_is_loopback(self):
+        import inspect
+
+        sig = inspect.signature(http_server.start_http_server)
+        assert sig.parameters["host"].default == "127.0.0.1"
+
+    async def test_default_and_explicit_host(self, monkeypatch):
+        hosts = []
+
+        class FakeRunner:
+            def __init__(self, app):
+                pass
+
+            async def setup(self):
+                pass
+
+        class FakeSite:
+            def __init__(self, runner, host, port):
+                hosts.append(host)
+
+            async def start(self):
+                pass
+
+        monkeypatch.setattr(http_server.web, "AppRunner", FakeRunner)
+        monkeypatch.setattr(http_server.web, "TCPSite", FakeSite)
+        monkeypatch.setattr(http_server, "PrometheusExporter", MagicMock)
+        await http_server.start_http_server(MagicMock())
+        await http_server.start_http_server(MagicMock(), host="10.1.2.3")
+        assert hosts == ["127.0.0.1", "10.1.2.3"]
+
     @pytest.mark.skipif(
         not http_server.PROMETHEUS_AVAILABLE, reason="prometheus_client not available"
     )

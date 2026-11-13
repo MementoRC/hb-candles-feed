@@ -9,6 +9,7 @@ import asyncio
 import contextlib
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 from collections.abc import Callable
@@ -20,6 +21,16 @@ import aiohttp
 from aiohttp import web
 
 from candles_feed.core.protocols import Logger
+
+
+def _is_loopback_host(host: str) -> bool:
+    """Return True if host is localhost or a loopback IP literal."""
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 class TaskStatus(Enum):
@@ -109,6 +120,8 @@ class ProjectManagementConfig:
     # Task mapping configuration
     status_mapping: dict[str, TaskStatus] | None = None
     priority_mapping: dict[str, TaskPriority] | None = None
+
+    webhook_host: str = "127.0.0.1"  # set to "0.0.0.0" explicitly to listen on all interfaces
 
     def __post_init__(self):
         """Initialize default mappings."""
@@ -365,6 +378,12 @@ class WebhookHandler:
             self.logger.debug("Webhook server disabled")
             return
 
+        if not self.config.webhook_secret and not _is_loopback_host(self.config.webhook_host):
+            raise ValueError(
+                f"Refusing to start unauthenticated webhook server on non-loopback host "
+                f"{self.config.webhook_host!r}: set webhook_secret or bind to a loopback host"
+            )
+
         try:
             self._app = web.Application()
             self._app.router.add_post(self.config.webhook_path, self._webhook_handler)
@@ -372,7 +391,7 @@ class WebhookHandler:
             self._runner = web.AppRunner(self._app)
             await self._runner.setup()
 
-            site = web.TCPSite(self._runner, "0.0.0.0", self.config.webhook_port)
+            site = web.TCPSite(self._runner, self.config.webhook_host, self.config.webhook_port)
             await site.start()
 
             self.logger.info(
