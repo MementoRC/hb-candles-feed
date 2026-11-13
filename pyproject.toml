@@ -31,9 +31,9 @@ dependencies = [
     # stack in candles_feed/core/monitoring.py. Git-pinned (not a published
     # wheel), following the hb-event-bus precedent (Group D Target 1).
     "hb-logger @ git+https://github.com/MementoRC/hb-logger.git@v0.2.0",
-    # v0.4.1 (signed tag). Same tag hb-web-assistant pins, so the `test-hb` env
+    # v0.5.0 (signed tag). Same tag hb-web-assistant pins, so the `test-hb` env
     # resolves one hb-rate-limit instead of two conflicting git refs.
-    "hb-rate-limit @ git+https://github.com/MementoRC/hb-rate-limit.git@v0.4.1",
+    "hb-rate-limit @ git+https://github.com/MementoRC/hb-rate-limit.git@v0.5.0",  # spec range >=0.5.0,<0.6
     "numpy>=1.20.0",
     "pandas>=1.0.0",
     "pydantic>=2",
@@ -209,7 +209,7 @@ test-parity = "pytest tests/unit/core/test_data_processor_parity.py -v"
 ujson = "*"
 
 [tool.pixi.feature.hb-web-assistant.pypi-dependencies]
-hb-web-assistant = { git = "https://github.com/MementoRC/hb-web-assistant.git", tag = "v0.1.1" }
+hb-web-assistant = { git = "https://github.com/MementoRC/hb-web-assistant.git", tag = "v0.1.2" }
 
 [tool.pixi.feature.hb-web-assistant.tasks]
 test-hb = "pytest tests/unit/hb_compat/test_throttler_bridge.py tests/unit/core/test_rate_limit_backoff.py tests/integration/test_rate_limit_backoff_integration.py tests/integration/test_compatibility.py -m 'not live and not slow'"
