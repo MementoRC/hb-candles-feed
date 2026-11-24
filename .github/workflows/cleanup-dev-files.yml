@@ -27,10 +27,13 @@ on:
         required: false
         default: 'disabled'
 
+permissions:
+  contents: read
+
 jobs:
   cleanup:
     if: false
-    uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@0ca97504ab812f21c3ae45411423f8675f8188e6 # v4.4.1
+    uses: Claire-s-Monster/ci-framework/.github/workflows/cleanup-dev-files.yml@b1ae948fdca0c35d8ec8fa0e432cb85cf1543b8b # v5.1.1
     with:
       target_branches: >-
         ${{
